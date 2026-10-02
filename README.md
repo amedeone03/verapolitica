@@ -181,3 +181,20 @@ root:
 ```bash
 python -m pytest -q
 ```
+
+## End-to-end regression coverage
+
+The E2E suite exercises the MVP across its real application boundaries with a
+mocked official Senato response and temporary SQLite database:
+
+```text
+source data -> ingestion -> bootstrap/matching -> draft + Evidence
+-> review -> publication + citation snapshot -> public API
+```
+
+It also verifies that rejected, stale, unpublished, duplicate-approval, and failed
+publication paths cannot expose unapproved content. Run only these scenarios with:
+
+```bash
+python -m pytest -q tests/e2e
+```

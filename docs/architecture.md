@@ -164,3 +164,26 @@ The central visibility invariant is:
 
 > No public politician profile exists unless it points to an explicitly approved
 > immutable version.
+
+## End-to-end regression boundary
+
+The E2E suite verifies the complete MVP through production service and HTTP
+boundaries, using a mocked Senato HTTP response, real parser and mapper, temporary
+raw storage, and a temporary SQLite database:
+
+```text
+Senato collector response
+  -> IngestionPipeline
+  -> CandidateProfile
+  -> PoliticianBootstrapService + MatchingService
+  -> DraftService + Evidence
+  -> Admin API review and approval
+  -> PublishService transaction + immutable citations
+  -> Public API
+```
+
+The happy path asserts that pending and in-review data remains invisible, then
+becomes public only after explicit approval. Safety scenarios cover rejection,
+double approval, stale baselines, citation-insert rollback, and internal identities
+without a published current-version pointer. No E2E test contacts the live Senato
+service or depends on developer configuration or test ordering.
