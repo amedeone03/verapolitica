@@ -42,6 +42,7 @@ from backend.app.services.review_service import (
     ReviewService,
     ReviewServiceError,
 )
+from backend.app.services.public_politician_service import PublicPoliticianQueryService
 
 __all__ = [
     "BootstrapApplyError",
@@ -67,6 +68,7 @@ __all__ = [
     "PublishPersistenceError",
     "PublishService",
     "PublishServiceError",
+    "PublicPoliticianQueryService",
     "RawDocumentCandidateRebuilder",
     "ReviewConflictError",
     "ReviewInputError",

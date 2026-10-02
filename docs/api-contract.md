@@ -1,4 +1,75 @@
-# Admin API contract
+# HTTP API contract
+
+## Public politician API
+
+Public endpoints are read-only and require no authentication. Their only source of
+profile data is the immutable PoliticianVersion explicitly referenced by
+`Politician.current_version_id`. A row with no current pointer, a missing referenced
+version, or a version without publication metadata is not public.
+
+### `GET /politicians`
+
+Query parameters:
+
+- `offset`: non-negative integer, default 0
+- `limit`: 1–100, default 50
+
+Returns a deterministic, paginated list of current published profiles:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "given_name": "Maria",
+      "family_name": "Rossi",
+      "birth_date": "1970-01-02",
+      "current_version_number": 2,
+      "profile_schema_version": 1,
+      "published_at": "2026-10-02T10:00:00Z",
+      "profile": {
+        "given_name": "Maria",
+        "family_name": "Rossi",
+        "birth_date": "1970-01-02",
+        "birth_place": null,
+        "gender": null,
+        "profession": "Avvocata",
+        "image_url": null,
+        "official_homepage_url": null,
+        "mandates": []
+      }
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "limit": 50
+}
+```
+
+### `GET /politicians/{politician_id}`
+
+Returns the current published projection in the same item shape used by the list.
+It never selects `MAX(version_number)`. A nonexistent Politician or one without a
+valid current published version returns:
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "published politician not found",
+    "details": null
+  }
+}
+```
+
+Public responses deliberately omit ProfileDrafts, Evidence, Reviews, reviewer
+identity, review notes, hashes, storage paths, and supersession data. A curated
+public citation projection is deferred rather than exposing internal Evidence rows.
+
+**Invariant:** No public politician profile exists unless it points to an explicitly
+approved immutable version.
+
+## Admin API
 
 The Admin API is the authenticated HTTP adapter for the existing editorial service
 layer. It does not contain review or publication transactions.

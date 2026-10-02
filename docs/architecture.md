@@ -95,14 +95,18 @@ database uniqueness constraint on `(politician_id, version_number)` and the uniq
 Review per draft are final conflict guards. Any approval failure rolls back the
 Review, version, pointer, and draft status together.
 
-Future, unimplemented stages remain:
+The implemented HTTP projections are separate:
 
 ```text
-immutable PoliticianVersion -> Admin API -> Public API
+Admin:
+official data -> ProfileDraft -> Review -> PublishService approval
+
+Public:
+Politician.current_version_id -> immutable PoliticianVersion -> Public API
 ```
 
-No public API, authentication UI, LLM, scheduling, or background-worker behavior is
-part of the review and publication path.
+No authentication UI, LLM, scheduling, or background-worker behavior is part of
+the review and publication path.
 
 ## Admin API boundary
 
@@ -132,4 +136,23 @@ transaction or duplicate state-transition and publication rules.
 Controlled domain errors use a stable JSON envelope: missing resources become 404,
 stale or terminal decisions become 409, request validation becomes 422, and
 persistence failures become sanitized 500 responses. The health endpoint is public;
-no public politician endpoints exist yet.
+admin authentication remains independent from the public router.
+
+## Public API boundary
+
+The public router is unauthenticated and read-only. Its query service joins a
+Politician directly to the PoliticianVersion named by `current_version_id`; it does
+not inspect drafts or select the greatest version number. The join also confirms
+that the selected version belongs to that Politician and has publication metadata.
+
+Responses validate stored JSON through the existing PoliticianVersionProfile and
+serialize it through dedicated public Pydantic schemas. ORM models are never
+returned. Internal drafts, Review data, Evidence, hashes, storage paths, and admin
+workflow state are absent from the projection. Public source citations remain a
+future, curated projection because internal field-level Evidence is not itself a
+public contract.
+
+The central visibility invariant is:
+
+> No public politician profile exists unless it points to an explicitly approved
+> immutable version.

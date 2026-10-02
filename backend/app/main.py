@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from backend.app.api.admin import router as admin_router
 from backend.app.api.errors import register_exception_handlers
+from backend.app.api.public import router as public_router
 from backend.app.core.config import Settings, get_settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
@@ -31,6 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     application.state.settings = runtime_settings
     register_exception_handlers(application)
+    application.include_router(public_router)
     application.include_router(admin_router)
 
     @application.get("/health", tags=["health"])

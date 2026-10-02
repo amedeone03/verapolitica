@@ -12,10 +12,11 @@ now be compared with their current version and persisted as reviewable ProfileDr
 with field-level Evidence. Explicit human decisions can reject a draft or atomically
 publish it as a new immutable PoliticianVersion.
 
-It does not yet perform LLM extraction, API serving, authentication, or frontend
-rendering. CandidateProfiles are not persisted, normal ingestion never creates
-Politicians, and matching and diffing never mutate the database. Publication is
-only available through an explicit review action.
+It does not perform LLM extraction, citizen authentication, or frontend rendering.
+CandidateProfiles are not persisted, normal ingestion never creates Politicians,
+and matching and diffing never mutate the database. Publication is only available
+through an explicit review action. The read-only public API exposes only the
+immutable version selected by a Politician's current-version pointer.
 
 ## Setup
 
@@ -142,6 +143,21 @@ curl \
 
 The API exposes draft listing, detail, start-review, approval, and rejection. Route
 handlers delegate final actions to ReviewService and PublishService.
+
+## Read the Public API
+
+The public routes require no bearer token:
+
+```bash
+curl "http://127.0.0.1:8000/politicians?offset=0&limit=50"
+curl http://127.0.0.1:8000/politicians/1
+```
+
+Only Politicians whose `current_version_id` references a published immutable
+PoliticianVersion are visible. The API never falls back to the highest version
+number and does not expose drafts, Reviews, Evidence, hashes, or raw storage data.
+Interactive OpenAPI documentation is available at
+`http://127.0.0.1:8000/docs` while Uvicorn is running.
 
 ## Run tests
 
