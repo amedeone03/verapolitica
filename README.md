@@ -171,3 +171,13 @@ python -m pytest
 
 Tests use temporary SQLite databases, mocked HTTP, and temporary raw storage. They
 do not call the live Senato endpoint.
+
+## Continuous integration
+
+GitHub Actions runs the backend test suite automatically for pushes to `main` and
+pull requests targeting `main`. Run the same command locally from the repository
+root:
+
+```bash
+python -m pytest -q
+```
