@@ -1,0 +1,62 @@
+{
+  "head": {
+    "vars": [
+      "senatorUri",
+      "firstName",
+      "lastName",
+      "gender",
+      "birthDate",
+      "birthCity",
+      "birthProvince",
+      "birthCountry",
+      "profession",
+      "photoUrl",
+      "homepage",
+      "mandateUri",
+      "mandateType",
+      "mandateStart",
+      "legislature",
+      "electionRegion"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "senatorUri": {"type": "uri", "value": "https://dati.senato.it/senatore/demo-001"},
+        "firstName": {"type": "literal", "value": "Anna"},
+        "lastName": {"type": "literal", "value": "Rossi"},
+        "gender": {"type": "literal", "value": "female"},
+        "birthDate": {"type": "literal", "value": "1974-03-12"},
+        "birthCity": {"type": "literal", "value": "Roma"},
+        "birthProvince": {"type": "literal", "value": "Roma"},
+        "birthCountry": {"type": "literal", "value": "Italia"},
+        "profession": {"type": "literal", "value": "Avvocata"},
+        "photoUrl": {"type": "uri", "value": "https://www.senato.it/demo/anna-rossi.jpg"},
+        "homepage": {"type": "uri", "value": "https://www.senato.it/demo/anna-rossi"},
+        "mandateUri": {"type": "uri", "value": "https://dati.senato.it/mandato/demo-001-19"},
+        "mandateType": {"type": "literal", "value": "elettivo"},
+        "mandateStart": {"type": "literal", "value": "2022-10-13"},
+        "legislature": {"type": "literal", "value": "19"},
+        "electionRegion": {"type": "literal", "value": "Lazio"}
+      },
+      {
+        "senatorUri": {"type": "uri", "value": "https://dati.senato.it/senatore/demo-002"},
+        "firstName": {"type": "literal", "value": "Luca"},
+        "lastName": {"type": "literal", "value": "Bianchi"},
+        "gender": {"type": "literal", "value": "male"},
+        "birthDate": {"type": "literal", "value": "1981-09-24"},
+        "birthCity": {"type": "literal", "value": "Torino"},
+        "birthProvince": {"type": "literal", "value": "Torino"},
+        "birthCountry": {"type": "literal", "value": "Italia"},
+        "profession": {"type": "literal", "value": "Docente"},
+        "photoUrl": {"type": "uri", "value": "https://www.senato.it/demo/luca-bianchi.jpg"},
+        "homepage": {"type": "uri", "value": "https://www.senato.it/demo/luca-bianchi"},
+        "mandateUri": {"type": "uri", "value": "https://dati.senato.it/mandato/demo-002-19"},
+        "mandateType": {"type": "literal", "value": "elettivo"},
+        "mandateStart": {"type": "literal", "value": "2022-10-13"},
+        "legislature": {"type": "literal", "value": "19"},
+        "electionRegion": {"type": "literal", "value": "Piemonte"}
+      }
+    ]
+  }
+}

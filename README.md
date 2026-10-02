@@ -198,3 +198,33 @@ publication paths cannot expose unapproved content. Run only these scenarios wit
 ```bash
 python -m pytest -q tests/e2e
 ```
+
+## Demo setup
+
+Prepare—or reset—the deterministic, network-free presentation database:
+
+```bash
+python -m scripts.prepare_demo
+```
+
+The command touches only `data/demo/verapolitica_demo.db` and `data/demo/raw/`.
+It always recreates these stable IDs:
+
+- Published profile: Politician 1, Anna Rossi, version 1, 14 citations.
+- Pending review: Draft 2 for Politician 2, Luca Bianchi, 14 Evidence rows.
+
+Start FastAPI against the demo state:
+
+```bash
+export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"
+export VERAPOLITICA_RAW_STORAGE_PATH="./data/demo/raw"
+export VERAPOLITICA_ADMIN_API_KEY="verapolitica-demo-admin"
+export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
+uvicorn backend.app.main:app --reload
+```
+
+Show `/politicians/1`, review Draft 2 under `/admin/drafts/2`, start review, approve,
+then open `/politicians/2` to show the newly published profile and citations. After
+a rehearsal, stop the API and rerun `python -m scripts.prepare_demo` to restore the
+original pending state. See [docs/demo.md](docs/demo.md) for the concise presenter
+runbook.
