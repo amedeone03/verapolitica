@@ -7,12 +7,14 @@ canonical normalized hash. Changed records are mapped deterministically into
 source-independent, transient CandidateProfile objects. The domain now includes
 stable Politician identities, generic official-source identifiers, immutable
 PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
-explicit bootstrap command for initial identity creation.
+explicit bootstrap command for initial identity creation. Matched candidates can
+now be compared with their current version and persisted as reviewable ProfileDrafts
+with field-level Evidence.
 
-It does not yet perform LLM extraction, version creation, diffing, drafting,
-review, publication, API serving, or frontend rendering. CandidateProfiles are
-not persisted, normal ingestion never creates Politicians, and matching never
-mutates the database.
+It does not yet perform LLM extraction, review, approval, version creation,
+publication, API serving, or frontend rendering. CandidateProfiles are not
+persisted, normal ingestion never creates Politicians, and matching and diffing
+never mutate the database.
 
 ## Setup
 
@@ -69,6 +71,27 @@ Apply creates each new Politician and its source identifiers in one database
 transaction. Matched candidates are skipped. Any uncertain or invalid candidate
 blocks all writes. Repeating the command is idempotent because existing identifiers
 match their Politicians and the database also enforces identifier uniqueness.
+
+## Create one profile draft
+
+Draft creation is another explicit operator action. Select one record from a stored,
+successfully parsed RawDocument:
+
+```bash
+python -m scripts.create_profile_draft \
+  --raw-document-id 12 \
+  --candidate-index 0
+```
+
+The command rebuilds that transient CandidateProfile, requires one deterministic
+Politician match, computes a field-level diff, and creates a pending ProfileDraft
+plus Evidence in one transaction. If the candidate equals the current version it
+returns `no_changes` and writes nothing. A changed field without source provenance,
+including a removal without explicit absence evidence, blocks creation.
+
+Creating a meaningful new draft supersedes existing `pending` and `in_review`
+drafts only after the new diff and all evidence have been validated. This command
+does not approve, publish, or create PoliticianVersions.
 
 ## Run tests
 

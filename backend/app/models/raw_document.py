@@ -1,11 +1,15 @@
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base
+
+if TYPE_CHECKING:
+    from backend.app.models.evidence import Evidence
+    from backend.app.models.profile_draft import ProfileDraft
 
 
 def utc_now() -> datetime:
@@ -56,3 +60,7 @@ class RawDocument(Base):
     )
 
     source = relationship("Source", back_populates="raw_documents")
+    profile_drafts: Mapped[list["ProfileDraft"]] = relationship(
+        back_populates="raw_document"
+    )
+    evidence: Mapped[list["Evidence"]] = relationship(back_populates="raw_document")

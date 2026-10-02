@@ -41,13 +41,41 @@ uncertain, and invalid classifications. It records both proposed and actual crea
 counts. A second run after a successful apply classifies the same official IDs as
 matched and proposes no writes.
 
+Matched candidates can enter a separate explicit draft path:
+
+```text
+matched CandidateProfile
+  -> pure CandidateProfile-to-PoliticianVersionProfile conversion
+  -> deterministic DiffService against Politician.current_version
+  -> complete field-provenance validation
+  -> supersede unresolved older drafts
+  -> one transaction inserts ProfileDraft + Evidence
+```
+
+DiffService does not use a database session and never mutates its inputs. With no
+current version it produces an initial proposal. With a current version it validates
+the stored snapshot and reports only meaningful changes. Scalar and birth-place
+fields are compared explicitly; mandates are sorted and compared as a collection so
+record order alone is not a change.
+
+DraftService requires a typed deterministic match. A no-change result writes
+nothing and does not supersede an existing draft. For a meaningful change, it first
+verifies the referenced RawDocument and complete Evidence coverage. Only then does
+it supersede every `pending` or `in_review` draft and insert the replacement draft
+and its Evidence in the same transaction. Any failure rolls back both insertion and
+supersession.
+
+Evidence uses source-independent profile paths while retaining the official source
+record identifier, source field name, source value, RawDocument, source URL, and
+deterministic extraction method. Missing provenance is never synthesized. A removal
+without explicit source evidence of absence is therefore blocked conservatively.
+
 Future, unimplemented stages remain:
 
 ```text
-CandidateProfile -> MatchingService -> DiffService
-  -> ProfileDraft + Evidence -> Admin review -> Review
+ProfileDraft + Evidence -> Admin review -> Review
   -> immutable PoliticianVersion -> Public API
 ```
 
-No LLM, version creation, draft, review, publishing, or API behavior is part of the
-bootstrap path.
+No LLM, review, publishing, version creation, or API behavior is part of the draft
+path.

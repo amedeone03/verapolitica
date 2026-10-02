@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         PoliticianSourceIdentifier,
     )
     from backend.app.models.politician_version import PoliticianVersion
+    from backend.app.models.profile_draft import ProfileDraft
 
 
 def utc_now() -> datetime:
@@ -56,4 +57,8 @@ class Politician(Base):
     current_version: Mapped["PoliticianVersion | None"] = relationship(
         foreign_keys=[current_version_id],
         post_update=True,
+    )
+    profile_drafts: Mapped[list["ProfileDraft"]] = relationship(
+        back_populates="politician",
+        order_by="ProfileDraft.created_at",
     )

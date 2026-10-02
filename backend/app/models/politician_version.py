@@ -8,6 +8,7 @@ from backend.app.db.base import Base
 
 if TYPE_CHECKING:
     from backend.app.models.politician import Politician
+    from backend.app.models.profile_draft import ProfileDraft
 
 
 def utc_now() -> datetime:
@@ -50,6 +51,10 @@ class PoliticianVersion(Base):
     politician: Mapped["Politician"] = relationship(
         back_populates="versions",
         foreign_keys=[politician_id],
+    )
+    baseline_drafts: Mapped[list["ProfileDraft"]] = relationship(
+        back_populates="baseline_version",
+        foreign_keys="ProfileDraft.baseline_version_id",
     )
 
 

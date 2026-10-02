@@ -3,8 +3,8 @@
 The implemented slices persist the official source and every collected response,
 then map changed Senato records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The
-implementation does not yet create versions, drafts, Evidence records, reviews, or
-published profiles.
+implementation can persist reviewable profile drafts and field-level Evidence, but
+does not yet review, approve, publish, or create new versions.
 
 ## Source
 
@@ -117,3 +117,57 @@ rows for every new candidate in one transaction. It creates no PoliticianVersion
 Matched candidates are skipped. The database uniqueness constraint on Source and
 identifier value makes reruns idempotent and protects against a conflicting write
 between planning and apply; any failure rolls back the full batch.
+
+## ProfileDraft
+
+`ProfileDraft` is a persisted proposal belonging to one Politician. It stores:
+
+- `initial` or `update` kind;
+- nullable baseline PoliticianVersion for initial proposals;
+- the supporting RawDocument;
+- the complete proposed `PoliticianVersionProfile` JSON;
+- the deterministic typed diff JSON;
+- an optional link to the newest draft it supersedes;
+- status and timestamps.
+
+The status enum is `pending`, `in_review`, `approved`, `rejected`, `superseded`, or
+`failed`. This slice creates only `pending` drafts and transitions unresolved
+`pending` or `in_review` drafts to `superseded`. It does not perform the other
+transitions. Failures roll back instead of leaving partial `failed` rows.
+
+If there is no current version, the proposal is initial and its baseline is null.
+If there is a current version, that immutable snapshot is the update baseline. A
+candidate equal to the baseline produces no draft. No operation in this slice
+creates or updates a PoliticianVersion.
+
+## Evidence
+
+`Evidence` belongs to one ProfileDraft and records field-level provenance:
+
+- source-independent proposal field path;
+- RawDocument and source URL;
+- official source record identifier;
+- original source field name and value;
+- extraction method (`deterministic` in this slice);
+- creation time.
+
+Candidate paths such as `identity.given_name` and `profile.profession` become
+`given_name` and `profession`. Senato field names remain source metadata rather than
+domain field names. A mandate collection change can have several Evidence rows,
+one for each source-backed mandate field.
+
+DraftService validates complete evidence coverage before any database mutation.
+It does not invent evidence for absent values, so a removal without explicit
+absence provenance is rejected safely.
+
+## Draft supersession and transaction
+
+For a meaningful, fully supported proposal, every existing `pending` or `in_review`
+draft for the Politician becomes superseded. The new draft points to the newest of
+those older drafts. Approved, rejected, already superseded, and failed drafts are
+untouched.
+
+Supersession, new-draft insertion, and all Evidence inserts share one explicit
+transaction. An insertion failure rolls the entire operation back. The service rule
+prevents ordinary competing active drafts; a portable database constraint for
+concurrent active-draft creation remains future work.

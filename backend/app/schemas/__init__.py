@@ -18,6 +18,17 @@ from backend.app.schemas.bootstrap import (
     BootstrapSourceIdentifier,
     BootstrapUncertainDetail,
 )
+from backend.app.schemas.diff import (
+    ChangeType,
+    DiffStatus,
+    FieldChange,
+    ProfileDiff,
+)
+from backend.app.schemas.draft import (
+    DraftCreatedResult,
+    DraftResult,
+    NoChangesResult,
+)
 from backend.app.schemas.politician import (
     MatchedResult,
     MatchingMethod,
@@ -41,7 +52,12 @@ __all__ = [
     "CandidateProfile",
     "CandidateProfileData",
     "CandidateProvenance",
+    "ChangeType",
+    "DiffStatus",
+    "DraftCreatedResult",
+    "DraftResult",
     "FieldProvenance",
+    "FieldChange",
     "Gender",
     "MatchedResult",
     "MatchingMethod",
@@ -49,8 +65,10 @@ __all__ = [
     "MatchingStatus",
     "NewMatchReason",
     "NewResult",
+    "NoChangesResult",
     "PoliticalMandate",
     "PoliticianVersionProfile",
+    "ProfileDiff",
     "SourceDocumentProvenance",
     "SourceIdentifier",
     "UncertainResult",
