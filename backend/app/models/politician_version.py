@@ -8,6 +8,9 @@ from backend.app.db.base import Base
 
 if TYPE_CHECKING:
     from backend.app.models.politician import Politician
+    from backend.app.models.politician_version_citation import (
+        PoliticianVersionCitation,
+    )
     from backend.app.models.profile_draft import ProfileDraft
 
 
@@ -55,6 +58,14 @@ class PoliticianVersion(Base):
     baseline_drafts: Mapped[list["ProfileDraft"]] = relationship(
         back_populates="baseline_version",
         foreign_keys="ProfileDraft.baseline_version_id",
+    )
+    citations: Mapped[list["PoliticianVersionCitation"]] = relationship(
+        back_populates="politician_version",
+        cascade="all, delete-orphan",
+        order_by="(PoliticianVersionCitation.field_path, "
+        "PoliticianVersionCitation.source_name, "
+        "PoliticianVersionCitation.source_url, "
+        "PoliticianVersionCitation.source_field)",
     )
 
 

@@ -58,7 +58,12 @@ from backend.app.schemas.review import (
     ReviewResult,
     ReviewStartedResult,
 )
-from backend.app.schemas.public import PublicPolitician, PublicPoliticianList
+from backend.app.schemas.public import (
+    PublicCitation,
+    PublicPolitician,
+    PublicPoliticianList,
+    PublicPoliticianSummary,
+)
 
 __all__ = [
     "AdminPrincipal",
@@ -99,8 +104,10 @@ __all__ = [
     "PoliticianSummary",
     "PoliticianVersionContext",
     "ProfileDiff",
+    "PublicCitation",
     "PublicPolitician",
     "PublicPoliticianList",
+    "PublicPoliticianSummary",
     "ReviewDecisionResult",
     "ReviewResult",
     "ReviewStartedResult",

@@ -87,6 +87,27 @@ The JSON snapshot is validated at application boundaries with the
 `PoliticianVersionProfile` schema. It contains public identity and profile fields but
 excludes source identifiers and CandidateProfile provenance.
 
+## PoliticianVersionCitation
+
+`PoliticianVersionCitation` is the immutable, public-safe citation snapshot for one
+PoliticianVersion. PublishService creates it from the approved draft's Evidence in
+the same transaction as the version. Each row contains only:
+
+- source-independent profile field path;
+- readable Source name;
+- public source URL;
+- source field name.
+
+It deliberately excludes draft and RawDocument IDs, storage keys, hashes, source
+record identifiers, source values, extraction/debug metadata, reviewer identity,
+and review notes. A uniqueness constraint prevents duplicate public projections for
+one version, while service-level sorting makes output deterministic. Updates and
+deletes through the ORM raise an immutability error.
+
+Existing PoliticianVersions need no backfill. If a legacy version has no citation
+rows, the public API returns an empty list and never infers citations from newer
+Evidence.
+
 ## Matching lifecycle
 
 MatchingService is read-only and applies these rules in order:
@@ -200,6 +221,7 @@ unmodified and receive no successful Review.
 
 The next version number is `MAX(version_number) + 1` for that Politician. The unique
 per-politician version constraint protects the sequence from duplicate numbers.
-Review creation, version insertion, current-pointer update, and the approved draft
-status share one transaction. Rejection similarly commits its Review and rejected
-status together but never creates a version or changes the current pointer.
+Review creation, version and citation insertion, current-pointer update, and the
+approved draft status share one transaction. A citation failure rolls back every
+publication write. Rejection similarly commits its Review and rejected status
+together but never creates a version or changes the current pointer.

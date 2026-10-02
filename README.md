@@ -156,6 +156,10 @@ curl http://127.0.0.1:8000/politicians/1
 Only Politicians whose `current_version_id` references a published immutable
 PoliticianVersion are visible. The API never falls back to the highest version
 number and does not expose drafts, Reviews, Evidence, hashes, or raw storage data.
+Politician detail responses include a curated citation snapshot copied from the
+approved draft's Evidence during publication. List items expose only
+`citation_count` to stay compact. Versions published before citation snapshots were
+introduced remain readable with an empty citation list.
 Interactive OpenAPI documentation is available at
 `http://127.0.0.1:8000/docs` while Uvicorn is running.
 

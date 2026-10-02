@@ -1,8 +1,17 @@
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
-from backend.app.models import Politician, PoliticianVersion
-from backend.app.schemas import PublicPolitician, PublicPoliticianList
+from backend.app.models import (
+    Politician,
+    PoliticianVersion,
+    PoliticianVersionCitation,
+)
+from backend.app.schemas import (
+    PublicCitation,
+    PublicPolitician,
+    PublicPoliticianList,
+    PublicPoliticianSummary,
+)
 from backend.app.schemas.politician import PoliticianVersionProfile
 
 
@@ -17,8 +26,17 @@ class PublicPoliticianQueryService:
         total = self.session.scalar(
             select(func.count()).select_from(visible.subquery())
         ) or 0
+        citation_count = (
+            select(func.count(PoliticianVersionCitation.id))
+            .where(
+                PoliticianVersionCitation.politician_version_id
+                == PoliticianVersion.id
+            )
+            .correlate(PoliticianVersion)
+            .scalar_subquery()
+        )
         rows = self.session.execute(
-            visible.order_by(
+            visible.add_columns(citation_count.label("citation_count")).order_by(
                 func.lower(Politician.canonical_family_name),
                 func.lower(Politician.canonical_given_name),
                 Politician.id,
@@ -27,7 +45,10 @@ class PublicPoliticianQueryService:
             .limit(limit)
         ).all()
         return PublicPoliticianList(
-            items=tuple(self._project(politician, version) for politician, version in rows),
+            items=tuple(
+                self._project_summary(politician, version, count)
+                for politician, version, count in rows
+            ),
             total=total,
             offset=offset,
             limit=limit,
@@ -39,7 +60,29 @@ class PublicPoliticianQueryService:
         ).one_or_none()
         if row is None:
             return None
-        return self._project(*row)
+        politician, version = row
+        citations = tuple(
+            PublicCitation(
+                field_path=citation.field_path,
+                source_name=citation.source_name,
+                source_url=citation.source_url,
+                source_field=citation.source_field or None,
+            )
+            for citation in self.session.scalars(
+                select(PoliticianVersionCitation)
+                .where(
+                    PoliticianVersionCitation.politician_version_id == version.id
+                )
+                .order_by(
+                    PoliticianVersionCitation.field_path,
+                    PoliticianVersionCitation.source_name,
+                    PoliticianVersionCitation.source_url,
+                    PoliticianVersionCitation.source_field,
+                )
+            )
+        )
+        summary = self._project_summary(politician, version, len(citations))
+        return PublicPolitician(**summary.model_dump(), citations=citations)
 
     @staticmethod
     def _visible_query() -> Select[tuple[Politician, PoliticianVersion]]:
@@ -57,14 +100,15 @@ class PublicPoliticianQueryService:
         )
 
     @staticmethod
-    def _project(
+    def _project_summary(
         politician: Politician,
         version: PoliticianVersion,
-    ) -> PublicPolitician:
+        citation_count: int,
+    ) -> PublicPoliticianSummary:
         profile = PoliticianVersionProfile.model_validate(version.profile_data)
         if version.published_at is None:  # narrowed by the public visibility query
             raise ValueError("published version is missing published_at")
-        return PublicPolitician(
+        return PublicPoliticianSummary(
             id=politician.id,
             given_name=profile.given_name,
             family_name=profile.family_name,
@@ -73,4 +117,5 @@ class PublicPoliticianQueryService:
             profile_schema_version=version.profile_schema_version,
             published_at=version.published_at,
             profile=profile,
+            citation_count=citation_count,
         )

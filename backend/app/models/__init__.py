@@ -5,6 +5,10 @@ from backend.app.models.politician_version import (
     ImmutablePoliticianVersionError,
     PoliticianVersion,
 )
+from backend.app.models.politician_version_citation import (
+    ImmutablePoliticianVersionCitationError,
+    PoliticianVersionCitation,
+)
 from backend.app.models.raw_document import RawDocument, RawDocumentStatus
 from backend.app.models.review import (
     ImmutableReviewError,
@@ -22,10 +26,12 @@ __all__ = [
     "Evidence",
     "EvidenceExtractionMethod",
     "ImmutablePoliticianVersionError",
+    "ImmutablePoliticianVersionCitationError",
     "ImmutableReviewError",
     "Politician",
     "PoliticianSourceIdentifier",
     "PoliticianVersion",
+    "PoliticianVersionCitation",
     "ProfileDraft",
     "ProfileDraftKind",
     "ProfileDraftStatus",

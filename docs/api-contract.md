@@ -37,7 +37,8 @@ Returns a deterministic, paginated list of current published profiles:
         "image_url": null,
         "official_homepage_url": null,
         "mandates": []
-      }
+      },
+      "citation_count": 2
     }
   ],
   "total": 1,
@@ -62,9 +63,31 @@ valid current published version returns:
 }
 ```
 
-Public responses deliberately omit ProfileDrafts, Evidence, Reviews, reviewer
+The detail response additionally returns the immutable public citation snapshot:
+
+```json
+{
+  "citation_count": 2,
+  "citations": [
+    {
+      "field_path": "birth_date",
+      "source_name": "Senato della Repubblica",
+      "source_url": "https://dati.senato.it/sparql",
+      "source_field": "birthDate"
+    }
+  ]
+}
+```
+
+Citations are deduplicated and sorted by field path, source name, source URL, and
+source field. Versions published before citation snapshot support return
+`"citation_count": 0` and `"citations": []`; citations are never inferred from a
+later draft.
+
+Public responses deliberately omit ProfileDrafts, internal Evidence, Reviews, reviewer
 identity, review notes, hashes, storage paths, and supersession data. A curated
-public citation projection is deferred rather than exposing internal Evidence rows.
+public citation exposes only field path, readable source name, public source URL,
+and source field.
 
 **Invariant:** No public politician profile exists unless it points to an explicitly
 approved immutable version.

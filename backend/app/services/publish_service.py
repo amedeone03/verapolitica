@@ -8,13 +8,21 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.models import (
     Politician,
     PoliticianVersion,
+    PoliticianVersionCitation,
     ProfileDraft,
     ProfileDraftKind,
     ProfileDraftStatus,
     Review,
     ReviewDecision,
+    Evidence,
+    RawDocument,
+    Source,
 )
-from backend.app.schemas import PoliticianVersionProfile, ReviewDecisionResult
+from backend.app.schemas import (
+    PoliticianVersionProfile,
+    PublicCitation,
+    ReviewDecisionResult,
+)
 from backend.app.services.review_service import (
     DraftNotFoundError,
     DraftNotReviewableError,
@@ -85,6 +93,7 @@ class PublishService:
                         )
                     self._validate_baseline(session, draft, politician)
                     profile = self._validate_profile(draft)
+                    citations = self._build_public_citations(session, draft.id)
 
                     next_version_number = (
                         session.scalar(
@@ -102,6 +111,18 @@ class PublishService:
                         published_at=datetime.now(timezone.utc),
                     )
                     session.add(version)
+                    session.flush()
+
+                    session.add_all(
+                        PoliticianVersionCitation(
+                            politician_version_id=version.id,
+                            field_path=citation.field_path,
+                            source_name=citation.source_name,
+                            source_url=str(citation.source_url),
+                            source_field=citation.source_field or "",
+                        )
+                        for citation in citations
+                    )
                     session.flush()
 
                     politician.current_version_id = version.id
@@ -201,3 +222,40 @@ class PublishService:
             raise InvalidDraftError(
                 f"draft {draft.id} has invalid proposed profile data: {exc}"
             ) from exc
+
+    @staticmethod
+    def _build_public_citations(
+        session: Session,
+        draft_id: int,
+    ) -> tuple[PublicCitation, ...]:
+        rows = session.execute(
+            select(
+                Evidence.field_path,
+                Source.name,
+                Evidence.source_url,
+                Evidence.source_field_name,
+            )
+            .join(RawDocument, RawDocument.id == Evidence.raw_document_id)
+            .join(Source, Source.id == RawDocument.source_id)
+            .where(Evidence.draft_id == draft_id)
+        ).all()
+        public_values = sorted(
+            {
+                (
+                    field_path,
+                    source_name,
+                    source_url,
+                    source_field_name,
+                )
+                for field_path, source_name, source_url, source_field_name in rows
+            }
+        )
+        return tuple(
+            PublicCitation(
+                field_path=field_path,
+                source_name=source_name,
+                source_url=source_url,
+                source_field=source_field,
+            )
+            for field_path, source_name, source_url, source_field in public_values
+        )

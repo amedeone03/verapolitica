@@ -79,7 +79,8 @@ ReviewService
 
 PublishService
   pending/in_review -> approved
-  Review + new PoliticianVersion + current-version pointer + status
+  Evidence -> immutable public citation snapshot
+  Review + new PoliticianVersion + citations + current-version pointer + status
   committed in one transaction
 ```
 
@@ -90,10 +91,17 @@ checks the baseline. An initial draft is current only while the Politician has n
 version. An update draft is current only while its baseline ID exactly matches the
 Politician's current-version ID.
 
+Before publication, PublishService projects the approved draft's Evidence into a
+minimal public form: field path, Source name, source URL, and source field. It drops
+record identifiers, raw-document IDs, values, extraction metadata, hashes, storage
+keys, and all reviewer data. Identical projections are deduplicated and sorted,
+then inserted as immutable PoliticianVersionCitation rows belonging to the new
+version.
+
 Version numbers are assigned per Politician as the existing maximum plus one. The
 database uniqueness constraint on `(politician_id, version_number)` and the unique
 Review per draft are final conflict guards. Any approval failure rolls back the
-Review, version, pointer, and draft status together.
+Review, version, citations, pointer, and draft status together.
 
 The implemented HTTP projections are separate:
 
@@ -147,10 +155,10 @@ that the selected version belongs to that Politician and has publication metadat
 
 Responses validate stored JSON through the existing PoliticianVersionProfile and
 serialize it through dedicated public Pydantic schemas. ORM models are never
-returned. Internal drafts, Review data, Evidence, hashes, storage paths, and admin
-workflow state are absent from the projection. Public source citations remain a
-future, curated projection because internal field-level Evidence is not itself a
-public contract.
+returned. Detail responses query the immutable citation rows for that exact version;
+list responses expose only a citation count. Internal drafts, Review data, Evidence,
+hashes, storage paths, and admin workflow state are absent from the projection.
+Legacy versions without citation rows remain public with an empty citation list.
 
 The central visibility invariant is:
 
