@@ -120,6 +120,29 @@ that the draft baseline is still current, then creates the Review, version, curr
 pointer, and approved status in one transaction. Rejection creates only the final
 Review and rejected status. Repeating either final action is blocked.
 
+## Run the Admin API
+
+Set a local admin secret and reviewer identity, then start Uvicorn:
+
+```bash
+export VERAPOLITICA_ADMIN_API_KEY="replace-with-a-long-random-secret"
+export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="local-editor"
+uvicorn backend.app.main:app --reload
+```
+
+The health endpoint is public. Every `/admin/*` endpoint requires the bearer token:
+
+```bash
+curl http://127.0.0.1:8000/health
+
+curl \
+  -H "Authorization: Bearer $VERAPOLITICA_ADMIN_API_KEY" \
+  http://127.0.0.1:8000/admin/drafts
+```
+
+The API exposes draft listing, detail, start-review, approval, and rejection. Route
+handlers delegate final actions to ReviewService and PublishService.
+
 ## Run tests
 
 ```bash

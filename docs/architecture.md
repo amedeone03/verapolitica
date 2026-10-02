@@ -101,5 +101,35 @@ Future, unimplemented stages remain:
 immutable PoliticianVersion -> Admin API -> Public API
 ```
 
-No API, authentication UI, LLM, scheduling, or background-worker behavior is part
-of the review and publication path.
+No public API, authentication UI, LLM, scheduling, or background-worker behavior is
+part of the review and publication path.
+
+## Admin API boundary
+
+FastAPI exposes the editorial workflow under `/admin`. Authentication is attached
+to the parent admin router, so new routes inherit protection by default. A configured
+bearer token authenticates one MVP admin principal, and its configured reviewer
+identity is passed to the domain services. Request bodies cannot supply reviewer
+identity.
+
+Read endpoints use a request-scoped SQLAlchemy Session and return explicit Pydantic
+responses. They expose proposals, typed diffs, Evidence, source metadata, version
+context, supersession, and final Review data without exposing ORM objects or raw
+stored payloads.
+
+Write endpoints remain thin:
+
+```text
+POST start-review -> ReviewService.start_review
+POST reject       -> ReviewService.reject
+POST approve      -> PublishService.approve
+```
+
+They receive the configured session factory through dependency injection. Services
+open and own their established transactions, so the API does not introduce an outer
+transaction or duplicate state-transition and publication rules.
+
+Controlled domain errors use a stable JSON envelope: missing resources become 404,
+stale or terminal decisions become 409, request validation becomes 422, and
+persistence failures become sanitized 500 responses. The health endpoint is public;
+no public politician endpoints exist yet.
