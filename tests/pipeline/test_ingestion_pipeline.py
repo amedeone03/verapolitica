@@ -2,9 +2,9 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from backend.app.models import RawDocument, RawDocumentStatus
+from backend.app.models import Politician, RawDocument, RawDocumentStatus
 from backend.app.pipeline.collectors import CollectedDocument
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
 from backend.app.pipeline.mappers import (
@@ -120,6 +120,8 @@ def test_first_ingestion_is_changed(session_factory, source, raw_storage):
     assert document.structured_records is not None
     assert document.structured_records[0]["senator_uri"].endswith("/1")
     assert raw_storage.get(result.storage_key) == content
+    with session_factory() as session:
+        assert session.scalar(select(func.count()).select_from(Politician)) == 0
 
 
 def test_exact_duplicate_is_unchanged_and_reuses_storage(

@@ -1,8 +1,10 @@
 # MVP ingestion data model
 
 The implemented slices persist the official source and every collected response,
-then map changed Senato records to transient CandidateProfiles. They do not yet
-define matching, drafts, Evidence records, reviews, or published politician versions.
+then map changed Senato records to transient CandidateProfiles. Stable politician
+identities can be explicitly bootstrapped from a selected parsed document. The
+implementation does not yet create versions, drafts, Evidence records, reviews, or
+published profiles.
 
 ## Source
 
@@ -95,5 +97,23 @@ MatchingService is read-only and applies these rules in order:
 4. new when nothing matches or birth date is unavailable for fallback.
 
 Matching never creates Politicians, attaches identifiers, creates versions, or
-commits a transaction. Initial identity creation will be handled by a separate,
-explicit bootstrap operation.
+commits a transaction.
+
+## Bootstrap lifecycle
+
+`RawDocumentCandidateRebuilder` reconstructs CandidateProfiles from the persisted
+structured records of an explicitly selected, successfully parsed RawDocument (or
+the latest successful one for a selected source). The rebuilt objects stay
+transient. Per-record mapping failures become invalid report entries.
+
+`PoliticianBootstrapService` first validates and matches the entire candidate set
+without writing. Its report contains aggregate counts and per-record entries for
+new, matched, uncertain, and invalid cases. Missing source identifiers, unknown
+source authorities, invalid canonical names, and duplicate identifiers within the
+input batch are invalid. Any invalid or uncertain entry prevents apply.
+
+For a safe plan, apply creates one Politician and its PoliticianSourceIdentifier
+rows for every new candidate in one transaction. It creates no PoliticianVersion.
+Matched candidates are skipped. The database uniqueness constraint on Source and
+identifier value makes reruns idempotent and protects against a conflicting write
+between planning and apply; any failure rolls back the full batch.

@@ -10,6 +10,14 @@ from backend.app.schemas.candidate_profile import (
     SourceDocumentProvenance,
     SourceIdentifier,
 )
+from backend.app.schemas.bootstrap import (
+    BootstrapInvalidDetail,
+    BootstrapMatchedDetail,
+    BootstrapNewDetail,
+    BootstrapReport,
+    BootstrapSourceIdentifier,
+    BootstrapUncertainDetail,
+)
 from backend.app.schemas.politician import (
     MatchedResult,
     MatchingMethod,
@@ -23,6 +31,12 @@ from backend.app.schemas.politician import (
 
 __all__ = [
     "BirthPlace",
+    "BootstrapInvalidDetail",
+    "BootstrapMatchedDetail",
+    "BootstrapNewDetail",
+    "BootstrapReport",
+    "BootstrapSourceIdentifier",
+    "BootstrapUncertainDetail",
     "CandidateIdentity",
     "CandidateProfile",
     "CandidateProfileData",

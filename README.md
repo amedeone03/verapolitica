@@ -6,11 +6,13 @@ raw response, parses structured records, and detects meaningful changes using a
 canonical normalized hash. Changed records are mapped deterministically into
 source-independent, transient CandidateProfile objects. The domain now includes
 stable Politician identities, generic official-source identifiers, immutable
-PoliticianVersion snapshots, and a read-only deterministic MatchingService.
+PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
+explicit bootstrap command for initial identity creation.
 
-It does not yet perform LLM extraction, bootstrap identity creation, diffing,
-drafting, review, publication, API serving, or frontend rendering.
-CandidateProfiles are not persisted, and matching never mutates the database.
+It does not yet perform LLM extraction, version creation, diffing, drafting,
+review, publication, API serving, or frontend rendering. CandidateProfiles are
+not persisted, normal ingestion never creates Politicians, and matching never
+mutates the database.
 
 ## Setup
 
@@ -38,6 +40,35 @@ under `data/raw/`. The command prints the RawDocument ID, both hashes, change re
 storage key, and collector/parser versions.
 The output also reports how many CandidateProfiles were produced. Unchanged source
 data produces zero candidates.
+
+## Bootstrap politician identities
+
+Bootstrap is a separate, explicit operator action. It rebuilds transient
+CandidateProfiles from a successfully parsed RawDocument, classifies every record,
+and emits a detailed JSON report. Start with a dry-run against the latest parsed
+Senato document:
+
+```bash
+python -m scripts.bootstrap_politicians --dry-run
+```
+
+To select a specific stored snapshot:
+
+```bash
+python -m scripts.bootstrap_politicians --dry-run --raw-document-id 12
+```
+
+If the report has no uncertain or invalid records, create only the candidates
+classified as new:
+
+```bash
+python -m scripts.bootstrap_politicians --apply --raw-document-id 12
+```
+
+Apply creates each new Politician and its source identifiers in one database
+transaction. Matched candidates are skipped. Any uncertain or invalid candidate
+blocks all writes. Repeating the command is idempotent because existing identifiers
+match their Politicians and the database also enforces identifier uniqueness.
 
 ## Run tests
 
