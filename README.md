@@ -4,10 +4,13 @@ VeraPolitica is beginning with a deterministic ingestion slice for official Sena
 della Repubblica data. This slice collects current-senator SPARQL JSON, stores the
 raw response, parses structured records, and detects meaningful changes using a
 canonical normalized hash. Changed records are mapped deterministically into
-source-independent, transient CandidateProfile objects.
+source-independent, transient CandidateProfile objects. The domain now includes
+stable Politician identities, generic official-source identifiers, immutable
+PoliticianVersion snapshots, and a read-only deterministic MatchingService.
 
-It does not yet perform LLM extraction, matching, diffing, drafting, review,
-publication, or frontend rendering. CandidateProfiles are not persisted.
+It does not yet perform LLM extraction, bootstrap identity creation, diffing,
+drafting, review, publication, API serving, or frontend rendering.
+CandidateProfiles are not persisted, and matching never mutates the database.
 
 ## Setup
 

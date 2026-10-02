@@ -10,6 +10,16 @@ from backend.app.schemas.candidate_profile import (
     SourceDocumentProvenance,
     SourceIdentifier,
 )
+from backend.app.schemas.politician import (
+    MatchedResult,
+    MatchingMethod,
+    MatchingResult,
+    MatchingStatus,
+    NewMatchReason,
+    NewResult,
+    PoliticianVersionProfile,
+    UncertainResult,
+)
 
 __all__ = [
     "BirthPlace",
@@ -19,7 +29,15 @@ __all__ = [
     "CandidateProvenance",
     "FieldProvenance",
     "Gender",
+    "MatchedResult",
+    "MatchingMethod",
+    "MatchingResult",
+    "MatchingStatus",
+    "NewMatchReason",
+    "NewResult",
     "PoliticalMandate",
+    "PoliticianVersionProfile",
     "SourceDocumentProvenance",
     "SourceIdentifier",
+    "UncertainResult",
 ]

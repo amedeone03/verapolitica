@@ -53,3 +53,47 @@ Senato-specific record keys, RDF terms, person URIs, and mandate URIs remain in 
 Senato mapper, generic source identifiers, or provenance. They are not domain field
 names. Field provenance retains the parsed source value and source binding name so a
 later slice can create Evidence records backed by the persisted RawDocument.
+
+## Politician
+
+`Politician` is the stable canonical identity of one person. It stores an internal
+ID, canonical given and family names, a deterministic normalized-name key, birth
+date, and an optional pointer to the current PoliticianVersion.
+
+The canonical name and birth date support identity matching before a public version
+exists. Mutable public-profile fields do not live directly on Politician.
+
+## PoliticianSourceIdentifier
+
+Official identifiers use a generic link table rather than source-specific columns.
+Each row links a Politician to a Source and an opaque identifier value. The pair of
+Source and value is unique, so one official identifier cannot identify multiple
+Politicians. Future Camera identifiers can use the same structure as Senato URIs.
+
+## PoliticianVersion
+
+`PoliticianVersion` is an immutable, ordered snapshot belonging to one Politician.
+It stores a positive version number, profile schema version, source-independent JSON
+profile data, creation time, and optional publication time. A uniqueness constraint
+prevents duplicate version numbers for one Politician.
+
+Normal SQLAlchemy updates to an existing version raise an immutable-version error.
+The Politician's nullable `current_version_id` identifies the active version. No
+versions are created or published by the current implementation.
+
+The JSON snapshot is validated at application boundaries with the
+`PoliticianVersionProfile` schema. It contains public identity and profile fields but
+excludes source identifiers and CandidateProfile provenance.
+
+## Matching lifecycle
+
+MatchingService is read-only and applies these rules in order:
+
+1. exact Source key and official identifier value;
+2. exact normalized name and birth date;
+3. uncertain when either method resolves to multiple Politicians;
+4. new when nothing matches or birth date is unavailable for fallback.
+
+Matching never creates Politicians, attaches identifiers, creates versions, or
+commits a transaction. Initial identity creation will be handled by a separate,
+explicit bootstrap operation.
