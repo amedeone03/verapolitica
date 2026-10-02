@@ -223,8 +223,9 @@ export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
 uvicorn backend.app.main:app --reload
 ```
 
-Show `/politicians/1`, review Draft 2 under `/admin/drafts/2`, start review, approve,
-then open `/politicians/2` to show the newly published profile and citations. After
-a rehearsal, stop the API and rerun `python -m scripts.prepare_demo` to restore the
-original pending state. See [docs/demo.md](docs/demo.md) for the concise presenter
-runbook.
+Open `http://127.0.0.1:8000/demo/`. The presentation UI shows `/politicians/1`,
+Draft 2 with its Evidence, the real start-review and approval actions, and the newly
+published `/politicians/2` profile with citations. After a rehearsal, stop the API
+and rerun `python -m scripts.prepare_demo` to restore the original pending state.
+Swagger remains available at `/docs`. See [docs/demo.md](docs/demo.md) for the
+concise presenter runbook.

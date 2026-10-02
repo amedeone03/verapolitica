@@ -34,23 +34,43 @@ export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
 uvicorn backend.app.main:app --reload
 ```
 
-Swagger is available at `http://127.0.0.1:8000/docs`. Use the Authorize button with
-the bearer value `verapolitica-demo-admin` for `/admin/*` operations.
+Open the presentation UI at:
+
+```text
+http://127.0.0.1:8000/demo/
+```
+
+The UI is a dependency-free static page served by FastAPI, so no second frontend
+process is required. It defaults to `http://127.0.0.1:8000` and has a reconnect
+field for another local API URL. The embedded bearer value
+`verapolitica-demo-admin` is demo-only and does not weaken backend authentication.
+
+Swagger remains available as a fallback at `http://127.0.0.1:8000/docs`. Use its
+Authorize button with the same bearer value for `/admin/*` operations.
 
 ## Presentation sequence
 
-1. Open `GET /politicians/1`. Show the approved profile and its 14 immutable public
-   citations.
-2. Open `GET /admin/drafts/2`. Show the pending proposed profile, field-level diff,
-   and 14 internal Evidence rows.
-3. Call `POST /admin/drafts/2/start-review`. The draft moves to `in_review`; no
+1. In the **Published profile** card, show Anna Rossi, version 1, and a sample of her
+   14 immutable public citations.
+2. In the **Pending proposal** card, show Luca Bianchi's proposed profile, readable
+   field diff, and 14 supporting Evidence entries. The lower public-result card says
+   that Luca is not public yet.
+3. Select **Start review**. The draft badge and workflow move to **In review**; no
    final Review exists yet.
-4. Call `POST /admin/drafts/2/approve` with an optional note. The approval creates
-   one Review, version, current-version pointer, and citation snapshot atomically.
-5. Open `GET /politicians/2`. Show the newly public profile and immutable citations.
+4. Select **Approve & publish** and confirm the final action. The UI calls the real
+   approval endpoint with the note `Official evidence verified during demo`.
+5. Show the workflow at **Published** and the newly revealed Luca Bianchi public
+   profile with its 14 immutable citations.
+
+The **Reject** action is available for an alternate presentation path and also asks
+for confirmation. If the API is unavailable, authentication fails, or the draft is
+already final, the UI shows a readable error and refreshes state where appropriate.
 
 To restore the original pending state after a rehearsal, stop the API and run:
 
 ```bash
 python -m scripts.prepare_demo
 ```
+
+Reload `http://127.0.0.1:8000/demo/` after reset. There is deliberately no browser
+reset action or reset API.

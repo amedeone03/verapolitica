@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>VeraPolitica Demo</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="VeraPolitica demo home">
+          <span class="brand-mark" aria-hidden="true">VP</span>
+          <span>
+            <strong>VeraPolitica</strong>
+            <small>Editorial transparency demo</small>
+          </span>
+        </a>
+        <div class="status-cluster">
+          <span id="api-status" class="connection-pill is-loading">
+            <span class="status-dot"></span>
+            Connecting to API
+          </span>
+          <span class="mode-pill">Demo dataset</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Verified public information, accountable by design</p>
+            <h1>From official source to<br />published public record.</h1>
+            <p class="hero-copy">
+              Follow one profile through VeraPolitica’s deterministic ingestion,
+              evidence-backed editorial review, and immutable publication boundary.
+            </p>
+          </div>
+          <div class="api-config">
+            <label for="api-base">API base URL</label>
+            <div class="input-row">
+              <input id="api-base" value="http://127.0.0.1:8000" spellcheck="false" />
+              <button id="reconnect" class="button button-secondary" type="button">
+                Reconnect
+              </button>
+            </div>
+            <small>Local demo only · admin credential is presentation-scoped</small>
+          </div>
+        </section>
+
+        <section class="workflow-panel" aria-labelledby="workflow-title">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Live workflow</p>
+              <h2 id="workflow-title">Luca Bianchi’s publication path</h2>
+            </div>
+            <span id="workflow-summary" class="badge badge-pending">Loading</span>
+          </div>
+          <ol id="workflow" class="workflow" aria-label="Editorial workflow">
+            <li data-stage="source"><span>01</span><strong>Official source</strong></li>
+            <li data-stage="parsed"><span>02</span><strong>Parsed</strong></li>
+            <li data-stage="matched"><span>03</span><strong>Matched</strong></li>
+            <li data-stage="draft"><span>04</span><strong>Draft</strong></li>
+            <li data-stage="review"><span>05</span><strong>Human review</strong></li>
+            <li data-stage="published"><span>06</span><strong>Published</strong></li>
+          </ol>
+        </section>
+
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section class="content-grid">
+          <article class="card published-card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Public record · Politician 1</p>
+                <h2>Published profile</h2>
+              </div>
+              <span class="badge badge-verified">Published / Verified</span>
+            </div>
+            <div id="published-profile" class="card-body loading-block">
+              Loading approved profile…
+            </div>
+          </article>
+
+          <article class="card editorial-card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Editorial workspace · Draft 2</p>
+                <h2 id="draft-heading">Pending proposal</h2>
+              </div>
+              <span id="draft-status" class="badge badge-pending">Loading</span>
+            </div>
+            <div id="draft-profile" class="card-body loading-block">
+              Loading draft and evidence…
+            </div>
+            <div class="review-bar">
+              <div>
+                <strong>Human decision</strong>
+                <small>Actions call the existing authenticated Admin API.</small>
+              </div>
+              <div class="button-group">
+                <button id="start-review" class="button button-secondary" type="button">
+                  Start review
+                </button>
+                <button id="reject" class="button button-danger" type="button">
+                  Reject
+                </button>
+                <button id="approve" class="button button-primary" type="button">
+                  Approve &amp; publish
+                </button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="card newly-public-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Public result · Politician 2</p>
+              <h2>Newly published profile</h2>
+            </div>
+            <span id="new-public-status" class="badge badge-muted">Not public yet</span>
+          </div>
+          <div id="new-public-profile" class="card-body empty-state">
+            <div class="empty-icon" aria-hidden="true">○</div>
+            <div>
+              <strong>Luca Bianchi is not visible to the public.</strong>
+              <p>Complete human review and approval to publish an immutable version.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="reset-card">
+          <div>
+            <p class="eyebrow">Presentation helper</p>
+            <h2>Restore the opening state</h2>
+            <p>The browser cannot reset data. Stop the API after rehearsal and run:</p>
+          </div>
+          <code>python -m scripts.prepare_demo</code>
+        </section>
+      </main>
+
+      <footer>
+        <span>VeraPolitica MVP</span>
+        <span>Official data · Human verification · Public citations</span>
+      </footer>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
