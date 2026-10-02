@@ -1,8 +1,8 @@
 # MVP ingestion data model
 
-This first slice persists the official source and every collected response. It does
-not yet define candidate profiles, matching, drafts, evidence, reviews, or published
-politician versions.
+The implemented slices persist the official source and every collected response,
+then map changed Senato records to transient CandidateProfiles. They do not yet
+define matching, drafts, Evidence records, reviews, or published politician versions.
 
 ## Source
 
@@ -36,3 +36,20 @@ content-addressed storage object.
 The raw SHA-256 identifies exact response bytes. Semantic change detection compares
 the normalized SHA-256, which is computed from canonical JSON with normalized strings,
 stable record order, stable key order, and explicit JSON null values.
+
+## CandidateProfile
+
+`CandidateProfile` is a source-independent Pydantic object. It is returned only when
+a RawDocument's normalized data changed and is never persisted.
+
+It separates:
+
+- identity-like matching inputs: name, birth data, and generic source identifiers;
+- versioned profile data: gender, profession, URLs, and political mandates;
+- provenance: the RawDocument snapshot plus a deterministic source mapping for each
+  populated candidate field.
+
+Senato-specific record keys, RDF terms, person URIs, and mandate URIs remain in the
+Senato mapper, generic source identifiers, or provenance. They are not domain field
+names. Field provenance retains the parsed source value and source binding name so a
+later slice can create Evidence records backed by the persisted RawDocument.

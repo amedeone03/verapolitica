@@ -7,6 +7,10 @@ from sqlalchemy import select
 from backend.app.models import RawDocument, RawDocumentStatus
 from backend.app.pipeline.collectors import CollectedDocument
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
+from backend.app.pipeline.mappers import (
+    CandidateMappingError,
+    SenatoCandidateProfileMapper,
+)
 from backend.app.pipeline.parsers import ParserError, SenatoParser
 
 
@@ -77,12 +81,21 @@ class SequenceCollector:
         )
 
 
-def build_pipeline(session_factory, raw_storage, documents: list[bytes]):
+def build_pipeline(
+    session_factory,
+    raw_storage,
+    documents: list[bytes],
+    *,
+    with_profile_mapper: bool = True,
+):
     return IngestionPipeline(
         session_factory=session_factory,
         storage=raw_storage,
         collector=SequenceCollector(documents),
         parser=SenatoParser(),
+        profile_mapper=(
+            SenatoCandidateProfileMapper() if with_profile_mapper else None
+        ),
     )
 
 
@@ -102,6 +115,7 @@ def test_first_ingestion_is_changed(session_factory, source, raw_storage):
     assert result.normalized_sha256 is not None
     assert result.collector_version == "senato_collector_v1"
     assert result.parser_version == "senato_parser_v1"
+    assert len(result.candidate_profiles) == 2
     document = all_documents(session_factory)[0]
     assert document.structured_records is not None
     assert document.structured_records[0]["senator_uri"].endswith("/1")
@@ -121,6 +135,8 @@ def test_exact_duplicate_is_unchanged_and_reuses_storage(
     assert second.raw_sha256 == first.raw_sha256
     assert second.normalized_sha256 == first.normalized_sha256
     assert second.storage_key == first.storage_key
+    assert len(first.candidate_profiles) == 2
+    assert second.candidate_profiles == ()
     assert len(all_documents(session_factory)) == 2
 
 
@@ -142,6 +158,7 @@ def test_formatting_only_change_is_unchanged(session_factory, source, raw_storag
     assert second.raw_sha256 != first.raw_sha256
     assert second.normalized_sha256 == first.normalized_sha256
     assert second.change_detected is False
+    assert second.candidate_profiles == ()
 
 
 def test_meaningful_change_is_detected(session_factory, source, raw_storage):
@@ -155,6 +172,7 @@ def test_meaningful_change_is_detected(session_factory, source, raw_storage):
     assert second.raw_sha256 != first.raw_sha256
     assert second.normalized_sha256 != first.normalized_sha256
     assert second.change_detected is True
+    assert len(second.candidate_profiles) == 2
 
 
 def test_parser_failure_preserves_raw_document(
@@ -174,3 +192,23 @@ def test_parser_failure_preserves_raw_document(
     assert document.collector_version == "senato_collector_v1"
     assert document.parser_version == "senato_parser_v1"
     assert raw_storage.get(document.storage_key) == invalid_content
+
+
+def test_mapping_failure_preserves_parsed_raw_document(
+    session_factory, source, raw_storage
+):
+    payload = response_payload()
+    payload["results"]["bindings"][0]["gender"]["value"] = "unsupported"
+    content = encode_payload(payload)
+    pipeline = build_pipeline(session_factory, raw_storage, [content])
+
+    with pytest.raises(CandidateMappingError, match="unsupported gender value") as error:
+        pipeline.run(source_id=source.id, source_key=source.key)
+
+    assert "senatore/2" in str(error.value)
+    document = all_documents(session_factory)[0]
+    assert document.process_status is RawDocumentStatus.PARSED
+    assert document.change_detected is True
+    assert document.normalized_sha256 is not None
+    assert document.structured_records is not None
+    assert raw_storage.get(document.storage_key) == content

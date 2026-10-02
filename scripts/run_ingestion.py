@@ -9,6 +9,10 @@ from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Source
 from backend.app.pipeline.collectors import CollectorError, SenatoCollector
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
+from backend.app.pipeline.mappers import (
+    CandidateMappingError,
+    SenatoCandidateProfileMapper,
+)
 from backend.app.pipeline.parsers import ParserError, SenatoParser
 from backend.app.storage import LocalRawStorage, StorageError
 
@@ -48,11 +52,12 @@ def main() -> int:
             timeout_seconds=settings.senato_request_timeout_seconds,
         ),
         parser=SenatoParser(),
+        profile_mapper=SenatoCandidateProfileMapper(),
     )
 
     try:
         result = pipeline.run(source_id=source.id, source_key=source.key)
-    except (CollectorError, ParserError, StorageError) as exc:
+    except (CollectorError, ParserError, CandidateMappingError, StorageError) as exc:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 1
     finally:
@@ -69,6 +74,7 @@ def main() -> int:
                 "storage_key": result.storage_key,
                 "collector_version": result.collector_version,
                 "parser_version": result.parser_version,
+                "candidate_profile_count": len(result.candidate_profiles),
             },
             indent=2,
         )

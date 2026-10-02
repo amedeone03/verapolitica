@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from backend.app.models.raw_document import RawDocument, RawDocumentStatus
 from backend.app.pipeline.collectors.base import Collector
+from backend.app.pipeline.mappers.base import CandidateProfileMapper
 from backend.app.pipeline.parsers.base import Parser, ParserError
+from backend.app.schemas import CandidateProfile, SourceDocumentProvenance
 from backend.app.storage.base import RawStorage
 
 
@@ -21,6 +23,7 @@ class IngestionResult:
     storage_key: str
     collector_version: str
     parser_version: str
+    candidate_profiles: tuple[CandidateProfile, ...]
 
 
 class IngestionPipeline:
@@ -30,11 +33,13 @@ class IngestionPipeline:
         storage: RawStorage,
         collector: Collector,
         parser: Parser,
+        profile_mapper: CandidateProfileMapper | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.storage = storage
         self.collector = collector
         self.parser = parser
+        self.profile_mapper = profile_mapper
 
     def run(self, *, source_id: int, source_key: str) -> IngestionResult:
         collected = self.collector.collect()
@@ -97,6 +102,23 @@ class IngestionPipeline:
             parsed_document.error_message = None
             session.commit()
 
+        candidate_profiles: tuple[CandidateProfile, ...] = ()
+        if changed and self.profile_mapper is not None:
+            provenance = SourceDocumentProvenance(
+                source_key=source_key,
+                raw_document_id=raw_document_id,
+                source_url=collected.source_url,
+                retrieved_at=collected.retrieved_at,
+                raw_sha256=raw_digest,
+                normalized_sha256=normalized_digest,
+                collector_version=collected.collector_version,
+                parser_version=parsed.parser_version,
+            )
+            candidate_profiles = self.profile_mapper.map_records(
+                parsed.structured_records,
+                document=provenance,
+            )
+
         return IngestionResult(
             raw_document_id=raw_document_id,
             process_status=RawDocumentStatus.PARSED,
@@ -106,4 +128,5 @@ class IngestionPipeline:
             storage_key=storage_key,
             collector_version=collected.collector_version,
             parser_version=parsed.parser_version,
+            candidate_profiles=candidate_profiles,
         )
