@@ -34,33 +34,45 @@ export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
 uvicorn backend.app.main:app --reload
 ```
 
-Open the presentation UI at:
+Open the citizen interface at:
+
+```text
+http://127.0.0.1:8000/app/
+```
+
+Open the editorial presentation UI at:
 
 ```text
 http://127.0.0.1:8000/demo/
 ```
 
-The UI is a dependency-free static page served by FastAPI, so no second frontend
-process is required. It defaults to `http://127.0.0.1:8000` and has a reconnect
-field for another local API URL. The embedded bearer value
-`verapolitica-demo-admin` is demo-only and does not weaken backend authentication.
+Both interfaces are dependency-free static pages served by FastAPI, so no second
+frontend process is required. The citizen interface calls only the public
+`/politicians` endpoints and contains no admin credential or editorial actions.
+The editorial UI defaults to `http://127.0.0.1:8000` and uses the embedded bearer
+value `verapolitica-demo-admin`; that value is demo-only and does not weaken
+backend authentication.
 
 Swagger remains available as a fallback at `http://127.0.0.1:8000/docs`. Use its
 Authorize button with the same bearer value for `/admin/*` operations.
 
 ## Presentation sequence
 
-1. In the **Published profile** card, show Anna Rossi, version 1, and a sample of her
-   14 immutable public citations.
-2. In the **Pending proposal** card, show Luca Bianchi's proposed profile, readable
-   field diff, and 14 supporting Evidence entries. The lower public-result card says
-   that Luca is not public yet.
+1. Open `/app/`. Show Anna Rossi in the public archive and open her verified profile
+   with grouped official citations. Luca Bianchi is absent because he has no
+   published version.
+2. Switch to `/demo/`. In the **Pending proposal** card, show Luca's proposed
+   profile, readable field diff, and 14 supporting Evidence entries. The lower
+   public-result card says that Luca is not public yet.
 3. Select **Start review**. The draft badge and workflow move to **In review**; no
    final Review exists yet.
 4. Select **Approve & publish** and confirm the final action. The UI calls the real
    approval endpoint with the note `Official evidence verified during demo`.
-5. Show the workflow at **Published** and the newly revealed Luca Bianchi public
-   profile with its 14 immutable citations.
+5. Show the editorial workflow at **Published**, then return to `/app/` and refresh.
+   Luca now appears automatically because the public API exposes his approved
+   version.
+6. Open Luca's profile at `/app/?politician=2`. Show the approved personal and
+   mandate data, 14 verified data references, and the grouped Senato source link.
 
 The **Reject** action is available for an alternate presentation path and also asks
 for confirmation. If the API is unavailable, authentication fails, or the draft is
@@ -72,5 +84,7 @@ To restore the original pending state after a rehearsal, stop the API and run:
 python -m scripts.prepare_demo
 ```
 
-Reload `http://127.0.0.1:8000/demo/` after reset. There is deliberately no browser
+Reload both `http://127.0.0.1:8000/app/` and
+`http://127.0.0.1:8000/demo/` after reset. Anna is public again, Luca is absent
+from the citizen archive, and Draft 2 is pending. There is deliberately no browser
 reset action or reset API.

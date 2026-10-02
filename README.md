@@ -223,9 +223,16 @@ export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
 uvicorn backend.app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/demo/`. The presentation UI shows `/politicians/1`,
-Draft 2 with its Evidence, the real start-review and approval actions, and the newly
-published `/politicians/2` profile with citations. After a rehearsal, stop the API
-and rerun `python -m scripts.prepare_demo` to restore the original pending state.
-Swagger remains available at `/docs`. See [docs/demo.md](docs/demo.md) for the
-concise presenter runbook.
+Open the two complementary interfaces:
+
+- Citizen archive: `http://127.0.0.1:8000/app/`
+- Editorial demo: `http://127.0.0.1:8000/demo/`
+
+The citizen archive uses only the public API. Initially it shows Anna Rossi while
+Luca Bianchi is absent. In the editorial demo, inspect Draft 2 and approve it using
+the real review workflow. Refresh the citizen archive: Luca now appears, and
+`http://127.0.0.1:8000/app/?politician=2` shows his approved profile and grouped
+official citations. After a rehearsal, stop the API and rerun
+`python -m scripts.prepare_demo` to restore the original pending state. Swagger
+remains available at `/docs`. See [docs/demo.md](docs/demo.md) for the presenter
+runbook.

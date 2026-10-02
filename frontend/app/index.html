@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="Verified profiles of Italian public representatives, backed by official sources." />
+    <title>VeraPolitica — Verified public profiles</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="./" aria-label="VeraPolitica archive">
+          <span class="brand-mark" aria-hidden="true">VP</span>
+          <span>
+            <strong>VeraPolitica</strong>
+            <small>Public information, with sources</small>
+          </span>
+        </a>
+        <span class="institutional-note">Italian national institutions</span>
+      </div>
+    </header>
+
+    <main>
+      <section id="archive-view" aria-labelledby="archive-title">
+        <div class="hero">
+          <p class="eyebrow">Public archive</p>
+          <h1 id="archive-title">Know who represents you.<br /><em>Verify every detail.</em></h1>
+          <p class="hero-copy">
+            Published profiles built from official institutional data and checked
+            through a human editorial process. Every fact points back to its source.
+          </p>
+          <div class="trust-line">
+            <span aria-hidden="true">✓</span>
+            <p><strong>Verified means source-checked.</strong> It does not imply endorsement or political judgment.</p>
+          </div>
+        </div>
+
+        <div class="archive-heading">
+          <div>
+            <p class="eyebrow">Representatives</p>
+            <h2>Verified politician profiles</h2>
+          </div>
+          <span id="archive-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+
+        <div id="archive-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading verified profiles…</strong><small>Contacting the public archive.</small></div>
+        </div>
+        <div id="politician-list" class="politician-grid" hidden></div>
+      </section>
+
+      <section id="detail-view" aria-labelledby="profile-name" hidden>
+        <a class="back-link" href="./"><span aria-hidden="true">←</span> All verified profiles</a>
+        <div id="detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading verified profile…</strong><small>Retrieving the current published record.</small></div>
+        </div>
+        <article id="profile-detail" hidden></article>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <strong>VeraPolitica</strong>
+        <p>Public profiles derived from official sources and published after editorial verification.</p>
+      </div>
+      <span>MVP · National politicians</span>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
