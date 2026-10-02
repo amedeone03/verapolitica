@@ -25,6 +25,23 @@ from backend.app.services.matching_service import (
     MatchingService,
     normalize_person_name,
 )
+from backend.app.services.publish_service import (
+    InvalidDraftError,
+    PublishConflictError,
+    PublishPersistenceError,
+    PublishService,
+    PublishServiceError,
+    StaleDraftError,
+)
+from backend.app.services.review_service import (
+    DraftNotFoundError,
+    DraftNotReviewableError,
+    ReviewConflictError,
+    ReviewInputError,
+    ReviewPersistenceError,
+    ReviewService,
+    ReviewServiceError,
+)
 
 __all__ = [
     "BootstrapApplyError",
@@ -40,10 +57,23 @@ __all__ = [
     "DraftProvenanceError",
     "DraftService",
     "DraftServiceError",
+    "DraftNotFoundError",
+    "DraftNotReviewableError",
     "IndexedCandidate",
     "MatchingService",
     "PoliticianBootstrapService",
+    "InvalidDraftError",
+    "PublishConflictError",
+    "PublishPersistenceError",
+    "PublishService",
+    "PublishServiceError",
     "RawDocumentCandidateRebuilder",
+    "ReviewConflictError",
+    "ReviewInputError",
+    "ReviewPersistenceError",
+    "ReviewService",
+    "ReviewServiceError",
+    "StaleDraftError",
     "candidate_to_version_profile",
     "normalize_person_name",
 ]

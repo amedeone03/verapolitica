@@ -4,7 +4,7 @@ The implemented slices persist the official source and every collected response,
 then map changed Senato records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The
 implementation can persist reviewable profile drafts and field-level Evidence, but
-does not yet review, approve, publish, or create new versions.
+only an explicit final Review can reject a draft or publish a new version.
 
 ## Source
 
@@ -80,8 +80,8 @@ profile data, creation time, and optional publication time. A uniqueness constra
 prevents duplicate version numbers for one Politician.
 
 Normal SQLAlchemy updates to an existing version raise an immutable-version error.
-The Politician's nullable `current_version_id` identifies the active version. No
-versions are created or published by the current implementation.
+The Politician's nullable `current_version_id` identifies the active version. New
+versions are created only by PublishService after approval.
 
 The JSON snapshot is validated at application boundaries with the
 `PoliticianVersionProfile` schema. It contains public identity and profile fields but
@@ -131,14 +131,15 @@ between planning and apply; any failure rolls back the full batch.
 - status and timestamps.
 
 The status enum is `pending`, `in_review`, `approved`, `rejected`, `superseded`, or
-`failed`. This slice creates only `pending` drafts and transitions unresolved
-`pending` or `in_review` drafts to `superseded`. It does not perform the other
-transitions. Failures roll back instead of leaving partial `failed` rows.
+`failed`. DraftService creates `pending` drafts and supersedes unresolved proposals.
+ReviewService can move a pending draft into review or reject a pending/in-review
+draft. PublishService can approve only a pending/in-review draft. Failures roll back
+instead of leaving partial `failed` rows.
 
 If there is no current version, the proposal is initial and its baseline is null.
 If there is a current version, that immutable snapshot is the update baseline. A
-candidate equal to the baseline produces no draft. No operation in this slice
-creates or updates a PoliticianVersion.
+candidate equal to the baseline produces no draft. Approval creates a new version;
+it never updates an existing version.
 
 ## Evidence
 
@@ -171,3 +172,34 @@ Supersession, new-draft insertion, and all Evidence inserts share one explicit
 transaction. An insertion failure rolls the entire operation back. The service rule
 prevents ordinary competing active drafts; a portable database constraint for
 concurrent active-draft creation remains future work.
+
+## Review
+
+`Review` is the immutable final human/editor decision for one ProfileDraft. It
+stores a unique draft reference, opaque reviewer identity, `approved` or `rejected`
+decision, optional note, and creation time. A unique constraint permits at most one
+final Review per draft.
+
+Entering `in_review` is temporary workflow state and does not create a Review row.
+The allowed transitions are:
+
+- `pending` to `in_review`;
+- `pending` or `in_review` to `rejected` through ReviewService;
+- `pending` or `in_review` to `approved` through PublishService.
+
+Approved, rejected, superseded, and failed drafts are terminal for this workflow.
+Repeating or contradicting a final decision creates no additional record.
+
+## Publication and stale drafts
+
+PublishService validates the complete proposed profile and creates a new immutable
+PoliticianVersion. An initial draft can be approved only while
+`Politician.current_version_id` remains null. An update draft can be approved only
+while that pointer exactly equals its `baseline_version_id`. Stale drafts remain
+unmodified and receive no successful Review.
+
+The next version number is `MAX(version_number) + 1` for that Politician. The unique
+per-politician version constraint protects the sequence from duplicate numbers.
+Review creation, version insertion, current-pointer update, and the approved draft
+status share one transaction. Rejection similarly commits its Review and rejected
+status together but never creates a version or changes the current pointer.

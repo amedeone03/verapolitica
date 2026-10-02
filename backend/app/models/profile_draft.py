@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from backend.app.models.politician import Politician
     from backend.app.models.politician_version import PoliticianVersion
     from backend.app.models.raw_document import RawDocument
+    from backend.app.models.review import Review
 
 
 def utc_now() -> datetime:
@@ -97,4 +98,8 @@ class ProfileDraft(Base):
         back_populates="draft",
         cascade="all, delete-orphan",
         order_by="Evidence.id",
+    )
+    review: Mapped["Review | None"] = relationship(
+        back_populates="draft",
+        uselist=False,
     )

@@ -70,12 +70,36 @@ record identifier, source field name, source value, RawDocument, source URL, and
 deterministic extraction method. Missing provenance is never synthesized. A removal
 without explicit source evidence of absence is therefore blocked conservatively.
 
+Final decisions use two service boundaries:
+
+```text
+ReviewService
+  pending -> in_review                 (no Review row)
+  pending/in_review -> rejected        (Review + status transaction)
+
+PublishService
+  pending/in_review -> approved
+  Review + new PoliticianVersion + current-version pointer + status
+  committed in one transaction
+```
+
+A Review is the immutable final decision, so each draft has at most one Review.
+PublishService is the only approval and version-creation path. Before any writes it
+locks the draft and Politician where supported, validates the proposed profile, and
+checks the baseline. An initial draft is current only while the Politician has no
+version. An update draft is current only while its baseline ID exactly matches the
+Politician's current-version ID.
+
+Version numbers are assigned per Politician as the existing maximum plus one. The
+database uniqueness constraint on `(politician_id, version_number)` and the unique
+Review per draft are final conflict guards. Any approval failure rolls back the
+Review, version, pointer, and draft status together.
+
 Future, unimplemented stages remain:
 
 ```text
-ProfileDraft + Evidence -> Admin review -> Review
-  -> immutable PoliticianVersion -> Public API
+immutable PoliticianVersion -> Admin API -> Public API
 ```
 
-No LLM, review, publishing, version creation, or API behavior is part of the draft
-path.
+No API, authentication UI, LLM, scheduling, or background-worker behavior is part
+of the review and publication path.

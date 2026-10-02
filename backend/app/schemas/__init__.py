@@ -39,6 +39,11 @@ from backend.app.schemas.politician import (
     PoliticianVersionProfile,
     UncertainResult,
 )
+from backend.app.schemas.review import (
+    ReviewDecisionResult,
+    ReviewResult,
+    ReviewStartedResult,
+)
 
 __all__ = [
     "BirthPlace",
@@ -69,6 +74,9 @@ __all__ = [
     "PoliticalMandate",
     "PoliticianVersionProfile",
     "ProfileDiff",
+    "ReviewDecisionResult",
+    "ReviewResult",
+    "ReviewStartedResult",
     "SourceDocumentProvenance",
     "SourceIdentifier",
     "UncertainResult",

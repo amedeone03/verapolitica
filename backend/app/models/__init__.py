@@ -6,6 +6,11 @@ from backend.app.models.politician_version import (
     PoliticianVersion,
 )
 from backend.app.models.raw_document import RawDocument, RawDocumentStatus
+from backend.app.models.review import (
+    ImmutableReviewError,
+    Review,
+    ReviewDecision,
+)
 from backend.app.models.profile_draft import (
     ProfileDraft,
     ProfileDraftKind,
@@ -17,6 +22,7 @@ __all__ = [
     "Evidence",
     "EvidenceExtractionMethod",
     "ImmutablePoliticianVersionError",
+    "ImmutableReviewError",
     "Politician",
     "PoliticianSourceIdentifier",
     "PoliticianVersion",
@@ -25,5 +31,7 @@ __all__ = [
     "ProfileDraftStatus",
     "RawDocument",
     "RawDocumentStatus",
+    "Review",
+    "ReviewDecision",
     "Source",
 ]

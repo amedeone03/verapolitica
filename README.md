@@ -9,12 +9,13 @@ stable Politician identities, generic official-source identifiers, immutable
 PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
 explicit bootstrap command for initial identity creation. Matched candidates can
 now be compared with their current version and persisted as reviewable ProfileDrafts
-with field-level Evidence.
+with field-level Evidence. Explicit human decisions can reject a draft or atomically
+publish it as a new immutable PoliticianVersion.
 
-It does not yet perform LLM extraction, review, approval, version creation,
-publication, API serving, or frontend rendering. CandidateProfiles are not
-persisted, normal ingestion never creates Politicians, and matching and diffing
-never mutate the database.
+It does not yet perform LLM extraction, API serving, authentication, or frontend
+rendering. CandidateProfiles are not persisted, normal ingestion never creates
+Politicians, and matching and diffing never mutate the database. Publication is
+only available through an explicit review action.
 
 ## Setup
 
@@ -92,6 +93,32 @@ including a removal without explicit absence evidence, blocks creation.
 Creating a meaningful new draft supersedes existing `pending` and `in_review`
 drafts only after the new diff and all evidence have been validated. This command
 does not approve, publish, or create PoliticianVersions.
+
+## Review and publish one draft
+
+Approve a reviewable draft and atomically create its next immutable version:
+
+```bash
+python -m scripts.review_profile_draft \
+  --draft-id 1 \
+  --approve \
+  --reviewer "demo-editor"
+```
+
+Reject a draft without creating a version:
+
+```bash
+python -m scripts.review_profile_draft \
+  --draft-id 2 \
+  --reject \
+  --reviewer "demo-editor" \
+  --note "Evidence requires clarification"
+```
+
+Only `pending` and `in_review` drafts can receive a final decision. Approval verifies
+that the draft baseline is still current, then creates the Review, version, current
+pointer, and approved status in one transaction. Rejection creates only the final
+Review and rejected status. Repeating either final action is blocked.
 
 ## Run tests
 
