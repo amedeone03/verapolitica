@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Local data
+data/*
+!data/fixtures/
+!data/fixtures/**
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
