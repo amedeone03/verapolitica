@@ -1,0 +1,58 @@
+from datetime import datetime, timezone
+from enum import StrEnum
+from typing import Any
+
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from backend.app.db.base import Base
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class RawDocumentStatus(StrEnum):
+    COLLECTED = "collected"
+    PARSED = "parsed"
+    FAILED = "failed"
+
+
+class RawDocument(Base):
+    __tablename__ = "raw_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(
+        ForeignKey("sources.id", ondelete="RESTRICT"), index=True
+    )
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    source_url: Mapped[str] = mapped_column(Text)
+    content_type: Mapped[str] = mapped_column(String(200))
+    storage_key: Mapped[str] = mapped_column(String(500))
+    raw_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    normalized_sha256: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    structured_records: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON, nullable=True
+    )
+    normalized_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    process_status: Mapped[RawDocumentStatus] = mapped_column(
+        Enum(
+            RawDocumentStatus,
+            values_callable=lambda enum: [item.value for item in enum],
+            native_enum=False,
+            length=32,
+        ),
+        default=RawDocumentStatus.COLLECTED,
+        index=True,
+    )
+    change_detected: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    collector_version: Mapped[str] = mapped_column(String(100))
+    parser_version: Mapped[str] = mapped_column(String(100))
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+    source = relationship("Source", back_populates="raw_documents")
