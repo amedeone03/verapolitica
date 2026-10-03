@@ -23,7 +23,26 @@ Matching remains deterministic and read-only. A new provider identifier is check
 first; if it is not yet linked, normalized full name plus exact birth date may match
 an existing Politician. Multiple matches remain uncertain and are never merged.
 Attaching a newly resolved provider identifier is an explicit write outside
-MatchingService.
+MatchingService:
+
+```text
+CandidateProfile
+  -> MatchingService (read-only)
+  -> unique deterministic MatchedResult
+  -> CandidateIdentityCoordinator
+  -> PoliticianIdentityService transaction
+  -> PoliticianSourceIdentifier
+  -> DraftService may continue with the same Politician
+```
+
+The coordinator writes only for exact source-identifier or normalized-name plus
+exact-birth-date matches. `new` and `uncertain` results return without calling the
+write service. The write transaction rechecks the match, source authority,
+Politician, and current identifier ownership. An identifier already linked to the
+same Politician is an idempotent success. Ownership by a different Politician is a
+typed conflict, and database integrity failures roll back the entire attachment.
+The existing schema permits several identifier values from the same Source for one
+Politician; the service preserves that capability and never overwrites a value.
 
 Normal ingestion stops there. It never creates or changes Politicians.
 
@@ -59,6 +78,7 @@ Matched candidates can enter a separate explicit draft path:
 
 ```text
 matched CandidateProfile
+  -> safe official-identifier attachment when newly discovered
   -> pure CandidateProfile-to-PoliticianVersionProfile conversion
   -> deterministic DiffService against Politician.current_version
   -> complete field-provenance validation

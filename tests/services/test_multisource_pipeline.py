@@ -23,6 +23,7 @@ from backend.app.schemas import (
     UncertainResult,
 )
 from backend.app.services import (
+    CandidateIdentityCoordinator,
     DraftService,
     MatchingService,
     candidate_to_version_profile,
@@ -106,28 +107,18 @@ def add_named_politician(session, *, with_senato_identifier=False):
 def test_cross_source_name_and_birth_date_matches_then_identifier_can_be_attached(
     session_factory,
 ):
-    candidate, camera_source_id, _ = add_camera_candidate(session_factory)
+    candidate, _, _ = add_camera_candidate(session_factory)
     with session_factory() as session:
         politician = add_named_politician(session, with_senato_identifier=True)
         session.commit()
         politician_id = politician.id
 
-    with session_factory() as session:
-        result = MatchingService(session).match(candidate)
-        assert result == MatchedResult(
-            politician_id=politician_id,
-            method=MatchingMethod.NORMALIZED_NAME_BIRTH_DATE,
-        )
-        assert not session.new and not session.dirty
-
-        session.add(
-            PoliticianSourceIdentifier(
-                politician_id=politician_id,
-                source_id=camera_source_id,
-                value=candidate.identity.source_identifiers[0].value,
-            )
-        )
-        session.commit()
+    resolution = CandidateIdentityCoordinator(session_factory).match_and_link(candidate)
+    assert resolution.match == MatchedResult(
+        politician_id=politician_id,
+        method=MatchingMethod.NORMALIZED_NAME_BIRTH_DATE,
+    )
+    assert resolution.attachments[0].status.value == "attached"
 
     with session_factory() as session:
         exact = MatchingService(session).match(candidate)

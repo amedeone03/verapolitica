@@ -14,7 +14,9 @@ publish it as a new immutable PoliticianVersion.
 
 It does not perform LLM extraction, citizen authentication, or frontend rendering.
 CandidateProfiles are not persisted, normal ingestion never creates Politicians,
-and matching and diffing never mutate the database. Publication is only available
+and matching and diffing never mutate the database. A separate transactional
+identity service may attach a newly discovered official identifier after one safe
+deterministic match. Publication is only available
 through an explicit review action. The read-only public API exposes only the
 immutable version selected by a Politician's current-version pointer.
 
@@ -104,10 +106,15 @@ python -m scripts.create_profile_draft \
 ```
 
 The command rebuilds that transient CandidateProfile, requires one deterministic
-Politician match, computes a field-level diff, and creates a pending ProfileDraft
+Politician match, and explicitly links any new identifier from that candidate's
+official source before computing the diff. It then creates a pending ProfileDraft
 plus Evidence in one transaction. If the candidate equals the current version it
 returns `no_changes` and writes nothing. A changed field without source provenance,
 including a removal without explicit absence evidence, blocks creation.
+
+Identifier linking is separate from MatchingService. It is idempotent, preserves
+multiple legitimate identifiers from one source, and refuses an identifier already
+owned by another Politician. `new` and `uncertain` matches never trigger linking.
 
 Creating a meaningful new draft supersedes existing `pending` and `in_review`
 drafts only after the new diff and all evidence have been validated. This command

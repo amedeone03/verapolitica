@@ -8,10 +8,11 @@ from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.schemas import MatchedResult
 from backend.app.services import (
+    CandidateIdentityCoordinator,
     CandidateRebuildError,
     DraftService,
     DraftServiceError,
-    MatchingService,
+    IdentityServiceError,
     RawDocumentCandidateRebuilder,
 )
 
@@ -97,8 +98,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 1
 
-        with session_factory() as session:
-            match = MatchingService(session).match(indexed.profile)
+        resolution = CandidateIdentityCoordinator(session_factory).match_and_link(
+            indexed.profile
+        )
+        match = resolution.match
         if not isinstance(match, MatchedResult):
             print(
                 json.dumps(
@@ -115,7 +118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = DraftService(session_factory).create(indexed.profile, match)
         print(result.model_dump_json(indent=2))
         return 0
-    except (CandidateRebuildError, DraftServiceError) as exc:
+    except (CandidateRebuildError, DraftServiceError, IdentityServiceError) as exc:
         print(
             _error_payload(str(exc), type(exc).__name__),
             file=sys.stderr,

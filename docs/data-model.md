@@ -71,6 +71,9 @@ Official identifiers use a generic link table rather than source-specific column
 Each row links a Politician to a Source and an opaque identifier value. The pair of
 Source and value is unique, so one official identifier cannot identify multiple
 Politicians. The same Politician can hold separate Senato and Camera identifier rows.
+The model deliberately does not constrain `(politician_id, source_id)`, so historical
+or otherwise legitimate multiple identifiers from one authority remain possible.
+Identifiers are appended, never silently replaced.
 
 ## PoliticianVersion
 
@@ -124,6 +127,26 @@ MatchingService is read-only and applies these rules in order:
 
 Matching never creates Politicians, attaches identifiers, creates versions, or
 commits a transaction.
+
+## Identity attachment lifecycle
+
+`CandidateIdentityCoordinator` composes matching with the separate
+`PoliticianIdentityService`. It invokes the write service only for one unique
+`MatchedResult` produced by exact official identifier matching or normalized full
+name plus exact birth date. New and uncertain results produce no writes.
+
+The identity service transaction validates that the Politician and Source exist,
+that every identifier authority matches the CandidateProfile's source document,
+that the candidate still resolves to the same Politician, and that no identifier is
+owned by another Politician. Existing ownership by the same Politician returns
+`already_exists`; a new row returns `attached`. Conflicts and database integrity
+errors roll back the whole operation and expose a typed service error.
+
+The explicit profile-draft orchestration uses this coordinator before DraftService.
+This means a Camera record that first matches a Senato-created identity by name and
+birth date gains its Camera identifier before the draft proceeds. Future Camera
+matching then uses the exact identifier. Normal ingestion and MatchingService remain
+write-free.
 
 ## Bootstrap lifecycle
 
