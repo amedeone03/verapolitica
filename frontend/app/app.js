@@ -139,7 +139,7 @@ function birthPlace(profile) {
 export function renderSources(citations) {
   const groups = groupCitations(citations);
   if (!groups.length) {
-    return `<div class="state-card"><div><strong>No citation snapshot is available.</strong><small>This can occur for legacy published records.</small></div></div>`;
+    return `<div class="state-card"><div><strong>No official source references are available for this profile.</strong></div></div>`;
   }
   return groups.map((group) => {
     const sourceUrl = safeExternalUrl(group.sourceUrl);

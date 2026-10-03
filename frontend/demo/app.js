@@ -62,7 +62,7 @@ export function renderPublishedProfile(person, { citationLimit = null } = {}) {
     <p class="profile-subtitle">${escapeHtml(mandateLabel(person.profile))}</p>
     ${profileFacts(person.profile, person.current_version_number)}
     <div class="section-rule"></div>
-    <div class="subheading"><h3>Public citations</h3><span>${person.citation_count} verified sources</span></div>
+    <div class="subheading"><h3>Public citations</h3><span>${person.citation_count} verified references</span></div>
     <div class="citation-list">
       ${citations.map((citation) => `
         <div class="citation">

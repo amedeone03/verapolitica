@@ -207,6 +207,16 @@ Prepare—or reset—the deterministic, network-free presentation database:
 python -m scripts.prepare_demo
 ```
 
+For the shortest presentation setup, run the safe demo-only launcher instead:
+
+```bash
+./scripts/run_demo.sh
+```
+
+It recreates only `data/demo/`, applies the documented demo environment, and starts
+the application on `127.0.0.1:8000`. It never touches the normal development
+database.
+
 The command touches only `data/demo/verapolitica_demo.db` and `data/demo/raw/`.
 It always recreates these stable IDs:
 

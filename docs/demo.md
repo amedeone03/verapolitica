@@ -1,90 +1,130 @@
-# Repeatable local demo
+# VeraPolitica MVP presenter runbook
 
-The demo uses only these dedicated paths:
+This demonstration is deterministic and network-free. It uses only:
 
 - `data/demo/verapolitica_demo.db`
 - `data/demo/raw/`
+- the local fixture `data/fixtures/demo/senato_demo.json`
 
-The preparation command validates these targets, removes only the demo database,
-its SQLite sidecars, and demo raw directory, then rebuilds the state from the local
-fixture at `data/fixtures/demo/senato_demo.json`. It never reads from or resets the
-normal development database or raw storage.
+The reset code validates those paths before removing anything. It never reads,
+modifies, or resets the normal development database or raw storage.
 
-## Prepare or reset
+## Pre-demo setup
 
-From the repository root with the virtual environment active:
+From the repository root, start the complete demo with one command:
 
 ```bash
-python -m scripts.prepare_demo
+./scripts/run_demo.sh
 ```
 
-The command is both setup and reset. Every run recreates this state:
+The launcher uses the repository `.venv`, rebuilds the isolated demo state, applies
+demo-only environment variables, and starts FastAPI on `127.0.0.1:8000`. Keep this
+terminal visible so you can stop the application with `Ctrl+C`.
 
-- Politician 1, Anna Rossi: published version 1 with 14 citations.
-- Draft 2 for Politician 2, Luca Bianchi: pending with 14 Evidence rows.
-- Politician 2 has no public version until Draft 2 is approved.
+Expected opening state:
 
-## Start the API
+- Anna Rossi — Politician 1, published version 1, 14 public citation references.
+- Luca Bianchi — Politician 2, not public, with pending Draft 2 and 14 Evidence rows.
+
+Open these tabs before presenting:
+
+- Citizen interface: `http://127.0.0.1:8000/app/`
+- Editorial demo: `http://127.0.0.1:8000/demo/`
+- Swagger backup: `http://127.0.0.1:8000/docs`
+
+The citizen interface calls only the public `/politicians` endpoints. It contains
+no admin credential or editorial actions. The editorial page is visibly marked as
+a demo and uses the local-only credential `verapolitica-demo-admin`.
+
+### Manual startup fallback
+
+If the helper is unavailable, use:
 
 ```bash
+source .venv/bin/activate
+python -m scripts.prepare_demo
 export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"
 export VERAPOLITICA_RAW_STORAGE_PATH="./data/demo/raw"
 export VERAPOLITICA_ADMIN_API_KEY="verapolitica-demo-admin"
 export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
-uvicorn backend.app.main:app --reload
+uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open the citizen interface at:
+## 3–5 minute presentation script
+
+1. **Set the premise.** “VeraPolitica does not let politicians edit their own
+   profiles. Public information starts with official institutional sources and is
+   published only after human verification.”
+2. **Show an existing public profile.** In `/app/`, point out that only Anna Rossi
+   is visible. Open her profile and show the Verified indicator, current mandate,
+   and official source section.
+3. **Explain traceability.** Anna has 14 verified data references grouped under one
+   Senato source. Point out the official source link: every displayed fact remains
+   traceable without overwhelming citizens with duplicate source cards. Opening the
+   external link is optional and is the only part that requires internet access.
+4. **Show the publication boundary.** Return to the archive: Luca Bianchi is absent
+   because identity creation alone does not make a profile public.
+5. **Enter the editorial workspace.** Switch to `/demo/`. Anna is already
+   Published · Verified; Luca has a Pending proposal. Show Luca's readable diff and
+   field-level supporting Evidence.
+6. **Start human review.** Select **Start review**. Point out the visible transition
+   from Pending to In review and the updated controls. No final Review record exists
+   at this intermediate stage.
+7. **Approve and publish.** Select **Approve & publish**, then confirm. Explain that
+   the backend atomically creates the final Review, immutable published Version,
+   current-version pointer, and immutable citation snapshot.
+8. **Show the terminal state.** The workflow now says Published, the success message
+   is visible, and review controls are disabled.
+9. **Return to citizens.** Refresh `/app/`. Luca now appears because the public API
+   exposes only his newly approved current version.
+10. **Close on evidence.** Open Luca at `/app/?politician=2`. Show version 1, the
+    approved profile, 14 verified data references, and the grouped Senato link.
+
+## Backup plan
+
+If a presentation page is unavailable, use Swagger at `/docs`.
+
+Public checks:
 
 ```text
-http://127.0.0.1:8000/app/
+GET /politicians
+GET /politicians/1
+GET /politicians/2
 ```
 
-Open the editorial presentation UI at:
+Editorial sequence using bearer token `verapolitica-demo-admin`:
 
 ```text
-http://127.0.0.1:8000/demo/
+GET  /admin/drafts/2
+POST /admin/drafts/2/start-review
+POST /admin/drafts/2/approve
 ```
 
-Both interfaces are dependency-free static pages served by FastAPI, so no second
-frontend process is required. The citizen interface calls only the public
-`/politicians` endpoints and contains no admin credential or editorial actions.
-The editorial UI defaults to `http://127.0.0.1:8000` and uses the embedded bearer
-value `verapolitica-demo-admin`; that value is demo-only and does not weaken
-backend authentication.
+Before approval, `GET /politicians/2` returns 404. After approval, it returns Luca's
+published profile and citations. If the approval path has already been used, reset
+the dataset rather than trying to reverse a final decision.
 
-Swagger remains available as a fallback at `http://127.0.0.1:8000/docs`. Use its
-Authorize button with the same bearer value for `/admin/*` operations.
+## Reset
 
-## Presentation sequence
+Stop the application with `Ctrl+C`, then either rerun the launcher:
 
-1. Open `/app/`. Show Anna Rossi in the public archive and open her verified profile
-   with grouped official citations. Luca Bianchi is absent because he has no
-   published version.
-2. Switch to `/demo/`. In the **Pending proposal** card, show Luca's proposed
-   profile, readable field diff, and 14 supporting Evidence entries. The lower
-   public-result card says that Luca is not public yet.
-3. Select **Start review**. The draft badge and workflow move to **In review**; no
-   final Review exists yet.
-4. Select **Approve & publish** and confirm the final action. The UI calls the real
-   approval endpoint with the note `Official evidence verified during demo`.
-5. Show the editorial workflow at **Published**, then return to `/app/` and refresh.
-   Luca now appears automatically because the public API exposes his approved
-   version.
-6. Open Luca's profile at `/app/?politician=2`. Show the approved personal and
-   mandate data, 14 verified data references, and the grouped Senato source link.
+```bash
+./scripts/run_demo.sh
+```
 
-The **Reject** action is available for an alternate presentation path and also asks
-for confirmation. If the API is unavailable, authentication fails, or the draft is
-already final, the UI shows a readable error and refreshes state where appropriate.
-
-To restore the original pending state after a rehearsal, stop the API and run:
+or reset without starting the server:
 
 ```bash
 python -m scripts.prepare_demo
 ```
 
-Reload both `http://127.0.0.1:8000/app/` and
-`http://127.0.0.1:8000/demo/` after reset. Anna is public again, Luca is absent
-from the citizen archive, and Draft 2 is pending. There is deliberately no browser
-reset action or reset API.
+After reset, reload `/app/` and `/demo/`. Anna is public, Luca is absent from the
+citizen archive, and Draft 2 is Pending again. There is deliberately no browser
+reset control or reset API.
+
+## Language and terminology
+
+The MVP interfaces remain in English to keep the already-tested presentation flow
+consistent. Italian localization is a post-MVP improvement; no localization system
+is included. “Verified” means checked against cited official sources. It does not
+mean endorsement, political quality, or validation of subjective claims.
