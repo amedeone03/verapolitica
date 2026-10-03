@@ -17,7 +17,9 @@ from backend.app.models import (
     Source,
 )
 from backend.app.pipeline.mappers import (
+    CameraCandidateProfileMapper,
     CandidateMappingError,
+    CandidateProfileMapper,
     SenatoCandidateProfileMapper,
 )
 from backend.app.schemas import (
@@ -84,12 +86,15 @@ class RawDocumentCandidateRebuilder:
         self,
         session_factory: sessionmaker[Session],
         *,
-        mappers: Mapping[str, SenatoCandidateProfileMapper] | None = None,
+        mappers: Mapping[str, CandidateProfileMapper] | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.mappers = dict(
             mappers
-            or {"senato-repubblica": SenatoCandidateProfileMapper()}
+            or {
+                "senato-repubblica": SenatoCandidateProfileMapper(),
+                "camera-deputati": CameraCandidateProfileMapper(),
+            }
         )
 
     def rebuild(
@@ -208,7 +213,7 @@ class RawDocumentCandidateRebuilder:
 
     @staticmethod
     def _record_identifier(record: Mapping[str, Any]) -> str | None:
-        for field in ("senator_uri", "mandate_uri"):
+        for field in ("senator_uri", "deputy_uri", "person_uri", "mandate_uri"):
             value = record.get(field)
             if isinstance(value, str) and value:
                 return value

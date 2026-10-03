@@ -84,6 +84,12 @@ source field. Versions published before citation snapshot support return
 `"citation_count": 0` and `"citations": []`; citations are never inferred from a
 later draft.
 
+For a newly approved update, citations for unchanged fields are inherited from the
+baseline version and citations for changed fields are replaced by the approved
+draft's Evidence. The response may therefore contain separate entries naming
+Senato della Repubblica and Camera dei Deputati when both support the current
+version; source names are never collapsed.
+
 Public responses deliberately omit ProfileDrafts, internal Evidence, Reviews, reviewer
 identity, review notes, hashes, storage paths, and supersession data. A curated
 public citation exposes only field path, readable source name, public source URL,

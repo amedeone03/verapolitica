@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
-from backend.app.models import RawDocument, RawDocumentStatus
+from backend.app.models import RawDocument, RawDocumentStatus, Source
+from backend.app.pipeline.parsers import CameraParser
 from backend.app.services import CandidateRebuildError, RawDocumentCandidateRebuilder
 
 
@@ -74,6 +76,50 @@ def test_rebuilds_candidates_from_selected_successful_document(
         "/101"
     )
     assert result.invalid == ()
+
+
+def test_rebuilds_camera_candidates_with_registered_mapper(session_factory):
+    with session_factory() as session:
+        camera = Source(
+            key="camera-deputati",
+            name="Camera dei Deputati",
+            base_url="https://dati.camera.it",
+        )
+        session.add(camera)
+        session.commit()
+        session.refresh(camera)
+        source_id = camera.id
+    records = CameraParser().parse(
+        Path("data/fixtures/camera/camera_deputies.json").read_bytes()
+    ).structured_records
+    with session_factory() as session:
+        document = RawDocument(
+            source_id=source_id,
+            retrieved_at=datetime(2026, 10, 3, tzinfo=timezone.utc),
+            source_url="https://dati.camera.it/sparql",
+            content_type="application/json",
+            storage_key="camera/test.json",
+            raw_sha256="c" * 64,
+            normalized_sha256="d" * 64,
+            structured_records=records,
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="camera_collector_v1",
+            parser_version="camera_parser_v1",
+        )
+        session.add(document)
+        session.commit()
+        document_id = document.id
+
+    result = RawDocumentCandidateRebuilder(session_factory).rebuild(
+        raw_document_id=document_id,
+        source_key="camera-deputati",
+    )
+
+    assert len(result.candidates) == 2
+    assert result.candidates[0].profile.identity.source_identifiers[0].authority == (
+        "camera-deputati"
+    )
 
 
 def test_rebuild_defaults_to_latest_successful_document(session_factory, source):

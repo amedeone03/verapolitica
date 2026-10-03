@@ -1,15 +1,29 @@
 # Architecture
 
-The implemented path is deterministic:
+The implemented multi-source path is deterministic:
 
 ```text
-Senato official source
-  -> collector
+official source (Senato or Camera)
+  -> source-specific collector
   -> persisted RawDocument
-  -> parser
+  -> source-specific parser
   -> canonical normalized hash and change detection
+  -> source-specific mapper
   -> transient CandidateProfiles when changed
+  -> generic matching, diff, Evidence, review, publication, and public API
 ```
+
+Camera and Senato share no source-specific domain fields. Each adapter translates
+official bindings to CandidateProfile identity and versioned profile fields while
+retaining exact document, record, and field provenance. `Source` registration and
+`PoliticianSourceIdentifier` allow one Politician to carry opaque identifiers from
+both institutions without adding provider-specific columns.
+
+Matching remains deterministic and read-only. A new provider identifier is checked
+first; if it is not yet linked, normalized full name plus exact birth date may match
+an existing Politician. Multiple matches remain uncertain and are never merged.
+Attaching a newly resolved provider identifier is an explicit write outside
+MatchingService.
 
 Normal ingestion stops there. It never creates or changes Politicians.
 
@@ -96,7 +110,13 @@ minimal public form: field path, Source name, source URL, and source field. It d
 record identifiers, raw-document IDs, values, extraction metadata, hashes, storage
 keys, and all reviewer data. Identical projections are deduplicated and sorted,
 then inserted as immutable PoliticianVersionCitation rows belonging to the new
-version.
+version. For updates, unchanged field citations are inherited from the immutable
+baseline snapshot; citations at changed field paths are replaced by the new draft's
+Evidence. This preserves independent Senato and Camera citations on one version.
+
+Conflicting official values are not resolved by source priority. The new candidate
+is compared normally with the published baseline; a discrepancy becomes a typed
+diff supported by Evidence from the new source and waits for human review.
 
 Version numbers are assigned per Politician as the existing maximum plus one. The
 database uniqueness constraint on `(politician_id, version_number)` and the unique

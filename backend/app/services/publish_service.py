@@ -93,7 +93,7 @@ class PublishService:
                         )
                     self._validate_baseline(session, draft, politician)
                     profile = self._validate_profile(draft)
-                    citations = self._build_public_citations(session, draft.id)
+                    citations = self._build_public_citations(session, draft)
 
                     next_version_number = (
                         session.scalar(
@@ -226,7 +226,7 @@ class PublishService:
     @staticmethod
     def _build_public_citations(
         session: Session,
-        draft_id: int,
+        draft: ProfileDraft,
     ) -> tuple[PublicCitation, ...]:
         rows = session.execute(
             select(
@@ -237,19 +237,40 @@ class PublishService:
             )
             .join(RawDocument, RawDocument.id == Evidence.raw_document_id)
             .join(Source, Source.id == RawDocument.source_id)
-            .where(Evidence.draft_id == draft_id)
+            .where(Evidence.draft_id == draft.id)
         ).all()
-        public_values = sorted(
-            {
-                (
-                    field_path,
-                    source_name,
-                    source_url,
-                    source_field_name,
-                )
-                for field_path, source_name, source_url, source_field_name in rows
+        public_values = {
+            (field_path, source_name, source_url, source_field_name)
+            for field_path, source_name, source_url, source_field_name in rows
+        }
+        if draft.baseline_version_id is not None:
+            changed_paths = {
+                change.get("field_path")
+                for change in draft.diff_data.get("changes", [])
+                if isinstance(change, dict)
             }
-        )
+            baseline_citations = session.scalars(
+                select(PoliticianVersionCitation).where(
+                    PoliticianVersionCitation.politician_version_id
+                    == draft.baseline_version_id
+                )
+            )
+            for citation in baseline_citations:
+                if not any(
+                    PublishService._citation_path_is_changed(
+                        citation.field_path, changed_path
+                    )
+                    for changed_path in changed_paths
+                    if isinstance(changed_path, str)
+                ):
+                    public_values.add(
+                        (
+                            citation.field_path,
+                            citation.source_name,
+                            citation.source_url,
+                            citation.source_field,
+                        )
+                    )
         return tuple(
             PublicCitation(
                 field_path=field_path,
@@ -257,5 +278,13 @@ class PublishService:
                 source_url=source_url,
                 source_field=source_field,
             )
-            for field_path, source_name, source_url, source_field in public_values
+            for field_path, source_name, source_url, source_field in sorted(public_values)
+        )
+
+    @staticmethod
+    def _citation_path_is_changed(citation_path: str, changed_path: str) -> bool:
+        return (
+            citation_path == changed_path
+            or citation_path.startswith(f"{changed_path}[")
+            or citation_path.startswith(f"{changed_path}.")
         )

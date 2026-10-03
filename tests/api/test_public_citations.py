@@ -19,6 +19,7 @@ from backend.app.models import (
     RawDocument,
     RawDocumentStatus,
     Review,
+    Source,
 )
 from backend.app.services import (
     PublishPersistenceError,
@@ -243,6 +244,93 @@ def test_later_draft_evidence_does_not_change_published_snapshot(
         citation["source_url"] == "https://dati.senato.it/sparql"
         for citation in payload["citations"]
     )
+
+
+def test_update_inherits_unchanged_citations_and_replaces_changed_field_source(
+    session_factory, source
+):
+    politician_id, initial_draft_id = seed_draft_with_evidence(
+        session_factory, source
+    )
+    initial = PublishService(session_factory).approve(
+        initial_draft_id, reviewer="editor"
+    )
+
+    with session_factory() as session:
+        camera = Source(
+            key="camera-deputati",
+            name="Camera dei Deputati",
+            base_url="https://dati.camera.it",
+        )
+        session.add(camera)
+        session.flush()
+        document = RawDocument(
+            source_id=camera.id,
+            retrieved_at=datetime(2026, 10, 3, tzinfo=timezone.utc),
+            source_url="https://dati.camera.it/sparql",
+            content_type="application/json",
+            storage_key="camera/update.json",
+            raw_sha256="c" * 64,
+            normalized_sha256="d" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="camera_collector_v1",
+            parser_version="camera_parser_v1",
+        )
+        session.add(document)
+        session.flush()
+        draft = ProfileDraft(
+            politician_id=politician_id,
+            baseline_version_id=initial.created_version_id,
+            raw_document_id=document.id,
+            kind=ProfileDraftKind.UPDATE,
+            status=ProfileDraftStatus.PENDING,
+            profile_schema_version=1,
+            proposed_profile_data=profile_data(profession="Magistrata"),
+            diff_data={
+                "status": "update",
+                "changes": [
+                    {
+                        "field_path": "profession",
+                        "change_type": "changed",
+                        "old_value": "Avvocata",
+                        "new_value": "Magistrata",
+                    }
+                ],
+            },
+        )
+        session.add(draft)
+        session.flush()
+        session.add(
+            Evidence(
+                draft_id=draft.id,
+                field_path="profession",
+                raw_document_id=document.id,
+                source_url="https://dati.camera.it/sparql",
+                source_record_identifier="camera-record",
+                source_field_name="profession",
+                source_value="Magistrata",
+                extraction_method=EvidenceExtractionMethod.DETERMINISTIC,
+            )
+        )
+        session.commit()
+        draft_id = draft.id
+
+    update = PublishService(session_factory).approve(draft_id, reviewer="editor")
+
+    with session_factory() as session:
+        citations = session.scalars(
+            select(PoliticianVersionCitation).where(
+                PoliticianVersionCitation.politician_version_id
+                == update.created_version_id
+            )
+        ).all()
+        assert {(item.field_path, item.source_name) for item in citations} == {
+            ("birth_date", "Senato della Repubblica"),
+            ("given_name", "Senato della Repubblica"),
+            ("profession", "Camera dei Deputati"),
+        }
 
 
 def test_legacy_version_without_snapshot_returns_empty_citations(

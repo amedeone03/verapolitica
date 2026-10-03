@@ -1,0 +1,62 @@
+{
+  "head": {
+    "vars": [
+      "deputyUri",
+      "personUri",
+      "firstName",
+      "lastName",
+      "gender",
+      "birthDate",
+      "birthCity",
+      "birthProvince",
+      "profession",
+      "photoUrl",
+      "homepage",
+      "mandateUri",
+      "mandateType",
+      "mandateStart",
+      "legislature",
+      "electionArea"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "deputyUri": {"type": "uri", "value": "http://dati.camera.it/ocd/deputato.rdf/d200_19"},
+        "personUri": {"type": "uri", "value": "http://dati.camera.it/ocd/persona.rdf/p200"},
+        "firstName": {"type": "literal", "value": "GIUSEPPE"},
+        "lastName": {"type": "literal", "value": "VERDI"},
+        "gender": {"type": "literal", "value": "male"},
+        "birthDate": {"type": "literal", "value": "19650304"},
+        "birthCity": {"type": "literal", "value": "Milano"},
+        "birthProvince": {"type": "literal", "value": "Milano"},
+        "profession": {"type": "literal", "value": "Medico"},
+        "photoUrl": {"type": "uri", "value": "https://documenti.camera.it/deputati/d200_19.jpg"},
+        "homepage": {"type": "uri", "value": "https://www.camera.it/deputati/d200_19"},
+        "mandateUri": {"type": "uri", "value": "http://dati.camera.it/ocd/mandatoCamera.rdf/mc19_200"},
+        "mandateType": {"type": "literal", "value": "elezione"},
+        "mandateStart": {"type": "literal", "value": "20221013"},
+        "legislature": {"type": "literal", "value": "19"},
+        "electionArea": {"type": "literal", "value": "Lombardia"}
+      },
+      {
+        "deputyUri": {"type": "uri", "value": "http://dati.camera.it/ocd/deputato.rdf/d100_19"},
+        "personUri": {"type": "uri", "value": "http://dati.camera.it/ocd/persona.rdf/p100"},
+        "firstName": {"type": "literal", "value": "MARIA"},
+        "lastName": {"type": "literal", "value": "ROSSI"},
+        "gender": {"type": "literal", "value": "female"},
+        "birthDate": {"type": "literal", "value": "19700102"},
+        "birthCity": {"type": "literal", "value": "Roma"},
+        "birthProvince": {"type": "literal", "value": "Roma"},
+        "profession": {"type": "literal", "value": "Avvocata"},
+        "photoUrl": {"type": "uri", "value": "https://documenti.camera.it/deputati/d100_19.jpg"},
+        "homepage": {"type": "uri", "value": "https://www.camera.it/deputati/d100_19"},
+        "mandateUri": {"type": "uri", "value": "http://dati.camera.it/ocd/mandatoCamera.rdf/mc19_100"},
+        "mandateType": {"type": "literal", "value": "elezione"},
+        "mandateStart": {"type": "literal", "value": "20221013"},
+        "legislature": {"type": "literal", "value": "19"},
+        "electionArea": {"type": "literal", "value": "Lazio"}
+      }
+    ]
+  }
+}

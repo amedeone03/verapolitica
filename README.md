@@ -1,10 +1,10 @@
 # VeraPolitica
 
-VeraPolitica is beginning with a deterministic ingestion slice for official Senato
-della Repubblica data. This slice collects current-senator SPARQL JSON, stores the
-raw response, parses structured records, and detects meaningful changes using a
-canonical normalized hash. Changed records are mapped deterministically into
-source-independent, transient CandidateProfile objects. The domain now includes
+VeraPolitica ingests official national political data from Senato della Repubblica
+and Camera dei Deputati. Each source-specific SPARQL collector, parser, and mapper
+feeds the same source-independent pipeline. Raw responses are preserved and
+meaningful changes are detected with canonical normalized hashes. Changed records
+are mapped deterministically into transient CandidateProfile objects. The domain includes
 stable Politician identities, generic official-source identifiers, immutable
 PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
 explicit bootstrap command for initial identity creation. Matched candidates can
@@ -36,7 +36,12 @@ you need to override the defaults.
 From the repository root:
 
 ```bash
+# Backward-compatible default: Senato
 python -m scripts.run_ingestion
+
+# Explicit source selection
+python -m scripts.run_ingestion --source senato
+python -m scripts.run_ingestion --source camera
 ```
 
 By default this creates `data/verapolitica.db` and stores immutable raw payloads
@@ -44,6 +49,11 @@ under `data/raw/`. The command prints the RawDocument ID, both hashes, change re
 storage key, and collector/parser versions.
 The output also reports how many CandidateProfiles were produced. Unchanged source
 data produces zero candidates.
+
+Camera ingestion uses the official Camera open-data SPARQL endpoint and maps current
+XIX-legislature deputies. Camera-specific RDF bindings remain inside its collector,
+parser, mapper, and provenance; the CandidateProfile and every downstream service
+remain source-independent.
 
 ## Bootstrap politician identities
 
@@ -54,6 +64,14 @@ Senato document:
 
 ```bash
 python -m scripts.bootstrap_politicians --dry-run
+```
+
+For the latest parsed Camera document, select its generic Source key:
+
+```bash
+python -m scripts.bootstrap_politicians \
+  --dry-run \
+  --source-key camera-deputati
 ```
 
 To select a specific stored snapshot:
@@ -160,6 +178,9 @@ Politician detail responses include a curated citation snapshot copied from the
 approved draft's Evidence during publication. List items expose only
 `citation_count` to stay compact. Versions published before citation snapshots were
 introduced remain readable with an empty citation list.
+On an update, citations for unchanged fields are inherited from the baseline version,
+while citations for changed fields come from the newly approved Evidence. A version
+can therefore cite Senato and Camera independently without collapsing their identity.
 Interactive OpenAPI documentation is available at
 `http://127.0.0.1:8000/docs` while Uvicorn is running.
 
@@ -169,8 +190,8 @@ Interactive OpenAPI documentation is available at
 python -m pytest
 ```
 
-Tests use temporary SQLite databases, mocked HTTP, and temporary raw storage. They
-do not call the live Senato endpoint.
+Tests use temporary SQLite databases, mocked HTTP, deterministic fixtures, and
+temporary raw storage. They do not call live Senato or Camera endpoints.
 
 ## Continuous integration
 

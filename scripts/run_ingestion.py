@@ -1,5 +1,7 @@
+import argparse
 import json
 import sys
+from dataclasses import dataclass
 
 from sqlalchemy import select
 
@@ -7,28 +9,45 @@ from backend.app.core.config import get_settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Source
-from backend.app.pipeline.collectors import CollectorError, SenatoCollector
+from backend.app.pipeline.collectors import CameraCollector, CollectorError, SenatoCollector
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
 from backend.app.pipeline.mappers import (
+    CameraCandidateProfileMapper,
     CandidateMappingError,
     SenatoCandidateProfileMapper,
 )
-from backend.app.pipeline.parsers import ParserError, SenatoParser
+from backend.app.pipeline.parsers import CameraParser, ParserError, SenatoParser
 from backend.app.storage import LocalRawStorage, StorageError
 
-SOURCE_KEY = "senato-repubblica"
-SOURCE_NAME = "Senato della Repubblica"
-SOURCE_BASE_URL = "https://dati.senato.it"
+@dataclass(frozen=True)
+class SourceSpec:
+    key: str
+    name: str
+    base_url: str
 
 
-def get_or_create_source(session_factory) -> Source:
+SOURCE_SPECS = {
+    "senato": SourceSpec(
+        key="senato-repubblica",
+        name="Senato della Repubblica",
+        base_url="https://dati.senato.it",
+    ),
+    "camera": SourceSpec(
+        key="camera-deputati",
+        name="Camera dei Deputati",
+        base_url="https://dati.camera.it",
+    ),
+}
+
+
+def get_or_create_source(session_factory, spec: SourceSpec) -> Source:
     with session_factory() as session:
-        source = session.scalar(select(Source).where(Source.key == SOURCE_KEY))
+        source = session.scalar(select(Source).where(Source.key == spec.key))
         if source is None:
             source = Source(
-                key=SOURCE_KEY,
-                name=SOURCE_NAME,
-                base_url=SOURCE_BASE_URL,
+                key=spec.key,
+                name=spec.name,
+                base_url=spec.base_url,
             )
             session.add(source)
             session.commit()
@@ -36,23 +55,49 @@ def get_or_create_source(session_factory) -> Source:
         return source
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Ingest an official political source")
+    parser.add_argument(
+        "--source",
+        choices=tuple(SOURCE_SPECS),
+        default="senato",
+        help="official source to ingest (default: senato)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     settings = get_settings()
     engine = create_db_engine(settings.database_url)
     Base.metadata.create_all(engine)
     session_factory = create_session_factory(engine)
-    source = get_or_create_source(session_factory)
+    spec = SOURCE_SPECS[args.source]
+    source = get_or_create_source(session_factory, spec)
+
+    if args.source == "camera":
+        collector = CameraCollector(
+            endpoint=settings.camera_sparql_endpoint,
+            legislature=settings.camera_legislature,
+            timeout_seconds=settings.camera_request_timeout_seconds,
+        )
+        parser = CameraParser()
+        mapper = CameraCandidateProfileMapper()
+    else:
+        collector = SenatoCollector(
+            endpoint=settings.senato_sparql_endpoint,
+            legislature=settings.senato_legislature,
+            timeout_seconds=settings.senato_request_timeout_seconds,
+        )
+        parser = SenatoParser()
+        mapper = SenatoCandidateProfileMapper()
 
     pipeline = IngestionPipeline(
         session_factory=session_factory,
         storage=LocalRawStorage(settings.raw_storage_path),
-        collector=SenatoCollector(
-            endpoint=settings.senato_sparql_endpoint,
-            legislature=settings.senato_legislature,
-            timeout_seconds=settings.senato_request_timeout_seconds,
-        ),
-        parser=SenatoParser(),
-        profile_mapper=SenatoCandidateProfileMapper(),
+        collector=collector,
+        parser=parser,
+        profile_mapper=mapper,
     )
 
     try:
@@ -66,6 +111,8 @@ def main() -> int:
     print(
         json.dumps(
             {
+                "source": args.source,
+                "source_key": source.key,
                 "raw_document_id": result.raw_document_id,
                 "process_status": result.process_status.value,
                 "change_detected": result.change_detected,

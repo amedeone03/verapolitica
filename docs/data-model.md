@@ -1,7 +1,7 @@
 # MVP ingestion data model
 
 The implemented slices persist the official source and every collected response,
-then map changed Senato records to transient CandidateProfiles. Stable politician
+then map changed Senato or Camera records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The
 implementation can persist reviewable profile drafts and field-level Evidence, but
 only an explicit final Review can reject a draft or publish a new version.
@@ -11,7 +11,7 @@ only an explicit final Review can reject a draft or publish a new version.
 `Source` identifies one configured official provider.
 
 - `id`: internal primary key
-- `key`: stable application key (`senato-repubblica`)
+- `key`: stable application key (`senato-repubblica` or `camera-deputati`)
 - `name`: human-readable institution name
 - `base_url`: official provider URL
 - `is_enabled`: whether collection is enabled
@@ -51,8 +51,8 @@ It separates:
 - provenance: the RawDocument snapshot plus a deterministic source mapping for each
   populated candidate field.
 
-Senato-specific record keys, RDF terms, person URIs, and mandate URIs remain in the
-Senato mapper, generic source identifiers, or provenance. They are not domain field
+Provider-specific record keys, RDF terms, person URIs, and mandate URIs remain in
+the appropriate mapper, generic source identifiers, or provenance. They are not domain field
 names. Field provenance retains the parsed source value and source binding name so a
 later slice can create Evidence records backed by the persisted RawDocument.
 
@@ -70,7 +70,7 @@ exists. Mutable public-profile fields do not live directly on Politician.
 Official identifiers use a generic link table rather than source-specific columns.
 Each row links a Politician to a Source and an opaque identifier value. The pair of
 Source and value is unique, so one official identifier cannot identify multiple
-Politicians. Future Camera identifiers can use the same structure as Senato URIs.
+Politicians. The same Politician can hold separate Senato and Camera identifier rows.
 
 ## PoliticianVersion
 
@@ -107,6 +107,11 @@ deletes through the ORM raise an immutability error.
 Existing PoliticianVersions need no backfill. If a legacy version has no citation
 rows, the public API returns an empty list and never infers citations from newer
 Evidence.
+
+When publishing an update, unchanged-field citations are copied from the baseline
+version. Citations whose field path is changed by the draft are replaced with the
+new Evidence projection. Consequently one immutable version may cite multiple
+official Sources without merging their names or silently selecting an authority.
 
 ## Matching lifecycle
 
@@ -174,9 +179,14 @@ it never updates an existing version.
 - creation time.
 
 Candidate paths such as `identity.given_name` and `profile.profession` become
-`given_name` and `profession`. Senato field names remain source metadata rather than
+`given_name` and `profession`. Senato and Camera field names remain source metadata rather than
 domain field names. A mandate collection change can have several Evidence rows,
 one for each source-backed mandate field.
+
+If official sources disagree, the incoming value is represented normally in the
+CandidateProfile and its difference from the current version is persisted only as a
+reviewable draft with source-specific Evidence. No model or service assigns an
+automatic priority between Senato and Camera.
 
 DraftService validates complete evidence coverage before any database mutation.
 It does not invent evidence for absent values, so a removal without explicit
