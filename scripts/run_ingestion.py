@@ -9,14 +9,25 @@ from backend.app.core.config import get_settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Source
-from backend.app.pipeline.collectors import CameraCollector, CollectorError, SenatoCollector
+from backend.app.pipeline.collectors import (
+    CameraCollector,
+    CollectorError,
+    GovernoCollector,
+    SenatoCollector,
+)
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
 from backend.app.pipeline.mappers import (
     CameraCandidateProfileMapper,
     CandidateMappingError,
+    GovernoCandidateProfileMapper,
     SenatoCandidateProfileMapper,
 )
-from backend.app.pipeline.parsers import CameraParser, ParserError, SenatoParser
+from backend.app.pipeline.parsers import (
+    CameraParser,
+    GovernoParser,
+    ParserError,
+    SenatoParser,
+)
 from backend.app.storage import LocalRawStorage, StorageError
 
 @dataclass(frozen=True)
@@ -36,6 +47,11 @@ SOURCE_SPECS = {
         key="camera-deputati",
         name="Camera dei Deputati",
         base_url="https://dati.camera.it",
+    ),
+    "governo": SourceSpec(
+        key="governo-italiano",
+        name="Governo Italiano",
+        base_url="https://www.governo.it",
     ),
 }
 
@@ -83,6 +99,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         parser = CameraParser()
         mapper = CameraCandidateProfileMapper()
+    elif args.source == "governo":
+        collector = GovernoCollector(
+            index_url=settings.governo_index_url,
+            timeout_seconds=settings.governo_request_timeout_seconds,
+        )
+        parser = GovernoParser()
+        mapper = GovernoCandidateProfileMapper()
     else:
         collector = SenatoCollector(
             endpoint=settings.senato_sparql_endpoint,

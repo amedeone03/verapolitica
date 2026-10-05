@@ -20,6 +20,7 @@ from backend.app.pipeline.mappers import (
     CameraCandidateProfileMapper,
     CandidateMappingError,
     CandidateProfileMapper,
+    GovernoCandidateProfileMapper,
     SenatoCandidateProfileMapper,
 )
 from backend.app.schemas import (
@@ -31,6 +32,7 @@ from backend.app.schemas import (
     BootstrapUncertainDetail,
     CandidateProfile,
     MatchedResult,
+    NewMatchReason,
     NewResult,
     SourceDocumentProvenance,
     UncertainResult,
@@ -94,6 +96,7 @@ class RawDocumentCandidateRebuilder:
             or {
                 "senato-repubblica": SenatoCandidateProfileMapper(),
                 "camera-deputati": CameraCandidateProfileMapper(),
+                "governo-italiano": GovernoCandidateProfileMapper(),
             }
         )
 
@@ -294,6 +297,19 @@ class PoliticianBootstrapService:
                         )
                     )
                 elif isinstance(result, NewResult):
+                    if result.reason is NewMatchReason.INSUFFICIENT_FALLBACK_IDENTITY:
+                        invalid.append(
+                            BootstrapInvalidDetail(
+                                candidate_index=indexed.candidate_index,
+                                source_record_id=self._candidate_record_id(indexed.profile),
+                                display_name=self._display_name(indexed.profile),
+                                error=(
+                                    "candidate lacks the birth date required to "
+                                    "distinguish a new identity from an existing person"
+                                ),
+                            )
+                        )
+                        continue
                     new_candidates.append(indexed)
                     new_details.append(self._new_detail(indexed))
 

@@ -239,7 +239,7 @@ class DraftService:
                     EvidenceSpec(
                         field_path=canonical_path,
                         raw_document_id=document.raw_document_id,
-                        source_url=str(document.source_url),
+                        source_url=str(field.source_url or document.source_url),
                         source_record_identifier=field.source_record_id,
                         source_field_name=field.source_field,
                         source_value=field.source_value,

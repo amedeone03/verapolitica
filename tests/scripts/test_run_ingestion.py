@@ -8,3 +8,8 @@ def test_ingestion_defaults_to_senato_for_backward_compatibility():
 def test_ingestion_accepts_camera_source():
     assert parse_args(["--source", "camera"]).source == "camera"
     assert SOURCE_SPECS["camera"].key == "camera-deputati"
+
+
+def test_ingestion_accepts_governo_source():
+    assert parse_args(["--source", "governo"]).source == "governo"
+    assert SOURCE_SPECS["governo"].key == "governo-italiano"

@@ -67,6 +67,7 @@ class FieldProvenance(ImmutableSchema):
     source_record_id: str
     source_field: str
     source_value: str
+    source_url: AnyHttpUrl | None = None
     method: Literal["deterministic"] = "deterministic"
 
 

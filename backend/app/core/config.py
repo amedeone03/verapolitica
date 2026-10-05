@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     camera_sparql_endpoint: str = "https://dati.camera.it/sparql"
     camera_legislature: int = Field(default=19, gt=0)
     camera_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    governo_index_url: str = "https://www.governo.it/it/ministri-e-sottosegretari"
+    governo_request_timeout_seconds: float = Field(default=30.0, gt=0)
     admin_api_key: SecretStr | None = None
     admin_reviewer_identity: str = Field(
         default="admin-editor",

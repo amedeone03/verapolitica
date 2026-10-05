@@ -1,8 +1,8 @@
 # VeraPolitica
 
-VeraPolitica ingests official national political data from Senato della Repubblica
-and Camera dei Deputati. Each source-specific SPARQL collector, parser, and mapper
-feeds the same source-independent pipeline. Raw responses are preserved and
+VeraPolitica ingests official national political data from Senato della Repubblica,
+Camera dei Deputati, and Governo Italiano. Each source-specific collector, parser,
+and mapper feeds the same source-independent pipeline. Raw responses are preserved and
 meaningful changes are detected with canonical normalized hashes. Changed records
 are mapped deterministically into transient CandidateProfile objects. The domain includes
 stable Politician identities, generic official-source identifiers, immutable
@@ -44,6 +44,7 @@ python -m scripts.run_ingestion
 # Explicit source selection
 python -m scripts.run_ingestion --source senato
 python -m scripts.run_ingestion --source camera
+python -m scripts.run_ingestion --source governo
 ```
 
 By default this creates `data/verapolitica.db` and stores immutable raw payloads
@@ -56,6 +57,23 @@ Camera ingestion uses the official Camera open-data SPARQL endpoint and maps cur
 XIX-legislature deputies. Camera-specific RDF bindings remain inside its collector,
 parser, mapper, and provenance; the CandidateProfile and every downstream service
 remain source-independent.
+
+Governo ingestion uses the official current office-holder index and its linked
+official profile pages. Because Governo does not expose an equivalent structured
+people endpoint, the collector preserves the index and all discovered profile HTML
+inside one deterministic raw bundle. The parser uses semantic HTML metadata and
+official links rather than page positions. Its stable identifier is the official
+Drupal node shortlink when present, falling back to the canonical profile URL.
+
+The Governo adapter maps offices, institutions, appointment dates, official image
+and profile URLs, and birth data only when the biography states it explicitly. It
+does not infer professions from prose. Most current profiles do not publish a birth
+date, so those candidates cannot safely use name-plus-birth-date fallback matching;
+bootstrap reports them as invalid rather than creating possible duplicate people.
+Exact official identifiers continue to match normally. The adapter also groups
+multiple official pages with the same displayed name into one candidate and retains
+all of their identifiers and mandates; exact-name grouping and simple displayed-name
+splitting are known MVP limitations.
 
 ## Bootstrap politician identities
 
@@ -75,6 +93,8 @@ python -m scripts.bootstrap_politicians \
   --dry-run \
   --source-key camera-deputati
 ```
+
+The equivalent Governo Source key is `governo-italiano`.
 
 To select a specific stored snapshot:
 

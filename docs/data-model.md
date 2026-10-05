@@ -1,7 +1,7 @@
 # MVP ingestion data model
 
 The implemented slices persist the official source and every collected response,
-then map changed Senato or Camera records to transient CandidateProfiles. Stable politician
+then map changed Senato, Camera, or Governo records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The
 implementation can persist reviewable profile drafts and field-level Evidence, but
 only an explicit final Review can reject a draft or publish a new version.
@@ -11,13 +11,19 @@ only an explicit final Review can reject a draft or publish a new version.
 `Source` identifies one configured official provider.
 
 - `id`: internal primary key
-- `key`: stable application key (`senato-repubblica` or `camera-deputati`)
+- `key`: stable application key (`senato-repubblica`, `camera-deputati`, or
+  `governo-italiano`)
 - `name`: human-readable institution name
 - `base_url`: official provider URL
 - `is_enabled`: whether collection is enabled
 - `created_at`: creation timestamp
 
 One Source has many RawDocuments.
+
+Senato and Camera RawDocuments preserve their structured endpoint responses. A
+Governo RawDocument preserves a deterministic JSON bundle containing the official
+office-holder index HTML and all linked profile-page HTML, so parsing remains
+repeatable even though the upstream representation is HTML.
 
 ## RawDocument
 
@@ -54,7 +60,14 @@ It separates:
 Provider-specific record keys, RDF terms, person URIs, and mandate URIs remain in
 the appropriate mapper, generic source identifiers, or provenance. They are not domain field
 names. Field provenance retains the parsed source value and source binding name so a
-later slice can create Evidence records backed by the persisted RawDocument.
+later slice can create Evidence records backed by the persisted RawDocument. It may
+also carry the exact official page URL for that field; Evidence prefers this URL to
+the enclosing document index URL.
+
+The Governo mapper can emit several official identifiers and mandates for one
+candidate when the same person has several official pages. It maps only explicit
+structured or semantic page facts. Missing birth data and profession remain null;
+free-form biography text is not interpreted as a domain claim.
 
 ## Politician
 
@@ -70,7 +83,8 @@ exists. Mutable public-profile fields do not live directly on Politician.
 Official identifiers use a generic link table rather than source-specific columns.
 Each row links a Politician to a Source and an opaque identifier value. The pair of
 Source and value is unique, so one official identifier cannot identify multiple
-Politicians. The same Politician can hold separate Senato and Camera identifier rows.
+Politicians. The same Politician can hold separate Senato, Camera, and Governo
+identifier rows.
 The model deliberately does not constrain `(politician_id, source_id)`, so historical
 or otherwise legitimate multiple identifiers from one authority remain possible.
 Identifiers are appended, never silently replaced.
@@ -158,8 +172,10 @@ transient. Per-record mapping failures become invalid report entries.
 `PoliticianBootstrapService` first validates and matches the entire candidate set
 without writing. Its report contains aggregate counts and per-record entries for
 new, matched, uncertain, and invalid cases. Missing source identifiers, unknown
-source authorities, invalid canonical names, and duplicate identifiers within the
-input batch are invalid. Any invalid or uncertain entry prevents apply.
+source authorities, invalid canonical names, duplicate identifiers within the input
+batch, and a `new` result caused by missing birth data are invalid. The last rule
+prevents bootstrap from creating a duplicate when deterministic fallback identity
+is incomplete. Any invalid or uncertain entry prevents apply.
 
 For a safe plan, apply creates one Politician and its PoliticianSourceIdentifier
 rows for every new candidate in one transaction. It creates no PoliticianVersion.
@@ -202,14 +218,14 @@ it never updates an existing version.
 - creation time.
 
 Candidate paths such as `identity.given_name` and `profile.profession` become
-`given_name` and `profession`. Senato and Camera field names remain source metadata rather than
+`given_name` and `profession`. Senato, Camera, and Governo field names remain source metadata rather than
 domain field names. A mandate collection change can have several Evidence rows,
 one for each source-backed mandate field.
 
 If official sources disagree, the incoming value is represented normally in the
 CandidateProfile and its difference from the current version is persisted only as a
 reviewable draft with source-specific Evidence. No model or service assigns an
-automatic priority between Senato and Camera.
+automatic priority between official sources.
 
 DraftService validates complete evidence coverage before any database mutation.
 It does not invent evidence for absent values, so a removal without explicit

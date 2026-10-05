@@ -204,6 +204,23 @@ def test_invalid_candidate_is_reported_and_blocks_apply(session_factory, source)
     assert counts(session_factory) == (0, 0)
 
 
+def test_missing_birth_date_is_invalid_instead_of_creating_possible_duplicate(
+    session_factory, source
+):
+    service = PoliticianBootstrapService(session_factory)
+    plan = service.plan(
+        rebuilt(candidate(0, identifier="senator-unknown", birth_date=None)),
+        dry_run=False,
+    )
+
+    assert plan.report.new_count == 0
+    assert plan.report.invalid_count == 1
+    assert "birth date" in plan.report.invalid[0].error
+    with pytest.raises(BootstrapBlockedError):
+        service.apply(plan)
+    assert counts(session_factory) == (0, 0)
+
+
 def test_duplicate_batch_identifiers_mark_every_occurrence_invalid(
     session_factory, source
 ):

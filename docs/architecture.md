@@ -3,7 +3,7 @@
 The implemented multi-source path is deterministic:
 
 ```text
-official source (Senato or Camera)
+official source (Senato, Camera, or Governo)
   -> source-specific collector
   -> persisted RawDocument
   -> source-specific parser
@@ -13,11 +13,26 @@ official source (Senato or Camera)
   -> generic matching, diff, Evidence, review, publication, and public API
 ```
 
-Camera and Senato share no source-specific domain fields. Each adapter translates
+Camera, Senato, and Governo share no source-specific domain fields. Each adapter translates
 official bindings to CandidateProfile identity and versioned profile fields while
 retaining exact document, record, and field provenance. `Source` registration and
 `PoliticianSourceIdentifier` allow one Politician to carry opaque identifiers from
-both institutions without adding provider-specific columns.
+several institutions without adding provider-specific columns.
+
+Senato and Camera collect structured official data. Governo currently has no
+equivalent structured people feed, so its adapter collects the official current
+office-holder index plus every linked official profile page into one deterministic
+JSON envelope containing the original HTML. The parser relies on semantic metadata,
+CSS classes, canonical links, and official appointment links rather than positional
+selectors. It prefers the official Drupal node shortlink as the person identifier
+and falls back to the canonical profile URL.
+
+Governo pages can represent one person more than once when that person holds several
+offices. The MVP parser groups exact normalized display names, retains every official
+identifier, and emits distinct mandates. This is deterministic but not a general
+identity algorithm. Its simple first-token/rest displayed-name split and exact-name
+grouping are explicit adapter limitations. Birth data is mapped only from an exact
+biographical statement, and profession is left null rather than inferred from prose.
 
 Matching remains deterministic and read-only. A new provider identifier is checked
 first; if it is not yet linked, normalized full name plus exact birth date may match
@@ -60,6 +75,10 @@ selected successfully parsed RawDocument
 The rebuild operation does not weaken normal ingestion's changed-only rule. It is a
 separate service used only when an operator asks to remap a stored document. Mapping
 failures are captured per stored record so the report can identify invalid input.
+Candidates without a birth date and without an already linked official identifier
+cannot safely be distinguished from an existing person. Bootstrap therefore reports
+the MatchingService's `insufficient_fallback_identity` result as invalid and blocks
+the batch instead of creating a possible duplicate Politician.
 
 Planning and applying are intentionally separate. Planning uses a read-only session
 and performs all matching before any write. Matched records are skipped, new records

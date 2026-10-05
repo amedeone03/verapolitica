@@ -3,11 +3,13 @@ from backend.app.pipeline.mappers.base import (
     CandidateProfileMapper,
 )
 from backend.app.pipeline.mappers.camera import CameraCandidateProfileMapper
+from backend.app.pipeline.mappers.governo import GovernoCandidateProfileMapper
 from backend.app.pipeline.mappers.senato import SenatoCandidateProfileMapper
 
 __all__ = [
     "CameraCandidateProfileMapper",
     "CandidateMappingError",
     "CandidateProfileMapper",
+    "GovernoCandidateProfileMapper",
     "SenatoCandidateProfileMapper",
 ]

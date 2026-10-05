@@ -1,0 +1,23 @@
+{
+  "bundle_version": 1,
+  "index_url": "https://www.governo.it/it/ministri-e-sottosegretari",
+  "index_html": "<html><main><a href='/it/governo/meloni/presidente-del-consiglio/mario-rossi'>Mario Rossi</a><a href='/it/governo/meloni/ministro/lucia-bianchi'>Lucia Bianchi</a><a href='/it/governo/meloni/sottosegretario/anna-neri'>Anna Neri</a><a href='/it/governo/meloni/sottosegretario/carlo-verdi'>Carlo Verdi</a></main></html>",
+  "profiles": [
+    {
+      "url": "https://www.governo.it/it/governo/meloni/sottosegretario/carlo-verdi",
+      "html": "<html><head><link rel='canonical' href='https://www.governo.it/it/governo/meloni/sottosegretario/carlo-verdi'><link rel='shortlink' href='/it/node/4004'></head><body><h1 class='title_small pull-left'>Carlo Verdi</h1><div class='field field-name-body'><blockquote><p>Sottosegretario di Stato al Ministero della Salute</p></blockquote><p>Profilo istituzionale.</p></div><div><a href='https://www.gazzettaufficiale.it/example/4004'>DPR 31 ottobre 2022 - nomina dei Sottosegretari di Stato</a></div></body></html>"
+    },
+    {
+      "url": "https://www.governo.it/it/governo/meloni/presidente-del-consiglio/mario-rossi",
+      "html": "<html><head><link rel='canonical' href='https://www.governo.it/it/governo/meloni/presidente-del-consiglio/mario-rossi'><link rel='shortlink' href='/it/node/4001'><meta property='og:image' content='https://www.governo.it/generic.jpg'></head><body><h1 class='title_small pull-left'>Mario Rossi</h1><div class='thumb_container'><img src='/sites/governo.it/files/mario-rossi.jpg'></div><div class='field field-name-body'><blockquote><p>Presidente del Consiglio dei Ministri dal 22 ottobre 2022</p></blockquote><p>Mario Rossi, nato a Roma il 1 gennaio del 1970, ricopre l'incarico.</p></div></body></html>"
+    },
+    {
+      "url": "https://www.governo.it/it/governo/meloni/ministro/lucia-bianchi",
+      "html": "<html><head><link rel='canonical' href='https://www.governo.it/it/governo/meloni/ministro/lucia-bianchi'><link rel='shortlink' href='/it/node/4002'></head><body><h1 class='title_small pull-left'>Lucia Bianchi</h1><div class='field field-name-body'><blockquote><p>Ministro per le Riforme istituzionali</p></blockquote><p>Lucia Bianchi, nata a Milano il 2 febbraio 1980.</p></div><div><a href='https://www.gazzettaufficiale.it/example/4002'>DPR 21 ottobre 2022: Nomina a Ministro senza portafoglio</a></div></body></html>"
+    },
+    {
+      "url": "https://www.governo.it/it/governo/meloni/sottosegretario/anna-neri",
+      "html": "<html><head><link rel='canonical' href='https://www.governo.it/it/governo/meloni/sottosegretario/anna-neri'><link rel='shortlink' href='/it/node/4003'></head><body><h1 class='title_small pull-left'>Anna Neri</h1><div class='field field-name-body'><blockquote><p>Vice Ministro degli Affari Esteri</p></blockquote><p>Anna Neri, nata a Torino il 3 marzo 1975.</p></div><div><a href='https://www.gazzettaufficiale.it/example/4003'>DPR 31 ottobre 2022 - nomina dei Sottosegretari di Stato</a></div></body></html>"
+    }
+  ]
+}
