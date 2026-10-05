@@ -39,6 +39,9 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderParliamentaryGroups" in script.text
     assert "Parliamentary groups" in script.text
     assert ".group-membership" in styles.text
+    assert "renderPoliticalParties" in script.text
+    assert "Political party" in script.text
+    assert ".party-affiliation" in styles.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
@@ -48,6 +51,16 @@ def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
     assert "Previous groups" in script
     assert "Since" in script
     assert "not the same as political parties" in script
+
+
+def test_public_ui_keeps_parties_separate_and_displays_party_history(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        script = client.get("/app/app.js").text
+
+    assert "Previous parties" in script
+    assert "political_parties" in script
+    assert "distinct institutional concepts" in script
+    assert "parliamentary_groups" in script
 
 
 def test_public_ui_assets_are_strictly_public(tmp_path):

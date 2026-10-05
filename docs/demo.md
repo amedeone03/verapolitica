@@ -29,6 +29,9 @@ Expected opening state:
 - Anna and Luca each have one deterministic current Senato parliamentary-group
   membership; Anna's is immediately visible on her public profile and Luca's appears
   after publication.
+- No political-party affiliation is seeded. The profile shows the separate party
+  section in its honest empty state because the current production sources do not
+  provide a safe explicit affiliation feed; the Senato group is not converted.
 - Carlo Verdi — pending Identity Resolution Case 1 from the Governo fixture; no
   Politician is created automatically.
 
@@ -64,7 +67,8 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 2. **Show an existing public profile.** In `/app/`, point out that only Anna Rossi
    is visible. Open her profile and show the Verified indicator, current mandate,
    parliamentary-group section, and official source section. Note that a
-   parliamentary group is not being presented as a political party.
+   parliamentary group is not being presented as a political party. The independent
+   Political party section remains empty rather than inferring one from the group.
 3. **Explain traceability.** Anna has 14 verified data references grouped under one
    Senato source. Point out the official source link: every displayed fact remains
    traceable without overwhelming citizens with duplicate source cards. Opening the

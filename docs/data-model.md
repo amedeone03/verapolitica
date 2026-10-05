@@ -112,6 +112,43 @@ Unresolved references create neither a fake Politician nor a membership.
 identity, party affiliation, ideology, or a derived relationship between a person
 and a party.
 
+## PoliticalParty
+
+`PoliticalParty` represents an official political-party entity independently of
+parliamentary groups, electoral lists, and coalitions. It stores canonical name,
+optional abbreviation and official website, country, optional active dates, and
+timestamps.
+
+`PoliticalPartySourceIdentifier` provides the only automatic identity key. Its
+unique key is `(source_id, value)`. Exact identifiers may resolve an existing party;
+similar names never cause a merge. Cross-source identifiers remain on separate party
+rows unless a future official source or manual workflow proves equivalence.
+
+## PoliticalPartyAffiliation
+
+`PoliticalPartyAffiliation` links an already-resolved Politician to a PoliticalParty
+and stores nullable explicit start/end dates, optional affiliation type, Source,
+supporting RawDocument, official source URL, exact source field/relationship, optional
+official affiliation identifier, and a deterministic identity key.
+
+The identity key hashes the official affiliation identifier, source person
+identifier, party identifier, affiliation start, and affiliation type. End date is
+excluded so a later explicit end date updates the same affiliation. Party switches
+append rows and preserve the ended affiliation. Invalid chronology is rejected;
+explicit overlaps are preserved and reported.
+
+The service uses exact PoliticianSourceIdentifier resolution. Unresolved references
+create neither parties nor affiliations. It does not read ParliamentaryGroupMembership
+and cannot derive a party from a group.
+
+No production affiliation adapter is enabled because the currently supported
+official sources do not provide a structured, explicit politician party-membership
+history. Deterministic fixtures validate the domain/service contract without claiming
+live coverage.
+
+**PoliticalParty != ParliamentaryGroup != ElectoralList != Coalition.** Electoral
+lists and coalitions are not domain entities in this milestone.
+
 ## Politician
 
 `Politician` is the stable canonical identity of one person. It stores an internal

@@ -75,6 +75,8 @@ from backend.app.schemas.public import (
     PublicCitation,
     PublicParliamentaryGroupMembership,
     PublicParliamentaryGroupSource,
+    PublicPoliticalPartyAffiliation,
+    PublicPoliticalPartySource,
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
@@ -85,6 +87,13 @@ from backend.app.schemas.parliamentary_group import (
     MembershipPersistenceStatus,
     ParliamentaryGroupObservation,
     ParliamentaryGroupSyncResult,
+)
+from backend.app.schemas.political_party import (
+    PartyAffiliationOverlapWarning,
+    PartyAffiliationPersistenceDetail,
+    PartyAffiliationPersistenceStatus,
+    PoliticalPartyObservation,
+    PoliticalPartySyncResult,
 )
 
 __all__ = [
@@ -139,6 +148,8 @@ __all__ = [
     "PublicCitation",
     "PublicParliamentaryGroupMembership",
     "PublicParliamentaryGroupSource",
+    "PublicPoliticalPartyAffiliation",
+    "PublicPoliticalPartySource",
     "PublicPolitician",
     "PublicPoliticianList",
     "PublicPoliticianSummary",
@@ -147,6 +158,11 @@ __all__ = [
     "MembershipPersistenceStatus",
     "ParliamentaryGroupObservation",
     "ParliamentaryGroupSyncResult",
+    "PartyAffiliationOverlapWarning",
+    "PartyAffiliationPersistenceDetail",
+    "PartyAffiliationPersistenceStatus",
+    "PoliticalPartyObservation",
+    "PoliticalPartySyncResult",
     "ReviewDecisionResult",
     "ReviewResult",
     "ReviewStartedResult",

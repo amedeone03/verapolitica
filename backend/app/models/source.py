@@ -18,6 +18,12 @@ if TYPE_CHECKING:
     from backend.app.models.parliamentary_group_source_identifier import (
         ParliamentaryGroupSourceIdentifier,
     )
+    from backend.app.models.political_party_affiliation import (
+        PoliticalPartyAffiliation,
+    )
+    from backend.app.models.political_party_source_identifier import (
+        PoliticalPartySourceIdentifier,
+    )
 
 
 def utc_now() -> datetime:
@@ -49,5 +55,11 @@ class Source(Base):
         relationship(back_populates="source")
     )
     group_memberships: Mapped[list["ParliamentaryGroupMembership"]] = relationship(
+        back_populates="source"
+    )
+    party_identifiers: Mapped[list["PoliticalPartySourceIdentifier"]] = relationship(
+        back_populates="source"
+    )
+    party_affiliations: Mapped[list["PoliticalPartyAffiliation"]] = relationship(
         back_populates="source"
     )

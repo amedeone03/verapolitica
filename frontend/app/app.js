@@ -169,6 +169,36 @@ export function renderParliamentaryGroups(memberships = []) {
     ${historical.length ? `<h3 class="previous-groups-title">Previous groups</h3><div class="group-list">${historical.map(renderGroupMembership).join("")}</div>` : ""}`;
 }
 
+function renderPartyAffiliation(affiliation) {
+  const sourceUrl = safeExternalUrl(affiliation.source?.url);
+  const websiteUrl = safeExternalUrl(affiliation.official_website_url);
+  const dates = affiliation.start_date
+    ? (affiliation.end_date
+      ? `${formatDate(affiliation.start_date)} – ${formatDate(affiliation.end_date)}`
+      : `Since ${formatDate(affiliation.start_date)}`)
+    : (affiliation.end_date ? `Until ${formatDate(affiliation.end_date)}` : "Dates not provided");
+  const affiliationType = affiliation.affiliation_type
+    ? `<span class="party-affiliation-type">${escapeHtml(titleCase(affiliation.affiliation_type))}</span>`
+    : "";
+  return `<article class="party-affiliation">
+    <div>
+      <strong>${websiteUrl ? `<a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(affiliation.name)}</a>` : escapeHtml(affiliation.name)}</strong>${affiliationType}
+      <p>${escapeHtml(dates)}</p>
+    </div>
+    ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}
+  </article>`;
+}
+
+export function renderPoliticalParties(affiliations = []) {
+  if (!affiliations.length) {
+    return `<p class="empty-note">No explicit political-party affiliation is currently available from the supported official sources.</p>`;
+  }
+  const current = affiliations.filter((affiliation) => !affiliation.end_date);
+  const historical = affiliations.filter((affiliation) => affiliation.end_date);
+  return `${current.length ? `<div class="party-list">${current.map(renderPartyAffiliation).join("")}</div>` : ""}
+    ${historical.length ? `<h3 class="previous-parties-title">Previous parties</h3><div class="party-list">${historical.map(renderPartyAffiliation).join("")}</div>` : ""}`;
+}
+
 function fact(label, value, { href = null } = {}) {
   const content = href
     ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`
@@ -232,6 +262,11 @@ export function renderPoliticianDetail(person) {
       <p class="eyebrow">Institutional affiliation</p><h2>Parliamentary groups</h2>
       <p class="group-disclaimer">Parliamentary groups are chamber-specific institutional bodies and are not the same as political parties.</p>
       ${renderParliamentaryGroups(person.parliamentary_groups || [])}
+    </section>
+    <section class="detail-card parties-card">
+      <p class="eyebrow">Political affiliation</p><h2>Political party</h2>
+      <p class="party-disclaimer">Political parties and parliamentary groups are distinct institutional concepts.</p>
+      ${renderPoliticalParties(person.political_parties || [])}
     </section>
     <section class="detail-card sources-card">
       <div class="sources-heading">

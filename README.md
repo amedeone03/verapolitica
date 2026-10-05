@@ -72,6 +72,20 @@ new interval without deleting history.
 `ParliamentaryGroup` is an institutional chamber concept. It is deliberately not a
 `PoliticalParty`, and no party affiliation is inferred from a group membership.
 
+Political parties and time-bounded affiliations have their own domain models and
+transactional persistence service. An affiliation may be stored only from an
+explicit official assertion for an already-resolved Politician; neither a
+parliamentary group nor an electoral list can create one. No production affiliation
+collector is enabled yet: Camera and Senato publish groups and election lists,
+Governo's current profile pages do not publish a consistent party-membership field,
+and the official national party register identifies parties but not their members.
+The public API therefore returns an empty `political_parties` collection until a
+supported explicit source is available.
+
+`PoliticalParty`, `ParliamentaryGroup`, `ElectoralList`, and `Coalition` are distinct
+concepts. VeraPolitica currently models only the first two and performs no automatic
+conversion between them.
+
 Governo ingestion uses the official current office-holder index and its linked
 official profile pages. Because Governo does not expose an equivalent structured
 people endpoint, the collector preserves the index and all discovered profile HTML
@@ -251,6 +265,9 @@ Detail responses also include current and historical parliamentary-group
 memberships, ordered current first, with chamber, legislature, official dates,
 optional role, and an official source link. Internal group IDs and RDF identifiers
 are not exposed.
+Political-party affiliations, when supported by an explicit official assertion, are
+returned separately in `political_parties`, current first and then historical. They
+are never inferred from `parliamentary_groups`.
 On an update, citations for unchanged fields are inherited from the baseline version,
 while citations for changed fields come from the newly approved Evidence. A version
 can therefore cite Senato and Camera independently without collapsing their identity.

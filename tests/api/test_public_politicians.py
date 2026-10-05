@@ -12,6 +12,9 @@ from backend.app.models import (
     ParliamentaryGroup,
     ParliamentaryGroupMembership,
     ParliamentaryGroupSourceIdentifier,
+    PoliticalParty,
+    PoliticalPartyAffiliation,
+    PoliticalPartySourceIdentifier,
     Politician,
     PoliticianVersion,
     RawDocument,
@@ -168,6 +171,76 @@ def public_api_context(tmp_path):
             )
         )
 
+        party_source = Source(
+            key="governo-italiano",
+            name="Governo Italiano",
+            base_url="https://www.governo.it",
+        )
+        session.add(party_source)
+        session.flush()
+        party_document = RawDocument(
+            source_id=party_source.id,
+            retrieved_at=published_at,
+            source_url="https://www.governo.it/it/governo",
+            content_type="application/json",
+            storage_key="governo/explicit-party-assertions.json",
+            raw_sha256="e" * 64,
+            normalized_sha256="f" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="fixture_collector_v1",
+            parser_version="fixture_parser_v1",
+        )
+        current_party = PoliticalParty(
+            canonical_name="Partito attuale",
+            abbreviation="PA",
+            official_website_url="https://partito-attuale.example.org",
+        )
+        previous_party = PoliticalParty(
+            canonical_name="Partito precedente",
+            abbreviation="PP",
+        )
+        session.add_all((party_document, current_party, previous_party))
+        session.flush()
+        session.add_all(
+            (
+                PoliticalPartySourceIdentifier(
+                    political_party_id=current_party.id,
+                    source_id=party_source.id,
+                    value="official-party-register:current",
+                ),
+                PoliticalPartySourceIdentifier(
+                    political_party_id=previous_party.id,
+                    source_id=party_source.id,
+                    value="official-party-register:previous",
+                ),
+                PoliticalPartyAffiliation(
+                    politician_id=published.id,
+                    political_party_id=current_party.id,
+                    source_id=party_source.id,
+                    raw_document_id=party_document.id,
+                    identity_key="1" * 64,
+                    source_url="https://www.governo.it/it/governo/ministro/public",
+                    source_field="biography.explicit_party_membership",
+                    start_date=date(2024, 5, 16),
+                    affiliation_type="member",
+                ),
+                PoliticalPartyAffiliation(
+                    politician_id=published.id,
+                    political_party_id=previous_party.id,
+                    source_id=party_source.id,
+                    raw_document_id=party_document.id,
+                    identity_key="2" * 64,
+                    source_url="https://www.governo.it/it/governo/ministro/public",
+                    source_field="biography.explicit_party_membership",
+                    start_date=date(2022, 10, 1),
+                    end_date=date(2024, 5, 15),
+                    affiliation_type="member",
+                ),
+            )
+        )
+
         pointer_test = add_politician(session, "Current")
         current_profile = profile("Current", profession="Current pointer")
         later_profile = profile("Wrong", profession="Higher version number")
@@ -256,6 +329,32 @@ def test_detail_returns_current_then_historical_parliamentary_groups(
     assert memberships[1]["end_date"] == "2024-01-31"
     serialized = str(memberships)
     assert "parliamentary_group_id" not in serialized
+    assert "identity_key" not in serialized
+
+
+def test_detail_returns_parties_separately_current_then_historical(
+    public_api_context,
+):
+    response = public_api_context.client.get(
+        f"/politicians/{public_api_context.published_id}"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    affiliations = payload["political_parties"]
+    assert [item["name"] for item in affiliations] == [
+        "Partito attuale",
+        "Partito precedente",
+    ]
+    assert affiliations[0]["end_date"] is None
+    assert affiliations[0]["source"] == {
+        "name": "Governo Italiano",
+        "url": "https://www.governo.it/it/governo/ministro/public",
+    }
+    assert affiliations[1]["end_date"] == "2024-05-15"
+    assert payload["parliamentary_groups"][0]["name"] == "Fratelli d'Italia"
+    serialized = str(affiliations)
+    assert "political_party_id" not in serialized
     assert "identity_key" not in serialized
 
 

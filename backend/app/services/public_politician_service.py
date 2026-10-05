@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from backend.app.models import (
     ParliamentaryGroup,
     ParliamentaryGroupMembership,
+    PoliticalParty,
+    PoliticalPartyAffiliation,
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
@@ -13,6 +15,8 @@ from backend.app.schemas import (
     PublicCitation,
     PublicParliamentaryGroupMembership,
     PublicParliamentaryGroupSource,
+    PublicPoliticalPartyAffiliation,
+    PublicPoliticalPartySource,
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
@@ -129,10 +133,49 @@ class PublicPoliticianQueryService:
             )
             for membership, group, source in group_rows
         )
+        party_rows = list(
+            self.session.execute(
+                select(
+                    PoliticalPartyAffiliation,
+                    PoliticalParty,
+                    Source,
+                )
+                .join(
+                    PoliticalParty,
+                    PoliticalParty.id
+                    == PoliticalPartyAffiliation.political_party_id,
+                )
+                .join(Source, Source.id == PoliticalPartyAffiliation.source_id)
+                .where(PoliticalPartyAffiliation.politician_id == politician.id)
+            ).all()
+        )
+        party_rows.sort(
+            key=lambda row: (
+                row[0].end_date is not None,
+                -(row[0].start_date.toordinal() if row[0].start_date else -1),
+                row[1].canonical_name.casefold(),
+            )
+        )
+        political_parties = tuple(
+            PublicPoliticalPartyAffiliation(
+                name=party.canonical_name,
+                abbreviation=party.abbreviation,
+                official_website_url=party.official_website_url,
+                start_date=affiliation.start_date,
+                end_date=affiliation.end_date,
+                affiliation_type=affiliation.affiliation_type,
+                source=PublicPoliticalPartySource(
+                    name=source.name,
+                    url=affiliation.source_url,
+                ),
+            )
+            for affiliation, party, source in party_rows
+        )
         return PublicPolitician(
             **summary.model_dump(),
             citations=citations,
             parliamentary_groups=parliamentary_groups,
+            political_parties=political_parties,
         )
 
     @staticmethod

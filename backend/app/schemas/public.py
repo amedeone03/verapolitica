@@ -41,9 +41,25 @@ class PublicParliamentaryGroupMembership(ImmutableSchema):
     source: PublicParliamentaryGroupSource
 
 
+class PublicPoliticalPartySource(ImmutableSchema):
+    name: str
+    url: AnyHttpUrl
+
+
+class PublicPoliticalPartyAffiliation(ImmutableSchema):
+    name: str
+    abbreviation: str | None
+    official_website_url: AnyHttpUrl | None
+    start_date: date | None
+    end_date: date | None
+    affiliation_type: str | None
+    source: PublicPoliticalPartySource
+
+
 class PublicPolitician(PublicPoliticianSummary):
     citations: tuple[PublicCitation, ...]
     parliamentary_groups: tuple[PublicParliamentaryGroupMembership, ...] = ()
+    political_parties: tuple[PublicPoliticalPartyAffiliation, ...] = ()
 
 
 class PublicPoliticianList(ImmutableSchema):

@@ -106,6 +106,32 @@ raw-document references, and RDF identifiers. An empty history is returned as
 `"parliamentary_groups": []`. Parliamentary groups are institutional chamber
 memberships and must not be interpreted as political-party affiliations.
 
+Party affiliations are a separate collection and are also ordered current first:
+
+```json
+{
+  "political_parties": [
+    {
+      "name": "Example Party",
+      "abbreviation": "EP",
+      "official_website_url": "https://example-party.it",
+      "start_date": "2023-01-01",
+      "end_date": null,
+      "affiliation_type": "member",
+      "source": {
+        "name": "Explicit official source",
+        "url": "https://official.example/member/123"
+      }
+    }
+  ]
+}
+```
+
+When no supported explicit assertion exists the value is
+`"political_parties": []`. This collection is never derived from
+`parliamentary_groups`, election lists, or coalitions, and does not expose internal
+party/affiliation IDs or provenance storage keys.
+
 Citations are deduplicated and sorted by field path, source name, source URL, and
 source field. Versions published before citation snapshot support return
 `"citation_count": 0` and `"citations": []`; citations are never inferred from a

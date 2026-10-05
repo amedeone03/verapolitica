@@ -1,0 +1,25 @@
+[
+  {
+    "politician_source_identifier": "https://www.governo.it/it/governo/ministro/anna-rossi",
+    "party_source_identifier": "official-party-register:party-a",
+    "party_name": "Partito A",
+    "abbreviation": "PA",
+    "official_website_url": "https://partito-a.example.org",
+    "affiliation_start": "2022-10-01",
+    "affiliation_type": "member",
+    "source_url": "https://www.governo.it/it/governo/ministro/anna-rossi",
+    "source_field": "biography.explicit_party_membership"
+  },
+  {
+    "politician_source_identifier": "https://www.governo.it/it/governo/ministro/senza-date",
+    "party_source_identifier": "official-party-register:party-c",
+    "party_name": "Partito C",
+    "abbreviation": null,
+    "official_website_url": null,
+    "affiliation_start": null,
+    "affiliation_end": null,
+    "affiliation_type": null,
+    "source_url": "https://www.governo.it/it/governo/ministro/senza-date",
+    "source_field": "biography.explicit_party_membership"
+  }
+]

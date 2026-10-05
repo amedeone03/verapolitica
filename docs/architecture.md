@@ -57,6 +57,45 @@ Historical memberships are never deleted.
 > ParliamentaryGroup is not PoliticalParty. Chamber groups remain separate across
 > institutions and no party identity or affiliation is inferred in this milestone.
 
+## Political-party boundary
+
+Party affiliations use an independent path:
+
+```text
+explicit official party-membership assertion
+  -> source-specific parser (not available for current sources)
+  -> PoliticalPartyObservation (transient)
+  -> exact PoliticianSourceIdentifier lookup
+  -> PoliticalPartyService transaction
+  -> PoliticalParty + source identity + time-bounded affiliation
+```
+
+`PoliticalPartyService` is implemented for a future source with explicit membership
+semantics, but it is not called by normal Senato, Camera, or Governo ingestion today.
+The source audit found that the official
+[Camera ontology](https://dati.camera.it/en/ontology-chamber-deputies) and
+[Senato ontology](https://dati.senato.it/sito/21) model parliamentary groups and
+election lists; the Interior Ministry's
+[election-transparency data](https://dait.interno.gov.it/elezioni/trasparenza)
+models submitted political organizations, lists, and candidates; the parliamentary
+[national party register](https://www.parlamento.it/1063) identifies legal party
+entities; and current [Governo profiles](https://www.governo.it/it/ministri-e-sottosegretari)
+contain no consistent party-membership field. None provides a structured politician
+membership history suitable for automatic affiliation creation.
+
+The service never resolves a politician by name, never reads parliamentary-group
+memberships, and never treats an electoral candidacy as party membership. It accepts
+only an explicit observation carrying durable party identity, source relationship,
+supporting RawDocument, and official URL. Party identity is `(Source, official party
+identifier)`; similar names never merge entities. Affiliation identity is a stable
+hash of source affiliation identifier, source person identifier, party identifier,
+start date, and affiliation type. End date is excluded so a newly published end date
+can close the existing interval without deleting history.
+
+> PoliticalParty != ParliamentaryGroup != ElectoralList != Coalition. Only the first
+> two are persisted domain entities, and they remain unrelated unless a future source
+> explicitly supports a separate relationship.
+
 Camera, Senato, and Governo share no source-specific domain fields. Each adapter translates
 official bindings to CandidateProfile identity and versioned profile fields while
 retaining exact document, record, and field provenance. `Source` registration and
@@ -302,6 +341,9 @@ parliamentary-group memberships and exposes only citizen-safe group metadata and
 official provenance. Current memberships sort before historical intervals. Group
 data does not become part of immutable PoliticianVersion profile JSON and does not
 bypass the version publication boundary for profile fields.
+Explicit political-party affiliations are projected through a separate
+`political_parties` field. They use the same current-first ordering convention but
+are never populated from parliamentary-group data.
 
 The central visibility invariant is:
 

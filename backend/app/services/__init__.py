@@ -73,6 +73,13 @@ from backend.app.services.parliamentary_group_service import (
     ParliamentaryGroupServiceError,
     ParliamentaryGroupValidationError,
 )
+from backend.app.services.political_party_service import (
+    PoliticalPartyConflictError,
+    PoliticalPartyPersistenceError,
+    PoliticalPartyService,
+    PoliticalPartyServiceError,
+    PoliticalPartyValidationError,
+)
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
 
 __all__ = [
@@ -129,6 +136,11 @@ __all__ = [
     "ParliamentaryGroupService",
     "ParliamentaryGroupServiceError",
     "ParliamentaryGroupValidationError",
+    "PoliticalPartyConflictError",
+    "PoliticalPartyPersistenceError",
+    "PoliticalPartyService",
+    "PoliticalPartyServiceError",
+    "PoliticalPartyValidationError",
     "ReviewServiceError",
     "StaleDraftError",
     "SuggestedSourceIdentifier",
