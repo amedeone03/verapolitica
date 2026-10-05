@@ -109,6 +109,10 @@ from backend.app.schemas.identity_resolution import (
 )
 from backend.app.schemas.public import (
     PublicCitation,
+    PublicMunicipality,
+    PublicMunicipalityList,
+    PublicMunicipalitySummary,
+    PublicOfficeHolder,
     PublicParliamentaryGroupMembership,
     PublicParliamentaryGroupSource,
     PublicPoliticalPartyAffiliation,
@@ -116,6 +120,11 @@ from backend.app.schemas.public import (
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
+    PublicRegion,
+    PublicRegionList,
+    PublicRegionSummary,
+    PublicTerritorialOffice,
+    PublicTerritorialSource,
 )
 from backend.app.schemas.parliamentary_group import (
     MembershipOverlapWarning,
@@ -155,6 +164,16 @@ from backend.app.schemas.proposal import (
     PublicProposalSource,
     PublicProposalStatusEvent,
     PublicProposalSummary,
+)
+from backend.app.schemas.territory import (
+    MunicipalityObservation,
+    RegionObservation,
+    TerritorialMandateObservation,
+    TerritorialMandatePersistenceDetail,
+    TerritorialMandatePersistenceStatus,
+    TerritorialMandateSyncResult,
+    TerritorialOfficeMandateObservation,
+    TerritorySyncResult,
 )
 
 __all__ = [
@@ -238,6 +257,10 @@ __all__ = [
     "PoliticianVersionContext",
     "ProfileDiff",
     "PublicCitation",
+    "PublicMunicipality",
+    "PublicMunicipalityList",
+    "PublicMunicipalitySummary",
+    "PublicOfficeHolder",
     "PublicParliamentaryGroupMembership",
     "PublicParliamentaryGroupSource",
     "PublicPoliticalPartyAffiliation",
@@ -245,6 +268,11 @@ __all__ = [
     "PublicPolitician",
     "PublicPoliticianList",
     "PublicPoliticianSummary",
+    "PublicRegion",
+    "PublicRegionList",
+    "PublicRegionSummary",
+    "PublicTerritorialOffice",
+    "PublicTerritorialSource",
     "MembershipOverlapWarning",
     "MembershipPersistenceDetail",
     "MembershipPersistenceStatus",
@@ -288,4 +316,12 @@ __all__ = [
     "StructuredExtractionResult",
     "ThresholdResult",
     "UncertainResult",
+    "RegionObservation",
+    "MunicipalityObservation",
+    "TerritorySyncResult",
+    "TerritorialMandateObservation",
+    "TerritorialMandatePersistenceDetail",
+    "TerritorialMandatePersistenceStatus",
+    "TerritorialMandateSyncResult",
+    "TerritorialOfficeMandateObservation",
 ]

@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     camera_request_timeout_seconds: float = Field(default=30.0, gt=0)
     governo_index_url: str = "https://www.governo.it/it/ministri-e-sottosegretari"
     governo_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    istat_municipalities_xlsx_url: str = (
+        "https://www.istat.it/storage/codici-unita-amministrative/"
+        "Elenco-comuni-italiani.xlsx"
+    )
+    dait_current_mayors_csv_url: str = (
+        "https://dait.interno.gov.it/documenti/sindaciincarica.csv"
+    )
+    territorial_request_timeout_seconds: float = Field(default=60.0, gt=0)
     admin_api_key: SecretStr | None = None
     admin_reviewer_identity: str = Field(
         default="admin-editor",

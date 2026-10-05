@@ -39,6 +39,9 @@ Expected opening state:
   timeline event. Proposal Draft 2 contains a pending synthetic transition to
   `under_review` and is marked as an AI-assisted draft using the deterministic fake
   provider. The public timeline remains unchanged until editorial approval.
+- Lombardia and Milano are seeded from ISTAT-style reference data. Giulia Neri is a
+  clearly synthetic published demo mayor of Milano and must not be presented as a
+  real office holder. Regional presidents are not imported.
 
 Open these tabs before presenting:
 
@@ -46,9 +49,9 @@ Open these tabs before presenting:
 - Editorial demo: `http://127.0.0.1:8000/demo/`
 - Swagger backup: `http://127.0.0.1:8000/docs`
 
-The citizen interface calls only the public `/politicians` endpoints. It contains
-no admin credential or editorial actions. The editorial page is visibly marked as
-a demo and uses the local-only credential `verapolitica-demo-admin`.
+The citizen interface calls only public JSON endpoints. It contains
+no admin credential or editorial actions. Regions and municipalities are available
+from the same `/app/` navigation. Giulia Neri is labelled as a synthetic demo mayor.
 
 ### Manual startup fallback
 

@@ -1,0 +1,5 @@
+[
+  ["Codice Regione", "Denominazione Regione", "Codice Comune formato alfanumerico", "Denominazione in italiano", "Sigla automobilistica", "Denominazione dell'Unità territoriale sovracomunale (valida a fini statistici)"],
+  [3, "Lombardia", 15146, "Milano", "MI", "Milano"],
+  [12, "Lazio", 58091, "Roma", "RM", "Roma"]
+]

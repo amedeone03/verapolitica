@@ -74,6 +74,9 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
             "/admin/proposals/drafts/2",
             headers={"Authorization": f"Bearer {DEMO_ADMIN_KEY}"},
         )
+        regions = client.get("/regions")
+        municipalities = client.get("/municipalities")
+        giulia = client.get("/politicians/3")
 
     assert published.status_code == 200
     assert published.json()["citation_count"] == 14
@@ -81,8 +84,8 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert published.json()["parliamentary_groups"][0]["name"] == "Fratelli d'Italia"
     assert published.json()["political_parties"] == []
     assert pending.status_code == 404
-    assert listing.json()["total"] == 1
-    assert [item["id"] for item in listing.json()["items"]] == [1]
+    assert listing.json()["total"] == 2
+    assert [item["id"] for item in listing.json()["items"]] == [3, 1]
     assert draft.status_code == 200
     assert draft.json()["status"] == "pending"
     assert len(draft.json()["evidence"]) == 14
@@ -90,6 +93,11 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert proposal.json()["current_status"] == "introduced"
     assert proposal_draft.json()["status"] == "pending"
     assert proposal_draft.json()["kind"] == "status_update"
+    assert regions.json()["total"] == 1
+    assert regions.json()["items"][0]["name"] == "Lombardia"
+    assert municipalities.json()["items"][0]["name"] == "Milano"
+    assert municipalities.json()["items"][0]["current_mayor"]["given_name"] == "Giulia"
+    assert giulia.json()["territorial_offices"][0]["municipality"] == "Milano"
 
 
 def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path):
@@ -118,7 +126,7 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
     engine = create_db_engine(f"sqlite:///{second.database_path}")
     factory = create_session_factory(engine)
     with factory() as session:
-        assert session.scalar(select(func.count()).select_from(Politician)) == 2
+        assert session.scalar(select(func.count()).select_from(Politician)) == 3
         assert session.scalar(select(func.count()).select_from(ParliamentaryGroup)) == 2
         assert session.scalar(
             select(func.count()).select_from(ParliamentaryGroupMembership)
@@ -127,11 +135,11 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
             select(func.count()).select_from(IdentityResolutionCase)
         ) == 1
         assert session.scalar(select(func.count()).select_from(ProfileDraft)) == 2
-        assert session.scalar(select(func.count()).select_from(PoliticianVersion)) == 1
+        assert session.scalar(select(func.count()).select_from(PoliticianVersion)) == 2
         assert session.scalar(select(func.count()).select_from(Review)) == 1
         assert session.scalar(
             select(func.count()).select_from(PoliticianVersionCitation)
-        ) == 14
+        ) == 15
         assert session.scalar(select(func.count()).select_from(Proposal)) == 1
         assert session.scalar(select(func.count()).select_from(ProposalDraft)) == 2
         assert session.scalar(

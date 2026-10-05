@@ -248,6 +248,90 @@ export function renderPoliticianProposals(proposals = []) {
   return `<div class="linked-proposals">${proposals.map((proposal) => `<article><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><h3><a href="./?proposal=${encodeURIComponent(proposal.id)}">${escapeHtml(proposal.title)}</a></h3><p>${escapeHtml(titleCase(proposal.role))} · ${escapeHtml(titleCase(proposal.current_status))}</p></article>`).join("")}</div>`;
 }
 
+function officeLabel(office) {
+  if (office === "mayor") return "Mayor";
+  if (office === "regional_president") return "Regional president";
+  return titleCase(office);
+}
+
+function holderLabel(holder) {
+  if (!holder) return "Not currently linked";
+  const name = `${holder.given_name} ${holder.family_name}`;
+  return holder.politician_id
+    ? `<a href="./?politician=${encodeURIComponent(holder.politician_id)}">${escapeHtml(name)}</a>`
+    : escapeHtml(name);
+}
+
+export function renderTerritorialOffices(offices = []) {
+  if (!offices.length) {
+    return `<p class="empty-note">No territorial office mandate is currently linked to this politician.</p>`;
+  }
+  return `<div class="territorial-offices">${offices.map((office) => {
+    const sourceUrl = safeExternalUrl(office.source?.url);
+    const territory = office.municipality
+      ? `<a href="./?municipality=${encodeURIComponent(office.municipality_id)}">${escapeHtml(office.municipality)}</a>`
+      : office.region_id
+        ? `<a href="./?region=${encodeURIComponent(office.region_id)}">${escapeHtml(office.region)}</a>`
+        : escapeHtml(office.region || "Territory not provided");
+    return `<article class="territorial-office">
+      <div><span class="proposal-type">${escapeHtml(officeLabel(office.office))}</span><h3>${territory}</h3>
+      <p>${office.municipality && office.region ? `Region: ${escapeHtml(office.region)} · ` : ""}${office.end_date ? `${formatDate(office.start_date)} – ${formatDate(office.end_date)}` : `Since ${formatDate(office.start_date)}`}</p></div>
+      ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}
+    </article>`;
+  }).join("")}</div>`;
+}
+
+export function renderRegionCard(region) {
+  const president = region.current_president
+    ? `${region.current_president.given_name} ${region.current_president.family_name}`
+    : "President not currently linked";
+  return `<article class="proposal-card">
+    <span class="proposal-type">ISTAT ${escapeHtml(region.istat_code)}</span>
+    <h3>${escapeHtml(region.name)}</h3>
+    <p>President: ${escapeHtml(president)}</p>
+    <a class="profile-link" href="./?region=${encodeURIComponent(region.id)}">View region <span aria-hidden="true">→</span></a>
+  </article>`;
+}
+
+export function renderMunicipalityCard(municipality) {
+  const mayor = municipality.current_mayor
+    ? `${municipality.current_mayor.given_name} ${municipality.current_mayor.family_name}`
+    : "Mayor not currently linked";
+  return `<article class="proposal-card">
+    <span class="proposal-type">ISTAT ${escapeHtml(municipality.istat_code)}</span>
+    <h3>Comune di ${escapeHtml(municipality.name)}</h3>
+    <p>Region: ${escapeHtml(municipality.region_name)} · Mayor: ${escapeHtml(mayor)}</p>
+    <a class="profile-link" href="./?municipality=${encodeURIComponent(municipality.id)}">View municipality <span aria-hidden="true">→</span></a>
+  </article>`;
+}
+
+export function renderRegionDetail(region, municipalities = []) {
+  const sourceUrl = safeExternalUrl(region.source?.url);
+  return `<section class="proposal-detail-hero">
+      <p class="eyebrow">ISTAT region ${escapeHtml(region.istat_code)}</p>
+      <h1 id="region-detail-title">${escapeHtml(region.name)}</h1>
+      <p>President: ${holderLabel(region.current_president)}</p>
+      <p>${region.municipality_count} municipalities in the official reference data.</p>
+      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official ISTAT source ↗</a></p>` : ""}
+    </section>
+    <section class="detail-card">
+      <p class="eyebrow">Municipalities</p><h2>Comuni in this region</h2>
+      ${municipalities.length ? `<div class="proposal-grid">${municipalities.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">No municipalities are currently listed for this region.</p>`}
+    </section>`;
+}
+
+export function renderMunicipalityDetail(municipality) {
+  const sourceUrl = safeExternalUrl(municipality.source?.url);
+  return `<section class="proposal-detail-hero">
+      <p class="eyebrow">ISTAT municipality ${escapeHtml(municipality.istat_code)}</p>
+      <h1 id="municipality-detail-title">Comune di ${escapeHtml(municipality.name)}</h1>
+      <p>Region: <a href="./?region=${encodeURIComponent(municipality.region_id)}">${escapeHtml(municipality.region_name)}</a></p>
+      <p>Mayor: ${holderLabel(municipality.current_mayor)}</p>
+      <p>Province/UTS: ${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</p>
+      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official ISTAT source ↗</a></p>` : ""}
+    </section>`;
+}
+
 function fact(label, value, { href = null } = {}) {
   const content = href
     ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`
@@ -317,6 +401,11 @@ export function renderPoliticianDetail(person) {
       <p class="party-disclaimer">Political parties and parliamentary groups are distinct institutional concepts.</p>
       ${renderPoliticalParties(person.political_parties || [])}
     </section>
+    <section class="detail-card territorial-card">
+      <p class="eyebrow">Local office</p><h2>Territorial offices</h2>
+      <p class="territorial-disclaimer">Regional and municipal offices are stored separately from national parliamentary mandates.</p>
+      ${renderTerritorialOffices(person.territorial_offices || [])}
+    </section>
     <section class="detail-card proposals-card">
       <p class="eyebrow">Public record</p><h2>Proposals / commitments</h2>
       <p class="proposal-disclaimer">The displayed role states whether this person is a proposer, co-sponsor, or commitment owner.</p>
@@ -351,6 +440,14 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     listProposals: () => request("/proposals?offset=0&limit=50"),
     getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
+    listRegions: () => request("/regions?offset=0&limit=50"),
+    getRegion: (id) => request(`/regions/${encodeURIComponent(id)}`),
+    listMunicipalities: ({ offset = 0, regionId = null } = {}) => {
+      const params = new URLSearchParams({ offset: String(offset), limit: "50" });
+      if (regionId) params.set("region", String(regionId));
+      return request(`/municipalities?${params}`);
+    },
+    getMunicipality: (id) => request(`/municipalities/${encodeURIComponent(id)}`),
   };
 }
 
@@ -430,16 +527,99 @@ async function showProposalDetail(api, proposalId) {
   }
 }
 
+async function showRegions(api) {
+  byId("archive-view").hidden = true;
+  byId("regions-view").hidden = false;
+  try {
+    const payload = await api.listRegions();
+    byId("region-count").textContent = `${payload.total} region${payload.total === 1 ? "" : "s"}`;
+    if (!payload.items.length) {
+      showState(byId("regions-status"), "No regions are currently available.", "Official ISTAT territories will appear after territorial ingestion.");
+      return;
+    }
+    byId("regions-status").hidden = true;
+    byId("region-list").hidden = false;
+    byId("region-list").innerHTML = payload.items.map(renderRegionCard).join("");
+  } catch {
+    showState(byId("regions-status"), "We couldn't load regions.", "The public API is currently unavailable.", true);
+  }
+}
+
+async function showRegionDetail(api, regionId) {
+  byId("archive-view").hidden = true;
+  byId("region-detail-view").hidden = false;
+  try {
+    const region = await api.getRegion(regionId);
+    const municipalities = await api.listMunicipalities({ regionId });
+    byId("region-detail-status").hidden = true;
+    byId("region-detail").hidden = false;
+    byId("region-detail").innerHTML = renderRegionDetail(region, municipalities.items || []);
+    document.title = `${region.name} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("region-detail-status"), missing ? "This region is not available." : "We couldn't load this region.", missing ? "It may not have been ingested yet." : "The public API is currently unavailable.", true);
+  }
+}
+
+async function showMunicipalities(api, offset) {
+  byId("archive-view").hidden = true;
+  byId("municipalities-view").hidden = false;
+  try {
+    const payload = await api.listMunicipalities({ offset });
+    byId("municipality-count").textContent = `${payload.total} ${payload.total === 1 ? "municipality" : "municipalities"}`;
+    if (!payload.items.length) {
+      showState(byId("municipalities-status"), "No municipalities are currently available.", "Official ISTAT comuni will appear after territorial ingestion.");
+      return;
+    }
+    byId("municipalities-status").hidden = true;
+    byId("municipality-list").hidden = false;
+    byId("municipality-list").innerHTML = payload.items.map(renderMunicipalityCard).join("");
+    const pagination = byId("municipality-pagination");
+    const previous = offset > 0 ? Math.max(0, offset - payload.limit) : null;
+    const next = offset + payload.items.length < payload.total ? offset + payload.limit : null;
+    pagination.hidden = previous === null && next === null;
+    pagination.innerHTML = `${previous !== null ? `<a href="./?view=municipalities&offset=${previous}">Previous</a>` : ""}<span>Showing ${offset + 1}–${offset + payload.items.length} of ${payload.total}</span>${next !== null ? `<a href="./?view=municipalities&offset=${next}">Next</a>` : ""}`;
+  } catch {
+    showState(byId("municipalities-status"), "We couldn't load municipalities.", "The public API is currently unavailable.", true);
+  }
+}
+
+async function showMunicipalityDetail(api, municipalityId) {
+  byId("archive-view").hidden = true;
+  byId("municipality-detail-view").hidden = false;
+  try {
+    const municipality = await api.getMunicipality(municipalityId);
+    byId("municipality-detail-status").hidden = true;
+    byId("municipality-detail").hidden = false;
+    byId("municipality-detail").innerHTML = renderMunicipalityDetail(municipality);
+    document.title = `Comune di ${municipality.name} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("municipality-detail-status"), missing ? "This municipality is not available." : "We couldn't load this municipality.", missing ? "It may not have been ingested yet." : "The public API is currently unavailable.", true);
+  }
+}
+
 const api = createPublicApiClient();
 const params = new URLSearchParams(window.location.search);
 const politicianId = params.get("politician");
 const proposalId = params.get("proposal");
+const regionId = params.get("region");
+const municipalityId = params.get("municipality");
+const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 if (proposalId && /^\d+$/.test(proposalId)) {
   showProposalDetail(api, proposalId);
 } else if (politicianId && /^\d+$/.test(politicianId)) {
   showDetail(api, politicianId);
+} else if (municipalityId && /^\d+$/.test(municipalityId)) {
+  showMunicipalityDetail(api, municipalityId);
+} else if (regionId && /^\d+$/.test(regionId)) {
+  showRegionDetail(api, regionId);
 } else if (params.get("view") === "proposals") {
   showProposals(api);
+} else if (params.get("view") === "regions") {
+  showRegions(api);
+} else if (params.get("view") === "municipalities") {
+  showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
 } else {
   showArchive(api);
 }

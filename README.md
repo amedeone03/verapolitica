@@ -112,6 +112,26 @@ python -m scripts.run_ingestion --source camera
 python -m scripts.run_ingestion --source governo
 ```
 
+Territorial reference data and current mayors are a separate operator command.
+Tests and local work should use fixtures. Live downloads are explicit:
+
+```bash
+python -m scripts.run_territorial_ingestion territories --fixture data/fixtures/territorial/istat.xlsx
+python -m scripts.run_territorial_ingestion offices --fixture data/fixtures/territorial/dait_mayors.csv
+
+# explicit live downloads, isolated storage recommended
+python -m scripts.run_territorial_ingestion territories --live \
+  --database-url sqlite:///./data/smoke/territorial.db \
+  --raw-storage-path ./data/smoke/raw
+python -m scripts.run_territorial_ingestion offices --live \
+  --database-url sqlite:///./data/smoke/territorial.db \
+  --raw-storage-path ./data/smoke/raw
+```
+
+Office ingestion requires territories first. The DAIT feed is not a complete census
+of Italian mayors and never creates politicians from names. See
+`docs/territorial-sources.md`.
+
 By default this creates `data/verapolitica.db` and stores immutable raw payloads
 under `data/raw/`. The command prints the RawDocument ID, both hashes, change result,
 storage key, and collector/parser versions.

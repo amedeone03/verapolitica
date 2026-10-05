@@ -2,6 +2,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
+    Municipality,
     ParliamentaryGroup,
     ParliamentaryGroupMembership,
     PoliticalParty,
@@ -9,7 +10,10 @@ from backend.app.models import (
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
+    Region,
     Source,
+    TerritorialOffice,
+    TerritorialOfficeMandate,
 )
 from backend.app.schemas import (
     PublicCitation,
@@ -20,6 +24,8 @@ from backend.app.schemas import (
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
+    PublicTerritorialOffice,
+    PublicTerritorialSource,
 )
 from backend.app.schemas.politician import PoliticianVersionProfile
 from backend.app.services.public_proposal_service import PublicProposalQueryService
@@ -180,7 +186,80 @@ class PublicPoliticianQueryService:
             proposals=PublicProposalQueryService(self.session).list_for_politician(
                 politician.id
             ),
+            territorial_offices=self._territorial_offices(politician.id),
         )
+
+    def _territorial_offices(
+        self, politician_id: int
+    ) -> tuple[PublicTerritorialOffice, ...]:
+        mayor_rows = list(
+            self.session.execute(
+                select(TerritorialOfficeMandate, Municipality, Region, Source)
+                .join(
+                    Municipality,
+                    Municipality.id == TerritorialOfficeMandate.municipality_id,
+                )
+                .join(Region, Region.id == Municipality.region_id)
+                .join(Source, Source.id == TerritorialOfficeMandate.source_id)
+                .where(
+                    TerritorialOfficeMandate.politician_id == politician_id,
+                    TerritorialOfficeMandate.office == TerritorialOffice.MAYOR,
+                )
+            )
+        )
+        president_rows = list(
+            self.session.execute(
+                select(TerritorialOfficeMandate, Region, Source)
+                .join(Region, Region.id == TerritorialOfficeMandate.region_id)
+                .join(Source, Source.id == TerritorialOfficeMandate.source_id)
+                .where(
+                    TerritorialOfficeMandate.politician_id == politician_id,
+                    TerritorialOfficeMandate.office
+                    == TerritorialOffice.REGIONAL_PRESIDENT,
+                )
+            )
+        )
+        offices: list[PublicTerritorialOffice] = []
+        for mandate, municipality, region, source in mayor_rows:
+            offices.append(
+                PublicTerritorialOffice(
+                    office=mandate.office.value,
+                    municipality=municipality.canonical_name,
+                    municipality_id=municipality.id,
+                    region=region.canonical_name,
+                    region_id=region.id,
+                    start_date=mandate.start_date,
+                    end_date=mandate.end_date,
+                    source=PublicTerritorialSource(
+                        name=source.name,
+                        url=mandate.source_url,
+                    ),
+                )
+            )
+        for mandate, region, source in president_rows:
+            offices.append(
+                PublicTerritorialOffice(
+                    office=mandate.office.value,
+                    region=region.canonical_name,
+                    region_id=region.id,
+                    start_date=mandate.start_date,
+                    end_date=mandate.end_date,
+                    source=PublicTerritorialSource(
+                        name=source.name,
+                        url=mandate.source_url,
+                    ),
+                )
+            )
+        offices.sort(
+            key=lambda item: (
+                item.end_date is not None,
+                -(item.start_date.toordinal()),
+                item.office,
+                item.municipality or "",
+                item.region or "",
+            )
+        )
+        return tuple(offices)
 
     @staticmethod
     def _visible_query() -> Select[tuple[Politician, PoliticianVersion]]:

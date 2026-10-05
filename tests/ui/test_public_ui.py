@@ -46,6 +46,12 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderProposalTimeline" in script.text
     assert "Proposals / commitments" in script.text
     assert ".proposal-timeline" in styles.text
+    assert "renderRegionCard" in script.text
+    assert "renderMunicipalityCard" in script.text
+    assert "renderTerritorialOffices" in script.text
+    assert "Territorial offices" in script.text
+    assert "/regions?offset=0&limit=50" in script.text
+    assert "/municipalities?" in script.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
@@ -114,10 +120,11 @@ def test_initial_archive_contains_only_published_api_data(tmp_path):
 
     assert listing.status_code == 200
     payload = listing.json()
-    assert payload["total"] == 1
-    assert [person["id"] for person in payload["items"]] == [1]
-    assert payload["items"][0]["given_name"] == "Anna"
-    assert payload["items"][0]["citation_count"] == 14
+    assert payload["total"] == 2
+    assert [person["id"] for person in payload["items"]] == [3, 1]
+    assert payload["items"][1]["given_name"] == "Anna"
+    assert payload["items"][0]["given_name"] == "Giulia"
+    assert payload["items"][1]["citation_count"] == 14
     assert anna.status_code == 200
     assert anna.json()["parliamentary_groups"][0]["name"] == "Fratelli d'Italia"
     assert luca.status_code == 404
@@ -138,7 +145,7 @@ def test_real_approval_makes_profile_and_groupable_citations_public(tmp_path):
 
     assert started.status_code == 200
     assert approved.status_code == 200
-    assert [person["id"] for person in listing.json()["items"]] == [2, 1]
+    assert [person["id"] for person in listing.json()["items"]] == [2, 3, 1]
     payload = detail.json()
     assert payload["given_name"] == "Luca"
     assert payload["current_version_number"] == 1

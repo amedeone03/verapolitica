@@ -45,6 +45,29 @@ storage paths, and internal event identities. A politician link is emitted only 
 that politician has a public profile. Politician detail adds a compact `proposals`
 collection containing role, so co-sponsorship is not implied authorship.
 
+## Public territorial API
+
+`GET /regions` and `GET /municipalities` are unauthenticated, paginated
+(`offset`, `limit` 1–100), and ordered by official name. Municipalities also accept
+`region` as a public region id filter. There is no full-text search in this
+milestone.
+
+`GET /regions/{region_id}` includes ISTAT code, status, municipality count, official
+source, and `current_president` when a linked mandate exists. This milestone does
+not import regional presidents, so the field is typically null.
+
+`GET /municipalities/{municipality_id}` includes ISTAT code, region, province/UTS
+metadata, official source, and `current_mayor` when a politician could be linked
+conservatively. `politician_id` is present only if that person also has a published
+profile.
+
+Published politician detail adds historical `territorial_offices` with office type,
+territory, dates, and official source. Identity keys, RawDocument IDs, and
+resolution-case metadata stay private.
+
+DAIT coverage is incomplete. Missing mayors must not be interpreted as vacant
+municipalities.
+
 ## Proposal editorial API
 
 All proposal editorial routes use the existing router-level `/admin/*` bearer

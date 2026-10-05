@@ -19,10 +19,12 @@
             <small>Public information, with sources</small>
           </span>
         </a>
-        <span class="institutional-note">Italian national institutions</span>
+        <span class="institutional-note">Italian institutions</span>
         <nav class="public-nav" aria-label="Public archive sections">
           <a href="./">Politicians</a>
           <a href="./?view=proposals">Proposals</a>
+          <a href="./?view=regions">Regions</a>
+          <a href="./?view=municipalities">Municipalities</a>
         </nav>
       </div>
     </header>
@@ -91,6 +93,59 @@
         </div>
         <article id="proposal-detail" hidden></article>
       </section>
+
+      <section id="regions-view" aria-labelledby="regions-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Territorial archive</p>
+          <h1 id="regions-title">Italian regions</h1>
+          <p class="hero-copy">Official ISTAT regions. Current regional presidents appear only when an official structured source has linked them.</p>
+        </div>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Reference data</p><h2>Regions</h2></div>
+          <span id="region-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+        <div id="regions-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading regions…</strong><small>Contacting the public archive.</small></div>
+        </div>
+        <div id="region-list" class="proposal-grid" hidden></div>
+      </section>
+
+      <section id="region-detail-view" aria-labelledby="region-detail-title" hidden>
+        <a class="back-link" href="./?view=regions"><span aria-hidden="true">←</span> All regions</a>
+        <div id="region-detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading region…</strong><small>Retrieving official territorial data.</small></div>
+        </div>
+        <article id="region-detail" hidden></article>
+      </section>
+
+      <section id="municipalities-view" aria-labelledby="municipalities-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Territorial archive</p>
+          <h1 id="municipalities-title">Municipalities</h1>
+          <p class="hero-copy">Official ISTAT comuni, shown a page at a time. Current mayors appear only when identity can be linked conservatively.</p>
+        </div>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Reference data</p><h2>Comuni</h2></div>
+          <span id="municipality-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+        <div id="municipalities-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading municipalities…</strong><small>Contacting the public archive.</small></div>
+        </div>
+        <div id="municipality-list" class="proposal-grid" hidden></div>
+        <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
+      </section>
+
+      <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>
+        <a class="back-link" href="./?view=municipalities"><span aria-hidden="true">←</span> All municipalities</a>
+        <div id="municipality-detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading municipality…</strong><small>Retrieving official territorial data.</small></div>
+        </div>
+        <article id="municipality-detail" hidden></article>
+      </section>
     </main>
 
     <footer>
@@ -98,7 +153,7 @@
         <strong>VeraPolitica</strong>
         <p>Public profiles derived from official sources and published after editorial verification.</p>
       </div>
-      <span>MVP · National politicians</span>
+      <span>National, regional, and municipal archive</span>
     </footer>
 
     <script type="module" src="./app.js"></script>

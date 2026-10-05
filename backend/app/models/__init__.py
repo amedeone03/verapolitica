@@ -67,6 +67,11 @@ from backend.app.models.profile_draft import (
     ProfileDraftStatus,
 )
 from backend.app.models.source import Source
+from backend.app.models.territorial_office_mandate import (
+    TerritorialOffice,
+    TerritorialOfficeMandate,
+)
+from backend.app.models.territory import Municipality, Region, TerritoryStatus
 
 __all__ = [
     "AIExtractionCandidate",
@@ -118,4 +123,9 @@ __all__ = [
     "Review",
     "ReviewDecision",
     "Source",
+    "Region",
+    "Municipality",
+    "TerritoryStatus",
+    "TerritorialOffice",
+    "TerritorialOfficeMandate",
 ]

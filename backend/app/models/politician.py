@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         PoliticalPartyAffiliation,
     )
     from backend.app.models.proposal import ProposalActor
+    from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
 
 
 def utc_now() -> datetime:
@@ -88,4 +89,8 @@ class Politician(Base):
     )
     proposal_actors: Mapped[list["ProposalActor"]] = relationship(
         back_populates="politician"
+    )
+    territorial_office_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
+        back_populates="politician",
+        order_by="TerritorialOfficeMandate.start_date",
     )

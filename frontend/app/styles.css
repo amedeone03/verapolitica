@@ -193,6 +193,13 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .linked-proposals h3 { margin: 8px 0 4px; font-size: 1.08rem; }
 .linked-proposals h3 a { color: inherit; }
 .linked-proposals p, .proposal-disclaimer { color: var(--muted); font-size: .82rem; }
+.territorial-offices { display: grid; gap: 11px; }
+.territorial-office { display: flex; justify-content: space-between; gap: 20px; padding: 17px; border: 1px solid var(--line); border-radius: 12px; background: #fafaf8; }
+.territorial-office h3 { margin: 8px 0 4px; font-size: 1.08rem; }
+.territorial-office h3 a, .territorial-disclaimer, .territorial-office p { color: inherit; }
+.territorial-disclaimer, .territorial-office p { color: var(--muted); font-size: .82rem; }
+.territory-pagination { display: flex; justify-content: space-between; gap: 16px; margin: 24px 0 8px; font-size: .82rem; font-weight: 800; }
+.territory-pagination a { color: var(--teal-dark); text-decoration: none; }
 
 .sources-card { margin-top: 25px; }
 .sources-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 22px; }

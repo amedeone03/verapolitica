@@ -106,6 +106,15 @@ from backend.app.services.proposal_review_service import (
     ProposalReviewServiceError,
 )
 from backend.app.services.public_proposal_service import PublicProposalQueryService
+from backend.app.services.public_territory_service import PublicTerritoryQueryService
+from backend.app.services.territory_service import (
+    TerritorialMandateService,
+    TerritoryConflictError,
+    TerritoryPersistenceError,
+    TerritoryService,
+    TerritoryServiceError,
+    TerritoryValidationError,
+)
 
 __all__ = [
     "ActorIdentityHint",
@@ -153,6 +162,7 @@ __all__ = [
     "PublishServiceError",
     "PublicPoliticianQueryService",
     "PublicProposalQueryService",
+    "PublicTerritoryQueryService",
     "ProposalConflictError",
     "ProposalExtractionError",
     "ProposalExtractionInputError",
@@ -190,4 +200,10 @@ __all__ = [
     "SuggestedSourceIdentifier",
     "candidate_to_version_profile",
     "normalize_person_name",
+    "TerritoryService",
+    "TerritorialMandateService",
+    "TerritoryServiceError",
+    "TerritoryValidationError",
+    "TerritoryConflictError",
+    "TerritoryPersistenceError",
 ]

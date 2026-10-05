@@ -1,0 +1,6 @@
+"Sindaci - elenco completo Italia"
+"Aggiornato al 24/08/2026"
+codice_regione;codice_provincia;codice_comune;denominazione_comune;sigla_provincia;cognome;nome;sesso;data_nascita;luogo_nascita;descrizione_carica;data_elezione;data_entrata_in_carica;professione
+03;015;1460;Milano;MI;Rossi;Maria;F;02/01/1970;MILANO (MI);Sindaco;10/06/2024;10/06/2024;DEMO
+03;015;9999;Comune inesistente;MI;Bianchi;Luca;M;03/04/1980;MILANO (MI);Sindaco;10/06/2024;10/06/2024;DEMO
+12;058;0910;Roma;RM;Verdi;Elena;F;;ROMA (RM);Sindaco;10/06/2024;10/06/2024;DEMO

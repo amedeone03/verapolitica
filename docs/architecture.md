@@ -453,12 +453,35 @@ data does not become part of immutable PoliticianVersion profile JSON and does n
 bypass the version publication boundary for profile fields.
 Explicit political-party affiliations are projected through a separate
 `political_parties` field. They use the same current-first ordering convention but
-are never populated from parliamentary-group data.
+are never populated from parliamentary-group data. Politician detail also projects
+historical `territorial_offices`. Region and municipality pages expose current
+holders from the latest open mandate and never invent missing end dates.
 
 The central visibility invariant is:
 
 > No public politician profile exists unless it points to an explicitly approved
 > immutable version.
+
+## Territorial foundation
+
+```text
+ISTAT XLSX
+  -> collector/parser/mapper
+  -> TerritoryService
+  -> Region / Municipality
+
+DAIT current-mayors CSV
+  -> collector/parser/mapper
+  -> existing identity coordinator
+  -> TerritorialMandateService
+```
+
+Territorial ingestion is a dedicated CLI. ISTAT codes are identity. DAIT
+municipality codes are not treated as ISTAT codes; linkage uses unique normalized
+name + province abbreviation + region code. People are never created from names.
+`--fixture` is the offline path; `--live`/`--url` is an explicit download. The
+public API paginates regions and municipalities and projects current holders plus
+politician `territorial_offices` without exposing identity keys or RawDocument IDs.
 
 ## End-to-end regression boundary
 

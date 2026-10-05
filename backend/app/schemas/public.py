@@ -62,6 +62,7 @@ class PublicPolitician(PublicPoliticianSummary):
     parliamentary_groups: tuple[PublicParliamentaryGroupMembership, ...] = ()
     political_parties: tuple[PublicPoliticalPartyAffiliation, ...] = ()
     proposals: tuple[PublicPoliticianProposal, ...] = ()
+    territorial_offices: tuple["PublicTerritorialOffice", ...] = ()
 
 
 class PublicPoliticianList(ImmutableSchema):
@@ -69,3 +70,69 @@ class PublicPoliticianList(ImmutableSchema):
     total: int = Field(ge=0)
     offset: int = Field(ge=0)
     limit: int = Field(ge=1, le=100)
+
+
+class PublicTerritorialSource(ImmutableSchema):
+    name: str
+    url: AnyHttpUrl
+
+
+class PublicOfficeHolder(ImmutableSchema):
+    politician_id: int | None = Field(default=None, gt=0)
+    given_name: str
+    family_name: str
+    start_date: date | None = None
+
+
+class PublicRegionSummary(ImmutableSchema):
+    id: int = Field(gt=0)
+    istat_code: str
+    name: str
+    status: str
+    current_president: PublicOfficeHolder | None = None
+
+
+class PublicRegion(PublicRegionSummary):
+    municipality_count: int = Field(ge=0)
+    source: PublicTerritorialSource
+
+
+class PublicRegionList(ImmutableSchema):
+    items: tuple[PublicRegionSummary, ...]
+    total: int = Field(ge=0)
+    offset: int = Field(ge=0)
+    limit: int = Field(ge=1, le=100)
+
+
+class PublicMunicipalitySummary(ImmutableSchema):
+    id: int = Field(gt=0)
+    istat_code: str
+    name: str
+    region_id: int = Field(gt=0)
+    region_name: str
+    province_abbreviation: str
+    status: str
+    current_mayor: PublicOfficeHolder | None = None
+
+
+class PublicMunicipality(PublicMunicipalitySummary):
+    province_name: str
+    source: PublicTerritorialSource
+
+
+class PublicMunicipalityList(ImmutableSchema):
+    items: tuple[PublicMunicipalitySummary, ...]
+    total: int = Field(ge=0)
+    offset: int = Field(ge=0)
+    limit: int = Field(ge=1, le=100)
+
+
+class PublicTerritorialOffice(ImmutableSchema):
+    office: str
+    municipality: str | None = None
+    municipality_id: int | None = Field(default=None, gt=0)
+    region: str | None = None
+    region_id: int | None = Field(default=None, gt=0)
+    start_date: date
+    end_date: date | None = None
+    source: PublicTerritorialSource

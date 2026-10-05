@@ -90,8 +90,8 @@ only an explicit final Review can reject a draft or publish a new version.
 `Source` identifies one configured official provider.
 
 - `id`: internal primary key
-- `key`: stable application key (`senato-repubblica`, `camera-deputati`, or
-  `governo-italiano`)
+- `key`: stable application key (`senato-repubblica`, `camera-deputati`,
+  `governo-italiano`, `istat-territories`, or `dait-current-mayors`)
 - `name`: human-readable institution name
 - `base_url`: official provider URL
 - `is_enabled`: whether collection is enabled
@@ -261,6 +261,43 @@ versions are created only by PublishService after approval.
 The JSON snapshot is validated at application boundaries with the
 `PoliticianVersionProfile` schema. It contains public identity and profile fields but
 excludes source identifiers and CandidateProfile provenance.
+
+## Region and Municipality
+
+Italy is modelled as a two-level official hierarchy: Region then Municipality.
+Province/UTS names and abbreviations are municipality metadata, not a Province
+domain.
+
+`Region` is identified only by its two-digit ISTAT code. `Municipality` is identified
+only by its six-character ISTAT code and belongs to exactly one Region. Names are
+mutable labels. A rename updates the existing row. An inactive municipality can keep
+its official code and validity dates; this milestone does not import SITUAS lineage,
+mergers, or successor graphs.
+
+## TerritorialOfficeMandate
+
+A territorial office is a time-bounded side-table fact, like a parliamentary-group
+membership, not a free-text field on Politician and not a PoliticianVersion JSON
+mandate.
+
+Supported offices are `mayor` and `regional_president`. A mayor must point at a
+municipality and a regional president at a region. Identity is
+`(source_id, identity_key)` where the key hashes source record identity, office,
+territory, and start date, excluding mutable end dates. A later end date updates the
+same row. A new holder creates a new row. History is never overwritten.
+
+Politician linkage uses an existing official source identifier or the existing
+normalized-name plus exact-birth-date rule. Name-only matches are rejected. DAIT
+does not publish a stable person ID, so the importer derives a replay identifier
+from stable person and mandate fields. Incomplete identities become
+`IdentityResolutionCase` rows. Complete unknown people remain unresolved until an
+explicit bootstrap or human decision.
+
+Current holder display selects the open mandate with the latest start date. Overlap
+is reported by keeping both rows rather than inventing an end date absent from the
+source.
+
+See `docs/territorial-sources.md` for official-source coverage and licensing notes.
 
 ## PoliticianVersionCitation
 

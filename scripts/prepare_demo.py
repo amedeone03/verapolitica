@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 import shutil
 
@@ -27,6 +27,7 @@ from backend.app.models import (
     RawDocument,
     RawDocumentStatus,
     Source,
+    TerritorialOffice,
 )
 from backend.app.pipeline.collectors import CollectedDocument
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
@@ -38,10 +39,14 @@ from backend.app.pipeline.parsers import GovernoParser, SenatoParser
 from backend.app.schemas import (
     DraftCreatedResult,
     MatchedResult,
+    MunicipalityObservation,
     ParliamentaryGroupObservation,
+    PoliticianVersionProfile,
     ProposalActorObservation,
     ProposalEvidenceObservation,
     ProposalObservation,
+    RegionObservation,
+    TerritorialMandateObservation,
 )
 from backend.app.services import (
     CandidateRebuildResult,
@@ -54,6 +59,9 @@ from backend.app.services import (
     PublishService,
     ProposalReviewService,
     ProposalService,
+    TerritorialMandateService,
+    TerritoryService,
+    normalize_person_name,
 )
 from backend.app.storage import LocalRawStorage
 
@@ -271,6 +279,7 @@ def prepare_demo(
             paths,
             governo_fixture,
         )
+        _prepare_territorial_example(session_factory)
         summary = _load_summary(
             session_factory,
             paths,
@@ -550,6 +559,133 @@ def _prepare_identity_resolution_example(
     return result.case.case_id
 
 
+def _prepare_territorial_example(session_factory) -> None:
+    observed_at = datetime(2026, 2, 21, 12, tzinfo=timezone.utc)
+    with session_factory() as session:
+        istat = Source(
+            key="istat-territories",
+            name="ISTAT territorial classifications",
+            base_url="https://www.istat.it",
+        )
+        demo_source = Source(
+            key="demo-territorial-offices",
+            name="Synthetic demo territorial fixture",
+            base_url="https://example.test",
+        )
+        session.add_all((istat, demo_source))
+        session.flush()
+        istat_document = RawDocument(
+            source_id=istat.id,
+            retrieved_at=observed_at,
+            source_url="https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            storage_key="istat-territories/demo.xlsx",
+            raw_sha256="7" * 64,
+            normalized_sha256="8" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="demo_territory_v1",
+            parser_version="demo_territory_v1",
+        )
+        office_document = RawDocument(
+            source_id=demo_source.id,
+            retrieved_at=observed_at,
+            source_url="https://example.test/demo/synthetic-milano-mayor",
+            content_type="text/csv",
+            storage_key="demo-territorial-offices/synthetic-mayor.csv",
+            raw_sha256="9" * 64,
+            normalized_sha256="a" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="demo_territory_v1",
+            parser_version="demo_territory_v1",
+        )
+        session.add_all((istat_document, office_document))
+        session.commit()
+        istat_document_id = istat_document.id
+        office_document_id = office_document.id
+
+    TerritoryService(session_factory).sync(
+        (
+            RegionObservation(
+                source_key="istat-territories",
+                raw_document_id=istat_document_id,
+                istat_code="03",
+                canonical_name="Lombardia",
+                source_url="https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+            ),
+        ),
+        (
+            MunicipalityObservation(
+                source_key="istat-territories",
+                raw_document_id=istat_document_id,
+                istat_code="015146",
+                region_istat_code="03",
+                canonical_name="Milano",
+                province_abbreviation="MI",
+                province_name="Milano",
+                source_url="https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+            ),
+        ),
+    )
+    with session_factory() as session:
+        giulia = Politician(
+            canonical_given_name="Giulia",
+            canonical_family_name="Neri",
+            normalized_name=normalize_person_name("Giulia", "Neri"),
+            birth_date=date(1985, 4, 9),
+        )
+        session.add(giulia)
+        session.flush()
+        version = PoliticianVersion(
+            politician_id=giulia.id,
+            version_number=1,
+            profile_schema_version=1,
+            profile_data=PoliticianVersionProfile(
+                given_name="Giulia",
+                family_name="Neri",
+                birth_date=date(1985, 4, 9),
+                profession="Synthetic demo mayor — not a real office holder",
+                mandates=(),
+            ).model_dump(mode="json"),
+            published_at=observed_at,
+        )
+        session.add(version)
+        session.flush()
+        giulia.current_version_id = version.id
+        session.add(
+            PoliticianVersionCitation(
+                politician_version_id=version.id,
+                field_path="profession",
+                source_name="Synthetic demo territorial fixture",
+                source_url="https://example.test/demo/synthetic-milano-mayor",
+                source_field="profession",
+            )
+        )
+        session.commit()
+
+    result = TerritorialMandateService(session_factory).sync(
+        (
+            TerritorialMandateObservation(
+                source_key="demo-territorial-offices",
+                raw_document_id=office_document_id,
+                office=TerritorialOffice.MAYOR,
+                municipality_istat_code="015146",
+                given_name="Giulia",
+                family_name="Neri",
+                birth_date=date(1985, 4, 9),
+                source_identifier="demo-mayor-milano-2024",
+                start_date=date(2024, 6, 10),
+                source_url="https://example.test/demo/synthetic-milano-mayor",
+            ),
+        )
+    )
+    if result.mandates_created != 1:
+        raise RuntimeError("demo territorial mayor mandate was not created")
+
+
 def _validate_demo_paths(paths: DemoPaths) -> None:
     expected_root = (paths.workspace_root / "data" / "demo").resolve()
     forbidden = {
@@ -611,6 +747,11 @@ def _print_summary(summary: DemoSummary) -> None:
     print("Proposal tracker (synthetic demo data):")
     print(f"  Published proposal ID: {summary.published_proposal_id}")
     print(f"  Pending status-update draft ID: {summary.pending_proposal_draft_id}")
+    print()
+    print("Territorial archive (synthetic demo mayor):")
+    print("  Region: Lombardia")
+    print("  Municipality: Milano")
+    print("  Synthetic mayor: Giulia Neri")
     print()
     print("Start API with:")
     print('  export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"')

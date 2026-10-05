@@ -29,6 +29,8 @@ if TYPE_CHECKING:
         ProposalSourceIdentifier,
         ProposalStatusEvent,
     )
+    from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
+    from backend.app.models.territory import Municipality, Region
 
 
 def utc_now() -> datetime:
@@ -75,5 +77,10 @@ class Source(Base):
         back_populates="source"
     )
     proposal_evidence: Mapped[list["ProposalEvidence"]] = relationship(
+        back_populates="source"
+    )
+    regions: Mapped[list["Region"]] = relationship(back_populates="source")
+    municipalities: Mapped[list["Municipality"]] = relationship(back_populates="source")
+    territorial_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
         back_populates="source"
     )

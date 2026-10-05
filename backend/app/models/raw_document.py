@@ -23,6 +23,8 @@ if TYPE_CHECKING:
         ProposalEvidence,
         ProposalStatusEvent,
     )
+    from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
+    from backend.app.models.territory import Municipality, Region
 
 
 def utc_now() -> datetime:
@@ -101,5 +103,12 @@ class RawDocument(Base):
         order_by="DocumentChunk.chunk_index",
     )
     ai_extraction_runs: Mapped[list["AIExtractionRun"]] = relationship(
+        back_populates="raw_document"
+    )
+    regions: Mapped[list["Region"]] = relationship(back_populates="raw_document")
+    municipalities: Mapped[list["Municipality"]] = relationship(
+        back_populates="raw_document"
+    )
+    territorial_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
         back_populates="raw_document"
     )

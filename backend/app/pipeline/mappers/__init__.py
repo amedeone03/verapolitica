@@ -14,6 +14,12 @@ from backend.app.pipeline.mappers.senato_proposals import (
     ProposalMappingError,
     SenatoProposalMapper,
 )
+from backend.app.pipeline.mappers.territorial import (
+    DaitMappingResult,
+    DaitMayorMapper,
+    IstatTerritoryMapper,
+    UnresolvedDaitRow,
+)
 
 __all__ = [
     "CameraCandidateProfileMapper",
@@ -26,4 +32,8 @@ __all__ = [
     "SenatoParliamentaryGroupMapper",
     "ProposalMappingError",
     "SenatoProposalMapper",
+    "DaitMappingResult",
+    "DaitMayorMapper",
+    "IstatTerritoryMapper",
+    "UnresolvedDaitRow",
 ]
