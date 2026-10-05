@@ -1,5 +1,53 @@
 # Architecture
 
+## Proposal-tracker vertical slice
+
+```text
+Senato DDL SPARQL (dedicated senato-ddl stream)
+  -> SenatoProposalCollector
+  -> RawDocument + raw SHA-256
+  -> SenatoProposalParser
+  -> canonical JSON + normalized SHA-256
+  -> SenatoProposalMapper
+  -> transient ProposalObservation
+  -> ProposalService (exact identities and actor resolution)
+  -> pending ProposalDraft + ProposalEvidence
+  -> ProposalReviewService
+  -> approved ProposalStatusEvent + ProposalActor + public Proposal
+  -> /proposals API + citizen timeline
+```
+
+The feed is separate from the `senato-repubblica` person stream, so a DDL status
+change cannot make unchanged politician profiles appear changed. Actor observations
+still name that person authority and resolve through exact existing
+`PoliticianSourceIdentifier` rows. Missing or ambiguous identities remain unresolved
+draft metadata; proposal ingestion never creates a Politician or matches by name.
+
+Parsers and mappers are write-free. `ProposalService.sync` validates Source,
+RawDocument, chronology, evidence, and actor-resolution input before superseding an
+active draft. Proposal identity is `(Source, official_identifier)`. Replay identity
+excludes retrieval time and RawDocument ID, so the same assertion is idempotent
+across snapshots.
+
+The internal Proposal may exist before approval, but public queries require
+`published_at`. `ProposalStatusEvent` rows are created only during approval and are
+immutable. A later observation produces a reviewable update; the public status and
+timeline remain unchanged until approval. Approval verifies that the baseline event
+is still latest, then writes the event, actors, cached status, final review, and
+draft state atomically.
+
+`ProposalType` preserves `legislative_proposal`, `government_initiative`, and
+`explicit_promise`. The Senato DDL adapter emits only `legislative_proposal`:
+initiative ownership does not turn a bill into a promise. Explicit promises are
+fixture-only and require exact text, a commitment owner, and official evidence.
+There is no AI, free-text classification, fulfillment scoring, or promise extraction.
+
+Status normalization is an explicit allow-list. Examples: `da assegn. a commis.`
+maps to `introduced`, `assegnato (no esame)` to `assigned`, `esame in comm.` to
+`under_review`, `respinto` to `rejected`, and `appr. definit. Legge` to `enacted`.
+The original label is retained. Unknown labels stop mapping instead of inventing a
+political fact.
+
 The implemented multi-source path is deterministic:
 
 ```text

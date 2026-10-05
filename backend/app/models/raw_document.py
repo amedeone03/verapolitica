@@ -17,6 +17,11 @@ if TYPE_CHECKING:
     from backend.app.models.political_party_affiliation import (
         PoliticalPartyAffiliation,
     )
+    from backend.app.models.proposal import (
+        ProposalDraft,
+        ProposalEvidence,
+        ProposalStatusEvent,
+    )
 
 
 def utc_now() -> datetime:
@@ -79,4 +84,13 @@ class RawDocument(Base):
     )
     political_party_affiliations: Mapped[list["PoliticalPartyAffiliation"]] = (
         relationship(back_populates="raw_document")
+    )
+    proposal_drafts: Mapped[list["ProposalDraft"]] = relationship(
+        back_populates="raw_document"
+    )
+    proposal_status_events: Mapped[list["ProposalStatusEvent"]] = relationship(
+        back_populates="raw_document"
+    )
+    proposal_evidence: Mapped[list["ProposalEvidence"]] = relationship(
+        back_populates="raw_document"
     )

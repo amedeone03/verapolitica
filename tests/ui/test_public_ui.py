@@ -42,6 +42,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderPoliticalParties" in script.text
     assert "Political party" in script.text
     assert ".party-affiliation" in styles.text
+    assert "renderProposalCard" in script.text
+    assert "renderProposalTimeline" in script.text
+    assert "Proposals / commitments" in script.text
+    assert ".proposal-timeline" in styles.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
@@ -61,6 +65,22 @@ def test_public_ui_keeps_parties_separate_and_displays_party_history(tmp_path):
     assert "political_parties" in script
     assert "distinct institutional concepts" in script
     assert "parliamentary_groups" in script
+
+
+def test_public_ui_has_separate_proposal_archive_and_detail_timeline(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        page = client.get("/app/?view=proposals")
+        script = client.get("/app/app.js").text
+        proposals = client.get("/proposals")
+        detail = client.get("/proposals/1")
+
+    assert page.status_code == 200
+    assert "Proposal tracker" in page.text
+    assert proposals.status_code == 200
+    assert proposals.json()["total"] == 1
+    assert detail.json()["status_history"][0]["status"] == "introduced"
+    assert "Explicit promise" in script
+    assert "legislative_proposal" not in page.text
 
 
 def test_public_ui_assets_are_strictly_public(tmp_path):

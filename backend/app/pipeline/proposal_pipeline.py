@@ -1,0 +1,132 @@
+from dataclasses import dataclass
+from hashlib import sha256
+from typing import Callable, Protocol
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.app.models import RawDocument, RawDocumentStatus
+from backend.app.pipeline.collectors.base import Collector
+from backend.app.pipeline.parsers.base import Parser, ParserError
+from backend.app.schemas import ProposalObservation
+from backend.app.storage.base import RawStorage
+
+
+class ProposalObservationMapper(Protocol):
+    def map_records(
+        self,
+        records: list[dict],
+        *,
+        source_key: str,
+        raw_document_id: int,
+        observed_at,
+    ) -> tuple[ProposalObservation, ...]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalIngestionResult:
+    raw_document_id: int
+    process_status: RawDocumentStatus
+    change_detected: bool | None
+    raw_sha256: str
+    normalized_sha256: str | None
+    storage_key: str
+    collector_version: str
+    parser_version: str
+    observations: tuple[ProposalObservation, ...]
+
+
+class ProposalIngestionPipeline:
+    """Persist one isolated proposal feed and map changed records to observations."""
+
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        storage: RawStorage,
+        collector: Collector,
+        parser: Parser,
+        mapper: ProposalObservationMapper,
+    ) -> None:
+        self.session_factory = session_factory
+        self.storage = storage
+        self.collector = collector
+        self.parser = parser
+        self.mapper = mapper
+
+    def run(self, *, source_id: int, source_key: str) -> ProposalIngestionResult:
+        collected = self.collector.collect()
+        raw_digest = sha256(collected.content).hexdigest()
+        storage_key = self.storage.put(source_key, raw_digest, collected.content)
+
+        with self.session_factory() as session:
+            document = RawDocument(
+                source_id=source_id,
+                retrieved_at=collected.retrieved_at,
+                source_url=collected.source_url,
+                content_type=collected.content_type,
+                storage_key=storage_key,
+                raw_sha256=raw_digest,
+                process_status=RawDocumentStatus.COLLECTED,
+                collector_version=collected.collector_version,
+                parser_version=self.parser.version,
+            )
+            session.add(document)
+            session.commit()
+            raw_document_id = document.id
+
+        try:
+            parsed = self.parser.parse(collected.content)
+        except ParserError as exc:
+            with self.session_factory() as session:
+                document = session.get(RawDocument, raw_document_id)
+                if document is None:
+                    raise RuntimeError("RawDocument disappeared during parsing") from exc
+                document.process_status = RawDocumentStatus.FAILED
+                document.error_message = str(exc)
+                session.commit()
+            raise
+
+        normalized_digest = sha256(parsed.canonical_json.encode("utf-8")).hexdigest()
+        with self.session_factory() as session:
+            previous_digest = session.scalar(
+                select(RawDocument.normalized_sha256)
+                .where(
+                    RawDocument.source_id == source_id,
+                    RawDocument.id != raw_document_id,
+                    RawDocument.process_status == RawDocumentStatus.PARSED,
+                )
+                .order_by(RawDocument.retrieved_at.desc(), RawDocument.id.desc())
+                .limit(1)
+            )
+            changed = previous_digest is None or previous_digest != normalized_digest
+            document = session.get(RawDocument, raw_document_id)
+            if document is None:
+                raise RuntimeError("RawDocument disappeared before persistence")
+            document.structured_records = parsed.structured_records
+            document.normalized_text = parsed.normalized_text
+            document.normalized_sha256 = normalized_digest
+            document.process_status = RawDocumentStatus.PARSED
+            document.change_detected = changed
+            document.parser_version = parsed.parser_version
+            document.error_message = None
+            session.commit()
+
+        observations: tuple[ProposalObservation, ...] = ()
+        if changed:
+            observations = self.mapper.map_records(
+                parsed.structured_records,
+                source_key=source_key,
+                raw_document_id=raw_document_id,
+                observed_at=collected.retrieved_at,
+            )
+        return ProposalIngestionResult(
+            raw_document_id=raw_document_id,
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=changed,
+            raw_sha256=raw_digest,
+            normalized_sha256=normalized_digest,
+            storage_key=storage_key,
+            collector_version=collected.collector_version,
+            parser_version=parsed.parser_version,
+            observations=observations,
+        )

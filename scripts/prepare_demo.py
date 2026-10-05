@@ -16,6 +16,10 @@ from backend.app.models import (
     PoliticianVersionCitation,
     ProfileDraft,
     ProfileDraftStatus,
+    Proposal,
+    ProposalDraft,
+    RawDocument,
+    RawDocumentStatus,
     Source,
 )
 from backend.app.pipeline.collectors import CollectedDocument
@@ -29,6 +33,9 @@ from backend.app.schemas import (
     DraftCreatedResult,
     MatchedResult,
     ParliamentaryGroupObservation,
+    ProposalActorObservation,
+    ProposalEvidenceObservation,
+    ProposalObservation,
 )
 from backend.app.services import (
     CandidateRebuildResult,
@@ -39,6 +46,8 @@ from backend.app.services import (
     ParliamentaryGroupService,
     PoliticianBootstrapService,
     PublishService,
+    ProposalReviewService,
+    ProposalService,
 )
 from backend.app.storage import LocalRawStorage
 
@@ -99,6 +108,8 @@ class DemoSummary:
     identity_resolution_case_id: int
     identity_resolution_name: str
     identity_resolution_status: IdentityResolutionStatus
+    published_proposal_id: int
+    pending_proposal_draft_id: int
 
 
 class FixtureCollector:
@@ -246,6 +257,9 @@ def prepare_demo(
             reviewer="demo-setup",
             note="Deterministic demo fixture publication",
         )
+        published_proposal_id, pending_proposal_draft_id = _prepare_proposal_example(
+            session_factory
+        )
         identity_case_id = _prepare_identity_resolution_example(
             session_factory,
             paths,
@@ -258,6 +272,8 @@ def prepare_demo(
             published_version_id=publication.created_version_id,
             pending_draft_id=drafts[1].draft_id,
             identity_case_id=identity_case_id,
+            published_proposal_id=published_proposal_id,
+            pending_proposal_draft_id=pending_proposal_draft_id,
         )
         _validate_expected_ids(summary)
         return summary
@@ -273,6 +289,8 @@ def _load_summary(
     published_version_id: int,
     pending_draft_id: int,
     identity_case_id: int,
+    published_proposal_id: int,
+    pending_proposal_draft_id: int,
 ) -> DemoSummary:
     with session_factory() as session:
         published = session.get(Politician, published_politician_id)
@@ -311,7 +329,114 @@ def _load_summary(
             identity_resolution_case_id=identity_case.id,
             identity_resolution_name=identity_case.candidate_display_name,
             identity_resolution_status=identity_case.status,
+            published_proposal_id=published_proposal_id,
+            pending_proposal_draft_id=pending_proposal_draft_id,
         )
+
+
+def _prepare_proposal_example(session_factory) -> tuple[int, int]:
+    observed_at = datetime(2026, 1, 11, 12, tzinfo=timezone.utc)
+    proposal_url = "https://dati.senato.it/ddl/synthetic-demo-100"
+    with session_factory() as session:
+        source = Source(
+            key="senato-ddl",
+            name="Senato della Repubblica — Disegni di legge",
+            base_url="https://dati.senato.it",
+        )
+        session.add(source)
+        session.flush()
+        initial_document = RawDocument(
+            source_id=source.id,
+            retrieved_at=observed_at,
+            source_url="https://dati.senato.it/sparql",
+            content_type="application/json",
+            storage_key="senato-ddl/synthetic-demo-initial.json",
+            raw_sha256="3" * 64,
+            normalized_sha256="4" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="synthetic_demo_v1",
+            parser_version="synthetic_demo_v1",
+        )
+        update_document = RawDocument(
+            source_id=source.id,
+            retrieved_at=observed_at,
+            source_url="https://dati.senato.it/sparql",
+            content_type="application/json",
+            storage_key="senato-ddl/synthetic-demo-update.json",
+            raw_sha256="5" * 64,
+            normalized_sha256="6" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="synthetic_demo_v1",
+            parser_version="synthetic_demo_v1",
+        )
+        session.add_all((initial_document, update_document))
+        session.commit()
+        initial_document_id = initial_document.id
+        update_document_id = update_document.id
+
+    def make_observation(document_id: int, status: str, label: str, day: int):
+        return ProposalObservation(
+            source_key="senato-ddl",
+            raw_document_id=document_id,
+            proposal_identifier=proposal_url,
+            title="Synthetic housing transparency proposal",
+            proposal_type="legislative_proposal",
+            introduced_at=datetime(2026, 1, 10).date(),
+            source_status_label=label,
+            normalized_status=status,
+            status_effective_at=datetime(2026, 1, day).date(),
+            status_source_identifier=f"{proposal_url}#{status}",
+            official_url=proposal_url,
+            source_field="osr:statoDdl",
+            observed_at=observed_at,
+            actors=(
+                ProposalActorObservation(
+                    actor_type="politician",
+                    role="proposer",
+                    display_name="Sen. Anna Rossi",
+                    authority_key=SOURCE_KEY,
+                    source_identifier="https://dati.senato.it/senatore/demo-001",
+                    source_field="osr:senatore",
+                ),
+            ),
+            evidence=tuple(
+                ProposalEvidenceObservation(
+                    field_path=path,
+                    source_url=proposal_url,
+                    source_field=field,
+                    source_value=value,
+                )
+                for path, field, value in (
+                    ("title", "osr:titolo", "Synthetic housing transparency proposal"),
+                    ("proposal_type", "rdf:type", "osr:Ddl"),
+                    ("introduced_at", "osr:dataPresentazione", "2026-01-10"),
+                    ("current_status", "osr:statoDdl", label),
+                    (
+                        "actors[0]",
+                        "osr:senatore",
+                        "https://dati.senato.it/senatore/demo-001",
+                    ),
+                )
+            ),
+            metadata={"fixture": "synthetic_demo_only"},
+        )
+
+    initial = ProposalService(session_factory).sync(
+        (make_observation(initial_document_id, "introduced", "da assegn. a commis.", 10),)
+    )
+    ProposalReviewService(session_factory).approve(
+        initial.details[0].draft_id,
+        reviewer="demo-setup",
+        note="Synthetic proposal fixture publication",
+    )
+    update = ProposalService(session_factory).sync(
+        (make_observation(update_document_id, "under_review", "esame in comm.", 20),)
+    )
+    return initial.details[0].proposal_id, update.details[0].draft_id
 
 
 def _prepare_identity_resolution_example(
@@ -408,6 +533,10 @@ def _print_summary(summary: DemoSummary) -> None:
     print(f"  Case ID: {summary.identity_resolution_case_id}")
     print(f"  Name: {summary.identity_resolution_name}")
     print(f"  Status: {summary.identity_resolution_status.value}")
+    print()
+    print("Proposal tracker (synthetic demo data):")
+    print(f"  Published proposal ID: {summary.published_proposal_id}")
+    print(f"  Pending status-update draft ID: {summary.pending_proposal_draft_id}")
     print()
     print("Start API with:")
     print('  export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"')

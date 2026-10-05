@@ -10,6 +10,10 @@ from backend.app.pipeline.mappers.parliamentary_groups import (
     ParliamentaryGroupMapper,
     SenatoParliamentaryGroupMapper,
 )
+from backend.app.pipeline.mappers.senato_proposals import (
+    ProposalMappingError,
+    SenatoProposalMapper,
+)
 
 __all__ = [
     "CameraCandidateProfileMapper",
@@ -20,4 +24,6 @@ __all__ = [
     "CameraParliamentaryGroupMapper",
     "ParliamentaryGroupMapper",
     "SenatoParliamentaryGroupMapper",
+    "ProposalMappingError",
+    "SenatoProposalMapper",
 ]

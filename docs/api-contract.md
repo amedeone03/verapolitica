@@ -1,5 +1,67 @@
 # HTTP API contract
 
+## Public proposal API
+
+`GET /proposals` returns only reviewed, published proposals. Filters are `status`,
+`proposal_type`, `politician`, `source`, `offset`, and `limit`. Results include the
+title, explicit type, accurate actor roles, current status, date, and one official
+source. `GET /proposals/{proposal_id}` adds the complete approved timeline and all
+official proposal identities.
+
+```json
+{
+  "id": 1,
+  "title": "Synthetic housing reform proposal",
+  "proposal_type": "legislative_proposal",
+  "summary": null,
+  "exact_statement": null,
+  "introduced_at": "2026-01-10",
+  "current_status": "under_review",
+  "actors": [
+    {
+      "actor_type": "politician",
+      "role": "proposer",
+      "display_name": "Sen. Anna Rossi",
+      "politician_id": 1
+    }
+  ],
+  "status_history": [
+    {
+      "status": "introduced",
+      "source_status_label": "da assegn. a commis.",
+      "effective_at": "2026-01-10",
+      "source": {
+        "name": "Senato della Repubblica — Disegni di legge",
+        "url": "https://dati.senato.it/ddl/example"
+      }
+    }
+  ]
+}
+```
+
+Unpublished or rejected proposals return 404 and never appear in lists. Payloads
+exclude drafts, unresolved actors, reviewer data, notes, hashes, RawDocument IDs,
+storage paths, and internal event identities. A politician link is emitted only if
+that politician has a public profile. Politician detail adds a compact `proposals`
+collection containing role, so co-sponsorship is not implied authorship.
+
+## Proposal editorial API
+
+All proposal editorial routes use the existing router-level `/admin/*` bearer
+authentication:
+
+- `GET /admin/proposals/drafts`
+- `GET /admin/proposals/drafts/{draft_id}`
+- `POST /admin/proposals/drafts/{draft_id}/start-review`
+- `POST /admin/proposals/drafts/{draft_id}/approve`
+- `POST /admin/proposals/drafts/{draft_id}/reject`
+
+List/detail expose normalized status, original official label, the source-independent
+observation, Evidence, unresolved-actor count, baseline, supersession, and final
+decision. Reviewer identity comes only from authenticated server context.
+Start-review creates no final review. Approval is the only path that can append a
+public status event; rejection and repeated terminal actions cannot.
+
 ## Public politician API
 
 Public endpoints are read-only and require no authentication. Their only source of

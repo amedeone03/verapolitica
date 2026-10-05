@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from backend.app.models.political_party_affiliation import (
         PoliticalPartyAffiliation,
     )
+    from backend.app.models.proposal import ProposalActor
 
 
 def utc_now() -> datetime:
@@ -84,4 +85,7 @@ class Politician(Base):
             back_populates="politician",
             order_by="PoliticalPartyAffiliation.start_date",
         )
+    )
+    proposal_actors: Mapped[list["ProposalActor"]] = relationship(
+        back_populates="politician"
     )

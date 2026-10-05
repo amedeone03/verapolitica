@@ -24,6 +24,11 @@ if TYPE_CHECKING:
     from backend.app.models.political_party_source_identifier import (
         PoliticalPartySourceIdentifier,
     )
+    from backend.app.models.proposal import (
+        ProposalEvidence,
+        ProposalSourceIdentifier,
+        ProposalStatusEvent,
+    )
 
 
 def utc_now() -> datetime:
@@ -61,5 +66,14 @@ class Source(Base):
         back_populates="source"
     )
     party_affiliations: Mapped[list["PoliticalPartyAffiliation"]] = relationship(
+        back_populates="source"
+    )
+    proposal_identifiers: Mapped[list["ProposalSourceIdentifier"]] = relationship(
+        back_populates="source"
+    )
+    proposal_status_events: Mapped[list["ProposalStatusEvent"]] = relationship(
+        back_populates="source"
+    )
+    proposal_evidence: Mapped[list["ProposalEvidence"]] = relationship(
         back_populates="source"
     )

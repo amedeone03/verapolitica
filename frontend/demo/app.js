@@ -2,6 +2,8 @@ const DEMO = Object.freeze({
   publishedPoliticianId: 1,
   pendingDraftId: 2,
   pendingPoliticianId: 2,
+  publishedProposalId: 1,
+  pendingProposalDraftId: 2,
   adminToken: "verapolitica-demo-admin",
 });
 
@@ -11,6 +13,8 @@ const state = {
   draft: null,
   newlyPublished: null,
   identityCase: null,
+  proposal: null,
+  proposalDraft: null,
   busy: false,
 };
 
@@ -199,6 +203,15 @@ export function createApiClient(baseUrl, token, fetchImpl = fetch) {
       admin: true,
       body: { note: "Insufficient evidence for identity resolution during demo" },
     }),
+    publicProposal: (id) => request(`/proposals/${id}`),
+    proposalDraft: (id) => request(`/admin/proposals/drafts/${id}`, { admin: true }),
+    startProposalReview: (id) => request(`/admin/proposals/drafts/${id}/start-review`, { method: "POST", admin: true }),
+    approveProposal: (id) => request(`/admin/proposals/drafts/${id}/approve`, {
+      method: "POST", admin: true, body: { note: "Official proposal evidence verified during demo" },
+    }),
+    rejectProposal: (id) => request(`/admin/proposals/drafts/${id}/reject`, {
+      method: "POST", admin: true, body: { note: "Proposal update rejected during demo" },
+    }),
   };
 }
 
@@ -267,8 +280,26 @@ function render() {
     byId("new-public-profile").innerHTML = renderPublishedProfile(state.newlyPublished);
   }
   renderIdentityResolution();
+  renderProposalReview();
   updateWorkflow();
   updateControls();
+}
+
+function renderProposalReview() {
+  if (!state.proposal || !state.proposalDraft) return;
+  const draft = state.proposalDraft;
+  const [label, style] = badgeForDraft(draft.status);
+  byId("proposal-review-status").className = `badge ${style}`;
+  byId("proposal-review-status").textContent = label;
+  byId("proposal-review-body").className = "card-body";
+  byId("proposal-review-body").innerHTML = `<div class="proposal-review-grid">
+    <div><p class="eyebrow">Currently public</p><h3>${escapeHtml(state.proposal.title)}</h3><p><strong>${escapeHtml(titleCase(state.proposal.current_status))}</strong> · ${state.proposal.status_history.length} published timeline event${state.proposal.status_history.length === 1 ? "" : "s"}</p></div>
+    <div><p class="eyebrow">Proposed transition</p><h3>${escapeHtml(titleCase(draft.proposed.normalized_status))}</h3><p>Official label: ${escapeHtml(draft.proposed.source_status_label)}</p><a href="${escapeHtml(draft.proposed.official_url)}" target="_blank" rel="noopener noreferrer">Inspect official source ↗</a></div>
+  </div><details><summary>Evidence and JSON</summary><pre>${escapeHtml(JSON.stringify(draft, null, 2))}</pre></details>`;
+  const final = ["approved", "rejected", "superseded"].includes(draft.status);
+  byId("proposal-start-review").disabled = state.busy || draft.status !== "pending";
+  byId("proposal-approve").disabled = state.busy || final;
+  byId("proposal-reject").disabled = state.busy || final;
 }
 
 function renderIdentityResolution() {
@@ -334,11 +365,13 @@ async function loadDemo() {
   setBusy(true);
   try {
     await api.health();
-    const [published, draft, newlyPublished, identityCases] = await Promise.all([
+    const [published, draft, newlyPublished, identityCases, proposal, proposalDraft] = await Promise.all([
       api.publicPolitician(DEMO.publishedPoliticianId),
       api.draft(DEMO.pendingDraftId),
       publicOrNull(api, DEMO.pendingPoliticianId),
       api.identityCases(),
+      api.publicProposal(DEMO.publishedProposalId),
+      api.proposalDraft(DEMO.pendingProposalDraftId),
     ]);
     state.published = published;
     state.draft = draft;
@@ -346,10 +379,29 @@ async function loadDemo() {
     state.identityCase = identityCases.items[0]
       ? await api.identityCase(identityCases.items[0].id)
       : null;
+    state.proposal = proposal;
+    state.proposalDraft = proposalDraft;
     setConnection(true, "API connected");
     render();
   } catch (error) {
     setConnection(false, error.status === 401 ? "Admin unauthorized" : "API unavailable");
+    showNotice(error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function performProposalAction(action, successMessage) {
+  const api = createApiClient(state.apiBase, DEMO.adminToken);
+  setBusy(true);
+  try {
+    await api[action](DEMO.pendingProposalDraftId);
+    state.proposalDraft = await api.proposalDraft(DEMO.pendingProposalDraftId);
+    state.proposal = await api.publicProposal(DEMO.publishedProposalId);
+    render();
+    showNotice(successMessage);
+  } catch (error) {
+    if (error.status === 409) await loadDemo();
     showNotice(error.message, true);
   } finally {
     setBusy(false);
@@ -434,6 +486,11 @@ function boot() {
       performAction("reject", "Draft rejected. Demo reset is required to try the approval path.");
     }
   });
+  byId("proposal-start-review").addEventListener("click", () => performProposalAction("startProposalReview", "Proposal update moved to in review."));
+  byId("proposal-approve").addEventListener("click", () => {
+    if (window.confirm("Publish this evidence-backed status transition?")) performProposalAction("approveProposal", "Proposal timeline updated.");
+  });
+  byId("proposal-reject").addEventListener("click", () => performProposalAction("rejectProposal", "Proposal update rejected."));
   loadDemo();
 }
 

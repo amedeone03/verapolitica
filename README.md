@@ -86,6 +86,43 @@ supported explicit source is available.
 concepts. VeraPolitica currently models only the first two and performs no automatic
 conversion between them.
 
+## Proposal and explicit-promise tracker
+
+The first deterministic proposal source is the official Senato linked-data DDL
+feed. It supplies stable DDL URIs, titles, presentation dates, initiative records,
+Senator URIs, official status labels, and status dates. The adapter uses a separate
+`senato-ddl` Source stream, so legislative changes cannot alter the normal Senato
+politician change detector.
+
+```bash
+python -m scripts.run_proposal_ingestion
+```
+
+The default window is the latest 100 DDL resources; configure it with
+`VERAPOLITICA_SENATO_PROPOSAL_RECORD_LIMIT`. Raw SPARQL JSON is preserved, canonical
+records drive normalized change detection, and changed records become transient
+`ProposalObservation` objects. Sync creates only internal `Proposal` identities and
+evidence-backed `ProposalDraft` rows. It never publishes them.
+
+`Proposal != Promise`. A legislative DDL remains a `legislative_proposal`, including
+when its initiative is governmental. `explicit_promise` is supported by the domain
+and deterministic synthetic fixtures only; it requires exact commitment text, a
+commitment owner, and official evidence. There is no campaign-programme extraction
+or classification of vague language.
+
+Every public proposal and later status transition requires human approval. Approval
+atomically appends an immutable `ProposalStatusEvent`, publishes safely resolved
+actors, updates current status, creates the final `ProposalReview`, and closes the
+draft. Rejection creates no public event. Original Senato labels remain alongside
+normalized statuses; an unknown label fails mapping rather than being guessed.
+
+Actors resolve only through exact existing official identifiers. Unresolved
+presenter metadata remains in the editorial draft and is never linked by name. A
+governmental initiative is represented as the institution `Governo Italiano`, not
+as inferred ownership by a person or party. The live feed exposes current DDL phase
+metadata; reviewed history accumulates over successive observations and does not
+claim to backfill every within-phase event.
+
 Governo ingestion uses the official current office-holder index and its linked
 official profile pages. Because Governo does not expose an equivalent structured
 people endpoint, the collector preserves the index and all discovered profile HTML
@@ -252,6 +289,8 @@ The public routes require no bearer token:
 ```bash
 curl "http://127.0.0.1:8000/politicians?offset=0&limit=50"
 curl http://127.0.0.1:8000/politicians/1
+curl "http://127.0.0.1:8000/proposals?offset=0&limit=50"
+curl http://127.0.0.1:8000/proposals/1
 ```
 
 Only Politicians whose `current_version_id` references a published immutable
@@ -273,6 +312,12 @@ while citations for changed fields come from the newly approved Evidence. A vers
 can therefore cite Senato and Camera independently without collapsing their identity.
 Interactive OpenAPI documentation is available at
 `http://127.0.0.1:8000/docs` while Uvicorn is running.
+
+Proposal routes expose only approved records. Detail includes accurate actor roles,
+the current normalized status, original official labels, an ordered approved
+timeline, and official links. Politician detail includes linked published records
+under `proposals`; co-sponsorship is displayed as co-sponsorship, not authorship.
+The citizen UI has a separate `/app/?view=proposals` archive.
 
 ## Run tests
 

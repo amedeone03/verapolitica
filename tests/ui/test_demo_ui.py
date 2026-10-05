@@ -41,6 +41,9 @@ def test_demo_ui_shell_and_rendering_assets_are_served(tmp_path):
     assert "/approve" in script.text
     assert "renderIdentityCase" in script.text
     assert "/admin/identity-resolution" in script.text
+    assert "Proposal status update" in page.text
+    assert "/admin/proposals/drafts" in script.text
+    assert "renderProposalReview" in script.text
 
 
 def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
@@ -74,3 +77,24 @@ def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
     assert after.json()["given_name"] == "Luca"
     assert after.json()["citation_count"] == 14
     assert len(after.json()["citations"]) == 14
+
+
+def test_demo_ui_reviews_proposal_status_before_public_timeline_changes(tmp_path):
+    headers = {"Authorization": f"Bearer {DEMO_ADMIN_KEY}"}
+    with demo_client(tmp_path) as client:
+        before = client.get("/proposals/1")
+        draft = client.get("/admin/proposals/drafts/2", headers=headers)
+        started = client.post(
+            "/admin/proposals/drafts/2/start-review", headers=headers
+        )
+        approved = client.post(
+            "/admin/proposals/drafts/2/approve", headers=headers, json={}
+        )
+        after = client.get("/proposals/1")
+
+    assert before.json()["current_status"] == "introduced"
+    assert draft.json()["proposed"]["normalized_status"] == "under_review"
+    assert started.json()["final_draft_status"] == "in_review"
+    assert approved.json()["final_draft_status"] == "approved"
+    assert after.json()["current_status"] == "under_review"
+    assert len(after.json()["status_history"]) == 2

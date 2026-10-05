@@ -22,6 +22,7 @@ from backend.app.schemas import (
     PublicPoliticianSummary,
 )
 from backend.app.schemas.politician import PoliticianVersionProfile
+from backend.app.services.public_proposal_service import PublicProposalQueryService
 
 
 class PublicPoliticianQueryService:
@@ -176,6 +177,9 @@ class PublicPoliticianQueryService:
             citations=citations,
             parliamentary_groups=parliamentary_groups,
             political_parties=political_parties,
+            proposals=PublicProposalQueryService(self.session).list_for_politician(
+                politician.id
+            ),
         )
 
     @staticmethod

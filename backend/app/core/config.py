@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     senato_sparql_endpoint: str = "https://dati.senato.it/sparql"
     senato_legislature: int = Field(default=19, gt=0)
     senato_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    senato_proposal_record_limit: int = Field(default=100, ge=1, le=1000)
     camera_sparql_endpoint: str = "https://dati.camera.it/sparql"
     camera_legislature: int = Field(default=19, gt=0)
     camera_request_timeout_seconds: float = Field(default=30.0, gt=0)

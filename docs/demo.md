@@ -34,6 +34,9 @@ Expected opening state:
   provide a safe explicit affiliation feed; the Senato group is not converted.
 - Carlo Verdi — pending Identity Resolution Case 1 from the Governo fixture; no
   Politician is created automatically.
+- One clearly synthetic proposal linked to Anna is public with an `introduced`
+  timeline event. Proposal Draft 2 contains a pending synthetic transition to
+  `under_review`; the public timeline remains unchanged until editorial approval.
 
 Open these tabs before presenting:
 
@@ -92,6 +95,11 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
    exposes only his newly approved current version.
 10. **Close on evidence.** Open Luca at `/app/?politician=2`. Show version 1, the
     approved profile, 14 verified data references, and the grouped Senato link.
+11. **Review a proposal transition.** Open `/app/?view=proposals`, then the Proposal
+    status update card in `/demo/`. The original official label and normalized
+    status appear together. Approve it and refresh the public proposal: the second
+    immutable timeline event appears only after review. Emphasize that the demo
+    proposal is synthetic and is not presented as a real political fact.
 
 ## Backup plan
 
@@ -103,6 +111,8 @@ Public checks:
 GET /politicians
 GET /politicians/1
 GET /politicians/2
+GET /proposals
+GET /proposals/1
 ```
 
 Editorial sequence using bearer token `verapolitica-demo-admin`:
@@ -112,6 +122,9 @@ GET  /admin/drafts/2
 POST /admin/drafts/2/start-review
 POST /admin/drafts/2/approve
 GET  /admin/identity-resolution/1
+GET  /admin/proposals/drafts/2
+POST /admin/proposals/drafts/2/start-review
+POST /admin/proposals/drafts/2/approve
 ```
 
 Before approval, `GET /politicians/2` returns 404. After approval, it returns Luca's

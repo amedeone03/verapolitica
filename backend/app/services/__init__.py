@@ -81,6 +81,23 @@ from backend.app.services.political_party_service import (
     PoliticalPartyValidationError,
 )
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
+from backend.app.services.proposal_service import (
+    ProposalConflictError,
+    ProposalPersistenceError,
+    ProposalService,
+    ProposalServiceError,
+    ProposalValidationError,
+)
+from backend.app.services.proposal_review_service import (
+    ProposalDraftNotFoundError,
+    ProposalDraftNotReviewableError,
+    ProposalDraftStaleError,
+    ProposalReviewConflictError,
+    ProposalReviewPersistenceError,
+    ProposalReviewService,
+    ProposalReviewServiceError,
+)
+from backend.app.services.public_proposal_service import PublicProposalQueryService
 
 __all__ = [
     "BootstrapApplyError",
@@ -126,6 +143,19 @@ __all__ = [
     "PublishService",
     "PublishServiceError",
     "PublicPoliticianQueryService",
+    "PublicProposalQueryService",
+    "ProposalConflictError",
+    "ProposalPersistenceError",
+    "ProposalService",
+    "ProposalServiceError",
+    "ProposalValidationError",
+    "ProposalDraftNotFoundError",
+    "ProposalDraftNotReviewableError",
+    "ProposalDraftStaleError",
+    "ProposalReviewConflictError",
+    "ProposalReviewPersistenceError",
+    "ProposalReviewService",
+    "ProposalReviewServiceError",
     "RawDocumentCandidateRebuilder",
     "ReviewConflictError",
     "ReviewInputError",

@@ -1,5 +1,49 @@
 # MVP ingestion data model
 
+## Proposal tracker
+
+`Proposal` is the stable internal identity of one tracked item. It stores reviewed
+display metadata, the exact statement when the item is an explicit promise,
+explicit `ProposalType`, nullable introduction date, cached current
+approved status, and nullable publication time. Title is never identity:
+`ProposalSourceIdentifier` uniquely maps `(source_id, official_identifier)` and
+retains the official URL. Similar titles are never automatically merged.
+
+`ProposalActor` is an approved relation with one actor kind (`politician`,
+`political_party`, or `institution`) and one accurate role (`proposer`, `sponsor`,
+`co_sponsor`, `government`, or `commitment_owner`). Nullable relational targets
+avoid one unvalidated polymorphic ID. The service does not infer party ownership.
+Unresolved source presenters remain in draft JSON rather than becoming public actors.
+
+`ProposalStatusEvent` is the authoritative immutable history. It records normalized
+and original status, effective/observed time, Source, RawDocument, URL, source field,
+and a deterministic identity hash. `Proposal.current_status` is only a cache updated
+after an approved event. Events append and are never overwritten.
+
+Status-event identity is SHA-256 over official event identity when available,
+normalized status, original label, and effective date. Draft replay identity hashes
+canonical observation content while excluding retrieval time and RawDocument ID.
+The same assertion therefore creates neither another draft nor event; a new
+status/date creates a reviewable update. A date older than the latest approved event
+is rejected rather than corrected.
+
+`ProposalDraft` is independent of `ProfileDraft`. Its kinds are `initial`,
+`status_update`, and `metadata_update`; statuses are `pending`, `in_review`,
+`approved`, `rejected`, and `superseded`. It retains the complete observation,
+actor-resolution result, RawDocument, baseline event, and supersession link.
+`ProposalEvidence` records field-level source, URL, field, original value, and
+observation time. Title, type, status, optional introduction date, and any promise
+statement require evidence before draft creation.
+
+`ProposalReview` is the immutable final decision. Entering `in_review` creates no
+review row. Rejection creates no actor or status event. Approval atomically publishes
+metadata and resolved actors, appends a new event when needed, updates cached status,
+creates the review, and closes the draft. Stale and terminal drafts cannot publish.
+
+`Proposal != Promise`. An explicit promise requires exact commitment text, at least
+one `commitment_owner`, and official evidence. A DDL or government initiative is not
+silently converted into a promise.
+
 The implemented slices persist the official source and every collected response,
 then map changed Senato, Camera, or Governo records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The

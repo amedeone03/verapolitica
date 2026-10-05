@@ -1,0 +1,9 @@
+{
+  "fixture_kind": "synthetic_explicit_promise",
+  "notice": "Synthetic test data only; not a real political statement.",
+  "title": "Synthetic commitment to publish an annual housing report",
+  "exact_statement": "We commit to publishing an annual housing report by 31 December 2027.",
+  "announced_at": "2026-06-01",
+  "actor": "Anna Rossi",
+  "official_url": "https://example.invalid/official/synthetic-promise"
+}

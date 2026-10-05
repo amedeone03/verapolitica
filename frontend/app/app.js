@@ -199,6 +199,55 @@ export function renderPoliticalParties(affiliations = []) {
     ${historical.length ? `<h3 class="previous-parties-title">Previous parties</h3><div class="party-list">${historical.map(renderPartyAffiliation).join("")}</div>` : ""}`;
 }
 
+function proposalTypeLabel(value) {
+  return value === "explicit_promise" ? "Explicit promise" : titleCase(value);
+}
+
+function renderProposalActor(actor) {
+  const name = actor.politician_id
+    ? `<a href="./?politician=${encodeURIComponent(actor.politician_id)}">${escapeHtml(actor.display_name)}</a>`
+    : escapeHtml(actor.display_name);
+  return `<span class="proposal-actor">${name}<small>${escapeHtml(titleCase(actor.role))}</small></span>`;
+}
+
+export function renderProposalCard(proposal) {
+  const sourceUrl = safeExternalUrl(proposal.source?.url);
+  return `<article class="proposal-card">
+    <div class="proposal-card-top"><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><span class="status-chip">${escapeHtml(titleCase(proposal.current_status))}</span></div>
+    <h3>${escapeHtml(proposal.title)}</h3>
+    <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Actor not published</span>"}</div>
+    <p>${escapeHtml(formatDate(proposal.introduced_at))}</p>
+    <div class="proposal-card-links"><a class="profile-link" href="./?proposal=${encodeURIComponent(proposal.id)}">View timeline <span aria-hidden="true">→</span></a>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}</div>
+  </article>`;
+}
+
+export function renderProposalTimeline(events = []) {
+  return `<ol class="proposal-timeline">${events.map((event) => {
+    const url = safeExternalUrl(event.source?.url);
+    return `<li><time>${escapeHtml(formatDate(event.effective_at))}</time><div><strong>${escapeHtml(titleCase(event.status))}</strong><p>Official label: ${escapeHtml(event.source_status_label)}</p>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Supporting evidence ↗</a>` : ""}</div></li>`;
+  }).join("")}</ol>`;
+}
+
+export function renderProposalDetail(proposal) {
+  return `<section class="proposal-detail-hero">
+      <span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span>
+      <h1 id="proposal-detail-title">${escapeHtml(proposal.title)}</h1>
+      <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Actor not published</span>"}</div>
+      <p class="lead">Current institutional status: <strong>${escapeHtml(titleCase(proposal.current_status))}</strong></p>
+      ${proposal.exact_statement ? `<blockquote>${escapeHtml(proposal.exact_statement)}</blockquote>` : proposal.summary ? `<p>${escapeHtml(proposal.summary)}</p>` : ""}
+    </section>
+    <section class="detail-card proposal-timeline-card"><p class="eyebrow">Reviewed history</p><h2>Status timeline</h2>${renderProposalTimeline(proposal.status_history)}</section>
+    <section class="detail-card"><p class="eyebrow">Traceable information</p><h2>Official sources</h2><div class="source-list">${proposal.sources.map((source) => {
+      const url = safeExternalUrl(source.url);
+      return `<article class="source-block"><h3>${escapeHtml(source.name)}</h3>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open official source ↗</a>` : ""}</article>`;
+    }).join("")}</div></section>`;
+}
+
+export function renderPoliticianProposals(proposals = []) {
+  if (!proposals.length) return `<p class="empty-note">No published proposal or explicit commitment is linked to this politician.</p>`;
+  return `<div class="linked-proposals">${proposals.map((proposal) => `<article><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><h3><a href="./?proposal=${encodeURIComponent(proposal.id)}">${escapeHtml(proposal.title)}</a></h3><p>${escapeHtml(titleCase(proposal.role))} · ${escapeHtml(titleCase(proposal.current_status))}</p></article>`).join("")}</div>`;
+}
+
 function fact(label, value, { href = null } = {}) {
   const content = href
     ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`
@@ -268,6 +317,11 @@ export function renderPoliticianDetail(person) {
       <p class="party-disclaimer">Political parties and parliamentary groups are distinct institutional concepts.</p>
       ${renderPoliticalParties(person.political_parties || [])}
     </section>
+    <section class="detail-card proposals-card">
+      <p class="eyebrow">Public record</p><h2>Proposals / commitments</h2>
+      <p class="proposal-disclaimer">The displayed role states whether this person is a proposer, co-sponsor, or commitment owner.</p>
+      ${renderPoliticianProposals(person.proposals || [])}
+    </section>
     <section class="detail-card sources-card">
       <div class="sources-heading">
         <div><p class="eyebrow">Traceable information</p><h2>Official sources</h2></div>
@@ -295,6 +349,8 @@ export function createPublicApiClient(fetchImpl = fetch) {
   return {
     listPoliticians: () => request("/politicians?offset=0&limit=50"),
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
+    listProposals: () => request("/proposals?offset=0&limit=50"),
+    getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
   };
 }
 
@@ -341,10 +397,49 @@ async function showDetail(api, politicianId) {
   }
 }
 
+async function showProposals(api) {
+  byId("archive-view").hidden = true;
+  byId("proposals-view").hidden = false;
+  try {
+    const payload = await api.listProposals();
+    byId("proposal-count").textContent = `${payload.total} published record${payload.total === 1 ? "" : "s"}`;
+    if (!payload.items.length) {
+      showState(byId("proposals-status"), "No reviewed proposals are currently available.", "Published proposals will appear here after editorial verification.");
+      return;
+    }
+    byId("proposals-status").hidden = true;
+    byId("proposal-list").hidden = false;
+    byId("proposal-list").innerHTML = payload.items.map(renderProposalCard).join("");
+  } catch {
+    showState(byId("proposals-status"), "We couldn't load the proposal tracker.", "The public API is currently unavailable.", true);
+  }
+}
+
+async function showProposalDetail(api, proposalId) {
+  byId("archive-view").hidden = true;
+  byId("proposal-detail-view").hidden = false;
+  try {
+    const proposal = await api.getProposal(proposalId);
+    byId("proposal-detail-status").hidden = true;
+    byId("proposal-detail").hidden = false;
+    byId("proposal-detail").innerHTML = renderProposalDetail(proposal);
+    document.title = `${proposal.title} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("proposal-detail-status"), missing ? "This proposal is not publicly available." : "We couldn't load this proposal.", missing ? "It may still be under editorial review." : "The public API is currently unavailable.", true);
+  }
+}
+
 const api = createPublicApiClient();
-const politicianId = new URLSearchParams(window.location.search).get("politician");
-if (politicianId && /^\d+$/.test(politicianId)) {
+const params = new URLSearchParams(window.location.search);
+const politicianId = params.get("politician");
+const proposalId = params.get("proposal");
+if (proposalId && /^\d+$/.test(proposalId)) {
+  showProposalDetail(api, proposalId);
+} else if (politicianId && /^\d+$/.test(politicianId)) {
   showDetail(api, politicianId);
+} else if (params.get("view") === "proposals") {
+  showProposals(api);
 } else {
   showArchive(api);
 }

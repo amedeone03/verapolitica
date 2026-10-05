@@ -1,0 +1,49 @@
+{
+  "head": {
+    "vars": [
+      "ddlUri",
+      "idDdl",
+      "title",
+      "introducedAt",
+      "sourceStatus",
+      "statusAt",
+      "nature",
+      "initiativeUri",
+      "initiativeType",
+      "presenter",
+      "senatorUri",
+      "firstSigner"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "ddlUri": {"type": "uri", "value": "https://dati.senato.it/ddl/synthetic-100"},
+        "idDdl": {"type": "literal", "value": "synthetic-100"},
+        "title": {"type": "literal", "value": "Synthetic housing reform proposal"},
+        "introducedAt": {"type": "literal", "value": "2026-01-10"},
+        "sourceStatus": {"type": "literal", "value": "da assegn. a commis."},
+        "statusAt": {"type": "literal", "value": "2026-01-10"},
+        "nature": {"type": "literal", "value": "synthetic fixture"},
+        "initiativeUri": {"type": "uri", "value": "https://dati.senato.it/iniziativa/synthetic-100-1"},
+        "initiativeType": {"type": "literal", "value": "Parlamentare"},
+        "presenter": {"type": "literal", "value": "Sen. Anna Rossi"},
+        "senatorUri": {"type": "uri", "value": "https://dati.senato.it/senatore/synthetic-anna"},
+        "firstSigner": {"type": "literal", "value": "1"}
+      },
+      {
+        "ddlUri": {"type": "uri", "value": "https://dati.senato.it/ddl/synthetic-100"},
+        "idDdl": {"type": "literal", "value": "synthetic-100"},
+        "title": {"type": "literal", "value": "Synthetic housing reform proposal"},
+        "introducedAt": {"type": "literal", "value": "2026-01-10"},
+        "sourceStatus": {"type": "literal", "value": "da assegn. a commis."},
+        "statusAt": {"type": "literal", "value": "2026-01-10"},
+        "nature": {"type": "literal", "value": "synthetic fixture"},
+        "initiativeUri": {"type": "uri", "value": "https://dati.senato.it/iniziativa/synthetic-100-2"},
+        "initiativeType": {"type": "literal", "value": "Parlamentare"},
+        "presenter": {"type": "literal", "value": "Sen. Unresolved Demo"},
+        "senatorUri": {"type": "uri", "value": "https://dati.senato.it/senatore/synthetic-unresolved"}
+      }
+    ]
+  }
+}

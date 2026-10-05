@@ -18,6 +18,10 @@ from backend.app.models import (
     PoliticianVersionCitation,
     ProfileDraft,
     ProfileDraftStatus,
+    Proposal,
+    ProposalDraft,
+    ProposalDraftStatus,
+    ProposalStatusEvent,
     Review,
 )
 from backend.app.services import PublishService
@@ -46,6 +50,8 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert summary.identity_resolution_case_id == 1
     assert summary.identity_resolution_name == "Carlo Verdi"
     assert summary.identity_resolution_status is IdentityResolutionStatus.PENDING
+    assert summary.published_proposal_id == 1
+    assert summary.pending_proposal_draft_id == 2
 
     app = create_app(
         Settings(
@@ -63,6 +69,11 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
             "/admin/drafts/2",
             headers={"Authorization": f"Bearer {DEMO_ADMIN_KEY}"},
         )
+        proposal = client.get("/proposals/1")
+        proposal_draft = client.get(
+            "/admin/proposals/drafts/2",
+            headers={"Authorization": f"Bearer {DEMO_ADMIN_KEY}"},
+        )
 
     assert published.status_code == 200
     assert published.json()["citation_count"] == 14
@@ -75,6 +86,10 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert draft.status_code == 200
     assert draft.json()["status"] == "pending"
     assert len(draft.json()["evidence"]) == 14
+    assert proposal.status_code == 200
+    assert proposal.json()["current_status"] == "introduced"
+    assert proposal_draft.json()["status"] == "pending"
+    assert proposal_draft.json()["kind"] == "status_update"
 
 
 def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path):
@@ -117,6 +132,14 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
         assert session.scalar(
             select(func.count()).select_from(PoliticianVersionCitation)
         ) == 14
+        assert session.scalar(select(func.count()).select_from(Proposal)) == 1
+        assert session.scalar(select(func.count()).select_from(ProposalDraft)) == 2
+        assert session.scalar(
+            select(func.count()).select_from(ProposalStatusEvent)
+        ) == 1
+        assert session.get(
+            ProposalDraft, second.pending_proposal_draft_id
+        ).status is ProposalDraftStatus.PENDING
         assert session.scalar(
             select(func.count())
             .select_from(Evidence)

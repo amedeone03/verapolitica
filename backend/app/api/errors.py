@@ -22,6 +22,12 @@ from backend.app.services import (
     ReviewPersistenceError,
     ReviewServiceError,
     StaleDraftError,
+    ProposalDraftNotFoundError,
+    ProposalDraftNotReviewableError,
+    ProposalDraftStaleError,
+    ProposalReviewConflictError,
+    ProposalReviewPersistenceError,
+    ProposalReviewServiceError,
 )
 
 
@@ -114,6 +120,37 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     app.add_exception_handler(DraftNotFoundError, not_found_handler)
+
+    async def proposal_not_found_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            code="proposal_draft_not_found",
+            message=str(exc),
+        )
+
+    async def proposal_conflict_handler(request: Request, exc: Exception):
+        del request
+        code = (
+            "stale_proposal_draft"
+            if isinstance(exc, ProposalDraftStaleError)
+            else "proposal_draft_not_reviewable"
+        )
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            code=code,
+            message=str(exc),
+        )
+
+    app.add_exception_handler(ProposalDraftNotFoundError, proposal_not_found_handler)
+    for exception_type in (
+        ProposalDraftNotReviewableError,
+        ProposalDraftStaleError,
+        ProposalReviewConflictError,
+        ProposalReviewServiceError,
+    ):
+        app.add_exception_handler(exception_type, proposal_conflict_handler)
+    app.add_exception_handler(ProposalReviewPersistenceError, persistence_handler)
 
     async def identity_not_found_handler(request: Request, exc: Exception):
         del request

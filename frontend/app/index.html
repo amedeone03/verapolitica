@@ -20,6 +20,10 @@
           </span>
         </a>
         <span class="institutional-note">Italian national institutions</span>
+        <nav class="public-nav" aria-label="Public archive sections">
+          <a href="./">Politicians</a>
+          <a href="./?view=proposals">Proposals</a>
+        </nav>
       </div>
     </header>
 
@@ -60,6 +64,32 @@
           <div><strong>Loading verified profile…</strong><small>Retrieving the current published record.</small></div>
         </div>
         <article id="profile-detail" hidden></article>
+      </section>
+
+      <section id="proposals-view" aria-labelledby="proposals-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Evidence-backed tracker</p>
+          <h1 id="proposals-title">Proposals and explicit commitments</h1>
+          <p class="hero-copy">Institutional proposals and explicit promises remain distinct. Only records checked through editorial review appear here.</p>
+        </div>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Published records</p><h2>Proposal tracker</h2></div>
+          <span id="proposal-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+        <div id="proposals-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading published proposals…</strong><small>Contacting the public archive.</small></div>
+        </div>
+        <div id="proposal-list" class="proposal-grid" hidden></div>
+      </section>
+
+      <section id="proposal-detail-view" aria-labelledby="proposal-detail-title" hidden>
+        <a class="back-link" href="./?view=proposals"><span aria-hidden="true">←</span> All published proposals</a>
+        <div id="proposal-detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading proposal…</strong><small>Retrieving its reviewed status history.</small></div>
+        </div>
+        <article id="proposal-detail" hidden></article>
       </section>
     </main>
 
