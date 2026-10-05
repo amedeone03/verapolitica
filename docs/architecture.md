@@ -39,6 +39,26 @@ There are no embeddings, vector indexes, retrievers, RAG framework, chatbot, OCR
 or automatic publication in this milestone. The chunk/evidence model is reusable by
 a future retrieval layer without changing the current review boundary.
 
+## AI evaluation boundary
+
+Evaluation is a separate, non-publishing path:
+
+```text
+versioned gold manifest + local document
+  -> deterministic in-memory extraction and chunks
+  -> StructuredExtractionProvider
+  -> deterministic one-to-one matcher
+  -> case metrics + aggregate metrics
+  -> AIExtractionEvaluationRun + JSON/Markdown reports
+```
+
+The evaluator never constructs `ProposalObservation`, calls `ProposalService`, or
+touches review/publication state. Matching uses unique normalized exact statements,
+then unique title + actor/role + claim type. Ambiguity remains unmatched. Evidence,
+actors, topic, dates, numeric commitments, abstention, and hallucination are scored
+by frozen deterministic rules documented in `docs/ai-evaluation.md`; no LLM judge,
+embedding, or semantic similarity is used.
+
 ## Proposal-tracker vertical slice
 
 ```text

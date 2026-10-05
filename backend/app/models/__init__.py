@@ -6,6 +6,10 @@ from backend.app.models.ai_extraction import (
     AIExtractionRunStatus,
     DocumentChunk,
 )
+from backend.app.models.ai_evaluation import (
+    AIExtractionEvaluationRun,
+    AIExtractionEvaluationRunStatus,
+)
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
 from backend.app.models.identity_resolution_case import (
     IdentityResolutionCase,
@@ -70,6 +74,8 @@ __all__ = [
     "AIExtractionCandidateStatus",
     "AIExtractionRun",
     "AIExtractionRunStatus",
+    "AIExtractionEvaluationRun",
+    "AIExtractionEvaluationRunStatus",
     "DocumentChunk",
     "Evidence",
     "EvidenceExtractionMethod",

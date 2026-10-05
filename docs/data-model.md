@@ -70,6 +70,14 @@ claim key. Actor names become unresolved observations; the model cannot provide 
 Politician or PoliticalParty ID. Topic and confidence use controlled enums, and
 confidence is not a calibrated probability or publication signal.
 
+`AIExtractionEvaluationRun` is an evaluation-only audit row. It records dataset,
+provider/model, prompt/schema/evaluator versions, run status and timestamps, case
+and failure counts, aggregate metrics, complete case results, provider usage,
+threshold outcome, and error summaries. It has no relationship to Proposal,
+ProposalDraft, ProposalReview, or public records. The version-controlled gold labels
+remain files under `evaluation/gold/`; generated JSON/Markdown reports are local
+artifacts.
+
 The implemented slices persist the official source and every collected response,
 then map changed Senato, Camera, or Governo records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The

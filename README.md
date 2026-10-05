@@ -76,6 +76,28 @@ official institutional source because it is hosted on the Governo Italiano domai
 Download and inspect it manually before supplying the local file and that URL to the
 command. VeraPolitica does not crawl it, and no paid call is run automatically.
 
+## AI extraction evaluation
+
+The versioned synthetic gold set under `evaluation/gold/v1/` measures claim
+detection, proposal/promise classification, evidence, actors, topics, exact
+date/numeric fields, abstention, and hallucination rate without an LLM judge.
+Evaluation runs only in-memory document extraction and the provider boundary; it
+never creates proposals or drafts.
+
+```bash
+python -m scripts.evaluate_ai_extraction \
+  --dataset evaluation/gold/v1 \
+  --provider fake \
+  --profile perfect \
+  --output-dir evaluation/reports/perfect
+```
+
+Profiles `noisy`, `wrong_evidence`, `wrong_type`, and `abstention` demonstrate metric
+regressions deterministically. Compare report JSON files with `--compare RUN_A
+RUN_B`. Optional real-model evaluation requires both an explicit OpenAI model and
+`VERAPOLITICA_LLM_API_KEY`; no paid evaluation runs automatically. See
+`docs/ai-evaluation.md` for frozen definitions and dataset format.
+
 ## Run one ingestion
 
 From the repository root:

@@ -19,6 +19,7 @@ venv/
 data/*
 !data/fixtures/
 !data/fixtures/**
+evaluation/reports/
 
 # Frontend
 frontend/node_modules/

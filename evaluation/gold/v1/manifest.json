@@ -1,0 +1,151 @@
+{
+  "dataset_version": "v1",
+  "description": "Synthetic, manually verified AI proposal extraction evaluation set.",
+  "prompt_version": "proposal_extraction_v1",
+  "schema_version": "proposal_claim_schema_v1",
+  "max_chunk_chars": 500,
+  "max_chunks": 10,
+  "cases": [
+    {
+      "case_id": "clear_proposal",
+      "document": "documents/clear_proposal.html",
+      "source_url": "https://official.example/evaluation/clear-proposal",
+      "synthetic": true,
+      "claims": [{
+        "claim_id": "proposal_1",
+        "claim_type": "proposal",
+        "exact_statement": "The programme proposes a national housing transparency register.",
+        "normalized_title": "Create a national housing transparency register",
+        "topic": "housing",
+        "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "The programme proposes a national housing transparency register."}]
+      }]
+    },
+    {
+      "case_id": "explicit_promise",
+      "document": "documents/explicit_promise.html",
+      "source_url": "https://official.example/evaluation/explicit-promise",
+      "synthetic": true,
+      "claims": [{
+        "claim_id": "promise_1",
+        "claim_type": "explicit_promise",
+        "exact_statement": "The Civic Example Party commits to build 100 clinics by 2030.",
+        "normalized_title": "Build 100 clinics by 2030",
+        "actors": [{"name": "The Civic Example Party", "role": "commitment_owner"}],
+        "topic": "healthcare",
+        "target_date": "2030-12-31",
+        "numeric_commitments": [{"value": "100", "unit": "clinics"}],
+        "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "The Civic Example Party commits to build 100 clinics by 2030."}]
+      }]
+    },
+    {
+      "case_id": "vague_statement",
+      "document": "documents/vague_statement.html",
+      "source_url": "https://official.example/evaluation/vague",
+      "synthetic": true,
+      "expects_abstention": true,
+      "abstention_reason": "unclear_commitment",
+      "notes": "A belief statement is neither a proposal nor an explicit promise."
+    },
+    {
+      "case_id": "two_claims",
+      "document": "documents/two_claims.html",
+      "source_url": "https://official.example/evaluation/two-claims",
+      "synthetic": true,
+      "claims": [
+        {
+          "claim_id": "wetlands",
+          "claim_type": "proposal",
+          "exact_statement": "The coalition proposes restoring urban wetlands.",
+          "normalized_title": "Restore urban wetlands",
+          "topic": "environment",
+          "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "The coalition proposes restoring urban wetlands."}]
+        },
+        {
+          "claim_id": "scholarships",
+          "claim_type": "explicit_promise",
+          "exact_statement": "The Civic Coalition commits to fund 500 scholarships by 2028.",
+          "normalized_title": "Fund 500 scholarships by 2028",
+          "actors": [{"name": "The Civic Coalition", "role": "commitment_owner"}],
+          "topic": "education",
+          "target_date": "2028-12-31",
+          "numeric_commitments": [{"value": "500", "unit": "scholarships"}],
+          "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "The Civic Coalition commits to fund 500 scholarships by 2028."}]
+        }
+      ]
+    },
+    {
+      "case_id": "ambiguous_actor",
+      "document": "documents/ambiguous_actor.html",
+      "source_url": "https://official.example/evaluation/ambiguous-actor",
+      "synthetic": true,
+      "claims": [{
+        "claim_id": "rail_pass",
+        "claim_type": "proposal",
+        "exact_statement": "A responsible authority proposes introducing a national rail pass.",
+        "normalized_title": "Introduce a national rail pass",
+        "topic": "transport",
+        "notes": "The text does not identify a resolvable actor.",
+        "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "A responsible authority proposes introducing a national rail pass."}]
+      }]
+    },
+    {
+      "case_id": "no_claim",
+      "document": "documents/no_claim.html",
+      "source_url": "https://official.example/evaluation/no-claim",
+      "synthetic": true,
+      "expects_abstention": true,
+      "abstention_reason": "unsupported_document_content"
+    },
+    {
+      "case_id": "date_numeric",
+      "document": "documents/date_numeric.html",
+      "source_url": "https://official.example/evaluation/date-numeric",
+      "synthetic": true,
+      "claims": [{
+        "claim_id": "schools",
+        "claim_type": "explicit_promise",
+        "exact_statement": "On 1 May 2026, the Government commits to renovate 250 schools by 2030.",
+        "normalized_title": "Renovate 250 schools by 2030",
+        "actors": [{"name": "the Government", "role": "commitment_owner"}],
+        "topic": "education",
+        "announced_at": "2026-05-01",
+        "target_date": "2030-12-31",
+        "numeric_commitments": [{"value": "250", "unit": "schools"}],
+        "evidence": [{"chunk_index": 0, "page": null, "supporting_text": "On 1 May 2026, the Government commits to renovate 250 schools by 2030."}]
+      }]
+    },
+    {
+      "case_id": "duplicate_chunks",
+      "document": "documents/duplicate_chunks.html",
+      "source_url": "https://official.example/evaluation/duplicates",
+      "synthetic": true,
+      "claims": [{
+        "claim_id": "coastal_fund",
+        "claim_type": "proposal",
+        "exact_statement": "The programme proposes a coastal resilience fund.",
+        "normalized_title": "Create a coastal resilience fund",
+        "topic": "environment",
+        "evidence": [
+          {"chunk_index": 0, "page": null, "supporting_text": "The programme proposes a coastal resilience fund."},
+          {"chunk_index": 1, "page": null, "supporting_text": "The programme proposes a coastal resilience fund."}
+        ]
+      }]
+    },
+    {
+      "case_id": "weak_evidence",
+      "document": "documents/weak_evidence.html",
+      "source_url": "https://official.example/evaluation/weak-evidence",
+      "synthetic": true,
+      "expects_abstention": true,
+      "abstention_reason": "insufficient_evidence"
+    },
+    {
+      "case_id": "abstention",
+      "document": "documents/abstention.html",
+      "source_url": "https://official.example/evaluation/abstention",
+      "synthetic": true,
+      "expects_abstention": true,
+      "abstention_reason": "incomplete_context"
+    }
+  ]
+}

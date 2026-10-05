@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     ai_max_document_chunks: int = Field(default=200, ge=1, le=2_000)
     ai_max_chunks_per_run: int = Field(default=40, ge=1, le=200)
     ai_max_evidence_excerpt_chars: int = Field(default=600, ge=50, le=2_000)
+    ai_eval_min_precision: float = Field(default=0.90, ge=0, le=1)
+    ai_eval_min_evidence_accuracy: float = Field(default=0.95, ge=0, le=1)
+    ai_eval_max_hallucination_rate: float = Field(default=0.05, ge=0, le=1)
 
     model_config = SettingsConfigDict(
         env_file=".env",
