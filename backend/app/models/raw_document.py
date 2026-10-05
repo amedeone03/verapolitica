@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     from backend.app.models.evidence import Evidence
     from backend.app.models.identity_resolution_case import IdentityResolutionCase
     from backend.app.models.profile_draft import ProfileDraft
+    from backend.app.models.parliamentary_group_membership import (
+        ParliamentaryGroupMembership,
+    )
 
 
 def utc_now() -> datetime:
@@ -67,4 +70,7 @@ class RawDocument(Base):
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="raw_document")
     identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
         back_populates="raw_document"
+    )
+    parliamentary_group_memberships: Mapped[list["ParliamentaryGroupMembership"]] = (
+        relationship(back_populates="raw_document")
     )

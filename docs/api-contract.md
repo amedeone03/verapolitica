@@ -79,6 +79,33 @@ The detail response additionally returns the immutable public citation snapshot:
 }
 ```
 
+It also returns source-backed parliamentary-group history, ordered current first:
+
+```json
+{
+  "parliamentary_groups": [
+    {
+      "name": "Fratelli d'Italia",
+      "abbreviation": "FdI",
+      "institution": "Senato della Repubblica",
+      "legislature": "19",
+      "start_date": "2022-10-18",
+      "end_date": null,
+      "role": "Membro",
+      "source": {
+        "name": "Senato della Repubblica",
+        "url": "https://dati.senato.it/senatore/12345"
+      }
+    }
+  ]
+}
+```
+
+The public projection omits internal group and membership IDs, deterministic keys,
+raw-document references, and RDF identifiers. An empty history is returned as
+`"parliamentary_groups": []`. Parliamentary groups are institutional chamber
+memberships and must not be interpreted as political-party affiliations.
+
 Citations are deduplicated and sorted by field path, source name, source URL, and
 source field. Versions published before citation snapshot support return
 `"citation_count": 0` and `"citations": []`; citations are never inferred from a

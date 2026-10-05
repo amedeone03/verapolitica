@@ -25,13 +25,18 @@ from backend.app.pipeline.mappers import (
     SenatoCandidateProfileMapper,
 )
 from backend.app.pipeline.parsers import GovernoParser, SenatoParser
-from backend.app.schemas import DraftCreatedResult, MatchedResult
+from backend.app.schemas import (
+    DraftCreatedResult,
+    MatchedResult,
+    ParliamentaryGroupObservation,
+)
 from backend.app.services import (
     CandidateRebuildResult,
     DraftService,
     HumanIdentityResolutionCoordinator,
     IndexedCandidate,
     MatchingService,
+    ParliamentaryGroupService,
     PoliticianBootstrapService,
     PublishService,
 )
@@ -197,6 +202,33 @@ def prepare_demo(
         )
         bootstrap = PoliticianBootstrapService(session_factory)
         bootstrap.apply(bootstrap.plan(rebuilt, dry_run=False))
+        group_observations = tuple(
+            ParliamentaryGroupObservation(
+                source_key=SOURCE_KEY,
+                raw_document_id=ingestion.raw_document_id,
+                politician_source_identifier=(
+                    candidate.identity.source_identifiers[0].value
+                ),
+                group_source_identifier=(
+                    "https://dati.senato.it/gruppo/demo-fdi"
+                    if index == 0
+                    else "https://dati.senato.it/gruppo/demo-misto"
+                ),
+                canonical_name=("Fratelli d'Italia" if index == 0 else "Misto"),
+                abbreviation=("FdI" if index == 0 else "Misto"),
+                institution="Senato della Repubblica",
+                legislature="19",
+                start_date=datetime(2022, 10, 18).date(),
+                source_url=candidate.identity.source_identifiers[0].value,
+                role="Membro",
+            )
+            for index, candidate in enumerate(ingestion.candidate_profiles)
+        )
+        group_result = ParliamentaryGroupService(session_factory).sync(
+            group_observations
+        )
+        if group_result.memberships_created != 2:
+            raise RuntimeError("demo parliamentary-group setup failed")
 
         drafts: list[DraftCreatedResult] = []
         for candidate in ingestion.candidate_profiles:

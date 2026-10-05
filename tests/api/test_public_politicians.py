@@ -8,7 +8,16 @@ from backend.app.core.config import Settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.main import create_app
-from backend.app.models import Politician, PoliticianVersion
+from backend.app.models import (
+    ParliamentaryGroup,
+    ParliamentaryGroupMembership,
+    ParliamentaryGroupSourceIdentifier,
+    Politician,
+    PoliticianVersion,
+    RawDocument,
+    RawDocumentStatus,
+    Source,
+)
 from backend.app.schemas import PoliticalMandate, PoliticianVersionProfile
 from backend.app.services import normalize_person_name
 
@@ -86,6 +95,79 @@ def public_api_context(tmp_path):
         session.flush()
         published.current_version_id = published_version.id
 
+        source = Source(
+            key="senato-repubblica",
+            name="Senato della Repubblica",
+            base_url="https://dati.senato.it",
+        )
+        session.add(source)
+        session.flush()
+        document = RawDocument(
+            source_id=source.id,
+            retrieved_at=published_at,
+            source_url="https://dati.senato.it/sparql",
+            content_type="application/json",
+            storage_key="senato/groups.json",
+            raw_sha256="a" * 64,
+            normalized_sha256="b" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="senato_collector_v2",
+            parser_version="senato_parser_v2",
+        )
+        current_group = ParliamentaryGroup(
+            canonical_name="Fratelli d'Italia",
+            abbreviation="FdI",
+            institution="Senato della Repubblica",
+            legislature="19",
+        )
+        previous_group = ParliamentaryGroup(
+            canonical_name="Gruppo precedente",
+            abbreviation="GP",
+            institution="Senato della Repubblica",
+            legislature="19",
+        )
+        session.add_all((document, current_group, previous_group))
+        session.flush()
+        session.add_all(
+            (
+                ParliamentaryGroupSourceIdentifier(
+                    parliamentary_group_id=current_group.id,
+                    source_id=source.id,
+                    value="https://dati.senato.it/gruppo/85",
+                    legislature="19",
+                ),
+                ParliamentaryGroupSourceIdentifier(
+                    parliamentary_group_id=previous_group.id,
+                    source_id=source.id,
+                    value="https://dati.senato.it/gruppo/84",
+                    legislature="19",
+                ),
+                ParliamentaryGroupMembership(
+                    politician_id=published.id,
+                    parliamentary_group_id=current_group.id,
+                    source_id=source.id,
+                    raw_document_id=document.id,
+                    identity_key="c" * 64,
+                    source_url="https://dati.senato.it/senatore/public",
+                    start_date=date(2024, 2, 1),
+                    role="Membro",
+                ),
+                ParliamentaryGroupMembership(
+                    politician_id=published.id,
+                    parliamentary_group_id=previous_group.id,
+                    source_id=source.id,
+                    raw_document_id=document.id,
+                    identity_key="d" * 64,
+                    source_url="https://dati.senato.it/senatore/public",
+                    start_date=date(2022, 10, 18),
+                    end_date=date(2024, 1, 31),
+                    role="Membro",
+                ),
+            )
+        )
+
         pointer_test = add_politician(session, "Current")
         current_profile = profile("Current", profession="Current pointer")
         later_profile = profile("Wrong", profession="Higher version number")
@@ -151,6 +233,30 @@ def test_detail_returns_current_published_profile(public_api_context):
     assert response.status_code == 200
     assert response.json()["profile"]["profession"] == "Avvocata"
     assert response.json()["current_version_number"] == 1
+
+
+def test_detail_returns_current_then_historical_parliamentary_groups(
+    public_api_context,
+):
+    response = public_api_context.client.get(
+        f"/politicians/{public_api_context.published_id}"
+    )
+
+    assert response.status_code == 200
+    memberships = response.json()["parliamentary_groups"]
+    assert [item["name"] for item in memberships] == [
+        "Fratelli d'Italia",
+        "Gruppo precedente",
+    ]
+    assert memberships[0]["end_date"] is None
+    assert memberships[0]["source"] == {
+        "name": "Senato della Repubblica",
+        "url": "https://dati.senato.it/senatore/public",
+    }
+    assert memberships[1]["end_date"] == "2024-01-31"
+    serialized = str(memberships)
+    assert "parliamentary_group_id" not in serialized
+    assert "identity_key" not in serialized
 
 
 @pytest.mark.parametrize("identifier", ["unpublished_id", None])

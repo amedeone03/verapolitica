@@ -5,6 +5,13 @@ from backend.app.models.identity_resolution_case import (
     ImmutableIdentityResolutionSnapshotError,
 )
 from backend.app.models.politician import Politician
+from backend.app.models.parliamentary_group import ParliamentaryGroup
+from backend.app.models.parliamentary_group_membership import (
+    ParliamentaryGroupMembership,
+)
+from backend.app.models.parliamentary_group_source_identifier import (
+    ParliamentaryGroupSourceIdentifier,
+)
 from backend.app.models.politician_source_identifier import PoliticianSourceIdentifier
 from backend.app.models.politician_version import (
     ImmutablePoliticianVersionError,
@@ -37,6 +44,9 @@ __all__ = [
     "ImmutablePoliticianVersionCitationError",
     "ImmutableReviewError",
     "Politician",
+    "ParliamentaryGroup",
+    "ParliamentaryGroupMembership",
+    "ParliamentaryGroupSourceIdentifier",
     "PoliticianSourceIdentifier",
     "PoliticianVersion",
     "PoliticianVersionCitation",

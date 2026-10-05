@@ -26,6 +26,9 @@ Expected opening state:
 
 - Anna Rossi — Politician 1, published version 1, 14 public citation references.
 - Luca Bianchi — Politician 2, not public, with pending Draft 2 and 14 Evidence rows.
+- Anna and Luca each have one deterministic current Senato parliamentary-group
+  membership; Anna's is immediately visible on her public profile and Luca's appears
+  after publication.
 - Carlo Verdi — pending Identity Resolution Case 1 from the Governo fixture; no
   Politician is created automatically.
 
@@ -60,7 +63,8 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
    published only after human verification.”
 2. **Show an existing public profile.** In `/app/`, point out that only Anna Rossi
    is visible. Open her profile and show the Verified indicator, current mandate,
-   and official source section.
+   parliamentary-group section, and official source section. Note that a
+   parliamentary group is not being presented as a political party.
 3. **Explain traceability.** Anna has 14 verified data references grouped under one
    Senato source. Point out the official source link: every displayed fact remains
    traceable without overwhelming citizens with duplicate source cards. Opening the

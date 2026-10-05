@@ -59,6 +59,19 @@ XIX-legislature deputies. Camera-specific RDF bindings remain inside its collect
 parser, mapper, and provenance; the CandidateProfile and every downstream service
 remain source-independent.
 
+Senato and Camera ingestion also collect their official structured parliamentary-
+group membership data. Each raw document is a versioned bundle containing the exact
+people and group SPARQL response bodies. Group observations are normalized into
+institution- and legislature-scoped `ParliamentaryGroup` rows and time-bounded
+`ParliamentaryGroupMembership` rows only after the politician is resolved through
+an existing exact source identifier. Unresolved people are reported and skipped;
+the group pipeline never creates a Politician. Repeated runs are idempotent, while
+new official end dates update the existing interval and group transfers append a
+new interval without deleting history.
+
+`ParliamentaryGroup` is an institutional chamber concept. It is deliberately not a
+`PoliticalParty`, and no party affiliation is inferred from a group membership.
+
 Governo ingestion uses the official current office-holder index and its linked
 official profile pages. Because Governo does not expose an equivalent structured
 people endpoint, the collector preserves the index and all discovered profile HTML
@@ -234,6 +247,10 @@ Politician detail responses include a curated citation snapshot copied from the
 approved draft's Evidence during publication. List items expose only
 `citation_count` to stay compact. Versions published before citation snapshots were
 introduced remain readable with an empty citation list.
+Detail responses also include current and historical parliamentary-group
+memberships, ordered current first, with chamber, legislature, official dates,
+optional role, and an official source link. Internal group IDs and RDF identifiers
+are not exposed.
 On an update, citations for unchanged fields are inherited from the baseline version,
 while citations for changed fields come from the newly approved Evidence. A version
 can therefore cite Senato and Camera independently without collapsing their identity.

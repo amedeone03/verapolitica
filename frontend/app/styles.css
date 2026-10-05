@@ -144,6 +144,16 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .mandate-block strong { display: block; font: 600 1.08rem Georgia, serif; }
 .mandate-block p { margin: 5px 0 0; color: var(--muted); font-size: .82rem; }
 
+.groups-card { margin-top: 25px; }
+.group-disclaimer, .empty-note { color: var(--muted); font-size: .84rem; }
+.group-list { display: grid; gap: 11px; }
+.group-membership { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 17px; border: 1px solid var(--line); border-radius: 12px; background: #fafaf8; }
+.group-membership strong { font: 600 1.08rem Georgia, serif; }
+.group-membership p { margin: 5px 0 1px; color: var(--muted); font-size: .82rem; }
+.group-membership small { color: var(--muted); }
+.group-role { display: inline-flex; margin-left: 8px; padding: 3px 7px; color: var(--navy); background: #e9eff5; border-radius: 6px; font-size: .67rem; font-weight: 800; }
+.previous-groups-title { margin: 25px 0 10px; font: 600 1.1rem Georgia, serif; }
+
 .sources-card { margin-top: 25px; }
 .sources-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 22px; }
 .sources-summary { color: var(--muted); font-size: .78rem; text-align: right; }
@@ -182,6 +192,7 @@ footer p { max-width: 590px; margin: 4px 0 0; }
   .profile-hero .portrait { min-height: 245px; max-height: 330px; }
   .fact { grid-template-columns: 1fr; gap: 3px; }
   .source-top { flex-direction: column; gap: 10px; }
+  .group-membership { flex-direction: column; gap: 10px; }
   .sources-summary { text-align: left; }
   footer { flex-direction: column; }
 }

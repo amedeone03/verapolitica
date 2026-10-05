@@ -17,10 +17,12 @@ from backend.app.pipeline.collectors import (
 )
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
 from backend.app.pipeline.mappers import (
+    CameraParliamentaryGroupMapper,
     CameraCandidateProfileMapper,
     CandidateMappingError,
     GovernoCandidateProfileMapper,
     SenatoCandidateProfileMapper,
+    SenatoParliamentaryGroupMapper,
 )
 from backend.app.pipeline.parsers import (
     CameraParser,
@@ -33,6 +35,8 @@ from backend.app.services import (
     HumanIdentityResolutionCoordinator,
     IdentityResolutionServiceError,
     IdentityServiceError,
+    ParliamentaryGroupService,
+    ParliamentaryGroupServiceError,
 )
 
 @dataclass(frozen=True)
@@ -104,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         parser = CameraParser()
         mapper = CameraCandidateProfileMapper()
+        group_mapper = CameraParliamentaryGroupMapper(settings.camera_legislature)
     elif args.source == "governo":
         collector = GovernoCollector(
             index_url=settings.governo_index_url,
@@ -111,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         parser = GovernoParser()
         mapper = GovernoCandidateProfileMapper()
+        group_mapper = None
     else:
         collector = SenatoCollector(
             endpoint=settings.senato_sparql_endpoint,
@@ -119,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         parser = SenatoParser()
         mapper = SenatoCandidateProfileMapper()
+        group_mapper = SenatoParliamentaryGroupMapper()
 
     pipeline = IngestionPipeline(
         session_factory=session_factory,
@@ -126,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         collector=collector,
         parser=parser,
         profile_mapper=mapper,
+        parliamentary_group_mapper=group_mapper,
     )
 
     try:
@@ -135,6 +143,9 @@ def main(argv: list[str] | None = None) -> int:
             identity_coordinator.process(candidate)
             for candidate in result.candidate_profiles
         )
+        group_result = ParliamentaryGroupService(session_factory).sync(
+            result.parliamentary_group_observations
+        )
     except (
         CollectorError,
         ParserError,
@@ -142,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         StorageError,
         IdentityResolutionServiceError,
         IdentityServiceError,
+        ParliamentaryGroupServiceError,
     ) as exc:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 1
@@ -170,6 +182,19 @@ def main(argv: list[str] | None = None) -> int:
                     for item in identity_results
                     if item.case is not None
                 ],
+                "parliamentary_groups": {
+                    "total_observations": group_result.total_observations,
+                    "groups_created": group_result.groups_created,
+                    "memberships_created": group_result.memberships_created,
+                    "memberships_updated": group_result.memberships_updated,
+                    "memberships_unchanged": group_result.memberships_unchanged,
+                    "unresolved_references": group_result.unresolved_references,
+                    "overlap_warning_count": len(group_result.overlap_warnings),
+                    "samples": [
+                        detail.model_dump(mode="json")
+                        for detail in group_result.details[:10]
+                    ],
+                },
             },
             indent=2,
         )

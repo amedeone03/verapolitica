@@ -36,6 +36,18 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderPoliticianCard" in script.text
     assert "renderPoliticianDetail" in script.text
     assert "groupCitations" in script.text
+    assert "renderParliamentaryGroups" in script.text
+    assert "Parliamentary groups" in script.text
+    assert ".group-membership" in styles.text
+
+
+def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        script = client.get("/app/app.js").text
+
+    assert "Previous groups" in script
+    assert "Since" in script
+    assert "not the same as political parties" in script
 
 
 def test_public_ui_assets_are_strictly_public(tmp_path):
@@ -74,6 +86,7 @@ def test_initial_archive_contains_only_published_api_data(tmp_path):
     assert payload["items"][0]["given_name"] == "Anna"
     assert payload["items"][0]["citation_count"] == 14
     assert anna.status_code == 200
+    assert anna.json()["parliamentary_groups"][0]["name"] == "Fratelli d'Italia"
     assert luca.status_code == 404
 
 

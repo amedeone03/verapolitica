@@ -124,6 +124,51 @@ function renderMandate(mandate) {
   </div>`;
 }
 
+function romanLegislature(value) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 1 || number > 30) return String(value);
+  const numerals = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let remaining = number;
+  let result = "";
+  for (const [unit, symbol] of numerals) {
+    while (remaining >= unit) {
+      result += symbol;
+      remaining -= unit;
+    }
+  }
+  return result;
+}
+
+function renderGroupMembership(membership) {
+  const sourceUrl = safeExternalUrl(membership.source?.url);
+  const dates = membership.start_date
+    ? (membership.end_date
+      ? `${formatDate(membership.start_date)} – ${formatDate(membership.end_date)}`
+      : `Since ${formatDate(membership.start_date)}`)
+    : (membership.end_date ? `Until ${formatDate(membership.end_date)}` : "Dates not provided");
+  const role = membership.role && membership.role.toLocaleLowerCase() !== "membro"
+    ? `<span class="group-role">${escapeHtml(membership.role)}</span>`
+    : "";
+  return `<article class="group-membership">
+    <div>
+      <strong>${escapeHtml(membership.name)}</strong>${role}
+      <p>${escapeHtml(membership.institution)} · ${escapeHtml(romanLegislature(membership.legislature))} legislature</p>
+      <small>${escapeHtml(dates)}</small>
+    </div>
+    ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}
+  </article>`;
+}
+
+export function renderParliamentaryGroups(memberships = []) {
+  if (!memberships.length) {
+    return `<p class="empty-note">No parliamentary-group membership is currently available from the supported official sources.</p>`;
+  }
+  const current = memberships.filter((membership) => !membership.end_date);
+  const historical = memberships.filter((membership) => membership.end_date);
+  return `${current.length ? `<div class="group-list">${current.map(renderGroupMembership).join("")}</div>` : ""}
+    ${historical.length ? `<h3 class="previous-groups-title">Previous groups</h3><div class="group-list">${historical.map(renderGroupMembership).join("")}</div>` : ""}`;
+}
+
 function fact(label, value, { href = null } = {}) {
   const content = href
     ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`
@@ -183,6 +228,11 @@ export function renderPoliticianDetail(person) {
         ${profile.mandates.length ? profile.mandates.map(renderMandate).join("") : "<p>No mandate information is available.</p>"}
       </section>
     </div>
+    <section class="detail-card groups-card">
+      <p class="eyebrow">Institutional affiliation</p><h2>Parliamentary groups</h2>
+      <p class="group-disclaimer">Parliamentary groups are chamber-specific institutional bodies and are not the same as political parties.</p>
+      ${renderParliamentaryGroups(person.parliamentary_groups || [])}
+    </section>
     <section class="detail-card sources-card">
       <div class="sources-heading">
         <div><p class="eyebrow">Traceable information</p><h2>Official sources</h2></div>

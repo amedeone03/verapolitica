@@ -96,10 +96,15 @@ def ingest_candidate(
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"
         assert request.url.params["format"] == "application/sparql-results+json"
+        payload = (
+            {"head": {"vars": []}, "results": {"bindings": []}}
+            if "ocd:aderisce" in request.url.params["query"]
+            else senato_payload(profession=profession)
+        )
         return httpx.Response(
             200,
             headers={"content-type": "application/sparql-results+json"},
-            json=senato_payload(profession=profession),
+            json=payload,
         )
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as http_client:

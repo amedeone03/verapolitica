@@ -66,6 +66,13 @@ from backend.app.services.review_service import (
     ReviewService,
     ReviewServiceError,
 )
+from backend.app.services.parliamentary_group_service import (
+    ParliamentaryGroupConflictError,
+    ParliamentaryGroupPersistenceError,
+    ParliamentaryGroupService,
+    ParliamentaryGroupServiceError,
+    ParliamentaryGroupValidationError,
+)
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
 
 __all__ = [
@@ -117,6 +124,11 @@ __all__ = [
     "ReviewInputError",
     "ReviewPersistenceError",
     "ReviewService",
+    "ParliamentaryGroupConflictError",
+    "ParliamentaryGroupPersistenceError",
+    "ParliamentaryGroupService",
+    "ParliamentaryGroupServiceError",
+    "ParliamentaryGroupValidationError",
     "ReviewServiceError",
     "StaleDraftError",
     "SuggestedSourceIdentifier",

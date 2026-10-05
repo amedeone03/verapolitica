@@ -11,6 +11,8 @@ from backend.app.models import (
     Evidence,
     IdentityResolutionCase,
     IdentityResolutionStatus,
+    ParliamentaryGroup,
+    ParliamentaryGroupMembership,
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
@@ -65,6 +67,7 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert published.status_code == 200
     assert published.json()["citation_count"] == 14
     assert len(published.json()["citations"]) == 14
+    assert published.json()["parliamentary_groups"][0]["name"] == "Fratelli d'Italia"
     assert pending.status_code == 404
     assert listing.json()["total"] == 1
     assert [item["id"] for item in listing.json()["items"]] == [1]
@@ -100,6 +103,10 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
     factory = create_session_factory(engine)
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(Politician)) == 2
+        assert session.scalar(select(func.count()).select_from(ParliamentaryGroup)) == 2
+        assert session.scalar(
+            select(func.count()).select_from(ParliamentaryGroupMembership)
+        ) == 2
         assert session.scalar(
             select(func.count()).select_from(IdentityResolutionCase)
         ) == 1

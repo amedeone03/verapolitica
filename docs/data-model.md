@@ -73,6 +73,45 @@ candidate when the same person has several official pages. It maps only explicit
 structured or semantic page facts. Missing birth data and profession remain null;
 free-form biography text is not interpreted as a domain claim.
 
+## ParliamentaryGroup
+
+`ParliamentaryGroup` is one official chamber group scoped to an institution and a
+legislature. It stores a canonical official name, optional abbreviation, chamber,
+legislature, and timestamps. Camera and Senato groups remain distinct even when
+their names are identical.
+
+`ParliamentaryGroupSourceIdentifier` links a group to an official Source URI. Its
+unique key is `(source_id, value, legislature)` because the Senato dataset may reuse
+one group URI across legislatures. This is separate from
+`PoliticianSourceIdentifier`; the latter is semantically person-only.
+
+## ParliamentaryGroupMembership
+
+`ParliamentaryGroupMembership` links the canonical Politician to a
+ParliamentaryGroup and retains:
+
+- nullable official start/end dates without invented values;
+- optional source-reported role/capacity;
+- Source and supporting RawDocument;
+- official person page URL;
+- optional official membership identifier;
+- a deterministic internal identity key for idempotency.
+
+The internal key hashes the source person identifier, official group URI,
+legislature, start date, optional official membership identifier, and role. It does
+not include end date, allowing a later official end date to update that same row.
+A transfer creates a new row; the ended membership remains queryable. Exact repeats
+create nothing. Invalid `end < start` intervals are rejected transactionally.
+Overlapping source intervals are preserved and reported because Senato can expose
+simultaneous role intervals.
+
+Memberships attach only through an exact existing PoliticianSourceIdentifier.
+Unresolved references create neither a fake Politician nor a membership.
+
+**ParliamentaryGroup is not PoliticalParty.** These models do not represent party
+identity, party affiliation, ideology, or a derived relationship between a person
+and a party.
+
 ## Politician
 
 `Politician` is the stable canonical identity of one person. It stores an internal

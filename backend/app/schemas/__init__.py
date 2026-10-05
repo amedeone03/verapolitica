@@ -73,9 +73,18 @@ from backend.app.schemas.identity_resolution import (
 )
 from backend.app.schemas.public import (
     PublicCitation,
+    PublicParliamentaryGroupMembership,
+    PublicParliamentaryGroupSource,
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
+)
+from backend.app.schemas.parliamentary_group import (
+    MembershipOverlapWarning,
+    MembershipPersistenceDetail,
+    MembershipPersistenceStatus,
+    ParliamentaryGroupObservation,
+    ParliamentaryGroupSyncResult,
 )
 
 __all__ = [
@@ -128,9 +137,16 @@ __all__ = [
     "PoliticianVersionContext",
     "ProfileDiff",
     "PublicCitation",
+    "PublicParliamentaryGroupMembership",
+    "PublicParliamentaryGroupSource",
     "PublicPolitician",
     "PublicPoliticianList",
     "PublicPoliticianSummary",
+    "MembershipOverlapWarning",
+    "MembershipPersistenceDetail",
+    "MembershipPersistenceStatus",
+    "ParliamentaryGroupObservation",
+    "ParliamentaryGroupSyncResult",
     "ReviewDecisionResult",
     "ReviewResult",
     "ReviewStartedResult",

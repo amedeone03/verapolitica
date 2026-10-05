@@ -2,12 +2,17 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
+    ParliamentaryGroup,
+    ParliamentaryGroupMembership,
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
+    Source,
 )
 from backend.app.schemas import (
     PublicCitation,
+    PublicParliamentaryGroupMembership,
+    PublicParliamentaryGroupSource,
     PublicPolitician,
     PublicPoliticianList,
     PublicPoliticianSummary,
@@ -82,7 +87,53 @@ class PublicPoliticianQueryService:
             )
         )
         summary = self._project_summary(politician, version, len(citations))
-        return PublicPolitician(**summary.model_dump(), citations=citations)
+        group_rows = list(
+            self.session.execute(
+                select(
+                    ParliamentaryGroupMembership,
+                    ParliamentaryGroup,
+                    Source,
+                )
+                .join(
+                    ParliamentaryGroup,
+                    ParliamentaryGroup.id
+                    == ParliamentaryGroupMembership.parliamentary_group_id,
+                )
+                .join(Source, Source.id == ParliamentaryGroupMembership.source_id)
+                .where(
+                    ParliamentaryGroupMembership.politician_id == politician.id
+                )
+            ).all()
+        )
+        group_rows.sort(
+            key=lambda row: (
+                row[0].end_date is not None,
+                -(row[0].start_date.toordinal() if row[0].start_date else -1),
+                row[1].institution.casefold(),
+                row[1].canonical_name.casefold(),
+            )
+        )
+        parliamentary_groups = tuple(
+            PublicParliamentaryGroupMembership(
+                name=group.canonical_name,
+                abbreviation=group.abbreviation,
+                institution=group.institution,
+                legislature=group.legislature,
+                start_date=membership.start_date,
+                end_date=membership.end_date,
+                role=membership.role,
+                source=PublicParliamentaryGroupSource(
+                    name=source.name,
+                    url=membership.source_url,
+                ),
+            )
+            for membership, group, source in group_rows
+        )
+        return PublicPolitician(
+            **summary.model_dump(),
+            citations=citations,
+            parliamentary_groups=parliamentary_groups,
+        )
 
     @staticmethod
     def _visible_query() -> Select[tuple[Politician, PoliticianVersion]]:

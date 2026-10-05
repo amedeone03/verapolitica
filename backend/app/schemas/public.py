@@ -25,8 +25,25 @@ class PublicPoliticianSummary(ImmutableSchema):
     citation_count: int = Field(ge=0)
 
 
+class PublicParliamentaryGroupSource(ImmutableSchema):
+    name: str
+    url: AnyHttpUrl
+
+
+class PublicParliamentaryGroupMembership(ImmutableSchema):
+    name: str
+    abbreviation: str | None
+    institution: str
+    legislature: str
+    start_date: date | None
+    end_date: date | None
+    role: str | None
+    source: PublicParliamentaryGroupSource
+
+
 class PublicPolitician(PublicPoliticianSummary):
     citations: tuple[PublicCitation, ...]
+    parliamentary_groups: tuple[PublicParliamentaryGroupMembership, ...] = ()
 
 
 class PublicPoliticianList(ImmutableSchema):

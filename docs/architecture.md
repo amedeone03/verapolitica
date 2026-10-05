@@ -14,6 +14,49 @@ official source (Senato, Camera, or Governo)
   -> diff, Evidence, review, publication, and public API
 ```
 
+For Senato and Camera, each collector performs two queries against the official
+[`dati.senato.it` SPARQL endpoint](https://dati.senato.it/sparql) or
+[`dati.camera.it` SPARQL endpoint](https://dati.camera.it/sparql) and stores both
+exact response bodies in one raw bundle. The parser includes people and
+group records in the same canonical normalized hash, while CandidateProfile mapping
+keeps its changed-only behavior. Group observations are safe to replay on unchanged
+documents because persistence is idempotent:
+
+```text
+official chamber SPARQL
+  -> people response + group-membership response
+  -> one RawDocument bundle
+  -> source-specific parser
+  -> source-specific group mapper
+  -> ParliamentaryGroupObservation (transient)
+  -> exact PoliticianSourceIdentifier lookup
+  -> ParliamentaryGroupService transaction
+  -> ParliamentaryGroup + source identity + time-bounded membership
+```
+
+Parsers and mappers perform no database writes. `ParliamentaryGroupService` never
+matches by name and never creates a Politician. The existing candidate identity
+workflow runs first; an unresolved membership is returned as an explicit result and
+can link on a later replay after bootstrap or human identity resolution.
+
+Camera represents membership intervals with `ocd:startDate`, `ocd:endDate`, and
+`ocd:rif_gruppoParlamentare`; abbreviations are `dcterms:alternative`, while the
+display title contains a date suffix removed by the Camera mapper. Senato uses
+`osr:inizio`, `osr:fine`, `osr:gruppo`, `osr:legislatura`, and exposes short names
+plus `osr:carica`. Both membership resources are blank nodes, so their labels are
+not treated as durable source IDs. Senato role intervals can overlap; they are
+preserved and surfaced as warnings rather than corrected.
+
+Group identity is `(Source, official group URI, legislature)`. The legislature is
+required because Senato can reuse a group URI across legislatures. Membership
+idempotency uses a deterministic internal SHA-256 over the source person identifier,
+group URI, legislature, start date, optional official membership identifier, and
+role. End date is excluded so a newly published end date updates the same row.
+Historical memberships are never deleted.
+
+> ParliamentaryGroup is not PoliticalParty. Chamber groups remain separate across
+> institutions and no party identity or affiliation is inferred in this milestone.
+
 Camera, Senato, and Governo share no source-specific domain fields. Each adapter translates
 official bindings to CandidateProfile identity and versioned profile fields while
 retaining exact document, record, and field provenance. `Source` registration and
@@ -254,6 +297,11 @@ returned. Detail responses query the immutable citation rows for that exact vers
 list responses expose only a citation count. Internal drafts, Review data, Evidence,
 hashes, storage paths, and admin workflow state are absent from the projection.
 Legacy versions without citation rows remain public with an empty citation list.
+The detail projection separately joins the canonical Politician to its persisted
+parliamentary-group memberships and exposes only citizen-safe group metadata and
+official provenance. Current memberships sort before historical intervals. Group
+data does not become part of immutable PoliticianVersion profile JSON and does not
+bypass the version publication boundary for profile fields.
 
 The central visibility invariant is:
 

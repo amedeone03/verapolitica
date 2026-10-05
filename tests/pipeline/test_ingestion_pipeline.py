@@ -114,7 +114,7 @@ def test_first_ingestion_is_changed(session_factory, source, raw_storage):
     assert result.change_detected is True
     assert result.normalized_sha256 is not None
     assert result.collector_version == "senato_collector_v1"
-    assert result.parser_version == "senato_parser_v1"
+    assert result.parser_version == "senato_parser_v2"
     assert len(result.candidate_profiles) == 2
     document = all_documents(session_factory)[0]
     assert document.structured_records is not None
@@ -192,7 +192,7 @@ def test_parser_failure_preserves_raw_document(
     assert document.change_detected is None
     assert document.error_message is not None
     assert document.collector_version == "senato_collector_v1"
-    assert document.parser_version == "senato_parser_v1"
+    assert document.parser_version == "senato_parser_v2"
     assert raw_storage.get(document.storage_key) == invalid_content
 
 

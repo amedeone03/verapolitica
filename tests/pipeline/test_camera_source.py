@@ -66,13 +66,15 @@ def pipeline(session_factory, raw_storage, documents):
 
 
 def test_collector_uses_current_legislature_and_official_sparql_contract():
+    queries = []
+
     def handler(request: httpx.Request) -> httpx.Response:
         query = request.url.params["query"]
         assert request.method == "GET"
         assert request.headers["accept"] == "application/sparql-results+json"
         assert "repubblica_19" in query
         assert "FILTER NOT EXISTS" in query
-        assert "?personUri a foaf:Person" in query
+        queries.append(query)
         return httpx.Response(200, json={"results": {"bindings": []}})
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
@@ -80,19 +82,25 @@ def test_collector_uses_current_legislature_and_official_sparql_contract():
             "https://dati.camera.it/sparql", 19, client=client
         ).collect()
 
-    assert document.collector_version == "camera_collector_v1"
+    assert document.collector_version == "camera_collector_v2"
     assert document.source_url == "https://dati.camera.it/sparql"
+    assert len(queries) == 2
+    assert any("?personUri a foaf:Person" in query for query in queries)
+    assert any("ocd:rif_gruppoParlamentare" in query for query in queries)
 
 
 def test_parser_normalizes_dates_strings_and_record_order():
     parsed = CameraParser().parse(fixture_content())
 
-    assert parsed.parser_version == "camera_parser_v1"
+    assert parsed.parser_version == "camera_parser_v2"
     assert len(parsed.structured_records) == 2
     assert parsed.structured_records[0]["deputy_uri"].endswith("d100_19")
     assert parsed.structured_records[0]["birth_date"] == "1970-01-02"
     assert parsed.structured_records[0]["mandate_start"] == "2022-10-13"
-    assert json.loads(parsed.canonical_json) == parsed.structured_records
+    assert json.loads(parsed.canonical_json) == {
+        "people": parsed.structured_records,
+        "parliamentary_groups": [],
+    }
 
 
 def test_parser_rejects_invalid_date_with_record_context():

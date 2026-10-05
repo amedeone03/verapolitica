@@ -12,6 +12,12 @@ if TYPE_CHECKING:
         PoliticianSourceIdentifier,
     )
     from backend.app.models.raw_document import RawDocument
+    from backend.app.models.parliamentary_group_membership import (
+        ParliamentaryGroupMembership,
+    )
+    from backend.app.models.parliamentary_group_source_identifier import (
+        ParliamentaryGroupSourceIdentifier,
+    )
 
 
 def utc_now() -> datetime:
@@ -37,5 +43,11 @@ class Source(Base):
         back_populates="source"
     )
     identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
+        back_populates="source"
+    )
+    group_identifiers: Mapped[list["ParliamentaryGroupSourceIdentifier"]] = (
+        relationship(back_populates="source")
+    )
+    group_memberships: Mapped[list["ParliamentaryGroupMembership"]] = relationship(
         back_populates="source"
     )

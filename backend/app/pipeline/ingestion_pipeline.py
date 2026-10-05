@@ -8,8 +8,13 @@ from sqlalchemy.orm import Session
 from backend.app.models.raw_document import RawDocument, RawDocumentStatus
 from backend.app.pipeline.collectors.base import Collector
 from backend.app.pipeline.mappers.base import CandidateProfileMapper
+from backend.app.pipeline.mappers.parliamentary_groups import ParliamentaryGroupMapper
 from backend.app.pipeline.parsers.base import Parser, ParserError
-from backend.app.schemas import CandidateProfile, SourceDocumentProvenance
+from backend.app.schemas import (
+    CandidateProfile,
+    ParliamentaryGroupObservation,
+    SourceDocumentProvenance,
+)
 from backend.app.storage.base import RawStorage
 
 
@@ -24,6 +29,7 @@ class IngestionResult:
     collector_version: str
     parser_version: str
     candidate_profiles: tuple[CandidateProfile, ...]
+    parliamentary_group_observations: tuple[ParliamentaryGroupObservation, ...]
 
 
 class IngestionPipeline:
@@ -34,12 +40,14 @@ class IngestionPipeline:
         collector: Collector,
         parser: Parser,
         profile_mapper: CandidateProfileMapper | None = None,
+        parliamentary_group_mapper: ParliamentaryGroupMapper | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.storage = storage
         self.collector = collector
         self.parser = parser
         self.profile_mapper = profile_mapper
+        self.parliamentary_group_mapper = parliamentary_group_mapper
 
     def run(self, *, source_id: int, source_key: str) -> IngestionResult:
         collected = self.collector.collect()
@@ -119,6 +127,18 @@ class IngestionPipeline:
                 document=provenance,
             )
 
+        parliamentary_group_observations: tuple[
+            ParliamentaryGroupObservation, ...
+        ] = ()
+        if self.parliamentary_group_mapper is not None:
+            parliamentary_group_observations = (
+                self.parliamentary_group_mapper.map_records(
+                    parsed.parliamentary_group_records,
+                    source_key=source_key,
+                    raw_document_id=raw_document_id,
+                )
+            )
+
         return IngestionResult(
             raw_document_id=raw_document_id,
             process_status=RawDocumentStatus.PARSED,
@@ -129,4 +149,5 @@ class IngestionPipeline:
             collector_version=collected.collector_version,
             parser_version=parsed.parser_version,
             candidate_profiles=candidate_profiles,
+            parliamentary_group_observations=parliamentary_group_observations,
         )

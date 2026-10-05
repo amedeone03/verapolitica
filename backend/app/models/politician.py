@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     )
     from backend.app.models.politician_version import PoliticianVersion
     from backend.app.models.profile_draft import ProfileDraft
+    from backend.app.models.parliamentary_group_membership import (
+        ParliamentaryGroupMembership,
+    )
 
 
 def utc_now() -> datetime:
@@ -66,4 +69,10 @@ class Politician(Base):
     identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
         back_populates="resolved_politician",
         foreign_keys="IdentityResolutionCase.resolved_politician_id",
+    )
+    parliamentary_group_memberships: Mapped[list["ParliamentaryGroupMembership"]] = (
+        relationship(
+            back_populates="politician",
+            order_by="ParliamentaryGroupMembership.start_date",
+        )
     )
