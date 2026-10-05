@@ -3,7 +3,8 @@
 The implemented slices persist the official source and every collected response,
 then map changed Senato, Camera, or Governo records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The
-implementation can persist reviewable profile drafts and field-level Evidence, but
+implementation can persist identity-resolution cases, reviewable profile drafts,
+and field-level Evidence, but
 only an explicit final Review can reject a draft or publish a new version.
 
 ## Source
@@ -48,11 +49,14 @@ stable record order, stable key order, and explicit JSON null values.
 ## CandidateProfile
 
 `CandidateProfile` is a source-independent Pydantic object. It is returned only when
-a RawDocument's normalized data changed and is never persisted.
+a RawDocument's normalized data changed and remains transient in the ingestion and
+matching pipeline. When human identity review is required, a validated JSON snapshot
+of that object is embedded in an IdentityResolutionCase for auditability.
 
 It separates:
 
-- identity-like matching inputs: name, birth data, and generic source identifiers;
+- identity-like matching inputs: exact official display name, structured name,
+  birth data, and generic source identifiers;
 - versioned profile data: gender, profession, URLs, and political mandates;
 - provenance: the RawDocument snapshot plus a deterministic source mapping for each
   populated candidate field.
@@ -159,8 +163,47 @@ errors roll back the whole operation and expose a typed service error.
 The explicit profile-draft orchestration uses this coordinator before DraftService.
 This means a Camera record that first matches a Senato-created identity by name and
 birth date gains its Camera identifier before the draft proceeds. Future Camera
-matching then uses the exact identifier. Normal ingestion and MatchingService remain
-write-free.
+matching then uses the exact identifier. MatchingService remains write-free;
+orchestration may append the safely resolved identifier.
+
+## IdentityResolutionCase
+
+`IdentityResolutionCase` is the durable manual boundary for candidates that cannot
+be linked safely. It is created for an `uncertain` match or for
+`insufficient_fallback_identity`; a complete `no_match` candidate remains eligible
+for the existing explicit bootstrap flow.
+
+Each case stores:
+
+- the supporting RawDocument and Source;
+- a primary official source identifier;
+- the exact official display name;
+- the complete validated CandidateProfile JSON snapshot;
+- the original typed MatchingResult JSON;
+- status, creation/update timestamps, and terminal resolution audit fields;
+- an optional resolved Politician.
+
+The case statuses are `pending`, `resolved_existing`, `resolved_new`, and `ignored`.
+Only `pending` may transition, and every terminal status records the trusted reviewer
+and resolution time. Existing/new resolutions require a Politician; ignored cases
+must not reference one. Database checks enforce those combinations.
+
+Snapshot fields are immutable after insertion. Status and terminal audit fields are
+the only values changed by resolution. The unique `(source_id, source_identifier)`
+constraint is the idempotency guard. For a candidate with several identifiers, the
+lexically first distinct identifier belonging to the document Source is the case
+key; the snapshot retains all identifiers and a resolution attaches all of them.
+
+Same-normalized-name Politicians are exposed as editorial suggestions only. The
+query may also retain IDs from the original uncertain result and annotate exact
+birth/identifier signals. It performs no mutation and never feeds a name-only result
+back into MatchingService.
+
+`resolve_to_existing` and `resolve_as_new` call the same source, ownership, and
+conflict validation primitive used by PoliticianIdentityService. The caller-owned
+transaction includes every identifier attachment, any new Politician, and the case
+transition. An integrity or ownership conflict rolls everything back and leaves the
+case pending. `ignored` attaches nothing and creates no Politician.
 
 ## Bootstrap lifecycle
 

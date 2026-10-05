@@ -69,6 +69,38 @@
 
         <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 
+        <section class="card identity-card" aria-labelledby="identity-title">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Human-assisted identity</p>
+              <h2 id="identity-title">Identity resolution</h2>
+            </div>
+            <span id="identity-status" class="badge badge-pending">Loading</span>
+          </div>
+          <div id="identity-case" class="card-body loading-block">
+            Loading unresolved official identity…
+          </div>
+          <div class="review-bar identity-actions">
+            <div class="identity-selection">
+              <label for="identity-politician">Possible existing politician</label>
+              <select id="identity-politician" disabled>
+                <option value="">No suggestion selected</option>
+              </select>
+            </div>
+            <div class="button-group">
+              <button id="identity-link" class="button button-secondary" type="button">
+                Link selected politician
+              </button>
+              <button id="identity-ignore" class="button button-danger" type="button">
+                Ignore / leave unresolved
+              </button>
+              <button id="identity-create" class="button button-primary" type="button">
+                Create new politician
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section class="content-grid">
           <article class="card published-card">
             <div class="card-header">

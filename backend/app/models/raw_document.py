@@ -9,6 +9,7 @@ from backend.app.db.base import Base
 
 if TYPE_CHECKING:
     from backend.app.models.evidence import Evidence
+    from backend.app.models.identity_resolution_case import IdentityResolutionCase
     from backend.app.models.profile_draft import ProfileDraft
 
 
@@ -64,3 +65,6 @@ class RawDocument(Base):
         back_populates="raw_document"
     )
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="raw_document")
+    identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
+        back_populates="raw_document"
+    )

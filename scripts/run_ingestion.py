@@ -29,6 +29,11 @@ from backend.app.pipeline.parsers import (
     SenatoParser,
 )
 from backend.app.storage import LocalRawStorage, StorageError
+from backend.app.services import (
+    HumanIdentityResolutionCoordinator,
+    IdentityResolutionServiceError,
+    IdentityServiceError,
+)
 
 @dataclass(frozen=True)
 class SourceSpec:
@@ -125,7 +130,19 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         result = pipeline.run(source_id=source.id, source_key=source.key)
-    except (CollectorError, ParserError, CandidateMappingError, StorageError) as exc:
+        identity_coordinator = HumanIdentityResolutionCoordinator(session_factory)
+        identity_results = tuple(
+            identity_coordinator.process(candidate)
+            for candidate in result.candidate_profiles
+        )
+    except (
+        CollectorError,
+        ParserError,
+        CandidateMappingError,
+        StorageError,
+        IdentityResolutionServiceError,
+        IdentityServiceError,
+    ) as exc:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 1
     finally:
@@ -145,6 +162,14 @@ def main(argv: list[str] | None = None) -> int:
                 "collector_version": result.collector_version,
                 "parser_version": result.parser_version,
                 "candidate_profile_count": len(result.candidate_profiles),
+                "identity_resolution_case_count": sum(
+                    item.case is not None for item in identity_results
+                ),
+                "identity_resolution_cases": [
+                    item.case.model_dump(mode="json")
+                    for item in identity_results
+                    if item.case is not None
+                ],
             },
             indent=2,
         )

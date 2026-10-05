@@ -67,6 +67,7 @@ class GovernoCandidateProfileMapper:
             birth_city = self._optional(record, "birth_city")
             return CandidateProfile(
                 identity=CandidateIdentity(
+                    display_name=self._required(record, "display_name"),
                     given_name=given_name,
                     family_name=family_name,
                     birth_date=birth_date,

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.db.base import Base
 
 if TYPE_CHECKING:
+    from backend.app.models.identity_resolution_case import IdentityResolutionCase
     from backend.app.models.politician_source_identifier import (
         PoliticianSourceIdentifier,
     )
@@ -33,5 +34,8 @@ class Source(Base):
         back_populates="source"
     )
     politician_identifiers: Mapped[list["PoliticianSourceIdentifier"]] = relationship(
+        back_populates="source"
+    )
+    identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
         back_populates="source"
     )

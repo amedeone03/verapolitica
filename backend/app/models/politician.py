@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.db.base import Base
 
 if TYPE_CHECKING:
+    from backend.app.models.identity_resolution_case import IdentityResolutionCase
     from backend.app.models.politician_source_identifier import (
         PoliticianSourceIdentifier,
     )
@@ -61,4 +62,8 @@ class Politician(Base):
     profile_drafts: Mapped[list["ProfileDraft"]] = relationship(
         back_populates="politician",
         order_by="ProfileDraft.created_at",
+    )
+    identity_resolution_cases: Mapped[list["IdentityResolutionCase"]] = relationship(
+        back_populates="resolved_politician",
+        foreign_keys="IdentityResolutionCase.resolved_politician_id",
     )

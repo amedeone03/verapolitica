@@ -10,6 +10,7 @@ const state = {
   published: null,
   draft: null,
   newlyPublished: null,
+  identityCase: null,
   busy: false,
 };
 
@@ -107,6 +108,40 @@ export function renderDraft(draft) {
     <details><summary>Technical details / JSON</summary><pre>${escapeHtml(JSON.stringify(draft, null, 2))}</pre></details>`;
 }
 
+export function renderIdentityCase(identityCase) {
+  const candidate = identityCase.candidate_snapshot;
+  const mandate = candidate.profile.mandates?.[0];
+  const birthPlace = candidate.identity.birth_place?.city || "Not provided";
+  const suggestions = identityCase.possible_matches || [];
+  return `
+    <div class="identity-layout">
+      <div class="identity-summary">
+        <h3 class="profile-name">${escapeHtml(identityCase.candidate_display_name)}</h3>
+        <p>${escapeHtml(mandate?.mandate_type || "Role not provided")}</p>
+        <div class="profile-grid">
+          <div class="data-point"><small>Source</small><strong>${escapeHtml(identityCase.source.name)}</strong></div>
+          <div class="data-point"><small>Birth date</small><strong>${escapeHtml(candidate.identity.birth_date || "Not provided")}</strong></div>
+          <div class="data-point"><small>Birth place</small><strong>${escapeHtml(birthPlace)}</strong></div>
+          <div class="data-point"><small>Case</small><strong>#${escapeHtml(identityCase.id)} · ${escapeHtml(titleCase(identityCase.status))}</strong></div>
+        </div>
+        <div class="section-rule"></div>
+        <a href="${escapeHtml(identityCase.official_source_url)}" target="_blank" rel="noreferrer">Open official profile</a>
+      </div>
+      <div>
+        <div class="subheading"><h3>Possible existing politicians</h3><span>Suggestions only</span></div>
+        <div class="possible-match-list">
+          ${suggestions.length ? suggestions.map((match) => `
+            <div class="possible-match">
+              <strong>#${escapeHtml(match.politician.id)} · ${escapeHtml(match.politician.given_name)} ${escapeHtml(match.politician.family_name)}</strong>
+              <small>Birth: ${escapeHtml(match.politician.birth_date || "Not provided")} · ${escapeHtml(match.signals.map(titleCase).join(", "))}</small>
+            </div>`).join("") : "<p>No conservative same-name suggestion is available. The editor may create a new identity or leave the case unresolved.</p>"}
+        </div>
+      </div>
+    </div>
+    ${identityCase.reviewer_identity ? `<details open><summary>Resolution audit</summary><p><strong>${escapeHtml(identityCase.reviewer_identity)}</strong> · ${escapeHtml(identityCase.resolved_at)}</p><p>${escapeHtml(identityCase.resolution_note || "No note")}</p></details>` : ""}
+    <details><summary>Technical details / JSON</summary><pre>${escapeHtml(JSON.stringify(identityCase, null, 2))}</pre></details>`;
+}
+
 export function createApiClient(baseUrl, token, fetchImpl = fetch) {
   const base = baseUrl.replace(/\/$/, "");
   async function request(path, { method = "GET", admin = false, body } = {}) {
@@ -146,6 +181,23 @@ export function createApiClient(baseUrl, token, fetchImpl = fetch) {
       method: "POST",
       admin: true,
       body: { note: "Evidence rejected during demo" },
+    }),
+    identityCases: () => request("/admin/identity-resolution?limit=1", { admin: true }),
+    identityCase: (id) => request(`/admin/identity-resolution/${id}`, { admin: true }),
+    resolveIdentityExisting: (id, politicianId) => request(`/admin/identity-resolution/${id}/resolve-existing`, {
+      method: "POST",
+      admin: true,
+      body: { politician_id: politicianId, note: "Official identity manually verified during demo" },
+    }),
+    resolveIdentityNew: (id) => request(`/admin/identity-resolution/${id}/resolve-new`, {
+      method: "POST",
+      admin: true,
+      body: { note: "Editor confirmed a distinct political identity during demo" },
+    }),
+    ignoreIdentity: (id) => request(`/admin/identity-resolution/${id}/ignore`, {
+      method: "POST",
+      admin: true,
+      body: { note: "Insufficient evidence for identity resolution during demo" },
     }),
   };
 }
@@ -214,8 +266,33 @@ function render() {
     byId("new-public-profile").className = "card-body published-reveal";
     byId("new-public-profile").innerHTML = renderPublishedProfile(state.newlyPublished);
   }
+  renderIdentityResolution();
   updateWorkflow();
   updateControls();
+}
+
+function renderIdentityResolution() {
+  const identityCase = state.identityCase;
+  if (!identityCase) {
+    byId("identity-status").className = "badge badge-muted";
+    byId("identity-status").textContent = "No cases";
+    byId("identity-case").className = "card-body empty-state";
+    byId("identity-case").innerHTML = "<p>No identity-resolution case is available.</p>";
+    return;
+  }
+  const terminal = identityCase.status !== "pending";
+  const style = terminal
+    ? identityCase.status === "ignored" ? "badge-muted" : "badge-approved"
+    : "badge-pending";
+  byId("identity-status").className = `badge ${style}`;
+  byId("identity-status").textContent = titleCase(identityCase.status);
+  byId("identity-case").className = "card-body";
+  byId("identity-case").innerHTML = renderIdentityCase(identityCase);
+  const selection = byId("identity-politician");
+  selection.innerHTML = '<option value="">No suggestion selected</option>'
+    + identityCase.possible_matches.map((match) => (
+      `<option value="${escapeHtml(match.politician.id)}">#${escapeHtml(match.politician.id)} · ${escapeHtml(match.politician.given_name)} ${escapeHtml(match.politician.family_name)}</option>`
+    )).join("");
 }
 
 function updateWorkflow() {
@@ -242,6 +319,12 @@ function updateControls() {
   byId("start-review").disabled = state.busy || status !== "pending";
   byId("approve").disabled = state.busy || final || !["pending", "in_review"].includes(status);
   byId("reject").disabled = state.busy || final || !["pending", "in_review"].includes(status);
+  const identityPending = state.identityCase?.status === "pending";
+  const selection = byId("identity-politician");
+  selection.disabled = state.busy || !identityPending || !state.identityCase?.possible_matches?.length;
+  byId("identity-link").disabled = state.busy || !identityPending || !selection.value;
+  byId("identity-create").disabled = state.busy || !identityPending;
+  byId("identity-ignore").disabled = state.busy || !identityPending;
 }
 
 async function loadDemo() {
@@ -251,15 +334,46 @@ async function loadDemo() {
   setBusy(true);
   try {
     await api.health();
-    [state.published, state.draft, state.newlyPublished] = await Promise.all([
+    const [published, draft, newlyPublished, identityCases] = await Promise.all([
       api.publicPolitician(DEMO.publishedPoliticianId),
       api.draft(DEMO.pendingDraftId),
       publicOrNull(api, DEMO.pendingPoliticianId),
+      api.identityCases(),
     ]);
+    state.published = published;
+    state.draft = draft;
+    state.newlyPublished = newlyPublished;
+    state.identityCase = identityCases.items[0]
+      ? await api.identityCase(identityCases.items[0].id)
+      : null;
     setConnection(true, "API connected");
     render();
   } catch (error) {
     setConnection(false, error.status === 401 ? "Admin unauthorized" : "API unavailable");
+    showNotice(error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function performIdentityAction(action, successMessage) {
+  if (!state.identityCase) return;
+  const api = createApiClient(state.apiBase, DEMO.adminToken);
+  const caseId = state.identityCase.id;
+  setBusy(true);
+  try {
+    if (action === "resolveIdentityExisting") {
+      const politicianId = Number(byId("identity-politician").value);
+      if (!politicianId) throw new Error("Select a possible Politician first.");
+      await api.resolveIdentityExisting(caseId, politicianId);
+    } else {
+      await api[action](caseId);
+    }
+    state.identityCase = await api.identityCase(caseId);
+    render();
+    showNotice(successMessage);
+  } catch (error) {
+    if (error.status === 409) await loadDemo();
     showNotice(error.message, true);
   } finally {
     setBusy(false);
@@ -293,6 +407,22 @@ function boot() {
     || "http://127.0.0.1:8000";
   byId("api-base").value = configured;
   byId("reconnect").addEventListener("click", loadDemo);
+  byId("identity-politician").addEventListener("change", updateControls);
+  byId("identity-link").addEventListener("click", () => {
+    if (window.confirm("Link this official identity to the selected Politician?")) {
+      performIdentityAction("resolveIdentityExisting", "Identity linked to the existing Politician.");
+    }
+  });
+  byId("identity-create").addEventListener("click", () => {
+    if (window.confirm("Create a new Politician from this official identity?")) {
+      performIdentityAction("resolveIdentityNew", "New Politician identity created.");
+    }
+  });
+  byId("identity-ignore").addEventListener("click", () => {
+    if (window.confirm("Mark this identity case ignored without linking it?")) {
+      performIdentityAction("ignoreIdentity", "Identity case marked ignored.");
+    }
+  });
   byId("start-review").addEventListener("click", () => performAction("startReview", "Draft moved to in review."));
   byId("approve").addEventListener("click", () => {
     if (window.confirm("Approve Draft 2 and publish an immutable public version?")) {

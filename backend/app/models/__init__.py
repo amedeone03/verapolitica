@@ -1,4 +1,9 @@
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
+from backend.app.models.identity_resolution_case import (
+    IdentityResolutionCase,
+    IdentityResolutionStatus,
+    ImmutableIdentityResolutionSnapshotError,
+)
 from backend.app.models.politician import Politician
 from backend.app.models.politician_source_identifier import PoliticianSourceIdentifier
 from backend.app.models.politician_version import (
@@ -25,6 +30,9 @@ from backend.app.models.source import Source
 __all__ = [
     "Evidence",
     "EvidenceExtractionMethod",
+    "IdentityResolutionCase",
+    "IdentityResolutionStatus",
+    "ImmutableIdentityResolutionSnapshotError",
     "ImmutablePoliticianVersionError",
     "ImmutablePoliticianVersionCitationError",
     "ImmutableReviewError",

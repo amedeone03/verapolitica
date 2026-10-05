@@ -9,6 +9,8 @@ from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.main import create_app
 from backend.app.models import (
     Evidence,
+    IdentityResolutionCase,
+    IdentityResolutionStatus,
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
@@ -39,6 +41,9 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert summary.pending_name == "Luca Bianchi"
     assert summary.pending_status is ProfileDraftStatus.PENDING
     assert summary.pending_evidence_count == 14
+    assert summary.identity_resolution_case_id == 1
+    assert summary.identity_resolution_name == "Carlo Verdi"
+    assert summary.identity_resolution_status is IdentityResolutionStatus.PENDING
 
     app = create_app(
         Settings(
@@ -95,6 +100,9 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
     factory = create_session_factory(engine)
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(Politician)) == 2
+        assert session.scalar(
+            select(func.count()).select_from(IdentityResolutionCase)
+        ) == 1
         assert session.scalar(select(func.count()).select_from(ProfileDraft)) == 2
         assert session.scalar(select(func.count()).select_from(PoliticianVersion)) == 1
         assert session.scalar(select(func.count()).select_from(Review)) == 1
@@ -110,6 +118,9 @@ def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path
             ProfileDraftStatus.PENDING
         )
         assert session.get(Politician, second.pending_politician_id).current_version_id is None
+        assert session.get(
+            IdentityResolutionCase, second.identity_resolution_case_id
+        ).status is IdentityResolutionStatus.PENDING
     engine.dispose()
 
 

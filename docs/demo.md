@@ -5,6 +5,7 @@ This demonstration is deterministic and network-free. It uses only:
 - `data/demo/verapolitica_demo.db`
 - `data/demo/raw/`
 - the local fixture `data/fixtures/demo/senato_demo.json`
+- the local fixture `data/fixtures/governo/governo_office_holders.json`
 
 The reset code validates those paths before removing anything. It never reads,
 modifies, or resets the normal development database or raw storage.
@@ -25,6 +26,8 @@ Expected opening state:
 
 - Anna Rossi — Politician 1, published version 1, 14 public citation references.
 - Luca Bianchi — Politician 2, not public, with pending Draft 2 and 14 Evidence rows.
+- Carlo Verdi — pending Identity Resolution Case 1 from the Governo fixture; no
+  Politician is created automatically.
 
 Open these tabs before presenting:
 
@@ -64,9 +67,11 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
    external link is optional and is the only part that requires internet access.
 4. **Show the publication boundary.** Return to the archive: Luca Bianchi is absent
    because identity creation alone does not make a profile public.
-5. **Enter the editorial workspace.** Switch to `/demo/`. Anna is already
-   Published · Verified; Luca has a Pending proposal. Show Luca's readable diff and
-   field-level supporting Evidence.
+5. **Enter the editorial workspace.** Switch to `/demo/`. First show Carlo's
+   Identity Resolution section: the official source lacks a birth date, so VeraPolitica
+   presents explicit create/link/ignore actions instead of matching on name alone.
+   Then show that Anna is already Published · Verified and Luca has a Pending
+   proposal with a readable diff and field-level supporting Evidence.
 6. **Start human review.** Select **Start review**. Point out the visible transition
    from Pending to In review and the updated controls. No final Review record exists
    at this intermediate stage.
@@ -98,6 +103,7 @@ Editorial sequence using bearer token `verapolitica-demo-admin`:
 GET  /admin/drafts/2
 POST /admin/drafts/2/start-review
 POST /admin/drafts/2/approve
+GET  /admin/identity-resolution/1
 ```
 
 Before approval, `GET /politicians/2` returns 404. After approval, it returns Luca's
@@ -119,8 +125,8 @@ python -m scripts.prepare_demo
 ```
 
 After reset, reload `/app/` and `/demo/`. Anna is public, Luca is absent from the
-citizen archive, and Draft 2 is Pending again. There is deliberately no browser
-reset control or reset API.
+citizen archive, Draft 2 is Pending, and Identity Resolution Case 1 is Pending
+again. There is deliberately no browser reset control or reset API.
 
 ## Language and terminology
 

@@ -5,12 +5,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.models import (
     EvidenceExtractionMethod,
+    IdentityResolutionStatus,
     ProfileDraftKind,
     ProfileDraftStatus,
     ReviewDecision,
 )
+from backend.app.schemas.candidate_profile import CandidateProfile
 from backend.app.schemas.diff import ProfileDiff
-from backend.app.schemas.politician import PoliticianVersionProfile
+from backend.app.schemas.politician import MatchingResult, PoliticianVersionProfile
 
 
 class AdminAPISchema(BaseModel):
@@ -126,3 +128,69 @@ class DraftDetailResponse(AdminAPISchema):
     baseline_version: PoliticianVersionContext | None
     current_version: PoliticianVersionContext | None
     final_review: FinalReviewResponse | None
+
+
+class IdentityResolutionNoteRequest(AdminAPISchema):
+    note: str | None = Field(default=None, max_length=5000)
+
+
+class ResolveExistingIdentityRequest(IdentityResolutionNoteRequest):
+    politician_id: int = Field(gt=0)
+
+
+class IdentityResolutionSourceResponse(AdminAPISchema):
+    id: int
+    key: str
+    name: str
+
+
+class IdentitySourceIdentifierResponse(AdminAPISchema):
+    authority: str
+    value: str
+
+
+class PossiblePoliticianMatchResponse(AdminAPISchema):
+    politician: PoliticianSummary
+    signals: tuple[str, ...]
+    source_identifiers: tuple[IdentitySourceIdentifierResponse, ...]
+
+
+class IdentityResolutionListItem(AdminAPISchema):
+    id: int
+    status: IdentityResolutionStatus
+    candidate_display_name: str
+    source: IdentityResolutionSourceResponse
+    source_identifier: str
+    official_source_url: str
+    current_role: str | None
+    birth_date: date | None
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None
+    resolved_politician_id: int | None
+
+
+class IdentityResolutionListResponse(AdminAPISchema):
+    items: tuple[IdentityResolutionListItem, ...]
+    total: int
+    offset: int
+    limit: int
+
+
+class IdentityResolutionDetailResponse(AdminAPISchema):
+    id: int
+    status: IdentityResolutionStatus
+    candidate_display_name: str
+    candidate_snapshot: CandidateProfile
+    matching_result: MatchingResult
+    source: IdentityResolutionSourceResponse
+    raw_document_id: int
+    source_identifier: str
+    official_source_url: str
+    possible_matches: tuple[PossiblePoliticianMatchResponse, ...]
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None
+    resolved_politician_id: int | None
+    reviewer_identity: str | None
+    resolution_note: str | None

@@ -30,6 +30,8 @@ def test_demo_ui_shell_and_rendering_assets_are_served(tmp_path):
     assert "Pending proposal" in page.text
     assert "Start review" in page.text
     assert "Approve &amp; publish" in page.text
+    assert "Identity resolution" in page.text
+    assert "Create new politician" in page.text
     assert styles.status_code == 200
     assert ".workflow-panel" in styles.text
     assert script.status_code == 200
@@ -37,6 +39,8 @@ def test_demo_ui_shell_and_rendering_assets_are_served(tmp_path):
     assert "renderDraft" in script.text
     assert "/start-review" in script.text
     assert "/approve" in script.text
+    assert "renderIdentityCase" in script.text
+    assert "/admin/identity-resolution" in script.text
 
 
 def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
@@ -44,6 +48,7 @@ def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
     with demo_client(tmp_path) as client:
         published = client.get("/politicians/1")
         draft = client.get("/admin/drafts/2", headers=headers)
+        identity_case = client.get("/admin/identity-resolution/1", headers=headers)
         before = client.get("/politicians/2")
         started = client.post("/admin/drafts/2/start-review", headers=headers)
         approved = client.post(
@@ -58,6 +63,8 @@ def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
     assert draft.status_code == 200
     assert draft.json()["status"] == "pending"
     assert len(draft.json()["evidence"]) == 14
+    assert identity_case.status_code == 200
+    assert identity_case.json()["candidate_display_name"] == "Carlo Verdi"
     assert before.status_code == 404
     assert started.status_code == 200
     assert started.json()["final_draft_status"] == "in_review"

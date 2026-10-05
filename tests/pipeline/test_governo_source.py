@@ -134,6 +134,7 @@ def test_mapper_outputs_generic_profile_and_exact_page_provenance():
 
     assert candidate.identity.given_name == "Mario"
     assert candidate.identity.family_name == "Rossi"
+    assert candidate.identity.display_name == "Mario Rossi"
     assert candidate.identity.birth_date == date(1970, 1, 1)
     assert candidate.identity.source_identifiers[0].authority == "governo-italiano"
     assert candidate.profile.profession is None

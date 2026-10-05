@@ -7,16 +7,17 @@ meaningful changes are detected with canonical normalized hashes. Changed record
 are mapped deterministically into transient CandidateProfile objects. The domain includes
 stable Politician identities, generic official-source identifiers, immutable
 PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
-explicit bootstrap command for initial identity creation. Matched candidates can
+explicit bootstrap command for initial identity creation. Unsafe or ambiguous
+identity results are persisted as human-reviewable IdentityResolutionCases. Matched candidates can
 now be compared with their current version and persisted as reviewable ProfileDrafts
 with field-level Evidence. Explicit human decisions can reject a draft or atomically
 publish it as a new immutable PoliticianVersion.
 
-It does not perform LLM extraction, citizen authentication, or frontend rendering.
-CandidateProfiles are not persisted, normal ingestion never creates Politicians,
+It does not perform LLM extraction or citizen authentication.
+CandidateProfiles remain transient and normal ingestion never creates Politicians,
 and matching and diffing never mutate the database. A separate transactional
 identity service may attach a newly discovered official identifier after one safe
-deterministic match. Publication is only available
+deterministic match or an explicit human identity decision. Publication is only available
 through an explicit review action. The read-only public API exposes only the
 immutable version selected by a Politician's current-version pointer.
 
@@ -50,8 +51,8 @@ python -m scripts.run_ingestion --source governo
 By default this creates `data/verapolitica.db` and stores immutable raw payloads
 under `data/raw/`. The command prints the RawDocument ID, both hashes, change result,
 storage key, and collector/parser versions.
-The output also reports how many CandidateProfiles were produced. Unchanged source
-data produces zero candidates.
+The output also reports how many CandidateProfiles and identity-resolution cases
+were produced. Unchanged source data produces zero candidates and no new cases.
 
 Camera ingestion uses the official Camera open-data SPARQL endpoint and maps current
 XIX-legislature deputies. Camera-specific RDF bindings remain inside its collector,
@@ -68,12 +69,35 @@ Drupal node shortlink when present, falling back to the canonical profile URL.
 The Governo adapter maps offices, institutions, appointment dates, official image
 and profile URLs, and birth data only when the biography states it explicitly. It
 does not infer professions from prose. Most current profiles do not publish a birth
-date, so those candidates cannot safely use name-plus-birth-date fallback matching;
-bootstrap reports them as invalid rather than creating possible duplicate people.
+date, so those candidates cannot safely use name-plus-birth-date fallback matching.
+Routine candidate processing creates or reuses a human identity-resolution case;
+bootstrap still reports them as invalid rather than creating possible duplicate people.
 Exact official identifiers continue to match normally. The adapter also groups
 multiple official pages with the same displayed name into one candidate and retains
 all of their identifiers and mandates; exact-name grouping and simple displayed-name
 splitting are known MVP limitations.
+
+## Resolve incomplete or ambiguous identities
+
+Automatic identity resolution remains limited to an exact official source identifier
+or normalized full name plus exact birth date. It never links on name alone.
+
+An `uncertain` result, or a candidate without the birth date required for fallback,
+creates one durable `IdentityResolutionCase`. The deduplication key is the Source row
+plus the candidate's lexically first official identifier for that source. Repeated
+processing reuses the same case and preserves its original CandidateProfile snapshot.
+A complete candidate with no match remains in the existing explicit bootstrap path.
+
+Authenticated editors can inspect conservative same-name suggestions and then:
+
+- link the case to an existing Politician;
+- explicitly authorize creation of a new Politician;
+- mark the case ignored without attaching an identifier.
+
+Linking and creation attach every identifier from the stored candidate through the
+same PoliticianIdentityService validation used by automatic linking. Identifier
+attachment and the terminal case decision share one transaction. Terminal cases
+cannot be decided again, and identity-resolution data is never exposed publicly.
 
 ## Bootstrap politician identities
 
@@ -184,10 +208,15 @@ curl http://127.0.0.1:8000/health
 curl \
   -H "Authorization: Bearer $VERAPOLITICA_ADMIN_API_KEY" \
   http://127.0.0.1:8000/admin/drafts
+
+curl \
+  -H "Authorization: Bearer $VERAPOLITICA_ADMIN_API_KEY" \
+  http://127.0.0.1:8000/admin/identity-resolution
 ```
 
-The API exposes draft listing, detail, start-review, approval, and rejection. Route
-handlers delegate final actions to ReviewService and PublishService.
+The API exposes draft review plus identity-resolution listing, detail, link-existing,
+create-new, and ignore actions. Reviewer identity always comes from authenticated
+server context. Route handlers delegate transactions to the corresponding services.
 
 ## Read the Public API
 
@@ -218,7 +247,7 @@ python -m pytest
 ```
 
 Tests use temporary SQLite databases, mocked HTTP, deterministic fixtures, and
-temporary raw storage. They do not call live Senato or Camera endpoints.
+temporary raw storage. They do not call live Senato, Camera, or Governo endpoints.
 
 ## Continuous integration
 
@@ -270,6 +299,7 @@ It always recreates these stable IDs:
 
 - Published profile: Politician 1, Anna Rossi, version 1, 14 citations.
 - Pending review: Draft 2 for Politician 2, Luca Bianchi, 14 Evidence rows.
+- Pending identity resolution: Case 1 for the Governo fixture's Carlo Verdi.
 
 Start FastAPI against the demo state:
 

@@ -96,6 +96,7 @@ class SenatoCandidateProfileMapper:
             )
             return CandidateProfile(
                 identity=CandidateIdentity(
+                    display_name=f"{given_name} {family_name}".strip(),
                     given_name=given_name,
                     family_name=family_name,
                     birth_date=birth_date,

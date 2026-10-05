@@ -26,6 +26,7 @@ class SourceIdentifier(ImmutableSchema):
 
 
 class CandidateIdentity(ImmutableSchema):
+    display_name: str | None = None
     given_name: str
     family_name: str
     birth_date: date | None = None

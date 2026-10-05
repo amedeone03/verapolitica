@@ -8,6 +8,12 @@ from backend.app.services import (
     DraftNotFoundError,
     DraftNotReviewableError,
     InvalidDraftError,
+    IdentityResolutionCaseNotFoundError,
+    IdentityResolutionConflictError,
+    IdentityResolutionInputError,
+    IdentityResolutionPersistenceError,
+    IdentityResolutionServiceError,
+    IdentityResolutionStateError,
     PublishConflictError,
     PublishPersistenceError,
     PublishServiceError,
@@ -108,6 +114,39 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     app.add_exception_handler(DraftNotFoundError, not_found_handler)
+
+    async def identity_not_found_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            code="identity_resolution_not_found",
+            message=str(exc),
+        )
+
+    async def identity_input_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="invalid_identity_resolution_input",
+            message=str(exc),
+        )
+
+    async def identity_conflict_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            code="identity_resolution_conflict",
+            message=str(exc),
+        )
+
+    app.add_exception_handler(
+        IdentityResolutionCaseNotFoundError, identity_not_found_handler
+    )
+    app.add_exception_handler(IdentityResolutionInputError, identity_input_handler)
+    app.add_exception_handler(IdentityResolutionStateError, identity_conflict_handler)
+    app.add_exception_handler(
+        IdentityResolutionConflictError, identity_conflict_handler
+    )
     for exception_type in (
         DraftNotReviewableError,
         StaleDraftError,
@@ -119,8 +158,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ReviewInputError, input_handler)
     for exception_type in (PublishPersistenceError, ReviewPersistenceError):
         app.add_exception_handler(exception_type, persistence_handler)
+    app.add_exception_handler(IdentityResolutionPersistenceError, persistence_handler)
     app.add_exception_handler(PublishServiceError, conflict_handler)
     app.add_exception_handler(ReviewServiceError, conflict_handler)
+    app.add_exception_handler(IdentityResolutionServiceError, identity_conflict_handler)
     app.add_exception_handler(Exception, internal_handler)
 
 

@@ -90,8 +90,9 @@ draft's Evidence. The response may therefore contain separate entries naming
 Senato della Repubblica and Camera dei Deputati when both support the current
 version; source names are never collapsed.
 
-Public responses deliberately omit ProfileDrafts, internal Evidence, Reviews, reviewer
-identity, review notes, hashes, storage paths, and supersession data. A curated
+Public responses deliberately omit ProfileDrafts, IdentityResolutionCases, internal
+Evidence, Reviews, reviewer identity, review notes, hashes, storage paths, and
+supersession data. A curated
 public citation exposes only field path, readable source name, public source URL,
 and source field.
 
@@ -235,3 +236,66 @@ Optional body:
 
 Delegates exclusively to `ReviewService.reject`. `created_version_id` and
 `version_number` are null; the current-version pointer is unchanged.
+
+## Identity-resolution Admin API
+
+These endpoints use the same router-level bearer authentication as draft routes.
+Reviewer identity comes only from `VERAPOLITICA_ADMIN_REVIEWER_IDENTITY`; request
+bodies cannot provide or override it.
+
+### `GET /admin/identity-resolution`
+
+Supported query parameters:
+
+- `status`: `pending`, `resolved_existing`, `resolved_new`, or `ignored`
+- `source_key`: configured official Source key
+- `offset`: non-negative integer, default 0
+- `limit`: 1–100, default 50
+
+Pending cases sort first. Each item includes its exact display name, Source,
+primary official identifier, official profile URL, current role, available birth
+date, status, timestamps, and resolved Politician ID when terminal.
+
+### `GET /admin/identity-resolution/{case_id}`
+
+Returns the complete validated CandidateProfile snapshot, original matching result,
+Source and RawDocument references, official URL, terminal audit fields, and possible
+existing Politicians. Possible matches are read-only same-name or original-ambiguity
+suggestions; their presence never performs or authorizes a link. Raw HTML is omitted.
+
+### `POST /admin/identity-resolution/{case_id}/resolve-existing`
+
+```json
+{
+  "politician_id": 42,
+  "note": "Official profiles compared"
+}
+```
+
+The service verifies the pending state and target Politician, transactionally
+attaches every candidate source identifier, and records `resolved_existing`.
+
+### `POST /admin/identity-resolution/{case_id}/resolve-new`
+
+Optional body:
+
+```json
+{"note": "Editor confirmed a distinct person"}
+```
+
+Creates one Politician from the available structured identity fields, attaches all
+official identifiers, and records `resolved_new` in one transaction. This human
+action is the authorization; missing birth data never triggers automatic creation.
+
+### `POST /admin/identity-resolution/{case_id}/ignore`
+
+Optional body:
+
+```json
+{"note": "Evidence is insufficient"}
+```
+
+Records a terminal `ignored` decision. It creates no Politician and attaches no
+identifier. Every second terminal action returns 409. Missing cases return 404,
+invalid input returns 422, ownership/concurrent conflicts return 409, and persistence
+failures return a sanitized 500 response.

@@ -10,7 +10,8 @@ official source (Senato, Camera, or Governo)
   -> canonical normalized hash and change detection
   -> source-specific mapper
   -> transient CandidateProfiles when changed
-  -> generic matching, diff, Evidence, review, publication, and public API
+  -> generic automatic matching or human identity resolution
+  -> diff, Evidence, review, publication, and public API
 ```
 
 Camera, Senato, and Governo share no source-specific domain fields. Each adapter translates
@@ -59,7 +60,36 @@ typed conflict, and database integrity failures roll back the entire attachment.
 The existing schema permits several identifier values from the same Source for one
 Politician; the service preserves that capability and never overwrites a value.
 
-Normal ingestion stops there. It never creates or changes Politicians.
+Unsafe automatic results enter a separate generic human boundary:
+
+```text
+CandidateProfile
+  -> MatchingService (unchanged and read-only)
+  -> uncertain OR insufficient_fallback_identity
+  -> HumanIdentityResolutionCoordinator
+  -> create/reuse persistent IdentityResolutionCase
+  -> authenticated editor chooses:
+       link existing -> attach identifiers + resolve in one transaction
+       create new    -> create Politician + identifiers + resolve in one transaction
+       ignore        -> terminal audited case, no identity mutation
+```
+
+Complete candidates with no deterministic match retain the existing explicit
+bootstrap path; they do not create a manual case merely because they are new.
+Name-only lookup is used only to display conservative suggestions to an editor and
+never changes MatchingService output or database state.
+
+Case deduplication uses `(source_id, primary_source_identifier)`, where the primary
+identifier is the lexically first distinct identifier belonging to the candidate's
+document Source. The initial full CandidateProfile, matching result, exact official
+display name, and RawDocument reference are persisted as an immutable audit snapshot.
+Repeated ingestion reuses the case instead of replacing that snapshot.
+
+Normal ingestion may append a safely matched source identifier or persist a manual
+case. It never creates a Politician automatically, creates no profile version, and
+does not publish anything. Manual link/create operations reuse the validation and
+write primitive in PoliticianIdentityService while sharing the case service's outer
+transaction. An identifier conflict rolls back both identity and case changes.
 
 Initial identity population is an explicit operator path:
 
@@ -194,6 +224,12 @@ Write endpoints remain thin:
 POST start-review -> ReviewService.start_review
 POST reject       -> ReviewService.reject
 POST approve      -> PublishService.approve
+POST identity-resolution/{id}/resolve-existing
+                  -> IdentityResolutionService.resolve_to_existing
+POST identity-resolution/{id}/resolve-new
+                  -> IdentityResolutionService.resolve_as_new
+POST identity-resolution/{id}/ignore
+                  -> IdentityResolutionService.ignore
 ```
 
 They receive the configured session factory through dependency injection. Services
