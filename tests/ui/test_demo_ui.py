@@ -44,6 +44,7 @@ def test_demo_ui_shell_and_rendering_assets_are_served(tmp_path):
     assert "Proposal status update" in page.text
     assert "/admin/proposals/drafts" in script.text
     assert "renderProposalReview" in script.text
+    assert "AI-assisted draft" in script.text
 
 
 def test_demo_ui_api_flow_moves_pending_profile_to_public(tmp_path):
@@ -94,6 +95,8 @@ def test_demo_ui_reviews_proposal_status_before_public_timeline_changes(tmp_path
 
     assert before.json()["current_status"] == "introduced"
     assert draft.json()["proposed"]["normalized_status"] == "under_review"
+    assert draft.json()["ai_assistance"]["provider"] == "fake"
+    assert draft.json()["ai_assistance"]["prompt_version"] == "proposal_extraction_v1"
     assert started.json()["final_draft_status"] == "in_review"
     assert approved.json()["final_draft_status"] == "approved"
     assert after.json()["current_status"] == "under_review"

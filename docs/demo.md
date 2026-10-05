@@ -6,6 +6,7 @@ This demonstration is deterministic and network-free. It uses only:
 - `data/demo/raw/`
 - the local fixture `data/fixtures/demo/senato_demo.json`
 - the local fixture `data/fixtures/governo/governo_office_holders.json`
+- synthetic AI audit metadata and evidence created by `scripts.prepare_demo`
 
 The reset code validates those paths before removing anything. It never reads,
 modifies, or resets the normal development database or raw storage.
@@ -36,7 +37,8 @@ Expected opening state:
   Politician is created automatically.
 - One clearly synthetic proposal linked to Anna is public with an `introduced`
   timeline event. Proposal Draft 2 contains a pending synthetic transition to
-  `under_review`; the public timeline remains unchanged until editorial approval.
+  `under_review` and is marked as an AI-assisted draft using the deterministic fake
+  provider. The public timeline remains unchanged until editorial approval.
 
 Open these tabs before presenting:
 
@@ -97,7 +99,9 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
     approved profile, 14 verified data references, and the grouped Senato link.
 11. **Review a proposal transition.** Open `/app/?view=proposals`, then the Proposal
     status update card in `/demo/`. The original official label and normalized
-    status appear together. Approve it and refresh the public proposal: the second
+    status appear together. Show the internal AI provider/prompt metadata and short
+    validated excerpt; note that citizens do not see model confidence or prompts.
+    Approve it and refresh the public proposal: the second
     immutable timeline event appears only after review. Emphasize that the demo
     proposal is synthetic and is not presented as a real political fact.
 

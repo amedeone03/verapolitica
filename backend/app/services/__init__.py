@@ -88,6 +88,14 @@ from backend.app.services.proposal_service import (
     ProposalServiceError,
     ProposalValidationError,
 )
+from backend.app.services.proposal_extraction_service import (
+    ActorIdentityHint,
+    ProposalExtractionError,
+    ProposalExtractionInputError,
+    ProposalExtractionProviderFailure,
+    ProposalExtractionService,
+    ProposalExtractionSummary,
+)
 from backend.app.services.proposal_review_service import (
     ProposalDraftNotFoundError,
     ProposalDraftNotReviewableError,
@@ -100,6 +108,7 @@ from backend.app.services.proposal_review_service import (
 from backend.app.services.public_proposal_service import PublicProposalQueryService
 
 __all__ = [
+    "ActorIdentityHint",
     "BootstrapApplyError",
     "BootstrapBlockedError",
     "BootstrapConflictError",
@@ -145,6 +154,11 @@ __all__ = [
     "PublicPoliticianQueryService",
     "PublicProposalQueryService",
     "ProposalConflictError",
+    "ProposalExtractionError",
+    "ProposalExtractionInputError",
+    "ProposalExtractionProviderFailure",
+    "ProposalExtractionService",
+    "ProposalExtractionSummary",
     "ProposalPersistenceError",
     "ProposalService",
     "ProposalServiceError",

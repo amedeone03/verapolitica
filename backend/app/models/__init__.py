@@ -1,3 +1,11 @@
+from backend.app.models.ai_extraction import (
+    AIExtractionCandidate,
+    AIExtractionCandidateEvidence,
+    AIExtractionCandidateStatus,
+    AIExtractionRun,
+    AIExtractionRunStatus,
+    DocumentChunk,
+)
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
 from backend.app.models.identity_resolution_case import (
     IdentityResolutionCase,
@@ -57,6 +65,12 @@ from backend.app.models.profile_draft import (
 from backend.app.models.source import Source
 
 __all__ = [
+    "AIExtractionCandidate",
+    "AIExtractionCandidateEvidence",
+    "AIExtractionCandidateStatus",
+    "AIExtractionRun",
+    "AIExtractionRunStatus",
+    "DocumentChunk",
     "Evidence",
     "EvidenceExtractionMethod",
     "IdentityResolutionCase",

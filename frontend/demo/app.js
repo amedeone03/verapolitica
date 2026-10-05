@@ -288,11 +288,20 @@ function render() {
 function renderProposalReview() {
   if (!state.proposal || !state.proposalDraft) return;
   const draft = state.proposalDraft;
+  const ai = draft.ai_assistance;
   const [label, style] = badgeForDraft(draft.status);
   byId("proposal-review-status").className = `badge ${style}`;
   byId("proposal-review-status").textContent = label;
   byId("proposal-review-body").className = "card-body";
-  byId("proposal-review-body").innerHTML = `<div class="proposal-review-grid">
+  byId("proposal-review-body").innerHTML = `${ai ? `<div class="subheading"><h3>AI-assisted draft</h3><span>Human approval required</span></div>
+    <div class="profile-grid">
+      <div class="data-point"><small>Provider / model</small><strong>${escapeHtml(ai.provider)} · ${escapeHtml(ai.model)}</strong></div>
+      <div class="data-point"><small>Prompt version</small><strong>${escapeHtml(ai.prompt_version)}</strong></div>
+      <div class="data-point"><small>Classification</small><strong>${escapeHtml(titleCase(draft.proposed.proposal_type))}</strong></div>
+      <div class="data-point"><small>Confidence metadata</small><strong>${escapeHtml(titleCase(ai.confidence || "not provided"))}</strong></div>
+    </div>
+    <div class="evidence-list">${ai.evidence.map((item) => `<div class="evidence"><strong>Validated excerpt · chunk ${escapeHtml(item.chunk_index)}</strong><small>Page ${escapeHtml(item.page || "n/a")}</small><div class="evidence-value">${escapeHtml(item.supporting_text)}</div></div>`).join("")}</div>
+    <div class="section-rule"></div>` : ""}<div class="proposal-review-grid">
     <div><p class="eyebrow">Currently public</p><h3>${escapeHtml(state.proposal.title)}</h3><p><strong>${escapeHtml(titleCase(state.proposal.current_status))}</strong> · ${state.proposal.status_history.length} published timeline event${state.proposal.status_history.length === 1 ? "" : "s"}</p></div>
     <div><p class="eyebrow">Proposed transition</p><h3>${escapeHtml(titleCase(draft.proposed.normalized_status))}</h3><p>Official label: ${escapeHtml(draft.proposed.source_status_label)}</p><a href="${escapeHtml(draft.proposed.official_url)}" target="_blank" rel="noopener noreferrer">Inspect official source ↗</a></div>
   </div><details><summary>Evidence and JSON</summary><pre>${escapeHtml(JSON.stringify(draft, null, 2))}</pre></details>`;

@@ -10,6 +10,9 @@ from backend.app.api.deps import (
     get_session_factory,
 )
 from backend.app.models import (
+    AIExtractionCandidate,
+    AIExtractionCandidateEvidence,
+    AIExtractionRun,
     Proposal,
     ProposalDraft,
     ProposalDraftKind,
@@ -17,6 +20,8 @@ from backend.app.models import (
     ProposalEvidence,
 )
 from backend.app.schemas import (
+    AIProposalAssistanceResponse,
+    AIProposalEvidenceResponse,
     AdminPrincipal,
     ProposalDraftDetailResponse,
     ProposalDraftListItem,
@@ -27,6 +32,7 @@ from backend.app.schemas import (
     ProposalReviewResult,
     ProposalReviewStarted,
     ReviewNoteRequest,
+    ExtractedPoliticalClaim,
 )
 from backend.app.services import ProposalDraftNotFoundError, ProposalReviewService
 
@@ -118,6 +124,42 @@ def get_proposal_draft(
     )
     if draft is None:
         raise ProposalDraftNotFoundError(f"ProposalDraft {draft_id} does not exist")
+    ai_candidate = session.scalar(
+        select(AIExtractionCandidate)
+        .where(AIExtractionCandidate.proposal_draft_id == draft.id)
+        .options(
+            selectinload(AIExtractionCandidate.run).selectinload(
+                AIExtractionRun.raw_document
+            ),
+            selectinload(AIExtractionCandidate.evidence).selectinload(
+                AIExtractionCandidateEvidence.chunk
+            ),
+        )
+    )
+    ai_assistance = None
+    if ai_candidate is not None:
+        extracted = ExtractedPoliticalClaim.model_validate(ai_candidate.model_output)
+        ai_assistance = AIProposalAssistanceResponse(
+            extraction_run_id=ai_candidate.run.id,
+            raw_document_id=ai_candidate.run.raw_document_id,
+            source_document_url=ai_candidate.run.raw_document.source_url,
+            provider=ai_candidate.run.provider,
+            model=ai_candidate.run.model,
+            prompt_version=ai_candidate.run.prompt_version,
+            schema_version=ai_candidate.run.schema_version,
+            confidence=extracted.confidence,
+            topic=extracted.topic,
+            abstention_reason=extracted.abstention_reason,
+            evidence=tuple(
+                AIProposalEvidenceResponse(
+                    chunk_index=item.chunk.chunk_index,
+                    page=item.page,
+                    supporting_text=item.supporting_text,
+                    source_url=item.source_url,
+                )
+                for item in ai_candidate.evidence
+            ),
+        )
     return ProposalDraftDetailResponse(
         id=draft.id,
         proposal_id=draft.proposal_id,
@@ -138,6 +180,7 @@ def get_proposal_draft(
             )
             for item in draft.evidence
         ),
+        ai_assistance=ai_assistance,
         final_review=(
             ProposalFinalReviewResponse(
                 id=draft.review.id,

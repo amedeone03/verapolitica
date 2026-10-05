@@ -1,5 +1,44 @@
 # Architecture
 
+## Evidence-grounded AI extraction sidecar
+
+```text
+operator-approved official HTML or text PDF
+  -> immutable RawDocument + raw SHA-256
+  -> deterministic text extraction (no OCR)
+  -> deterministic DocumentChunk rows
+  -> StructuredExtractionProvider
+  -> strict Pydantic schema
+  -> excerpt/chunk/page validation
+  -> transient ProposalObservation
+  -> existing ProposalService
+  -> pending ProposalDraft
+  -> existing human review and publication boundary
+```
+
+Provider-specific behavior is isolated behind `StructuredExtractionProvider`.
+`OpenAIExtractionProvider` uses strict structured output; tests and the demo use
+`FakeExtractionProvider`. Prompts, output schemas, provider/model identity, usage,
+failures, candidates, validation outcomes, and short evidence excerpts are versioned
+and auditable. The provider receives only selected source chunks and never receives
+database credentials, admin secrets, review notes, or identity IDs.
+
+The model cannot supply source URLs or database identities. VeraPolitica injects the
+trusted RawDocument URL, validates every excerpt against the referenced chunk, and
+keeps actor names unresolved unless the existing exact official-identifier logic can
+resolve them. Explicit promises additionally require deterministic commitment
+language and a commitment-owner mention. Confidence is metadata only.
+
+Completed-run idempotency is based on source, raw SHA-256, provider, model, prompt
+version, and schema version. Candidate deduplication is conservative and
+deterministic. Prompt/model/schema changes permit a new audited run; unchanged
+observations remain protected by ProposalService replay identity. Failures and
+abstentions create no draft and are not publication failures.
+
+There are no embeddings, vector indexes, retrievers, RAG framework, chatbot, OCR,
+or automatic publication in this milestone. The chunk/evidence model is reusable by
+a future retrieval layer without changing the current review boundary.
+
 ## Proposal-tracker vertical slice
 
 ```text
@@ -40,7 +79,10 @@ draft state atomically.
 `explicit_promise`. The Senato DDL adapter emits only `legislative_proposal`:
 initiative ownership does not turn a bill into a promise. Explicit promises are
 fixture-only and require exact text, a commitment owner, and official evidence.
-There is no AI, free-text classification, fulfillment scoring, or promise extraction.
+The Senato DDL adapter itself remains deterministic and does not use AI, free-text
+classification, fulfillment scoring, or promise extraction. The separate AI
+sidecar described above can produce reviewable observations from approved official
+unstructured documents without changing this adapter.
 
 Status normalization is an explicit allow-list. Examples: `da assegn. a commis.`
 maps to `introduced`, `assegnato (no esame)` to `assigned`, `esame in comm.` to
@@ -332,8 +374,8 @@ Public:
 Politician.current_version_id -> immutable PoliticianVersion -> Public API
 ```
 
-No authentication UI, LLM, scheduling, or background-worker behavior is part of
-the review and publication path.
+No authentication UI, scheduling, or background-worker behavior is part of the
+review and publication path. AI extraction ends before that existing path.
 
 ## Admin API boundary
 

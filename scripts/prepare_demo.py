@@ -8,6 +8,12 @@ from sqlalchemy import func, select
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import (
+    AIExtractionCandidate,
+    AIExtractionCandidateEvidence,
+    AIExtractionCandidateStatus,
+    AIExtractionRun,
+    AIExtractionRunStatus,
+    DocumentChunk,
     Evidence,
     IdentityResolutionCase,
     IdentityResolutionStatus,
@@ -436,7 +442,75 @@ def _prepare_proposal_example(session_factory) -> tuple[int, int]:
     update = ProposalService(session_factory).sync(
         (make_observation(update_document_id, "under_review", "esame in comm.", 20),)
     )
-    return initial.details[0].proposal_id, update.details[0].draft_id
+    update_draft_id = update.details[0].draft_id
+    evidence_text = "La proposta sarà sottoposta all'esame della commissione."
+    with session_factory() as session:
+        chunk = DocumentChunk(
+            raw_document_id=update_document_id,
+            chunk_index=0,
+            text=evidence_text,
+            page_start=1,
+            page_end=1,
+            char_start=0,
+            char_end=len(evidence_text),
+            chunk_hash="7" * 64,
+        )
+        session.add(chunk)
+        session.flush()
+        run = AIExtractionRun(
+            raw_document_id=update_document_id,
+            provider="fake",
+            model="fake-extraction-v1",
+            prompt_version="proposal_extraction_v1",
+            schema_version="proposal_claim_schema_v1",
+            status=AIExtractionRunStatus.COMPLETED,
+            idempotency_key="8" * 64,
+            completed_idempotency_key="8" * 64,
+            input_chunk_count=1,
+            output_candidate_count=1,
+            completed_at=observed_at,
+        )
+        session.add(run)
+        session.flush()
+        candidate = AIExtractionCandidate(
+            run_id=run.id,
+            candidate_index=0,
+            status=AIExtractionCandidateStatus.ACCEPTED,
+            deduplication_key="9" * 64,
+            model_output={
+                "claim_type": "proposal",
+                "exact_statement": evidence_text,
+                "normalized_title": "Synthetic housing transparency proposal",
+                "summary": None,
+                "topic": "housing",
+                "actor_mentions": [],
+                "announced_at": "2026-01-20",
+                "target_date": None,
+                "evidence": [
+                    {
+                        "chunk_index": 0,
+                        "page": 1,
+                        "supporting_text": evidence_text,
+                    }
+                ],
+                "confidence": "high",
+                "abstention_reason": None,
+            },
+            proposal_draft_id=update_draft_id,
+        )
+        session.add(candidate)
+        session.flush()
+        session.add(
+            AIExtractionCandidateEvidence(
+                candidate_id=candidate.id,
+                document_chunk_id=chunk.id,
+                page=1,
+                supporting_text=evidence_text,
+                source_url=proposal_url,
+            )
+        )
+        session.commit()
+    return initial.details[0].proposal_id, update_draft_id
 
 
 def _prepare_identity_resolution_example(

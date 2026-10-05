@@ -25,6 +25,16 @@ class Settings(BaseSettings):
         min_length=1,
         max_length=200,
     )
+    llm_provider: str | None = None
+    llm_model: str | None = None
+    llm_api_key: SecretStr | None = None
+    llm_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
+    llm_max_retries: int = Field(default=1, ge=0, le=3)
+    ai_max_document_bytes: int = Field(default=10_000_000, ge=1, le=50_000_000)
+    ai_max_chunk_chars: int = Field(default=4_000, ge=100, le=20_000)
+    ai_max_document_chunks: int = Field(default=200, ge=1, le=2_000)
+    ai_max_chunks_per_run: int = Field(default=40, ge=1, le=200)
+    ai_max_evidence_excerpt_chars: int = Field(default=600, ge=50, le=2_000)
 
     model_config = SettingsConfigDict(
         env_file=".env",

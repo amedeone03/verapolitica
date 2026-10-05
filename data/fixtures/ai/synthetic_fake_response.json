@@ -1,0 +1,28 @@
+{
+  "candidates": [
+    {
+      "claim_type": "explicit_promise",
+      "exact_statement": "The Civic Example Party commits to build 100 new clinics by 2030.",
+      "normalized_title": "Build 100 new clinics by 2030",
+      "summary": "A synthetic measurable healthcare commitment.",
+      "topic": "healthcare",
+      "actor_mentions": [
+        {
+          "name": "The Civic Example Party",
+          "role": "commitment_owner"
+        }
+      ],
+      "announced_at": null,
+      "target_date": "2030-12-31",
+      "evidence": [
+        {
+          "chunk_index": 0,
+          "page": null,
+          "supporting_text": "The Civic Example Party commits to build 100 new clinics by 2030."
+        }
+      ],
+      "confidence": "high",
+      "abstention_reason": null
+    }
+  ]
+}

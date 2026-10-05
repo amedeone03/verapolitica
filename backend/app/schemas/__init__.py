@@ -1,3 +1,16 @@
+from backend.app.schemas.ai_extraction import (
+    AI_EXTRACTION_SCHEMA_VERSION,
+    AbstentionReason,
+    ExtractedActorMention,
+    ExtractedClaimEvidence,
+    ExtractedClaimType,
+    ExtractedPoliticalClaim,
+    ModelConfidence,
+    PoliticalClaimExtraction,
+    PoliticalTopic,
+    ProviderUsage,
+    StructuredExtractionResult,
+)
 from backend.app.schemas.admin import (
     AdminPrincipal,
     APIErrorDetail,
@@ -96,6 +109,8 @@ from backend.app.schemas.political_party import (
     PoliticalPartySyncResult,
 )
 from backend.app.schemas.proposal import (
+    AIProposalAssistanceResponse,
+    AIProposalEvidenceResponse,
     ObservedActorType,
     ProposalActorObservation,
     ProposalDraftDetailResponse,
@@ -120,6 +135,10 @@ from backend.app.schemas.proposal import (
 )
 
 __all__ = [
+    "AI_EXTRACTION_SCHEMA_VERSION",
+    "AIProposalAssistanceResponse",
+    "AIProposalEvidenceResponse",
+    "AbstentionReason",
     "AdminPrincipal",
     "APIErrorDetail",
     "APIErrorResponse",
@@ -144,6 +163,10 @@ __all__ = [
     "FieldProvenance",
     "FieldChange",
     "EvidenceResponse",
+    "ExtractedActorMention",
+    "ExtractedClaimEvidence",
+    "ExtractedClaimType",
+    "ExtractedPoliticalClaim",
     "FinalReviewResponse",
     "IdentityResolutionAttachment",
     "IdentityResolutionCaseResult",
@@ -159,10 +182,13 @@ __all__ = [
     "MatchingMethod",
     "MatchingResult",
     "MatchingStatus",
+    "ModelConfidence",
     "NewMatchReason",
     "NewResult",
     "NoChangesResult",
     "PoliticalMandate",
+    "PoliticalClaimExtraction",
+    "PoliticalTopic",
     "PossiblePoliticianMatchResponse",
     "PoliticianVersionProfile",
     "PoliticianSummary",
@@ -207,6 +233,7 @@ __all__ = [
     "PublicProposalSource",
     "PublicProposalStatusEvent",
     "PublicProposalSummary",
+    "ProviderUsage",
     "ReviewDecisionResult",
     "ReviewResult",
     "ReviewStartedResult",
@@ -215,5 +242,6 @@ __all__ = [
     "RawDocumentSourceResponse",
     "SourceDocumentProvenance",
     "SourceIdentifier",
+    "StructuredExtractionResult",
     "UncertainResult",
 ]

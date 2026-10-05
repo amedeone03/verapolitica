@@ -13,7 +13,11 @@ now be compared with their current version and persisted as reviewable ProfileDr
 with field-level Evidence. Explicit human decisions can reject a draft or atomically
 publish it as a new immutable PoliticianVersion.
 
-It does not perform LLM extraction or citizen authentication.
+VeraPolitica also supports an internal, evidence-grounded AI extraction path for
+operator-approved official HTML and text-based PDF documents. AI output is schema
+validated, checked against deterministic document chunks, and can create only
+reviewable ProposalDrafts. AI never publishes directly. Citizen authentication,
+OCR, RAG, embeddings, and arbitrary web crawling are not implemented.
 CandidateProfiles remain transient and normal ingestion never creates Politicians,
 and matching and diffing never mutate the database. A separate transactional
 identity service may attach a newly discovered official identifier after one safe
@@ -33,6 +37,44 @@ pip install -r backend/requirements.txt
 
 Configuration defaults are shown in `.env.example`. Copy them into `.env` only when
 you need to override the defaults.
+
+## Evidence-grounded AI extraction
+
+The focused extraction path is:
+
+```text
+official document -> RawDocument -> deterministic text -> DocumentChunk
+  -> structured provider -> schema validation -> evidence validation
+  -> ProposalObservation -> ProposalDraft -> human review -> publication
+```
+
+Supported inputs are UTF-8 HTML and text-based PDF. A PDF with no extractable text
+fails with an OCR-required error; OCR is intentionally out of scope. Chunks use
+deterministic page/paragraph-aware character limits and retain page, character, and
+SHA-256 metadata. No vector index or semantic retrieval is involved.
+
+Live calls are disabled unless `VERAPOLITICA_LLM_PROVIDER=openai`, a model, and an
+API key are explicitly configured. The model and all size/request limits are
+environment-configurable; API keys are never persisted. Tests and the demo use the
+deterministic fake provider and never require network access or paid calls.
+
+Run an internal extraction with:
+
+```bash
+python -m scripts.run_ai_extraction \
+  --file path/to/official-programme.pdf \
+  --source-url https://official.example/programme.pdf
+```
+
+For an offline deterministic run, add
+`--fake-response data/fixtures/ai/synthetic_fake_response.json`. The command prints
+the extraction run and draft IDs and never approves or publishes them.
+
+An optional live smoke test may use the Piano Nazionale di Ripresa e Resilienza PDF
+published under `https://www.governo.it/sites/governo.it/files/PNRR.pdf`. It is an
+official institutional source because it is hosted on the Governo Italiano domain.
+Download and inspect it manually before supplying the local file and that URL to the
+command. VeraPolitica does not crawl it, and no paid call is run automatically.
 
 ## Run one ingestion
 

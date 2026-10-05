@@ -58,9 +58,18 @@ authentication:
 
 List/detail expose normalized status, original official label, the source-independent
 observation, Evidence, unresolved-actor count, baseline, supersession, and final
-decision. Reviewer identity comes only from authenticated server context.
+decision. For an AI-assisted draft, detail also includes an optional admin-only
+`ai_assistance` object with source document, provider/model, prompt/schema versions,
+controlled confidence/topic metadata, and short excerpts already verified against
+document chunks. Deterministic drafts return `null` for this field. Reviewer identity
+comes only from authenticated server context.
 Start-review creates no final review. Approval is the only path that can append a
 public status event; rejection and repeated terminal actions cannot.
+
+AI run/candidate creation is an operator CLI concern in this milestone; there is no
+public or admin HTTP endpoint that triggers paid provider calls. Public proposal
+responses never expose `ai_assistance`, model names, prompt versions, confidence,
+abstention data, raw chunks, or internal extraction outcomes.
 
 ## Public politician API
 

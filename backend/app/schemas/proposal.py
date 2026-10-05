@@ -14,6 +14,11 @@ from backend.app.models import (
     ProposalType,
 )
 from backend.app.schemas.candidate_profile import ImmutableSchema
+from backend.app.schemas.ai_extraction import (
+    AbstentionReason,
+    ModelConfidence,
+    PoliticalTopic,
+)
 
 
 class ObservedActorType(StrEnum):
@@ -182,6 +187,27 @@ class ProposalFinalReviewResponse(ProposalAdminSchema):
     created_at: datetime
 
 
+class AIProposalEvidenceResponse(ProposalAdminSchema):
+    chunk_index: int
+    page: int | None
+    supporting_text: str
+    source_url: str
+
+
+class AIProposalAssistanceResponse(ProposalAdminSchema):
+    extraction_run_id: int
+    raw_document_id: int
+    source_document_url: str
+    provider: str
+    model: str
+    prompt_version: str
+    schema_version: str
+    confidence: ModelConfidence | None
+    topic: PoliticalTopic | None
+    abstention_reason: AbstentionReason | None
+    evidence: tuple[AIProposalEvidenceResponse, ...]
+
+
 class ProposalDraftDetailResponse(ProposalAdminSchema):
     id: int
     proposal_id: int
@@ -191,6 +217,7 @@ class ProposalDraftDetailResponse(ProposalAdminSchema):
     supersedes_id: int | None
     proposed: ProposalObservation
     evidence: tuple[ProposalEvidenceResponse, ...]
+    ai_assistance: AIProposalAssistanceResponse | None = None
     final_review: ProposalFinalReviewResponse | None
     created_at: datetime
     updated_at: datetime

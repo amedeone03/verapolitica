@@ -44,6 +44,32 @@ creates the review, and closes the draft. Stale and terminal drafts cannot publi
 one `commitment_owner`, and official evidence. A DDL or government initiative is not
 silently converted into a promise.
 
+### AI extraction audit sidecar
+
+`DocumentChunk` belongs to one parsed RawDocument and has a deterministic index,
+text SHA-256, nullable page range, and character range. HTML chunks have no page;
+PDF chunks retain one-based pages. Chunk text is deterministic parser output, not
+model output, and can later support retrieval without adding a vector schema now.
+
+`AIExtractionRun` records RawDocument, provider, model, prompt/schema versions,
+status, timestamps, input/output/rejection counts, bounded provider response,
+request/token usage when available, and sanitized errors. A unique nullable
+completed key prevents two successful runs for the same source/raw hash/provider/
+model/prompt/schema combination. Failed attempts retain audit rows and can be
+retried; API keys are never stored.
+
+`AIExtractionCandidate` records each model candidate and its accepted, rejected,
+abstained, or duplicate validation outcome. Accepted candidates retain the exact
+ProposalObservation and optional ProposalDraft link. Candidate evidence links the
+short verified excerpt to its actual DocumentChunk and trusted RawDocument URL.
+Invalid citation metadata remains in the bounded model output plus rejection reason
+and never becomes ProposalEvidence.
+
+AI proposal identity is a stable URN derived from raw document hash and conservative
+claim key. Actor names become unresolved observations; the model cannot provide a
+Politician or PoliticalParty ID. Topic and confidence use controlled enums, and
+confidence is not a calibrated probability or publication signal.
+
 The implemented slices persist the official source and every collected response,
 then map changed Senato, Camera, or Governo records to transient CandidateProfiles. Stable politician
 identities can be explicitly bootstrapped from a selected parsed document. The

@@ -30,6 +30,7 @@ def utc_now() -> datetime:
 
 
 class ProposalType(StrEnum):
+    PROPOSAL = "proposal"
     LEGISLATIVE_PROPOSAL = "legislative_proposal"
     GOVERNMENT_INITIATIVE = "government_initiative"
     EXPLICIT_PROMISE = "explicit_promise"
