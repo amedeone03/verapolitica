@@ -20,6 +20,12 @@ def test_upload_client_clears_loading_on_error_timeout_and_success_redirect():
     assert "window.location = extracted.redirect;" in source
     assert "failStep(failedStep, message);" in source
     assert "inFlight = false;" in source
-    assert "sections sent to local AI" in source
+    assert "sections sent to local AI" not in source
     assert "Evidence selected: " in source
+    assert "relevant metadata section" in source
+    assert "2–3 minutes" in source
+    assert "draft, not a publication" in source
+    assert 'markStep("validate"' in source
+    assert 'markStep("draft"' in source
+    assert "Preparing draft" in source
     assert "evidence_summary" in source

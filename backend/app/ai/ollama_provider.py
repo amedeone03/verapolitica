@@ -26,6 +26,10 @@ from backend.app.ai.ollama_diagnostics import (
     stamp_diagnostics,
     validation_error_categories,
 )
+from backend.app.pipeline.temporal_validation import (
+    SemanticValidationError,
+    validate_temporal_semantics,
+)
 from backend.app.schemas import (
     PoliticalClaimExtraction,
     ProviderUsage,
@@ -83,6 +87,7 @@ class OllamaStructuredExtractionProvider:
         last_body: dict[str, Any] | None = None
         last_status = 200
         parsed: PoliticalClaimExtraction | None = None
+        pending_repair_fields: tuple[str, ...] = ()
         for attempt_number in range(1, MAX_SCHEMA_REPAIR_ATTEMPTS + 1):
             request_body_bytes = len(
                 json.dumps(current_payload, ensure_ascii=False).encode("utf-8")
@@ -181,6 +186,11 @@ class OllamaStructuredExtractionProvider:
                             body.get("eval_count") if body is not None else None
                         ),
                         request_body_bytes=request_body_bytes,
+                        raw_output=(
+                            exc.raw_output
+                            if isinstance(exc.raw_output, (dict, list))
+                            else None
+                        ),
                     )
                 )
                 if (
@@ -256,6 +266,55 @@ class OllamaStructuredExtractionProvider:
                 )
                 raise
             assert body is not None
+            raw_output = parsed.model_dump(mode="json")
+            try:
+                validate_temporal_semantics(parsed)
+            except SemanticValidationError as exc:
+                pending_repair_fields = exc.field_names()
+                attempts.append(
+                    OllamaAttemptRecord(
+                        attempt=attempt_number,
+                        validation_status="semantic_invalid",
+                        validation_error_categories=tuple(
+                            issue.reason for issue in exc.issues
+                        ),
+                        elapsed_ms=elapsed_ms,
+                        response_status=response.status_code,
+                        input_tokens=_optional_int(body.get("prompt_eval_count")),
+                        output_tokens=_optional_int(body.get("eval_count")),
+                        request_body_bytes=request_body_bytes,
+                        semantic_validation_errors=tuple(
+                            issue.as_dict() for issue in exc.issues
+                        ),
+                        repaired_fields=(),
+                        raw_output=raw_output,
+                    )
+                )
+                last_body = body
+                last_status = response.status_code
+                if attempt_number < MAX_SCHEMA_REPAIR_ATTEMPTS:
+                    logger.warning(
+                        "ollama extraction semantic retry %s",
+                        json.dumps(
+                            {
+                                "attempt": attempt_number,
+                                "semantic_validation_errors": [
+                                    issue.as_dict() for issue in exc.issues
+                                ],
+                            },
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                    )
+                    current_payload = build_repair_chat_payload(
+                        payload,
+                        invalid_json=raw_output,
+                        validation_errors=exc.compact_messages(),
+                        kind="semantic",
+                        extra_instruction=exc.repair_prompt(),
+                    )
+                    continue
+                break
             attempts.append(
                 OllamaAttemptRecord(
                     attempt=attempt_number,
@@ -266,6 +325,8 @@ class OllamaStructuredExtractionProvider:
                     input_tokens=_optional_int(body.get("prompt_eval_count")),
                     output_tokens=_optional_int(body.get("eval_count")),
                     request_body_bytes=request_body_bytes,
+                    repaired_fields=pending_repair_fields,
+                    raw_output=raw_output,
                 )
             )
             last_body = body

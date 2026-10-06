@@ -59,7 +59,14 @@ def test_sample_document_creates_unpublished_fake_draft(tmp_path):
         assert "stopLoading" in script.text
         assert "finally" in script.text
         assert "Local AI analysis did not complete in time. Please retry." in script.text
-        assert 'data-step="sent"' in page.text
+        assert 'data-step="validate"' in page.text
+        assert 'data-step="draft"' in page.text
+        assert "2–3 minutes" in page.text
+        assert "unpublished editorial draft" in page.text
+        assert page.text.count("scheda-ddl?did=60485") >= 1
+        assert 'id="force-rerun"' in page.text
+        assert "Force a new AI run" in page.text
+        assert "force_rerun" in script.text
 
         result = client.post("/demo/ai-upload/sample", follow_redirects=True)
         assert result.status_code == 200
@@ -195,7 +202,7 @@ def _local_result():
                         "summary": "Presentato da Sen. Neri. 5 milioni di euro.",
                         "topic": "economy",
                         "actor_mentions": [{"name": "Sen. Neri", "role": "proposer"}],
-                        "announced_at": "2026-01-12",
+                        "announced_at": None,
                         "target_date": None,
                         "evidence": [
                             {
@@ -285,16 +292,14 @@ def test_local_ollama_upload_creates_unpublished_draft(tmp_path, monkeypatch):
         assert "LOCAL AI ANALYSIS" in created.text
         assert LOCAL_STATEMENT in created.text
         assert "Evidence from official document" in created.text
-        assert "Provider" in created.text
-        assert "ollama" in created.text
+        assert "unpublished draft" in created.text
+        assert "Human review is required" in created.text
         assert "qwen2.5:7b" in created.text
-        assert "proposal_extraction_v1" in created.text
-        assert "proposal_claim_schema_v1" in created.text
-        assert "Local AI attempts" in created.text
-        assert "First attempt" in created.text
-        assert "schema validation failed" in created.text
-        assert "Second attempt" in created.text
-        assert "accepted" in created.text
+        assert "proposal_extraction_v1" not in created.text
+        assert "proposal_claim_schema_v1" not in created.text
+        assert "Local AI attempts" not in created.text
+        assert "schema validation failed" not in created.text
+        assert "fingerprint" not in created.text.casefold()
         assert "Nothing becomes public until an editor approves it." in created.text
         assert client.get("/proposals").json()["total"] == 0
         draft_id = int(created.url.path.rsplit("/", 1)[-1])
@@ -593,6 +598,64 @@ def test_extract_malformed_and_schema_errors_are_safe(tmp_path, monkeypatch):
             assert run.status.value == "failed"
             assert session.scalar(select(func.count()).select_from(Proposal)) == 0
             assert session.scalar(select(func.count()).select_from(ProposalDraft)) == 0
+    finally:
+        engine.dispose()
+
+
+def test_force_rerun_creates_new_run_without_publishing(tmp_path):
+    settings = _settings(tmp_path)
+    with TestClient(create_app(settings)) as client:
+        created = client.post("/demo/ai-upload/sample", follow_redirects=True)
+        assert created.status_code == 200
+        assert client.get("/proposals").json()["total"] == 0
+        engine = create_db_engine(settings.database_url)
+        try:
+            session_factory = create_session_factory(engine)
+            with session_factory() as session:
+                first_run = session.scalar(select(AIExtractionRun))
+                raw_document_id = first_run.raw_document_id
+                first_run_id = first_run.id
+        finally:
+            engine.dispose()
+        reused = client.post(
+            "/demo/ai-upload/extract",
+            json={
+                "raw_document_id": raw_document_id,
+                "filename": "ceo_ddl_60476.html",
+                "mode": "fake",
+                "fixture_key": "ceo-ddl-60476",
+                "source_url": "https://dati.senato.it/ddl/60476.html",
+                "source_name": "Senato della Repubblica",
+                "force_rerun": False,
+            },
+        )
+        assert reused.status_code == 200
+        forced = client.post(
+            "/demo/ai-upload/extract",
+            json={
+                "raw_document_id": raw_document_id,
+                "filename": "ceo_ddl_60476.html",
+                "mode": "fake",
+                "fixture_key": "ceo-ddl-60476",
+                "source_url": "https://dati.senato.it/ddl/60476.html",
+                "source_name": "Senato della Repubblica",
+                "force_rerun": True,
+            },
+        )
+        assert forced.status_code == 200
+        assert "/demo/ai-draft/" in forced.json()["redirect"]
+        assert client.get("/proposals").json()["total"] == 0
+
+    engine = create_db_engine(settings.database_url)
+    try:
+        session_factory = create_session_factory(engine)
+        with session_factory() as session:
+            run_ids = set(session.scalars(select(AIExtractionRun.id)))
+            assert first_run_id in run_ids
+            assert len(run_ids) == 2
+            assert session.scalar(select(func.count()).select_from(ProposalDraft)) == 1
+            proposal = session.scalar(select(Proposal))
+            assert proposal.published_at is None
     finally:
         engine.dispose()
 

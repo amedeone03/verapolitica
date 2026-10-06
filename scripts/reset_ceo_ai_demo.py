@@ -1,6 +1,5 @@
 import argparse
 import json
-import sys
 from pathlib import Path
 
 from sqlalchemy import select
@@ -35,9 +34,10 @@ PROTECTED_IDENTIFIER_PREFIXES = (
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Remove only the CEO simulated-AI extraction for Senato DDL 60476. "
-            "Leaves real Senato SPARQL drafts, published proposals, politicians, "
-            "and territorial data intact."
+            "Remove AI-demo operator-document artifacts (uploads, extraction runs, "
+            "unpublished or approved AI drafts). Leaves Senato SPARQL / Camera / "
+            "Governo collectors, published SPARQL proposals, politicians, and "
+            "territorial data intact."
         )
     )
     parser.add_argument(
@@ -64,6 +64,19 @@ def _is_protected_identifier(value: str) -> bool:
     )
 
 
+def _empty_counts() -> dict:
+    return {
+        "raw_documents": 0,
+        "document_chunks": 0,
+        "ai_extraction_runs": 0,
+        "proposal_drafts": 0,
+        "proposals": 0,
+        "storage_files": 0,
+        "upload_files": 0,
+        "skipped_protected_proposals": 0,
+    }
+
+
 def reset_ceo_ai_demo(
     *,
     settings: Settings | None = None,
@@ -74,16 +87,7 @@ def reset_ceo_ai_demo(
     runtime = settings or get_settings()
     upload_root = Path(demo_upload_path or runtime.demo_upload_path)
     engine = create_db_engine(runtime.database_url)
-    deleted = {
-        "raw_documents": 0,
-        "document_chunks": 0,
-        "ai_extraction_runs": 0,
-        "proposal_drafts": 0,
-        "proposals": 0,
-        "storage_files": 0,
-        "upload_files": 0,
-        "skipped_protected_proposals": 0,
-    }
+    deleted = _empty_counts()
     try:
         prepare_runtime_schema(engine, runtime)
         session_factory = create_session_factory(engine)
@@ -104,6 +108,7 @@ def reset_ceo_ai_demo(
                 ]
             proposal_ids: set[int] = set()
             draft_ids: set[int] = set()
+            skipped_ids: list[int] = []
             for document in documents:
                 drafts = list(
                     session.scalars(
@@ -125,30 +130,62 @@ def reset_ceo_ai_demo(
                         for item in identifiers
                     ):
                         deleted["skipped_protected_proposals"] += 1
+                        skipped_ids.append(draft.proposal_id)
                         continue
                     draft_ids.add(draft.id)
                     proposal_ids.add(draft.proposal_id)
             document_ids = [document.id for document in documents]
-            if dry_run:
-                deleted["raw_documents"] = len(documents)
-                deleted["ai_extraction_runs"] = len(
-                    list(
-                        session.scalars(
-                            select(AIExtractionRun).where(
-                                AIExtractionRun.raw_document_id.in_(
-                                    document_ids or [0]
-                                )
-                            )
+            run_rows = list(
+                session.scalars(
+                    select(AIExtractionRun).where(
+                        AIExtractionRun.raw_document_id.in_(document_ids or [0])
+                    )
+                )
+            )
+            chunk_count = len(
+                list(
+                    session.scalars(
+                        select(DocumentChunk.id).where(
+                            DocumentChunk.raw_document_id.in_(document_ids or [0])
                         )
                     )
                 )
+            )
+            storage_keys = sorted({document.storage_key for document in documents})
+            upload_names = (
+                sorted(item.name for item in upload_root.iterdir() if item.is_file())
+                if upload_root.is_dir()
+                else []
+            )
+            inventory = {
+                "raw_document_ids": document_ids,
+                "ai_extraction_run_ids": [item.id for item in run_rows],
+                "proposal_draft_ids": sorted(draft_ids),
+                "proposal_ids": sorted(proposal_ids),
+                "skipped_protected_proposal_ids": skipped_ids,
+                "storage_keys": storage_keys,
+                "upload_files_listed": upload_names,
+                "preserved": (
+                    "Senato/Camera/Governo/ISTAT/DAIT collectors, SPARQL proposal "
+                    "drafts, published SPARQL proposals, politician profiles, "
+                    "and territories. Failed operator-document extraction history "
+                    "is removed with those documents, not preserved."
+                ),
+            }
+            if dry_run:
+                deleted["raw_documents"] = len(documents)
+                deleted["document_chunks"] = chunk_count
+                deleted["ai_extraction_runs"] = len(run_rows)
                 deleted["proposal_drafts"] = len(draft_ids)
                 deleted["proposals"] = len(proposal_ids)
-                if upload_root.is_dir():
-                    deleted["upload_files"] = sum(
-                        1 for item in upload_root.iterdir() if item.is_file()
-                    )
-                return {"dry_run": True, "source_url": source_url, **deleted}
+                deleted["storage_files"] = len(storage_keys)
+                deleted["upload_files"] = len(upload_names)
+                return {
+                    "dry_run": True,
+                    "source_url": source_url,
+                    **deleted,
+                    **inventory,
+                }
 
             candidates = list(
                 session.scalars(
@@ -230,13 +267,27 @@ def reset_ceo_ai_demo(
                 DocumentChunk.id.in_(chunk_ids or [0])
             ).delete(synchronize_session=False)
             storage_root = Path(runtime.raw_storage_path)
+            remaining_keys = {
+                item
+                for item in session.scalars(
+                    select(RawDocument.storage_key).where(
+                        RawDocument.id.notin_(document_ids or [0])
+                    )
+                )
+            }
+            seen_keys: set[str] = set()
             for document in documents:
+                if document.storage_key in seen_keys:
+                    continue
+                seen_keys.add(document.storage_key)
+                if document.storage_key in remaining_keys:
+                    continue
                 target = storage_root / document.storage_key
                 if target.is_file():
                     target.unlink()
                     deleted["storage_files"] += 1
             deleted["raw_documents"] = session.query(RawDocument).filter(
-                RawDocument.id.in_([document.id for document in documents] or [0])
+                RawDocument.id.in_(document_ids or [0])
             ).delete(synchronize_session=False)
             if upload_root.is_dir():
                 for item in upload_root.iterdir():
@@ -244,7 +295,12 @@ def reset_ceo_ai_demo(
                         item.unlink()
                         deleted["upload_files"] += 1
             session.commit()
-            return {"dry_run": False, "source_url": source_url, **deleted}
+            return {
+                "dry_run": False,
+                "source_url": source_url,
+                **deleted,
+                **inventory,
+            }
     finally:
         engine.dispose()
 

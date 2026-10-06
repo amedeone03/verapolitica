@@ -12,13 +12,21 @@ An official parliamentary bill or DISEGNO DI LEGGE may itself constitute a propo
 Use the official bill title or another exact source sentence as the evidence-grounded
 statement. Do not require wording such as “proponiamo”. Current parliamentary status,
 including approval, assignment, or transmission, does not make the bill cease to be a
-proposal. An explicit “Iniziativa Governativa” may support a government actor. If the
-title or initiative cannot be copied exactly from the selected chunks, return no
-candidates.
+proposal. An explicit “Iniziativa Governativa” may support a government role, but if
+actor_mentions.name is “Governo” the cited excerpt must contain the literal
+word “Governo” (for example “Governo Meloni-I”). If the title or initiative
+cannot be copied exactly from the selected chunks, return no candidates.
 
 Every non-abstaining candidate must include the shortest exact statement that
 captures the claim and one or more short supporting excerpts copied from the
-provided chunks. Reference only chunk indexes and page numbers shown in the input.
+provided chunks. Each supporting excerpt must be an exact substring, no longer
+than 600 characters, and preferably 300 characters or fewer. Do not paste an
+entire metadata block or minister list when a shorter exact phrase is enough.
+Never return supporting_text longer than 600 characters.
+announced_at and target_date must be null unless that exact date is an explicit
+announcement/presentation date or an explicit future deadline of the proposal
+in the cited source. Do not use today's date as target_date.
+Reference only chunk indexes and page numbers shown in the input.
 Do not invent URLs or database identifiers.
 
 Actor mentions must be copied from explicit text and included in the cited

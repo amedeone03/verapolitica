@@ -6,12 +6,42 @@ from dataclasses import dataclass
 from typing import Protocol
 
 CHUNK_SELECTION_VERSION = "deterministic_relevance_v2"
+PROXIMITY_TOKEN_PACK_VERSION = "proximity_token_pack_v1"
+CANONICAL_METADATA_PACK_VERSION = "canonical_metadata_pack_v1"
+SENT_CHUNK_POLICY_VERSION = CANONICAL_METADATA_PACK_VERSION
+EXTRACTION_PURPOSE_CANONICAL = "canonical_proposal"
+EXTRACTION_PURPOSE_ARTICLES = "article_claims"
 EARLY_METADATA_PAGES = 3
 CHARS_PER_TOKEN = 4
 DEFAULT_DOCUMENT_TOKEN_BUDGET = 4_500
+COMPACT_IDENTITY_TOKEN_LIMIT = 220
+COMPACT_OPTIONAL_TOKEN_LIMIT = 400
 TIER_METADATA = "metadata"
 TIER_SUBSTANCE = "substance"
 TIER_SUPPORTING = "supporting"
+COVERAGE_IDENTITY_SIGNALS = frozenset(
+    {"identity", "atto_senato", "dati_generali"}
+)
+COVERAGE_INITIATIVE_SIGNALS = frozenset(
+    {"iniziativa_governativa", "iniziativa", "government_actor"}
+)
+COVERAGE_PRESENTATION_SIGNALS = frozenset(
+    {"presentazione", "presentato_da", "presentato_dal"}
+)
+COVERAGE_ITER_SIGNALS = frozenset({"iter_status", "approvato"})
+COVERAGE_FORMAL_DDL_SIGNALS = frozenset({"presentato_dal"})
+PARLIAMENTARY_IDENTITY_SIGNALS = frozenset(
+    {"identity", "atto_senato", "dati_generali"}
+)
+PARLIAMENTARY_BILL_SIGNALS = frozenset(
+    {
+        "iniziativa_governativa",
+        "iniziativa",
+        "presentato_dal",
+        "identity",
+        "dati_generali",
+    }
+)
 TIER_RANK = {TIER_METADATA: 0, TIER_SUBSTANCE: 1, TIER_SUPPORTING: 2}
 MAX_METADATA_CHUNKS = 4
 MAX_SUBSTANCE_CHUNKS = 4
@@ -172,6 +202,10 @@ class ChunkSelection:
     document_token_estimate: int = 0
     max_document_tokens: int | None = None
     preview: tuple[ChunkPreview, ...] = ()
+    extraction_purpose: str = EXTRACTION_PURPOSE_CANONICAL
+    sent_chunk_policy_version: str = SENT_CHUNK_POLICY_VERSION
+    parliamentary_bill: bool = False
+    canonical_coverage: tuple[str, ...] = ()
 
     def resolved_sent_indexes(self) -> tuple[int, ...]:
         if self.sent_indexes:
@@ -181,6 +215,29 @@ class ChunkSelection:
     def as_dict(self) -> dict[str, object]:
         sent = list(self.resolved_sent_indexes())
         omitted = list(self.omitted_indexes)
+        selected_pages = sorted(
+            {
+                item.page
+                for item in self.preview
+                if item.page is not None
+            }
+        )
+        sent_pages = sorted(
+            {
+                item.page
+                for item in self.preview
+                if item.sent and item.page is not None
+            }
+        )
+        if not sent_pages:
+            sent_pages = sorted(
+                {
+                    page
+                    for chunk in self.chunks
+                    for page in (chunk.page_start, chunk.page_end)
+                    if page is not None
+                }
+            )
         payload = {
             "method": self.method,
             "full_document_coverage": self.full_document_coverage,
@@ -191,14 +248,12 @@ class ChunkSelection:
             "omitted_chunk_indexes": omitted,
             "document_token_estimate": self.document_token_estimate,
             "max_document_tokens": self.max_document_tokens,
-            "selected_pages": sorted(
-                {
-                    page
-                    for chunk in self.chunks
-                    for page in (chunk.page_start, chunk.page_end)
-                    if page is not None
-                }
-            ),
+            "selected_pages": selected_pages or sent_pages,
+            "sent_pages": sent_pages,
+            "extraction_purpose": self.extraction_purpose,
+            "sent_chunk_policy_version": self.sent_chunk_policy_version,
+            "parliamentary_bill": self.parliamentary_bill,
+            "canonical_coverage": list(self.canonical_coverage),
             "scores": [
                 {"chunk_index": index, "score": score} for index, score in self.scores
             ],
@@ -224,6 +279,13 @@ def coverage_note_from_payload(payload: dict[str, object]) -> str:
         return (
             f"AI analysis based on the full extracted document "
             f"({total} section{'' if total == 1 else 's'})."
+        )
+    purpose = str(payload.get("extraction_purpose") or "")
+    if purpose == EXTRACTION_PURPOSE_CANONICAL and page_count:
+        return (
+            f"Full document: {page_count:,} pages. "
+            f"Evidence selected: {sent_count} relevant metadata section"
+            f"{'' if sent_count == 1 else 's'}."
         )
     if page_count:
         pages = f"{page_count:,}-page document"
@@ -463,6 +525,117 @@ def _is_duplicate_of_selected(
     return any(is_near_duplicate(chunk.text, item.text) for item in selected)
 
 
+def coverage_groups_from_signals(signals: tuple[str, ...] | set[str]) -> frozenset[str]:
+    labels = set(signals)
+    groups: list[str] = []
+    if labels & COVERAGE_IDENTITY_SIGNALS:
+        groups.append("identity")
+    if labels & COVERAGE_INITIATIVE_SIGNALS:
+        groups.append("initiative")
+    if labels & COVERAGE_PRESENTATION_SIGNALS:
+        groups.append("presentation")
+    if labels & COVERAGE_ITER_SIGNALS:
+        groups.append("iter")
+    if labels & COVERAGE_FORMAL_DDL_SIGNALS:
+        groups.append("formal_ddl")
+    return frozenset(groups)
+
+
+def has_sufficient_canonical_coverage(groups: frozenset[str] | set[str]) -> bool:
+    extras = set(groups) - {"identity"}
+    return "identity" in groups and len(extras) >= 2
+
+
+def is_parliamentary_bill(
+    classifications: dict[int, tuple[str, tuple[str, ...], int]],
+) -> bool:
+    labels: set[str] = set()
+    for _tier, signals, _score in classifications.values():
+        labels.update(signals)
+    return bool(labels & PARLIAMENTARY_IDENTITY_SIGNALS) and bool(
+        labels & PARLIAMENTARY_BILL_SIGNALS
+    )
+
+
+def _chunk_cost(chunk: SelectableChunk, *, chars_per_token: int) -> int:
+    return estimate_tokens(chunk_prompt_text(chunk), chars_per_token=chars_per_token)
+
+
+def pack_canonical_metadata_chunks(
+    ranked: list[tuple[SelectableChunk, str, tuple[str, ...], int]],
+    *,
+    max_document_tokens: int,
+    chars_per_token: int = CHARS_PER_TOKEN,
+) -> tuple[tuple[SelectableChunk, ...], int, frozenset[str]]:
+    remaining = [
+        item
+        for item in ranked
+        if item[1] == TIER_METADATA and "toc" not in item[2]
+    ]
+    packed: list[SelectableChunk] = []
+    used = 0
+    covered: set[str] = set()
+
+    def can_fit(chunk: SelectableChunk) -> bool:
+        cost = _chunk_cost(chunk, chars_per_token=chars_per_token)
+        if not packed:
+            return True
+        return used + cost <= max_document_tokens
+
+    def append_chunk(chunk: SelectableChunk, signals: tuple[str, ...]) -> None:
+        nonlocal used, covered
+        packed.append(chunk)
+        used += _chunk_cost(chunk, chars_per_token=chars_per_token)
+        covered |= set(coverage_groups_from_signals(signals))
+
+    while remaining and not has_sufficient_canonical_coverage(covered):
+        remaining.sort(
+            key=lambda item: (
+                1 if looks_like_subject_catalog(item[0].text) else 0,
+                -len(coverage_groups_from_signals(item[2]) - covered),
+                -item[3],
+                item[0].chunk_index,
+            )
+        )
+        chunk, _tier, signals, _score = remaining.pop(0)
+        if looks_like_subject_catalog(chunk.text) and packed:
+            continue
+        if _is_duplicate_of_selected(chunk, tuple(packed)):
+            continue
+        if not can_fit(chunk):
+            continue
+        append_chunk(chunk, signals)
+
+    leftover = remaining
+    for chunk, _tier, signals, _score in leftover:
+        if _is_duplicate_of_selected(chunk, tuple(packed)):
+            continue
+        if looks_like_subject_catalog(chunk.text):
+            continue
+        cost = _chunk_cost(chunk, chars_per_token=chars_per_token)
+        groups = coverage_groups_from_signals(signals)
+        if "identity" in groups and cost <= COMPACT_IDENTITY_TOKEN_LIMIT and can_fit(chunk):
+            append_chunk(chunk, signals)
+
+    optional_added = False
+    for chunk, _tier, signals, _score in leftover:
+        if chunk.chunk_index in {item.chunk_index for item in packed}:
+            continue
+        if looks_like_subject_catalog(chunk.text):
+            continue
+        cost = _chunk_cost(chunk, chars_per_token=chars_per_token)
+        optional = {"assegnazione", "relatori"} & set(signals)
+        if not optional or cost > COMPACT_OPTIONAL_TOKEN_LIMIT:
+            continue
+        if optional_added or not can_fit(chunk):
+            continue
+        append_chunk(chunk, signals)
+        optional_added = True
+
+    packed.sort(key=lambda chunk: chunk.chunk_index)
+    return tuple(packed), used, frozenset(covered)
+
+
 def pack_chunks_for_context(
     chunks: tuple[SelectableChunk, ...],
     *,
@@ -567,6 +740,10 @@ def _with_token_budget(
     max_document_tokens: int | None,
     early_pages: int,
     classifications: dict[int, tuple[str, tuple[str, ...], int]],
+    extraction_purpose: str = EXTRACTION_PURPOSE_CANONICAL,
+    sent_chunk_policy_version: str = SENT_CHUNK_POLICY_VERSION,
+    parliamentary_bill: bool = False,
+    canonical_coverage: tuple[str, ...] = (),
 ) -> ChunkSelection:
     score_map = {index: score for index, score in scores}
     tier_map = {index: item[0] for index, item in classifications.items()}
@@ -613,6 +790,79 @@ def _with_token_budget(
         document_token_estimate=used,
         max_document_tokens=max_document_tokens,
         preview=preview,
+        extraction_purpose=extraction_purpose,
+        sent_chunk_policy_version=sent_chunk_policy_version,
+        parliamentary_bill=parliamentary_bill,
+        canonical_coverage=canonical_coverage,
+    )
+
+
+def _select_article_or_generic(
+    *,
+    ordered: tuple[SelectableChunk, ...],
+    ranked: list[tuple[SelectableChunk, str, tuple[str, ...], int]],
+    classifications: dict[int, tuple[str, tuple[str, ...], int]],
+    max_selected: int,
+    early_pages: int,
+    max_document_tokens: int | None,
+    page_count: int,
+    extraction_purpose: str,
+    parliamentary_bill: bool,
+) -> ChunkSelection:
+    if len(ordered) <= max_selected:
+        chosen = ordered
+        full_coverage = True
+    else:
+        selected: dict[int, SelectableChunk] = {}
+        _take_tier(ranked, tier=TIER_METADATA, limit=MAX_METADATA_CHUNKS, selected=selected)
+        if not selected:
+            for chunk in ordered:
+                page = chunk_page(chunk)
+                if page is not None and page <= early_pages:
+                    selected[chunk.chunk_index] = chunk
+                elif page is None and chunk.chunk_index < early_pages:
+                    selected[chunk.chunk_index] = chunk
+                if len(selected) >= MAX_METADATA_CHUNKS:
+                    break
+        _take_tier(
+            ranked,
+            tier=TIER_SUBSTANCE,
+            limit=MAX_SUBSTANCE_CHUNKS,
+            selected=selected,
+            proximity_indexes=tuple(selected),
+        )
+        preferred_cap = min(max_selected, PREFERRED_SELECTED_CHUNKS)
+        if len(selected) < 4:
+            remaining = preferred_cap - len(selected)
+            if remaining > 0:
+                _take_tier(
+                    ranked,
+                    tier=TIER_SUPPORTING,
+                    limit=remaining,
+                    selected=selected,
+                )
+        if not selected:
+            for chunk, _tier, _signals, _score in ranked[:max_selected]:
+                selected[chunk.chunk_index] = chunk
+        chosen = tuple(selected[index] for index in sorted(selected)[:max_selected])
+        full_coverage = False
+    return _with_token_budget(
+        chosen=chosen,
+        selected_indexes=tuple(chunk.chunk_index for chunk in chosen),
+        scores=tuple(
+            (chunk.chunk_index, classifications[chunk.chunk_index][2])
+            for chunk in chosen
+        ),
+        page_count=page_count,
+        total_chunk_count=len(ordered),
+        full_document_coverage=full_coverage,
+        max_document_tokens=max_document_tokens,
+        early_pages=early_pages,
+        classifications=classifications,
+        extraction_purpose=extraction_purpose,
+        sent_chunk_policy_version=PROXIMITY_TOKEN_PACK_VERSION,
+        parliamentary_bill=parliamentary_bill,
+        canonical_coverage=(),
     )
 
 
@@ -622,6 +872,7 @@ def select_relevant_chunks(
     max_selected: int,
     early_pages: int = EARLY_METADATA_PAGES,
     max_document_tokens: int | None = None,
+    extraction_purpose: str = EXTRACTION_PURPOSE_CANONICAL,
 ) -> ChunkSelection:
     if max_selected < 1:
         raise ValueError("max_selected must be positive")
@@ -641,66 +892,66 @@ def select_relevant_chunks(
             item[0].chunk_index,
         ),
     )
-    if len(ordered) <= max_selected:
-        return _with_token_budget(
-            chosen=ordered,
-            selected_indexes=tuple(chunk.chunk_index for chunk in ordered),
-            scores=tuple(
-                (chunk.chunk_index, classifications[chunk.chunk_index][2])
-                for chunk in ordered
-            ),
-            page_count=page_count,
-            total_chunk_count=len(ordered),
-            full_document_coverage=True,
-            max_document_tokens=max_document_tokens,
-            early_pages=early_pages,
-            classifications=classifications,
+    parliamentary = is_parliamentary_bill(classifications)
+    if (
+        extraction_purpose == EXTRACTION_PURPOSE_CANONICAL
+        and parliamentary
+    ):
+        budget = (
+            DEFAULT_DOCUMENT_TOKEN_BUDGET
+            if max_document_tokens is None
+            else max_document_tokens
         )
-    selected: dict[int, SelectableChunk] = {}
-    _take_tier(ranked, tier=TIER_METADATA, limit=MAX_METADATA_CHUNKS, selected=selected)
-    if not selected:
-        for chunk in ordered:
-            page = chunk_page(chunk)
-            if page is not None and page <= early_pages:
-                selected[chunk.chunk_index] = chunk
-            elif page is None and chunk.chunk_index < early_pages:
-                selected[chunk.chunk_index] = chunk
-            if len(selected) >= MAX_METADATA_CHUNKS:
-                break
-    _take_tier(
-        ranked,
-        tier=TIER_SUBSTANCE,
-        limit=MAX_SUBSTANCE_CHUNKS,
-        selected=selected,
-        proximity_indexes=tuple(selected),
-    )
-    preferred_cap = min(max_selected, PREFERRED_SELECTED_CHUNKS)
-    if len(selected) < 4:
-        remaining = preferred_cap - len(selected)
-        if remaining > 0:
-            _take_tier(
-                ranked,
-                tier=TIER_SUPPORTING,
-                limit=remaining,
-                selected=selected,
+        packed, used, covered = pack_canonical_metadata_chunks(
+            ranked,
+            max_document_tokens=budget,
+        )
+        if packed:
+            preview_source = packed
+            selected_indexes = tuple(chunk.chunk_index for chunk in packed)
+            score_map = {
+                chunk.chunk_index: classifications[chunk.chunk_index][2]
+                for chunk in packed
+            }
+            preview = tuple(
+                ChunkPreview(
+                    chunk_index=chunk.chunk_index,
+                    page=chunk_page(chunk),
+                    tier=classifications[chunk.chunk_index][0],
+                    score=score_map[chunk.chunk_index],
+                    matched_signals=classifications[chunk.chunk_index][1],
+                    estimated_tokens=estimate_tokens(chunk_prompt_text(chunk)),
+                    sent=True,
+                )
+                for chunk in packed
             )
-    if not selected:
-        for chunk, _tier, _signals, _score in ranked[:max_selected]:
-            selected[chunk.chunk_index] = chunk
-    chosen = tuple(selected[index] for index in sorted(selected)[:max_selected])
-    return _with_token_budget(
-        chosen=chosen,
-        selected_indexes=tuple(chunk.chunk_index for chunk in chosen),
-        scores=tuple(
-            (chunk.chunk_index, classifications[chunk.chunk_index][2])
-            for chunk in chosen
-        ),
-        page_count=page_count,
-        total_chunk_count=len(ordered),
-        full_document_coverage=False,
-        max_document_tokens=max_document_tokens,
-        early_pages=early_pages,
+            return ChunkSelection(
+                chunks=packed,
+                selected_indexes=selected_indexes,
+                scores=tuple((index, score_map[index]) for index in selected_indexes),
+                page_count=page_count,
+                total_chunk_count=len(ordered),
+                full_document_coverage=False,
+                sent_indexes=selected_indexes,
+                omitted_indexes=(),
+                document_token_estimate=used,
+                max_document_tokens=max_document_tokens,
+                preview=preview,
+                extraction_purpose=EXTRACTION_PURPOSE_CANONICAL,
+                sent_chunk_policy_version=CANONICAL_METADATA_PACK_VERSION,
+                parliamentary_bill=True,
+                canonical_coverage=tuple(sorted(covered)),
+            )
+    return _select_article_or_generic(
+        ordered=ordered,
+        ranked=ranked,
         classifications=classifications,
+        max_selected=max_selected,
+        early_pages=early_pages,
+        max_document_tokens=max_document_tokens,
+        page_count=page_count,
+        extraction_purpose=extraction_purpose,
+        parliamentary_bill=parliamentary,
     )
 
 
@@ -709,11 +960,13 @@ def preview_chunk_selection_details(
     *,
     max_selected: int,
     max_document_tokens: int | None = DEFAULT_DOCUMENT_TOKEN_BUDGET,
+    extraction_purpose: str = EXTRACTION_PURPOSE_CANONICAL,
 ) -> dict[str, object]:
     selection = select_relevant_chunks(
         chunks,
         max_selected=max_selected,
         max_document_tokens=max_document_tokens,
+        extraction_purpose=extraction_purpose,
     )
     return selection.as_dict()
 

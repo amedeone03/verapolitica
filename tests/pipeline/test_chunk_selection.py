@@ -2,12 +2,15 @@ from dataclasses import dataclass
 
 from backend.app.pipeline.chunk_selection import (
     CHUNK_SELECTION_VERSION,
+    EXTRACTION_PURPOSE_ARTICLES,
+    EXTRACTION_PURPOSE_CANONICAL,
     TIER_METADATA,
     TIER_SUBSTANCE,
     TIER_SUPPORTING,
     classify_chunk,
     coverage_note_from_payload,
     estimate_tokens,
+    has_sufficient_canonical_coverage,
     is_near_duplicate,
     pack_chunks_for_context,
     preview_chunk_selection_details,
@@ -151,7 +154,11 @@ def test_long_document_preserves_pages_and_caps_selected_chunks():
             1188,
         )
     )
-    selection = select_relevant_chunks(tuple(chunks), max_selected=16)
+    selection = select_relevant_chunks(
+        tuple(chunks),
+        max_selected=16,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
+    )
     assert selection.full_document_coverage is False
     assert selection.method == CHUNK_SELECTION_VERSION
     assert selection.page_count == 1188
@@ -204,6 +211,7 @@ def test_token_budget_packs_high_value_chunks_and_records_omissions():
         tuple(chunks),
         max_selected=16,
         max_document_tokens=4_500,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
     )
     sent = set(selection.sent_indexes)
     omitted = set(selection.omitted_indexes)
@@ -238,8 +246,8 @@ def test_metadata_chunks_outrank_late_commission_transcripts():
     sent = set(selection.sent_indexes)
     assert 4 in sent
     assert 0 in sent
-    assert 8 in sent
     assert 20 not in sent
+    assert 9 not in sent
     assert 80 not in sent
     sent_text = "\n".join(chunk.text for chunk in selection.chunks)
     assert "Iniziativa Governativa" in sent_text
@@ -263,13 +271,11 @@ def test_initiative_status_title_and_actors_are_retained():
     assert "Iniziativa Governativa" in sent_text
     assert "Iter 30 settembre 2026" in sent_text
     assert "Giorgia Meloni" in sent_text
-    assert 6 in selection.sent_indexes or "Assegnazione" in sent_text
-    assert 8 in selection.sent_indexes
-    assert 9 in selection.sent_indexes
+    assert 9 not in selection.sent_indexes
     summary = selection.as_dict()["evidence_summary"]
     assert "Government initiative" in summary
     assert "Metadata / status" in summary
-    assert "Legislative text" in summary
+    assert "Legislative text" not in summary
 
 
 def test_token_budget_is_respected_for_parliamentary_selection():
@@ -277,9 +283,9 @@ def test_token_budget_is_respected_for_parliamentary_selection():
     selection = select_relevant_chunks(
         chunks, max_selected=16, max_document_tokens=4_500
     )
-    assert selection.document_token_estimate <= 4_500
+    assert selection.document_token_estimate <= 3_000
     assert selection.max_document_tokens == 4_500
-    assert 3 <= len(selection.sent_indexes) <= 8
+    assert 1 <= len(selection.sent_indexes) <= 4
     metadata_sent = [
         row for row in selection.preview if row.sent and row.tier == TIER_METADATA
     ]
@@ -287,7 +293,7 @@ def test_token_budget_is_respected_for_parliamentary_selection():
         row for row in selection.preview if row.sent and row.tier == TIER_SUBSTANCE
     ]
     assert 1 <= len(metadata_sent) <= 4
-    assert len(substance_sent) <= 4
+    assert substance_sent == []
 
 
 def test_duplicate_chunks_do_not_waste_budget():
@@ -319,7 +325,13 @@ def test_duplicate_chunks_do_not_waste_budget():
     sent = set(selection.sent_indexes)
     assert 0 in sent
     assert 1 not in sent
-    assert 2 in sent
+    article_claims = select_relevant_chunks(
+        (original, duplicate, law, *filler),
+        max_selected=16,
+        max_document_tokens=4_500,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
+    )
+    assert 2 in article_claims.sent_indexes
 
 
 def test_page_numbers_are_preserved_in_preview():
@@ -329,11 +341,12 @@ def test_page_numbers_are_preserved_in_preview():
     )
     by_index = {row["chunk_index"]: row for row in payload["preview"]}
     assert by_index[4]["page"] == 5
-    assert by_index[8]["page"] == 9
-    sent_pages = payload["selected_pages"]
+    sent_pages = payload.get("sent_pages") or payload["selected_pages"]
     assert 5 in sent_pages
-    assert 9 in sent_pages
+    assert 11 not in sent_pages
+    assert 12 not in sent_pages
     assert payload["method"] == CHUNK_SELECTION_VERSION
+    assert payload["extraction_purpose"] == EXTRACTION_PURPOSE_CANONICAL
 
 
 def test_table_of_contents_is_not_mandatory_metadata():
@@ -391,3 +404,78 @@ def test_subject_catalog_does_not_outrank_legislative_text():
     )
     selection = select_relevant_chunks(chunks, max_selected=16, max_document_tokens=4_500)
     assert 1 in selection.sent_indexes
+
+
+def test_canonical_proposal_stops_after_sufficient_metadata_coverage():
+    chunks = _parliamentary_chunks()
+    selection = select_relevant_chunks(
+        chunks, max_selected=16, max_document_tokens=4_500
+    )
+    sent = set(selection.sent_indexes)
+    assert selection.extraction_purpose == EXTRACTION_PURPOSE_CANONICAL
+    assert selection.sent_chunk_policy_version == "canonical_metadata_pack_v1"
+    assert selection.parliamentary_bill is True
+    assert has_sufficient_canonical_coverage(set(selection.canonical_coverage))
+    assert 4 in sent
+    assert 0 in sent
+    assert 9 not in sent
+    assert selection.document_token_estimate < 3_000
+    substance_sent = [
+        row for row in selection.preview if row.sent and row.tier == TIER_SUBSTANCE
+    ]
+    assert substance_sent == []
+    note = selection.coverage_note()
+    assert "Full document:" in note
+    assert "relevant metadata section" in note
+
+
+def test_canonical_proposal_does_not_fill_unused_budget_with_substance():
+    chunks = _parliamentary_chunks()
+    selection = select_relevant_chunks(
+        chunks, max_selected=16, max_document_tokens=4_500
+    )
+    unused = 4_500 - selection.document_token_estimate
+    assert unused > 500
+    assert all(row.tier != TIER_SUBSTANCE or not row.sent for row in selection.preview)
+    article_claims = select_relevant_chunks(
+        chunks,
+        max_selected=16,
+        max_document_tokens=4_500,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
+    )
+    assert article_claims.sent_chunk_policy_version == "proximity_token_pack_v1"
+    assert 9 in article_claims.selected_indexes
+
+
+def test_canonical_metadata_selection_does_not_hardcode_pages():
+    fillers = tuple(
+        _Chunk(index, f"pagina descrittiva {index} senza termini utili", index, index)
+        for index in range(50, 80)
+    )
+    chunks = (
+        _Chunk(10, "Fascicolo Iter DDL S. 12 titolo ufficiale della proposta", 40, 40),
+        _Chunk(
+            22,
+            "1.1. Dati generali Iniziativa Governativa Governo Meloni-I "
+            "Iter 1 gennaio 2026: approvato definitivamente "
+            "Presentazione Trasmesso in data 2 gennaio 2026.",
+            88,
+            88,
+        ),
+        _Chunk(
+            40,
+            "Art. 14. Si autorizza la spesa di 10 milioni di euro per modifiche.",
+            200,
+            200,
+        ),
+        *fillers,
+    )
+    selection = select_relevant_chunks(
+        chunks, max_selected=16, max_document_tokens=4_500
+    )
+    sent_pages = {row.page for row in selection.preview if row.sent}
+    assert 40 in sent_pages
+    assert 88 in sent_pages
+    assert 200 not in sent_pages
+    assert 11 not in sent_pages
+    assert 12 not in sent_pages

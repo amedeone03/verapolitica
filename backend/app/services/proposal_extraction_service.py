@@ -35,9 +35,14 @@ from backend.app.pipeline.prompts import (
     load_proposal_extraction_prompt,
 )
 from backend.app.pipeline.chunk_selection import (
-    CHUNK_SELECTION_VERSION,
     DEFAULT_DOCUMENT_TOKEN_BUDGET,
+    EXTRACTION_PURPOSE_CANONICAL,
     select_relevant_chunks,
+)
+from backend.app.pipeline.inference_fingerprint import build_inference_fingerprint
+from backend.app.pipeline.temporal_validation import (
+    SemanticValidationError,
+    validate_claim_temporal,
 )
 from backend.app.schemas import (
     AI_EXTRACTION_SCHEMA_VERSION,
@@ -113,6 +118,7 @@ class ProposalExtractionService:
         prompt_version: str = PROPOSAL_EXTRACTION_PROMPT_VERSION,
         schema_version: str = AI_EXTRACTION_SCHEMA_VERSION,
         actor_identity_hints: tuple[ActorIdentityHint, ...] = (),
+        extraction_purpose: str = EXTRACTION_PURPOSE_CANONICAL,
     ) -> None:
         self.session_factory = session_factory
         self.provider = provider
@@ -126,12 +132,15 @@ class ProposalExtractionService:
         )
         self.prompt_version = prompt_version
         self.schema_version = schema_version
+        self.extraction_purpose = extraction_purpose
         self.actor_identity_hints = {
             self._normalized_evidence(item.display_name): item
             for item in actor_identity_hints
         }
 
-    def extract(self, raw_document_id: int) -> ProposalExtractionSummary:
+    def extract(
+        self, raw_document_id: int, *, force_rerun: bool = False
+    ) -> ProposalExtractionSummary:
         with self.session_factory() as session:
             document = session.scalar(
                 select(RawDocument)
@@ -160,22 +169,38 @@ class ProposalExtractionService:
                 chunks,
                 max_selected=min(self.max_selected_chunks, self.max_chunks_per_run),
                 max_document_tokens=self.max_document_tokens,
+                extraction_purpose=self.extraction_purpose,
             )
             if not selection.chunks:
                 raise ProposalExtractionInputError(
                     "no relevant evidence sections could be selected from this document"
                 )
-            idempotency_key = self._idempotency_key(document)
-            completed = session.scalar(
-                select(AIExtractionRun)
-                .where(
-                    AIExtractionRun.completed_idempotency_key == idempotency_key,
-                    AIExtractionRun.status == AIExtractionRunStatus.COMPLETED,
-                )
-                .options(selectinload(AIExtractionRun.candidates))
+            prompt_text = load_proposal_extraction_prompt()
+            fingerprint = build_inference_fingerprint(
+                document_raw_sha256=document.raw_sha256,
+                document_normalized_sha256=document.normalized_sha256,
+                provider=self.provider,
+                prompt_text=prompt_text,
+                prompt_version=self.prompt_version,
+                schema_version=self.schema_version,
+                max_selected_chunks=self.max_selected_chunks,
+                max_chunks_per_run=self.max_chunks_per_run,
+                max_document_tokens=self.max_document_tokens,
+                extraction_purpose=self.extraction_purpose,
+                sent_chunk_policy_version=selection.sent_chunk_policy_version,
             )
-            if completed is not None:
-                return self._summary(completed, reused=True)
+            idempotency_key = fingerprint.digest
+            if not force_rerun:
+                completed = session.scalar(
+                    select(AIExtractionRun)
+                    .where(
+                        AIExtractionRun.completed_idempotency_key == idempotency_key,
+                        AIExtractionRun.status == AIExtractionRunStatus.COMPLETED,
+                    )
+                    .options(selectinload(AIExtractionRun.candidates))
+                )
+                if completed is not None:
+                    return self._summary(completed, reused=True)
             source_key = document.source.key
             source_url = document.source_url
             observed_at = document.retrieved_at
@@ -189,7 +214,11 @@ class ProposalExtractionService:
                 status=AIExtractionRunStatus.RUNNING,
                 idempotency_key=idempotency_key,
                 input_chunk_count=len(selection.chunks),
-                provider_response={"chunk_selection": selection.as_dict()},
+                provider_response={
+                    "inference_fingerprint": fingerprint.as_audit(),
+                    "force_rerun": force_rerun,
+                    "chunk_selection": selection.as_dict(),
+                },
             )
             session.add(run)
             session.commit()
@@ -197,7 +226,7 @@ class ProposalExtractionService:
 
         request = StructuredExtractionRequest(
             source_url=source_url,
-            prompt=load_proposal_extraction_prompt(),
+            prompt=prompt_text,
             chunks=tuple(
                 ExtractionChunk(
                     chunk_index=chunk.chunk_index,
@@ -240,10 +269,16 @@ class ProposalExtractionService:
             run = session.get(AIExtractionRun, run_id)
             if run is None:
                 raise ProposalExtractionError("AI extraction run disappeared")
+            existing_response = (
+                run.provider_response if isinstance(run.provider_response, dict) else {}
+            )
             run.provider_response = {
+                **existing_response,
                 "output": result.output.model_dump(mode="json"),
                 "provider_response_id": result.provider_response_id,
                 "chunk_selection": selection.as_dict(),
+                "inference_fingerprint": fingerprint.as_audit(),
+                "force_rerun": force_rerun,
             }
             diagnostics = getattr(self.provider, "last_diagnostics", None)
             dumped = getattr(diagnostics, "as_dict", None)
@@ -276,6 +311,7 @@ class ProposalExtractionService:
                         claim, chunk_by_index
                     )
                     self._validate_actor_evidence(claim, validated_evidence)
+                    self._validate_temporal_semantics(claim)
                     deduplication_key = self._claim_deduplication_key(claim)
                     candidate.deduplication_key = deduplication_key
                     if deduplication_key in seen_deduplication_keys:
@@ -357,6 +393,28 @@ class ProposalExtractionService:
             run.abstained_candidate_count = counts[AIExtractionCandidateStatus.ABSTAINED]
             run.duplicate_candidate_count = counts[AIExtractionCandidateStatus.DUPLICATE]
             run.status = AIExtractionRunStatus.COMPLETED
+            if force_rerun:
+                previous_rows = tuple(
+                    session.scalars(
+                        select(AIExtractionRun).where(
+                            AIExtractionRun.completed_idempotency_key
+                            == idempotency_key,
+                            AIExtractionRun.id != run.id,
+                        )
+                    )
+                )
+                for previous in previous_rows:
+                    previous.completed_idempotency_key = None
+                    previous_response = (
+                        previous.provider_response
+                        if isinstance(previous.provider_response, dict)
+                        else {}
+                    )
+                    previous.provider_response = {
+                        **previous_response,
+                        "superseded_by_run_id": run.id,
+                    }
+                session.flush()
             run.completed_idempotency_key = run.idempotency_key
             run.completed_at = datetime.now(timezone.utc)
             try:
@@ -376,24 +434,6 @@ class ProposalExtractionService:
             session.refresh(run)
             _ = run.candidates
             return self._summary(run, reused=False)
-
-    def _idempotency_key(self, document: RawDocument) -> str:
-        canonical = json.dumps(
-            [
-                document.source_id,
-                document.raw_sha256,
-                self.provider.provider_name,
-                self.provider.model_name,
-                self.prompt_version,
-                self.schema_version,
-                CHUNK_SELECTION_VERSION,
-                min(self.max_selected_chunks, self.max_chunks_per_run),
-                self.max_document_tokens,
-            ],
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        return sha256(canonical.encode("utf-8")).hexdigest()
 
     def _validate_evidence(
         self,
@@ -475,6 +515,12 @@ class ProposalExtractionService:
                 raise ProposalExtractionInputError(
                     f"actor mention {actor.name!r} is not supported by cited evidence"
                 )
+
+    @staticmethod
+    def _validate_temporal_semantics(claim: ExtractedPoliticalClaim) -> None:
+        issues = validate_claim_temporal(claim)
+        if issues:
+            raise ProposalExtractionInputError(str(SemanticValidationError(issues)))
 
     @staticmethod
     def _normalized_evidence(value: str) -> str:

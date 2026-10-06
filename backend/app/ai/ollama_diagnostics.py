@@ -20,7 +20,10 @@ INVALID_JSON_PREVIEW_CHARS = 2_000
 USER_PREFIX = (
     "Extract candidates from these official document chunks. "
     "Return only schema-valid JSON. Do not invent politician IDs "
-    "or database identifiers.\n\n"
+    "or database identifiers. Every actor name must appear verbatim "
+    "inside some evidence.supporting_text. The phrase "
+    "Iniziativa Governativa does not contain Governo; if the actor is "
+    "Governo, copy a short excerpt such as Governo Meloni-I.\n\n"
 )
 OLLAMA_JSON_FORMAT_INSTRUCTIONS = """
 Return ONLY valid JSON. No markdown. No commentary.
@@ -43,7 +46,10 @@ When the source is an official parliamentary bill / DISEGNO DI LEGGE:
 - the bill itself may constitute a `proposal`
 - use the official bill title or another exact source sentence as the
   evidence-grounded statement
-- an explicit "Iniziativa Governativa" may support a government actor
+- an explicit "Iniziativa Governativa" may support a government *role*, but
+  actor_mentions.name must still appear verbatim in supporting_text
+- if the actor name is "Governo", copy a short exact span that contains those
+  letters, such as "Governo Meloni-I"; do not cite only "Iniziativa Governativa"
 - current parliamentary status does NOT make the bill cease to be a proposal
 - do not require natural-language wording such as "proponiamo..."
 - do not infer facts not present in the selected chunks
@@ -52,11 +58,34 @@ When the source is an official parliamentary bill / DISEGNO DI LEGGE:
 - every actor_mentions.name MUST appear as an exact substring of at least one
   evidence.supporting_text excerpt; add a separate evidence item if needed
 - if you cannot copy an actor name into evidence, set actor_mentions to []
+- for an institutional government actor named "Governo", copy a short exact
+  excerpt that contains the literal characters "Governo" (for example
+  "Governo Meloni-I" or "dal Governo"). "Iniziativa Governativa" alone is
+  not enough, because it does not contain the substring "Governo"
 - prefer a small number of topics directly supported by the selected evidence
 - do not invent politician IDs or resolve names against a database
 
+Evidence.supporting_text rules:
+- MUST be an exact substring of a sent chunk
+- MUST be <= 600 characters
+- SHOULD normally be concise, ideally <= 300 characters
+- MUST include only the minimum text needed to support the associated claim
+- MUST NOT paste an entire metadata block or minister list when a shorter
+  exact excerpt is sufficient
+Never return supporting_text longer than 600 characters.
+
+Optional dates:
+- announced_at: include only when an explicit announcement or presentation
+  date is present in the cited source text
+- target_date: include only when the source explicitly states a future
+  deadline or target date for the proposal itself
+- do NOT use today's date as target_date
+- a decree-law conversion expiry / "scadenza" is not a proposal target_date
+  unless the source says it is the proposal's own deadline
+- if unsupported, return null. Prefer null over a guessed date.
+
 Short fictional example of an official bill candidate:
-{"candidates":[{"claim_type":"proposal","exact_statement":"Disposizioni per la digitalizzazione degli archivi comunali.","normalized_title":"Disposizioni per la digitalizzazione degli archivi comunali","summary":"Disegno di legge di iniziativa governativa sulla digitalizzazione degli archivi comunali.","topic":"public_administration","actor_mentions":[],"announced_at":null,"target_date":null,"evidence":[{"chunk_index":0,"page":null,"supporting_text":"Disposizioni per la digitalizzazione degli archivi comunali."}],"confidence":"high","abstention_reason":null}]}
+{"candidates":[{"claim_type":"proposal","exact_statement":"Disposizioni per la digitalizzazione degli archivi comunali.","normalized_title":"Disposizioni per la digitalizzazione degli archivi comunali","summary":"Disegno di legge di iniziativa governativa sulla digitalizzazione degli archivi comunali.","topic":"public_administration","actor_mentions":[{"name":"Governo","role":"government"}],"announced_at":null,"target_date":null,"evidence":[{"chunk_index":0,"page":null,"supporting_text":"Disposizioni per la digitalizzazione degli archivi comunali."},{"chunk_index":0,"page":null,"supporting_text":"Governo Meloni-I"}],"confidence":"high","abstention_reason":null}]}
 
 Allowed enum values only:
 - claim_type: "proposal" | "explicit_promise" | null
@@ -67,23 +96,44 @@ Allowed enum values only:
 - announced_at / target_date: "YYYY-MM-DD" | null
 - evidence.chunk_index: integer >= 0 already present in the input
 - evidence.page: integer >= 1 only when the supplied chunk shows a page number; otherwise null
-- evidence.supporting_text: exact substring copied from the supplied chunks
+- evidence.supporting_text: exact substring copied from the supplied chunks,
+  never longer than 600 characters
 
 If the input chunks do not show page numbers, every evidence.page MUST be null.
 
 Short fictional example of a complete candidate:
-{"candidates":[{"claim_type":"proposal","exact_statement":"Si istituisce un fondo sperimentale di 2 milioni di euro per le biblioteche comunali.","normalized_title":"Fondo sperimentale per le biblioteche comunali","summary":"Il Governo propone un fondo di 2 milioni di euro per le biblioteche comunali nel 2027.","topic":"education","actor_mentions":[{"name":"Governo","role":"government"}],"announced_at":"2026-01-15","target_date":"2027-12-31","evidence":[{"chunk_index":0,"page":null,"supporting_text":"Si istituisce un fondo sperimentale di 2 milioni di euro per le biblioteche comunali."}],"confidence":"high","abstention_reason":null}]}
+{"candidates":[{"claim_type":"proposal","exact_statement":"Si istituisce un fondo sperimentale di 2 milioni di euro per le biblioteche comunali.","normalized_title":"Fondo sperimentale per le biblioteche comunali","summary":"Il Governo propone un fondo di 2 milioni di euro per le biblioteche comunali.","topic":"education","actor_mentions":[{"name":"Governo","role":"government"}],"announced_at":null,"target_date":null,"evidence":[{"chunk_index":0,"page":null,"supporting_text":"Si istituisce un fondo sperimentale di 2 milioni di euro per le biblioteche comunali."},{"chunk_index":0,"page":null,"supporting_text":"Presentato dal Governo."}],"confidence":"high","abstention_reason":null}]}
 
 Copy evidence excerpts exactly. Do not invent actors, titles, dates, or amounts.
 If actor_mentions is not [], every name must already appear inside some
 evidence.supporting_text. Do not add actors that are missing from evidence.
+Never return supporting_text longer than 600 characters.
 """.strip()
 CONCISE_JSON_SCHEMA_INSTRUCTIONS = OLLAMA_JSON_FORMAT_INSTRUCTIONS
 SCHEMA_REPAIR_INSTRUCTIONS = """
 Your previous JSON did not match the required schema.
 Return the complete corrected JSON only.
 Do not omit required fields.
+Every evidence.supporting_text must be an exact substring and at most 600 characters.
+If a date is not explicitly supported, set it to null.
 If you cannot support a complete candidate from the evidence, return {"candidates":[]}.
+""".strip()
+SEMANTIC_REPAIR_INSTRUCTIONS = """
+Your previous JSON was schema-valid but failed semantic validation.
+Correct only the unsupported fields.
+If an optional field has no explicit support, set it to null.
+Preserve valid evidence and other valid fields where possible.
+Do not invent new facts.
+Return the complete corrected JSON only.
+""".strip()
+FINAL_OUTPUT_REQUIREMENTS = """
+Final output requirements:
+- Return complete schema-valid JSON with a top-level candidates array.
+- Every evidence.supporting_text MUST be an exact verbatim substring of a sent chunk.
+- Every evidence.supporting_text MUST be <= 600 characters. Do not paraphrase. Do not use ellipses to shorten a span that is not itself in the source.
+- Every actor_mentions.name MUST appear verbatim inside cited evidence.supporting_text.
+- announced_at and target_date must follow temporal semantics: announcement/presentation dates may be announced_at; procedural scadenza / conversion expiry is not target_date.
+- If an optional field is unsupported, set it to null.
 """.strip()
 
 
@@ -163,12 +213,15 @@ class OllamaAttemptRecord:
     input_tokens: int | None = None
     output_tokens: int | None = None
     request_body_bytes: int | None = None
+    semantic_validation_errors: tuple[dict[str, str | None], ...] = ()
+    repaired_fields: tuple[str, ...] = ()
+    raw_output: dict[str, Any] | list[Any] | None = None
 
     def as_dict(self) -> dict[str, object]:
         elapsed_seconds = None
         if self.elapsed_ms is not None:
             elapsed_seconds = round(self.elapsed_ms / 1000, 3)
-        return {
+        payload: dict[str, object] = {
             "attempt": self.attempt,
             "validation_status": self.validation_status,
             "validation_error_categories": list(self.validation_error_categories),
@@ -180,6 +233,15 @@ class OllamaAttemptRecord:
             "output_tokens": self.output_tokens,
             "request_body_bytes": self.request_body_bytes,
         }
+        if self.semantic_validation_errors:
+            payload["semantic_validation_errors"] = list(
+                self.semantic_validation_errors
+            )
+        if self.repaired_fields:
+            payload["repaired_fields"] = list(self.repaired_fields)
+        if self.raw_output is not None:
+            payload["raw_output"] = self.raw_output
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -351,14 +413,23 @@ def build_repair_chat_payload(
     *,
     invalid_json: object,
     validation_errors: tuple[str, ...],
+    kind: str = "schema",
+    extra_instruction: str = "",
 ) -> dict[str, Any]:
+    header = (
+        SEMANTIC_REPAIR_INSTRUCTIONS
+        if kind == "semantic"
+        else SCHEMA_REPAIR_INSTRUCTIONS
+    )
     error_lines = "\n".join(
         f"- {item}" for item in validation_errors
-    ) or "- schema mismatch"
+    ) or "- validation error"
+    extra = f"\n\n{extra_instruction.strip()}" if extra_instruction.strip() else ""
     repair = (
-        f"{SCHEMA_REPAIR_INSTRUCTIONS}\n\n"
-        f"Validation errors:\n{error_lines}\n\n"
-        "Invalid JSON:\n"
+        f"{header}\n\n"
+        f"{FINAL_OUTPUT_REQUIREMENTS}\n\n"
+        f"Validation errors:\n{error_lines}{extra}\n\n"
+        "Previous JSON:\n"
         f"{preview_invalid_json(invalid_json)}"
     )
     messages = list(original_payload.get("messages") or [])

@@ -225,7 +225,7 @@
     let failedStep = "extract";
     try {
       failedStep = "ingest";
-      activate("ingest", "Processing document");
+      activate("ingest", "Preparing official document");
       const form = new FormData();
       form.append("document", chosen, chosen.name);
       form.append("source_url", document.getElementById("source-url").value);
@@ -235,12 +235,20 @@
         method: "POST",
         body: form,
       });
-      const pages = ingested.page_count || ingested.chunk_count || 0;
-      const pageLabel = ingested.page_count
-        ? (pages === 1 ? " page extracted" : " pages extracted")
-        : (pages === 1 ? " section extracted" : " sections extracted");
-      markStep("ingest", "Processing document");
-      markStep("pages", pages.toLocaleString() + pageLabel);
+      const pages = ingested.page_count || 0;
+      markStep("ingest", "Preparing official document");
+      if (pages) {
+        markStep(
+          "pages",
+          "Full document: " + pages.toLocaleString() + (pages === 1 ? " page" : " pages")
+        );
+      } else {
+        const sections = ingested.chunk_count || 0;
+        markStep(
+          "pages",
+          "Full document: " + sections.toLocaleString() + (sections === 1 ? " section" : " sections")
+        );
+      }
       failedStep = "select";
       activate("select", "Selecting relevant evidence");
       const selectedSections = await fetchJson("/demo/ai-upload/select", {
@@ -249,22 +257,27 @@
         body: JSON.stringify({ raw_document_id: ingested.raw_document_id }),
       });
       markStep("select", "Selecting relevant evidence");
-      const identified = (selectedSections.selected_chunk_indexes || []).length;
       const sentCount = (selectedSections.sent_chunk_indexes || selectedSections.selected_chunk_indexes || []).length;
+      const purpose = selectedSections.extraction_purpose || "";
+      const sectionLabel = purpose === "canonical_proposal"
+        ? " relevant metadata section"
+        : " relevant section";
       markStep(
         "selected",
-        identified + (identified === 1 ? " relevant section identified" : " relevant sections identified")
-      );
-      markStep(
-        "sent",
-        sentCount + (sentCount === 1 ? " section sent to local AI" : " sections sent to local AI")
+        "Evidence selected: " + sentCount + sectionLabel + (sentCount === 1 ? "" : "s")
       );
       const summary = selectedSections.evidence_summary || [];
       if (summary.length && progressCopy) {
         progressCopy.textContent = "Evidence selected: " + summary.join(", ");
       }
       failedStep = "extract";
-      activate("extract", ingested.mode === "local" ? "Running local AI" : "Running deterministic fallback");
+      const extractLabel = ingested.mode === "local"
+        ? "Running local AI — this can take around 2–3 minutes"
+        : "Running deterministic fallback";
+      activate("extract", extractLabel);
+      if (progressCopy && ingested.mode === "local") {
+        progressCopy.textContent = "Local AI is working on this computer. A second pass can happen automatically. The result is a draft, not a publication.";
+      }
       const extracted = await fetchJson("/demo/ai-upload/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -275,8 +288,15 @@
           fixture_key: ingested.fixture_key || "",
           source_url: ingested.source_url,
           source_name: ingested.source_name,
+          force_rerun: Boolean(document.getElementById("force-rerun") && document.getElementById("force-rerun").checked),
         }),
       });
+      markStep("extract", ingested.mode === "local" ? "Running local AI" : "Running deterministic fallback");
+      markStep("validate", "Validating evidence");
+      markStep("draft", "Preparing draft");
+      if (progressCopy) {
+        progressCopy.textContent = "Preparing unpublished draft. Human review is required.";
+      }
       if (!extracted.redirect) {
         throw new Error("Document analysis failed.");
       }

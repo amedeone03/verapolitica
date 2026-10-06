@@ -56,6 +56,9 @@ LOCAL_ANALYSIS_LABEL = "LOCAL AI ANALYSIS"
 DEMO_MODE_LABEL = "Demo mode — simulated AI provider"
 LOCAL_MODE_LABEL = "Real local AI — Ollama"
 FALLBACK_MODE_LABEL = "Deterministic demo fallback"
+CEO_DEMO_SOURCE_URL = (
+    "https://www.senato.it/leggi-e-documenti/disegni-di-legge/scheda-ddl?did=60485"
+)
 router = APIRouter(prefix="/demo", tags=["demo-editorial"])
 logger = logging.getLogger("verapolitica.demo")
 _MONEY_RE = re.compile(
@@ -84,6 +87,7 @@ class DemoExtractPayload(BaseModel):
     fixture_key: str = ""
     source_url: str = ""
     source_name: str = ""
+    force_rerun: bool = False
 
 
 def demo_local_model(settings: Settings) -> str:
@@ -160,54 +164,13 @@ def _friendly_error(exc: BaseException) -> str:
     return message[:400]
 
 
-def _local_attempt_html(run) -> str:
-    if run is None or run.provider != "ollama":
-        return ""
-    payload = run.provider_response if isinstance(run.provider_response, dict) else {}
-    diagnostics = payload.get("ollama_diagnostics") if isinstance(payload, dict) else None
-    if not isinstance(diagnostics, dict):
-        return ""
-    attempts = diagnostics.get("attempts") or []
-    count = int(diagnostics.get("attempt_count") or len(attempts) or 1)
-    labels = {1: "First attempt", 2: "Second attempt"}
-    status_labels = {
-        "accepted": "accepted",
-        "schema_invalid": "schema validation failed",
-        "malformed_json": "invalid JSON",
-        "timeout": "timed out",
-        "unavailable": "unavailable",
-        "http_error": "provider error",
-    }
-    rows = [
-        (
-            '<div class="data-point"><small>Local AI attempts</small>'
-            f"<strong>{escape(str(count))}</strong></div>"
-        )
-    ]
-    if count < 2:
-        return "".join(rows)
-    for item in attempts:
-        if not isinstance(item, dict):
-            continue
-        number = item.get("attempt")
-        status = status_labels.get(
-            str(item.get("validation_status") or ""),
-            str(item.get("validation_status") or "unknown"),
-        )
-        label = labels.get(number, f"Attempt {number}")
-        rows.append(
-            f'<div class="data-point"><small>{escape(str(label))}</small>'
-            f"<strong>{escape(status)}</strong></div>"
-        )
-    return "".join(rows)
-
-
 def _resolve_mode(
     requested: str,
     *,
     settings: Settings,
     content: bytes,
 ) -> Literal["local", "fake"]:
+    del content
     if requested == "fake":
         return "fake"
     if requested == "local":
@@ -215,10 +178,8 @@ def _resolve_mode(
     status_payload = _ollama_status(settings)
     if status_payload.get("available"):
         return "local"
-    if match_demo_fixture(content) is not None:
-        return "fake"
     raise DemoUploadError(
-        "Local AI is not running. Start Ollama with `ollama serve`, or use "
+        "Local AI is not running. Start Ollama with `ollama serve`, or choose "
         "Deterministic demo fallback."
     )
 
@@ -246,17 +207,19 @@ def _render_upload(
             <h1>AI-assisted document analysis</h1>
             <p class="hero-copy">
               Upload an official HTML or text-based PDF. VeraPolitica extracts the
-              text locally, selects relevant evidence sections, and runs structured
-              extraction. The result is an unpublished editorial draft.
-              Nothing becomes public until an editor approves it.
+              full document locally, selects relevant evidence, and runs structured
+              extraction. Real local AI may take around 2–3 minutes.
+              The result is an unpublished editorial draft, not a publication.
+              Human review is required before anything becomes public.
             </p>
           </div>
           <div class="api-config">
             <span class="badge badge-review">{escape(LOCAL_MODE_LABEL if default_mode == "local" else DEMO_MODE_LABEL)}</span>
             <p class="hero-copy" style="margin-top:12px">
-              Two modes: <strong>REAL LOCAL AI</strong> via Ollama (no API cost),
-              and <strong>Deterministic demo fallback</strong> if the local model
-              is unavailable.
+              Primary path: <strong>REAL LOCAL AI</strong> via Ollama (no API cost).
+              <strong>{escape(FALLBACK_MODE_LABEL)}</strong> is an explicit emergency
+              option and stays labelled simulated. Local AI never switches to
+              simulated mode on its own.
             </p>
           </div>
         </section>
@@ -277,7 +240,7 @@ def _render_upload(
               <label class="mode-card{" is-selected" if default_mode == "fake" else ""}">
                 <input type="radio" name="extract-mode" value="fake"{" checked" if default_mode == "fake" else ""} />
                 <strong>{escape(FALLBACK_MODE_LABEL)}</strong>
-                <small>{escape(DEMO_MODE_LABEL)}</small>
+                <small>Emergency only · {escape(DEMO_MODE_LABEL)}</small>
               </label>
             </div>
             <p class="connection-pill {status_class}" id="ollama-status">
@@ -298,14 +261,14 @@ def _render_upload(
             <input id="document-file" class="file-input-hidden" type="file" name="document" accept=".pdf,.html,.htm,application/pdf,text/html" hidden />
             <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-controls="document-file" aria-label="Drop official HTML or PDF, or press Enter to choose a file">
               <strong>Drop official HTML or PDF here</strong>
-              <p>Accepted: .html, .htm, text-based .pdf</p>
+              <p>Accepted: .html, .htm, text-based .pdf. The CEO walkthrough uses the 1,188-page Senato PDF.</p>
               <label for="document-file" id="choose-file-button" class="button button-secondary file-picker-button" tabindex="0">Choose PDF or HTML</label>
             </div>
             <p id="selected-file" class="hero-copy" aria-live="polite">No file selected.</p>
             <div class="profile-grid">
               <label class="data-point">
                 <small>Official source URL (required for local AI)</small>
-                <input id="source-url" name="source_url" type="url" placeholder="{escape(fixture.source_url)}" />
+                <input id="source-url" name="source_url" type="url" value="{escape(CEO_DEMO_SOURCE_URL)}" placeholder="{escape(CEO_DEMO_SOURCE_URL)}" />
               </label>
               <label class="data-point">
                 <small>Source name</small>
@@ -313,6 +276,12 @@ def _render_upload(
               </label>
             </div>
             <input type="hidden" id="mode-field" name="mode" value="{escape(default_mode)}" />
+            <label class="data-point" style="margin-top:14px">
+              <small>
+                <input id="force-rerun" type="checkbox" />
+                Force a new AI run (local tuning only). Previous runs are kept.
+              </small>
+            </label>
             <div class="button-group" style="margin-top:18px">
               <button id="analyze-button" class="button button-primary" type="submit" disabled>
                 Analyze
@@ -321,22 +290,24 @@ def _render_upload(
             </form>
             <div id="progress-panel" class="progress-panel" hidden>
               <p class="eyebrow">Working locally</p>
+              <p class="hero-copy">Local AI may take around 2–3 minutes. This is not a publication.</p>
               <ol class="progress-steps">
-                <li data-step="ingest">Processing document</li>
+                <li data-step="ingest">Preparing official document</li>
                 <li data-step="pages">Waiting for page count</li>
                 <li data-step="select">Selecting relevant evidence</li>
                 <li data-step="selected">Waiting for selected sections</li>
-                <li data-step="sent">Waiting for sections sent to local AI</li>
                 <li data-step="extract">Running local AI</li>
+                <li data-step="validate">Validating evidence</li>
+                <li data-step="draft">Preparing draft</li>
               </ol>
-              <p id="progress-copy" class="hero-copy">Preparing…</p>
+              <p id="progress-copy" class="hero-copy">Preparing official document</p>
             </div>
           </div>
         </section>
         <div id="demo-config" hidden
           data-default-mode="{escape(default_mode)}"
           data-model="{escape(model_name)}"></div>
-        <script src="/demo/ai-upload.js?v=evidence-summary"></script>
+        <script src="/demo/ai-upload.js?v=ceo-demo-phases"></script>
     """
     return _page(
         body,
@@ -396,6 +367,7 @@ def _prepare_upload(
 
 
 def _extract_prepared(*, settings: Settings, prepared: dict) -> dict:
+    force_rerun = bool(prepared.get("force_rerun"))
     if prepared["mode"] == "fake":
         fixture = _fixture_by_key(prepared.get("fixture_key") or "")
         if fixture is None:
@@ -404,12 +376,14 @@ def _extract_prepared(*, settings: Settings, prepared: dict) -> dict:
             settings=settings,
             raw_document_id=prepared["raw_document_id"],
             fake_response=fixture.response_path,
+            force_rerun=force_rerun,
         )
     else:
         summary = extract_ingested_document(
             settings=settings,
             raw_document_id=prepared["raw_document_id"],
             provider=_demo_local_provider(settings),
+            force_rerun=force_rerun,
         )
     draft_ids = summary.get("proposal_draft_ids") or []
     if not draft_ids or summary.get("accepted_count", 0) < 1:
@@ -533,7 +507,7 @@ def _page(
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{escape(title)}</title>
-    <link rel="stylesheet" href="/demo/styles.css?v=evidence-summary" />
+    <link rel="stylesheet" href="/demo/styles.css?v=ceo-demo-phases" />
   </head>
   <body>
     <div class="page-shell">
@@ -676,17 +650,7 @@ def _render_draft(
     start_disabled = "disabled" if draft.status is not ProposalDraftStatus.PENDING else ""
     decide_disabled = "disabled" if final else ""
     topic = extracted.topic.value if extracted is not None and extracted.topic else "not provided"
-    confidence = (
-        extracted.confidence.value
-        if extracted is not None and extracted.confidence
-        else "not provided"
-    )
     model = candidate.run.model if candidate is not None else "none"
-    prompt = candidate.run.prompt_version if candidate is not None else "none"
-    schema = candidate.run.schema_version if candidate is not None else "none"
-    attempt_html = _local_attempt_html(candidate.run if candidate is not None else None)
-    validation = candidate.status.value if candidate is not None else "not an AI draft"
-    validation_label, validation_class = _badge(validation)
     public_link = f"/app/?proposal={draft.proposal_id}"
     source_url = citizen_source_url(str(observation.official_url))
     unresolved_count = len(unresolved)
@@ -712,10 +676,14 @@ def _render_draft(
     dates = []
     if observation.introduced_at:
         dates.append(f"Announced {observation.introduced_at.isoformat()}")
+    else:
+        dates.append("Announced date not extracted")
     target = observation.metadata.get("target_date")
     if target:
         dates.append(f"Target {escape(str(target))}")
-    date_label = "; ".join(dates) if dates else "not extracted"
+    else:
+        dates.append("Target date none — no commitment deadline")
+    date_label = "; ".join(dates)
     money_bits = _numeric_facts(
         observation.exact_statement or "",
         observation.summary or "",
@@ -756,14 +724,14 @@ def _render_draft(
             {coverage_block}
             {incomplete}
             <p class="hero-copy">
-              This screen is for the operator walkthrough. The citizen archive does not
-              show provider, model, prompt, confidence, or reviewer metadata.
+              AI created an unpublished draft. Human review is required.
+              Nothing becomes public until an editor approves it.
             </p>
           </div>
           <div class="api-config">
             <span class="badge {status_class}">{escape(status_label)}</span>
             <p class="hero-copy" style="margin-top:12px">Draft {draft.id} · Proposal {draft.proposal_id}</p>
-            <small>Nothing becomes public until an editor approves it.</small>
+            <small>Citizen pages hide model, provider, and internal diagnostics.</small>
           </div>
         </section>
         <section class="card proposal-review-card evidence-panel">
@@ -772,7 +740,7 @@ def _render_draft(
               <p class="eyebrow">Official source</p>
               <h2 class="wrap-title">{escape(observation.title)}</h2>
             </div>
-            <span class="badge {validation_class}">{escape(validation_label)}</span>
+            <span class="badge {status_class}">{escape(status_label)}</span>
           </div>
           <div class="card-body">
             <p>{escape(observation.exact_statement or observation.summary or "")}</p>
@@ -786,13 +754,10 @@ def _render_draft(
               <div class="data-point"><small>Actor resolution</small><strong>{escape(actor_status)}</strong></div>
               <div class="data-point"><small>Important dates</small><strong>{date_label}</strong></div>
               <div class="data-point"><small>Numeric / financial facts</small><strong>{escape(money_label)}</strong></div>
-              <div class="data-point"><small>Confidence</small><strong>{escape(confidence)}</strong></div>
-              <div class="data-point"><small>Validation</small><strong>{escape(validation)}</strong></div>
-              <div class="data-point"><small>Provider</small><strong>{escape(provider)}</strong></div>
-              <div class="data-point"><small>Model</small><strong>{escape(model)}</strong></div>
-              <div class="data-point"><small>Prompt</small><strong>{escape(prompt)}</strong></div>
-              <div class="data-point"><small>Schema</small><strong>{escape(schema)}</strong></div>
-              {attempt_html}
+              {('<div class="data-point"><small>Provider</small><strong>fake</strong></div>'
+                f'<div class="data-point"><small>Model</small><strong>{escape(model)}</strong></div>')
+               if simulated else
+               f'<div class="data-point"><small>Local model</small><strong>{escape(model)}</strong></div>'}
             </div>
             <div class="section-rule"></div>
             <div class="subheading"><h3>{escape(evidence_heading)}</h3><span>Exact substring of the official document</span></div>
@@ -961,6 +926,7 @@ def extract_document_claims(
                 "fixture_key": payload.fixture_key,
                 "source_url": payload.source_url,
                 "source_name": payload.source_name,
+                "force_rerun": payload.force_rerun,
             },
         )
         return JSONResponse({"redirect": extracted["redirect"]})

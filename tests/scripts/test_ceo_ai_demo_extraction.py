@@ -43,6 +43,7 @@ def _args(settings: Settings) -> Namespace:
         source_key="senato-ddl",
         source_name="Senato della Repubblica — Disegni di legge",
         fake_response=FAKE,
+        force=False,
     )
 
 
@@ -106,6 +107,27 @@ def test_demo_ai_draft_route_is_local_only(tmp_path):
     )
     with TestClient(create_app(hidden)) as client:
         assert client.get("/demo/ai-draft/1").status_code == 404
+
+
+def test_reset_dry_run_lists_operator_artifacts_without_deleting(tmp_path):
+    settings = _settings(tmp_path)
+    run(_args(settings), settings=settings)
+    preview = reset_ceo_ai_demo(settings=settings, dry_run=True)
+    assert preview["dry_run"] is True
+    assert preview["proposals"] == 1
+    assert preview["proposal_ids"]
+    assert preview["proposal_draft_ids"]
+    assert preview["raw_document_ids"]
+    assert preview["ai_extraction_run_ids"]
+    assert "SPARQL" in preview["preserved"]
+    engine = create_db_engine(settings.database_url)
+    try:
+        session_factory = create_session_factory(engine)
+        with session_factory() as session:
+            assert session.scalar(select(func.count()).select_from(Proposal)) == 1
+            assert session.scalar(select(func.count()).select_from(AIExtractionRun)) == 1
+    finally:
+        engine.dispose()
 
 
 def test_reset_removes_only_simulated_extraction(tmp_path):

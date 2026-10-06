@@ -16,7 +16,10 @@ from backend.app.core.config import Settings
 from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import DocumentChunk, RawDocument, Source
-from backend.app.pipeline.chunk_selection import select_relevant_chunks
+from backend.app.pipeline.chunk_selection import (
+    EXTRACTION_PURPOSE_CANONICAL,
+    select_relevant_chunks,
+)
 from backend.app.pipeline.official_document_pipeline import OfficialDocumentPipeline
 from backend.app.schemas import StructuredExtractionResult
 from backend.app.services.proposal_extraction_service import ProposalExtractionService
@@ -202,6 +205,7 @@ def preview_chunk_selection(
                 settings.ai_max_selected_chunks, settings.ai_max_chunks_per_run
             ),
             max_document_tokens=settings.ai_max_document_tokens,
+            extraction_purpose=EXTRACTION_PURPOSE_CANONICAL,
         )
         payload = selection.as_dict()
         payload["coverage_note"] = selection.coverage_note()
@@ -210,12 +214,20 @@ def preview_chunk_selection(
         engine.dispose()
 
 
+def ensure_local_force_rerun_allowed(settings: Settings) -> None:
+    if settings.is_production or not settings.demo_ui_enabled:
+        raise ValueError(
+            "force_rerun is local/demo-only and is never enabled automatically"
+        )
+
+
 def extract_ingested_document(
     *,
     settings: Settings,
     raw_document_id: int,
     fake_response: Path | None = None,
     provider=None,
+    force_rerun: bool = False,
 ) -> dict:
     engine = create_db_engine(settings.database_url)
     try:
@@ -226,6 +238,8 @@ def extract_ingested_document(
             if fake_response is not None
             else live_extraction_provider(settings)
         )
+        if force_rerun:
+            ensure_local_force_rerun_allowed(settings)
         extraction = ProposalExtractionService(
             session_factory,
             resolved,
@@ -233,7 +247,7 @@ def extract_ingested_document(
             max_evidence_excerpt_chars=settings.ai_max_evidence_excerpt_chars,
             max_selected_chunks=settings.ai_max_selected_chunks,
             max_document_tokens=settings.ai_max_document_tokens,
-        ).extract(raw_document_id)
+        ).extract(raw_document_id, force_rerun=force_rerun)
         return {
             "extraction_run_id": extraction.run_id,
             "reused_completed_run": extraction.reused_completed_run,
@@ -259,6 +273,7 @@ def run_official_extraction(
     source_key: str | None = None,
     fake_response: Path | None = None,
     provider=None,
+    force_rerun: bool = False,
 ) -> dict:
     ingestion = ingest_official_document(
         settings=settings,
@@ -273,5 +288,6 @@ def run_official_extraction(
         raw_document_id=ingestion["raw_document_id"],
         fake_response=fake_response,
         provider=provider,
+        force_rerun=force_rerun,
     )
     return {**ingestion, **extraction}

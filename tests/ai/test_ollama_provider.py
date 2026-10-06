@@ -23,7 +23,7 @@ VALID_CLAIMS = {
             "summary": None,
             "topic": "healthcare",
             "actor_mentions": [],
-            "announced_at": "2026-09-18",
+            "announced_at": None,
             "target_date": None,
             "evidence": [
                 {
@@ -142,6 +142,9 @@ def test_tiny_real_schema_request_shape_and_diagnostics():
     assert "Iniziativa Governativa" in payload["messages"][0]["content"]
     assert "proponiamo" in payload["messages"][0]["content"]
     assert "actor_mentions.name MUST appear" in payload["messages"][0]["content"]
+    assert "Never return supporting_text longer than 600 characters." in payload["messages"][0]["content"]
+    assert "do NOT use today's date as target_date" in payload["messages"][0]["content"]
+    assert 'literal characters "Governo"' in payload["messages"][0]["content"]
     assert "edifici scolastici" not in dumped
     assert "Misure per la sicurezza" not in dumped
     assert payload["options"]["num_ctx"] == 8192
@@ -244,7 +247,7 @@ def test_realistic_tiny_proposal_document_is_sent_as_json():
                         "topic": "education",
                         "actor_mentions": [{"name": "Governo", "role": "government"}],
                         "announced_at": None,
-                        "target_date": "2027-12-31",
+                        "target_date": None,
                         "evidence": [
                             {
                                 "chunk_index": 0,
@@ -303,6 +306,8 @@ def test_ollama_provider_repairs_schema_mismatch_once():
         assert len(payload["messages"]) >= 4
         repair = payload["messages"][-1]["content"]
         assert "did not match the required schema" in repair
+        assert "exact verbatim substring" in repair
+        assert "actor_mentions.name MUST appear verbatim" in repair
         assert "confidence" in repair.casefold() or "claim_type" in repair.casefold()
         assert "Disegno di legge per le cure palliative" in payload["messages"][1]["content"]
         return httpx.Response(
@@ -324,7 +329,7 @@ def test_ollama_provider_repairs_schema_mismatch_once():
     assert attempts[0]["validation_status"] == "schema_invalid"
     assert attempts[1]["validation_status"] == "accepted"
     dumped = json.dumps(provider.last_diagnostics.as_dict())
-    assert "Disegno di legge per le cure palliative" not in dumped
+    assert "Presentato da Governo" not in dumped
 
 
 def test_ollama_provider_rejects_schema_mismatch():
@@ -384,3 +389,151 @@ def test_probe_ollama_reports_running_and_missing_model():
     assert present["has_model"] is True
     assert missing["has_model"] is False
     assert "ollama pull" in str(missing["message"])
+
+
+PAGE5_TITLE = (
+    "Conversione in legge, con modificazioni, del decreto-legge 7 agosto 2026, "
+    "n. 144, recante disposizioni urgenti per la funzionalità della pubblica "
+    "amministrazione"
+)
+PAGE5_CHUNK = (
+    f"{PAGE5_TITLE}. Dati generali. Iniziativa Governativa. Governo Meloni-I. "
+    "Presentazione Senato della Repubblica. Non ancora pubblicato. "
+    "scadenza il 6 ottobre 2026. "
+    "annunciato nella seduta n. 459 del 29 settembre 2026."
+)
+
+
+def _page5_claim(*, target_date: str | None) -> dict:
+    payload = json.loads(json.dumps(VALID_CLAIMS))
+    candidate = payload["candidates"][0]
+    candidate["exact_statement"] = PAGE5_TITLE
+    candidate["normalized_title"] = PAGE5_TITLE
+    candidate["actor_mentions"] = [{"name": "Governo", "role": "government"}]
+    candidate["announced_at"] = "2026-09-29"
+    candidate["target_date"] = target_date
+    candidate["evidence"] = [
+        {
+            "chunk_index": 0,
+            "page": 5,
+            "supporting_text": PAGE5_TITLE,
+        },
+        {
+            "chunk_index": 0,
+            "page": 5,
+            "supporting_text": "Governo Meloni-I",
+        },
+        {
+            "chunk_index": 0,
+            "page": 5,
+            "supporting_text": "scadenza il 6 ottobre 2026",
+        },
+        {
+            "chunk_index": 0,
+            "page": 5,
+            "supporting_text": (
+                "annunciato nella seduta n. 459 del 29 settembre 2026"
+            ),
+        },
+    ]
+    return payload
+
+
+def _page5_request() -> StructuredExtractionRequest:
+    return StructuredExtractionRequest(
+        source_url="https://www.senato.it/leg/19/BGT/Schede/Ddliter/2047.htm",
+        prompt=PROMPT,
+        chunks=(
+            ExtractionChunk(
+                chunk_index=0,
+                text=PAGE5_CHUNK,
+                page_start=5,
+                page_end=5,
+            ),
+        ),
+    )
+
+
+def test_unsupported_target_date_triggers_exactly_one_semantic_repair():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content.decode("utf-8"))
+        calls.append(payload)
+        if len(calls) == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": json.dumps(_page5_claim(target_date="2026-10-06"))
+                    },
+                    "prompt_eval_count": 20,
+                    "eval_count": 12,
+                },
+            )
+        repair = payload["messages"][-1]["content"]
+        assert "failed semantic validation" in repair
+        assert "exact verbatim substring" in repair
+        assert "procedural_deadline_not_proposal_target" in repair
+        assert "procedural_deadline_not_proposal_target" in repair
+        assert "target_date=2026-10-06" in repair
+        assert "decreto-legge" in repair
+        assert "Return target_date=null" in repair
+        assert PAGE5_CHUNK in payload["messages"][1]["content"]
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(_page5_claim(target_date=None))
+                },
+                "prompt_eval_count": 22,
+                "eval_count": 9,
+            },
+        )
+
+    provider = _provider(handler)
+    result = provider.extract(_page5_request())
+    assert len(calls) == 2
+    claim = result.output.candidates[0]
+    assert claim.target_date is None
+    assert claim.announced_at.isoformat() == "2026-09-29"
+    assert result.usage.request_count == 2
+    attempts = provider.last_diagnostics.as_dict()["attempts"]
+    assert provider.last_diagnostics.attempt_count == 2
+    assert attempts[0]["validation_status"] == "semantic_invalid"
+    assert attempts[0]["semantic_validation_errors"] == [
+        {
+            "field": "target_date",
+            "reason": "procedural_deadline_not_proposal_target",
+            "value": "2026-10-06",
+        }
+    ]
+    assert attempts[1]["validation_status"] == "accepted"
+    assert attempts[1]["repaired_fields"] == ["target_date"]
+    assert attempts[0]["raw_output"]["candidates"][0]["target_date"] == "2026-10-06"
+    assert attempts[1]["raw_output"]["candidates"][0]["target_date"] is None
+
+
+def test_second_semantic_failure_does_not_make_a_third_provider_request():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        del request
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(_page5_claim(target_date="2026-10-06"))
+                }
+            },
+        )
+
+    provider = _provider(handler)
+    result = provider.extract(_page5_request())
+    assert len(calls) == 2
+    assert result.output.candidates[0].target_date.isoformat() == "2026-10-06"
+    assert provider.last_diagnostics.attempt_count == 2
+    statuses = [item.validation_status for item in provider.last_diagnostics.attempts]
+    assert statuses == ["semantic_invalid", "semantic_invalid"]
+    assert result.usage.request_count == 2

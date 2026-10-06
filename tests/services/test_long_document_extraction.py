@@ -9,7 +9,10 @@ from backend.app.models import (
     Proposal,
     Source,
 )
-from backend.app.pipeline.chunk_selection import select_relevant_chunks
+from backend.app.pipeline.chunk_selection import (
+    EXTRACTION_PURPOSE_ARTICLES,
+    select_relevant_chunks,
+)
 from backend.app.pipeline.official_document_pipeline import OfficialDocumentPipeline
 from backend.app.schemas import StructuredExtractionResult
 from backend.app.services import ProposalExtractionService
@@ -74,7 +77,7 @@ def _claim(*, chunk_index: int, page: int | None, excerpt: str, abstain: bool = 
         "summary": ARTICLE,
         "topic": "environment",
         "actor_mentions": [{"name": ACTOR, "role": "proposer"}],
-        "announced_at": "2026-01-12",
+        "announced_at": None,
         "target_date": None,
         "evidence": [
             {
@@ -116,7 +119,11 @@ def test_long_document_selects_subset_and_stores_audit_metadata(
             )
         )
     assert len(chunks) > 16
-    selection = select_relevant_chunks(chunks, max_selected=16)
+    selection = select_relevant_chunks(
+        chunks,
+        max_selected=16,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
+    )
     article_chunk = next(chunk for chunk in chunks if "10 milioni di euro" in chunk.text)
     assert article_chunk.chunk_index in selection.selected_indexes
 
@@ -142,6 +149,7 @@ def test_long_document_selects_subset_and_stores_audit_metadata(
         max_chunks_per_run=40,
         max_evidence_excerpt_chars=600,
         max_selected_chunks=16,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
     ).extract(document_id)
 
     assert result.accepted_count == 1
@@ -215,7 +223,8 @@ def test_evidence_from_omitted_packed_chunk_is_rejected(session_factory, raw_sto
             )
         )
     selection = select_relevant_chunks(
-        chunks, max_selected=16, max_document_tokens=80
+        chunks, max_selected=16, max_document_tokens=80,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
     )
     assert selection.omitted_indexes
     omitted = next(
@@ -243,6 +252,7 @@ def test_evidence_from_omitted_packed_chunk_is_rejected(session_factory, raw_sto
         max_evidence_excerpt_chars=600,
         max_selected_chunks=16,
         max_document_tokens=80,
+        extraction_purpose=EXTRACTION_PURPOSE_ARTICLES,
     ).extract(document_id)
     assert result.rejected_count == 1
     assert result.draft_ids == ()
