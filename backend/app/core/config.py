@@ -2,7 +2,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr, ValidationError, model_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -101,6 +101,19 @@ class Settings(BaseSettings):
     job_max_retries: int = Field(default=1, ge=0, le=5)
     job_retry_backoff_seconds: float = Field(default=2.0, gt=0, le=60)
     job_stale_after_minutes: int = Field(default=60, ge=5, le=1440)
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def use_psycopg_driver(cls, value: object) -> object:
+        """Accept Render's internal postgres:// URL with the installed driver."""
+
+        if not isinstance(value, str):
+            return value
+        if value.startswith("postgres://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgres://")
+        if value.startswith("postgresql://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgresql://")
+        return value
 
     @property
     def is_production(self) -> bool:

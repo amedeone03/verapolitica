@@ -52,3 +52,13 @@ def test_gunicorn_command_is_production_safe():
     assert argv[0] == "gunicorn"
     assert "--reload" not in argv
     assert "uvicorn.workers.UvicornWorker" in argv
+    assert "0.0.0.0:8000" in argv
+
+
+def test_gunicorn_binds_render_port(monkeypatch):
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("PORT", "10000")
+    argv = gunicorn_argv(
+        Settings(web_host="0.0.0.0", web_port=8000, web_workers=2)
+    )
+    assert "0.0.0.0:10000" in argv

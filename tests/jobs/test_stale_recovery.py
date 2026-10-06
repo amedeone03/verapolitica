@@ -76,6 +76,26 @@ def test_production_requires_admin_key():
         )
 
 
+def test_render_internal_database_url_uses_psycopg():
+    settings = Settings(
+        env=AppEnvironment.PRODUCTION,
+        database_url="postgres://verapolitica:secret@dpg-internal:5432/verapolitica_staging_db",
+        admin_api_key="a-sufficiently-long-admin-token",
+        cors_origins="https://verapolitica-staging.onrender.com",
+        trusted_hosts="verapolitica-staging.onrender.com",
+    )
+    assert settings.database_url == (
+        "postgresql+psycopg://verapolitica:secret@dpg-internal:5432/verapolitica_staging_db"
+    )
+
+
+def test_plain_postgresql_url_uses_psycopg():
+    settings = Settings(
+        database_url="postgresql://verapolitica:secret@localhost:5432/verapolitica"
+    )
+    assert settings.database_url.startswith("postgresql+psycopg://")
+
+
 def test_production_accepts_explicit_safe_settings():
     settings = Settings(
         env=AppEnvironment.PRODUCTION,

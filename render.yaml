@@ -1,0 +1,17 @@
+# Staging web service. The database already exists in this Render workspace;
+# fromDatabase injects its internal URL without copying the password into git.
+services:
+  - type: web
+    name: verapolitica-staging
+    runtime: docker
+    region: frankfurt
+    plan: free
+    branch: main
+    healthCheckPath: /health/live
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: VERAPOLITICA_DATABASE_URL
+        fromDatabase:
+          name: verapolitica-staging-db
+          property: connectionString
