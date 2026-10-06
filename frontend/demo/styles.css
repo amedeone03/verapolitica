@@ -70,6 +70,11 @@ button, input, select { font: inherit; }
 .brand small { color: var(--muted); font-size: 0.72rem; }
 
 .status-cluster { display: flex; align-items: center; gap: 10px; }
+.demo-local-nav { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.74rem; font-weight: 700; }
+.demo-local-nav a { color: var(--navy); text-decoration: none; }
+.demo-local-nav a:hover { color: var(--teal); }
+.recording-links { margin: 0; padding-left: 1.2rem; display: grid; gap: 10px; }
+.recording-links a { color: var(--teal); font-weight: 700; }
 .connection-pill, .mode-pill, .badge {
   display: inline-flex;
   align-items: center;

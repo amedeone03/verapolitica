@@ -30,6 +30,8 @@ def test_sample_document_creates_unpublished_fake_draft(tmp_path):
         assert page.status_code == 200
         assert "AI-assisted document analysis" in page.text
         assert "REAL LOCAL AI" in page.text
+        assert "Recording guide" in page.text
+        assert 'href="/demo/video"' in page.text
         assert "Deterministic demo fallback" in page.text
         assert "Demo mode — simulated AI provider" in page.text
         assert "Load sample official document" in page.text
@@ -42,6 +44,16 @@ def test_sample_document_creates_unpublished_fake_draft(tmp_path):
         assert 'id="choose-file-button"' in page.text
         assert "No file selected." in page.text
         assert "/demo/ai-upload.js" in page.text
+        video = client.get("/demo/video")
+        assert video.status_code == 200
+        assert "CEO demo recording shortcuts" in video.text
+        assert "/app/?view=search&amp;q=Sbrollini" in video.text
+        assert "/app/?municipality=1772" in video.text
+        assert "/app/?proposal=97" in video.text
+        assert "/demo/ai-upload" in video.text
+        assert "Do not auto-approve" in video.text
+        assert "admin_api_key" not in video.text
+        assert "ceo-demo-admin-key" not in video.text
         assert "<script" in page.text
         assert "bytesToBase64" not in page.text
         script = client.get("/demo/ai-upload.js")
@@ -178,6 +190,7 @@ def test_upload_route_is_local_only(tmp_path):
     )
     with TestClient(create_app(hidden)) as client:
         assert client.get("/demo/ai-upload").status_code == 404
+        assert client.get("/demo/video").status_code == 404
 
 
 LOCAL_HTML = (

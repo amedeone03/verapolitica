@@ -507,7 +507,7 @@ def _page(
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{escape(title)}</title>
-    <link rel="stylesheet" href="/demo/styles.css?v=ceo-demo-phases" />
+    <link rel="stylesheet" href="/demo/styles.css?v=ceo-demo-video" />
   </head>
   <body>
     <div class="page-shell">
@@ -520,6 +520,11 @@ def _page(
           </span>
         </a>
         <div class="status-cluster">
+          <nav class="demo-local-nav" aria-label="Local demo shortcuts">
+            <a href="/app/">Citizen app</a>
+            <a href="/demo/video">Recording guide</a>
+            <a href="/demo/ai-upload">AI demo</a>
+          </nav>
           <span class="mode-pill">{escape(mode_label)}</span>
         </div>
       </header>
@@ -799,6 +804,48 @@ def _render_draft(
         notice=notice,
         error=error,
         mode_label=LOCAL_MODE_LABEL if local else DEMO_MODE_LABEL,
+    )
+
+
+@router.get("/video", response_class=HTMLResponse)
+def video_recording_guide() -> HTMLResponse:
+    body = """
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Local recording only</p>
+            <h1>CEO demo recording shortcuts</h1>
+            <p class="hero-copy">
+              These links exist only on the local demo. They are not part of the
+              public citizen archive. Approval stays a manual human step.
+            </p>
+          </div>
+        </section>
+        <section class="card proposal-review-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Open in order</p>
+              <h2>Storyboard pages</h2>
+            </div>
+          </div>
+          <div class="card-body">
+            <ol class="recording-links">
+              <li><a href="/app/">Citizen app</a> — search, politicians, proposals, territories</li>
+              <li><a href="/app/?view=search&amp;q=Sbrollini">Politician example</a> — search Daniela Sbrollini</li>
+              <li><a href="/app/?politician=26">Daniela Sbrollini profile</a> — published official profile</li>
+              <li><a href="/app/?view=search&amp;q=Milano&amp;type=municipality">Milano search</a></li>
+              <li><a href="/app/?municipality=1772">Milano</a> — ISTAT municipality page</li>
+              <li><a href="/app/?view=proposals">Published proposals</a></li>
+              <li><a href="/app/?proposal=97">Published proposal example</a> — budget assestamento 2026</li>
+              <li><a href="/demo/ai-upload">AI demo</a> — real local extraction, unpublished draft</li>
+            </ol>
+            <p class="hero-copy">Follow <code>docs/CEO_DEMO_VIDEO.md</code>. Do not auto-approve. Do not open <code>/demo/</code> — that is a different synthetic editorial walkthrough.</p>
+          </div>
+        </section>
+    """
+    return _page(
+        body,
+        title="CEO demo recording shortcuts",
+        mode_label=LOCAL_MODE_LABEL,
     )
 
 
