@@ -15,7 +15,12 @@ def create_db_engine(database_url: str, *, echo: bool = False) -> Engine:
     connect_args = (
         {"check_same_thread": False} if url.drivername.startswith("sqlite") else {}
     )
-    return create_engine(database_url, echo=echo, connect_args=connect_args)
+    return create_engine(
+        database_url,
+        echo=echo,
+        connect_args=connect_args,
+        pool_pre_ping=not url.drivername.startswith("sqlite"),
+    )
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:

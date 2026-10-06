@@ -11,6 +11,9 @@ This demonstration is deterministic and network-free. It uses only:
 The reset code validates those paths before removing anything. It never reads,
 modifies, or resets the normal development database or raw storage.
 
+The demo is SQLite-only and uses `metadata.create_all`. It does not require
+PostgreSQL or Alembic. Scheduled ingestion stays disabled during a presentation.
+
 ## Pre-demo setup
 
 From the repository root, start the complete demo with one command:

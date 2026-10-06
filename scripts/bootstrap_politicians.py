@@ -4,7 +4,7 @@ import sys
 from collections.abc import Sequence
 
 from backend.app.core.config import get_settings
-from backend.app.db.base import Base
+from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.services import (
     BootstrapApplyError,
@@ -62,7 +62,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = get_settings()
     engine = create_db_engine(settings.database_url)
     try:
-        Base.metadata.create_all(engine)
+        prepare_runtime_schema(engine, settings)
         session_factory = create_session_factory(engine)
         rebuilder = RawDocumentCandidateRebuilder(session_factory)
         service = PoliticianBootstrapService(session_factory)

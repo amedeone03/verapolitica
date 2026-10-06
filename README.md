@@ -38,6 +38,51 @@ pip install -r backend/requirements.txt
 Configuration defaults are shown in `.env.example`. Copy them into `.env` only when
 you need to override the defaults.
 
+SQLite is the default local/test/demo database. PostgreSQL is the
+production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
+and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
+
+## Database
+
+Tests and `python -m scripts.prepare_demo` keep using SQLite with
+`metadata.create_all`. Persistent PostgreSQL databases must be migrated
+explicitly:
+
+```bash
+createdb verapolitica
+export VERAPOLITICA_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/verapolitica
+alembic upgrade head
+alembic current
+```
+
+The application never runs `alembic upgrade head` on startup. If a PostgreSQL
+schema is behind head, it logs a warning.
+
+## Scheduled ingestion jobs
+
+Existing operator commands still work. The job CLI records run history:
+
+```bash
+python -m scripts.run_jobs senato
+python -m scripts.run_jobs camera
+python -m scripts.run_jobs governo
+python -m scripts.run_jobs proposals
+python -m scripts.run_jobs territories
+python -m scripts.run_jobs territorial-offices
+python -m scripts.run_jobs list
+```
+
+Schedules stay disabled unless you set a cron variable, then start a separate
+process:
+
+```bash
+export VERAPOLITICA_SCHEDULE_SENATO_CRON="0 3 * * *"
+python -m scripts.run_scheduler
+```
+
+Inspect runs through `/admin/jobs` with the existing admin bearer token. There is
+no public job API.
+
 ## Evidence-grounded AI extraction
 
 The focused extraction path is:
@@ -411,12 +456,18 @@ python -m pytest
 
 Tests use temporary SQLite databases, mocked HTTP, deterministic fixtures, and
 temporary raw storage. They do not call live Senato, Camera, or Governo endpoints.
+Alembic upgrades a throwaway SQLite database in `tests/db`. Optional PostgreSQL
+checks need a server and:
+
+```bash
+pytest -m postgres
+```
 
 ## Continuous integration
 
-GitHub Actions runs the backend test suite automatically for pushes to `main` and
-pull requests targeting `main`. Run the same command locally from the repository
-root:
+GitHub Actions runs the SQLite backend suite, Alembic upgrade/downgrade checks, and
+an optional PostgreSQL service job for pushes to `main` and pull requests targeting
+`main`. Run the same default command locally from the repository root:
 
 ```bash
 python -m pytest -q

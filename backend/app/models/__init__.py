@@ -72,6 +72,11 @@ from backend.app.models.territorial_office_mandate import (
     TerritorialOfficeMandate,
 )
 from backend.app.models.territory import Municipality, Region, TerritoryStatus
+from backend.app.models.ingestion_job import (
+    IngestionJobRun,
+    IngestionJobStatus,
+    IngestionJobTrigger,
+)
 
 __all__ = [
     "AIExtractionCandidate",
@@ -128,4 +133,7 @@ __all__ = [
     "TerritoryStatus",
     "TerritorialOffice",
     "TerritorialOfficeMandate",
+    "IngestionJobRun",
+    "IngestionJobStatus",
+    "IngestionJobTrigger",
 ]

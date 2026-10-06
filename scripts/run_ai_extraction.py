@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from backend.app.ai import FakeExtractionProvider, OpenAIExtractionProvider
 from backend.app.core.config import Settings, get_settings
-from backend.app.db.base import Base
+from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Source
 from backend.app.pipeline.official_document_pipeline import (
@@ -97,7 +97,7 @@ def run(args: argparse.Namespace, *, settings: Settings | None = None) -> dict:
 
     engine = create_db_engine(runtime.database_url)
     try:
-        Base.metadata.create_all(engine)
+        prepare_runtime_schema(engine, runtime)
         session_factory = create_session_factory(engine)
         with session_factory() as session:
             source = session.scalar(select(Source).where(Source.key == source_key))

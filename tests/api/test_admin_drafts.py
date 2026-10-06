@@ -282,8 +282,14 @@ def api_context(tmp_path):
 def test_health_endpoint_boots_without_admin_auth(api_context):
     response = api_context.client.get("/health")
 
+    payload = response.json()
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert payload["status"] == "ok"
+    assert payload["database"] == "ok"
+    assert payload["dialect"] == "sqlite"
+    assert payload["scheduler_enabled"] is False
+    assert "database_url" not in payload
+    assert "password" not in str(payload).casefold()
 
 
 def test_admin_routes_reject_missing_or_invalid_credentials(api_context):

@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 
 from backend.app.core.config import get_settings
-from backend.app.db.base import Base
+from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Municipality, Source
 from backend.app.pipeline.collectors import (
@@ -96,8 +96,14 @@ def main(argv: list[str] | None = None) -> int:
         print(input_error, file=sys.stderr)
         return 1
     settings = get_settings()
-    engine = create_db_engine(args.database_url or settings.database_url)
-    Base.metadata.create_all(engine)
+    database_url = args.database_url or settings.database_url
+    runtime_settings = (
+        settings.model_copy(update={"database_url": args.database_url})
+        if args.database_url
+        else settings
+    )
+    engine = create_db_engine(database_url)
+    prepare_runtime_schema(engine, runtime_settings)
     session_factory = create_session_factory(engine)
     source = _source(session_factory, args.mode)
     storage = LocalRawStorage(args.raw_storage_path or settings.raw_storage_path)

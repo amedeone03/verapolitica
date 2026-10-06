@@ -483,6 +483,18 @@ name + province abbreviation + region code. People are never created from names.
 public API paginates regions and municipalities and projects current holders plus
 politician `territorial_offices` without exposing identity keys or RawDocument IDs.
 
+## Database and scheduled jobs
+
+SQLite remains the test and demo engine and may use `metadata.create_all`.
+PostgreSQL is the persistent/dev engine and is evolved only with Alembic. App
+startup never auto-upgrades PostgreSQL; it may warn if the revision is behind
+head. See `docs/database-and-migrations.md`.
+
+Ingestion can be driven by APScheduler or `python -m scripts.run_jobs`. Outcomes
+are stored as `IngestionJobRun` rows. Overlap protection is a database unique
+partial index on a running job name, not an in-memory lock. Schedules default to
+disabled. See `docs/scheduled-jobs.md`.
+
 ## End-to-end regression boundary
 
 The E2E suite verifies the complete MVP through production service and HTTP

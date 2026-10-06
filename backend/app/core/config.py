@@ -46,6 +46,28 @@ class Settings(BaseSettings):
     ai_eval_min_precision: float = Field(default=0.90, ge=0, le=1)
     ai_eval_min_evidence_accuracy: float = Field(default=0.95, ge=0, le=1)
     ai_eval_max_hallucination_rate: float = Field(default=0.05, ge=0, le=1)
+    schedule_senato_cron: str = ""
+    schedule_camera_cron: str = ""
+    schedule_governo_cron: str = ""
+    schedule_proposals_cron: str = ""
+    schedule_territories_cron: str = ""
+    schedule_territorial_offices_cron: str = ""
+    job_max_retries: int = Field(default=1, ge=0, le=5)
+    job_retry_backoff_seconds: float = Field(default=2.0, gt=0, le=60)
+
+    @property
+    def scheduler_enabled(self) -> bool:
+        return any(
+            value.strip()
+            for value in (
+                self.schedule_senato_cron,
+                self.schedule_camera_cron,
+                self.schedule_governo_cron,
+                self.schedule_proposals_cron,
+                self.schedule_territories_cron,
+                self.schedule_territorial_offices_cron,
+            )
+        )
 
     model_config = SettingsConfigDict(
         env_file=".env",

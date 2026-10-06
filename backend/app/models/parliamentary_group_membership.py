@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base
@@ -26,6 +26,12 @@ class ParliamentaryGroupMembership(Base):
             "source_id",
             "identity_key",
             name="uq_group_memberships_source_identity_key",
+        ),
+        Index(
+            "ix_group_memberships_politician_dates",
+            "politician_id",
+            "start_date",
+            "end_date",
         ),
     )
 

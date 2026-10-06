@@ -507,4 +507,22 @@ per-politician version constraint protects the sequence from duplicate numbers.
 Review creation, version and citation insertion, current-pointer update, and the
 approved draft status share one transaction. A citation failure rolls back every
 publication write. Rejection similarly commits its Review and rejected status
+together.
+
+## IngestionJobRun
+
+`IngestionJobRun` is operator-facing execution history for one scheduled or manual
+ingestion job. It is not a public record.
+
+- `job_name` and `source_key`
+- `status`: `running`, `succeeded`, `failed`, or `partial`
+- `trigger_type`: `cli`, `scheduled`, or `admin`
+- start/completion timestamps
+- processed/created/updated/skipped counts
+- `attempt_count` and nullable `error_message`
+- JSON `metadata` for pipeline-specific metrics
+
+A partial unique index allows at most one `running` row per `job_name`. Completed
+rows remain as history. Job state is owned by `IngestionJobService`; collectors do
+not write these rows.
 together but never creates a version or changes the current pointer.

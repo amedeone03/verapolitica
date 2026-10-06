@@ -4,7 +4,7 @@ import sys
 from sqlalchemy import select
 
 from backend.app.core.config import get_settings
-from backend.app.db.base import Base
+from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Source
 from backend.app.pipeline.collectors import CollectorError, SenatoProposalCollector
@@ -38,7 +38,7 @@ def get_or_create_source(session_factory) -> Source:
 def main() -> int:
     settings = get_settings()
     engine = create_db_engine(settings.database_url)
-    Base.metadata.create_all(engine)
+    prepare_runtime_schema(engine, settings)
     session_factory = create_session_factory(engine)
     source = get_or_create_source(session_factory)
     try:

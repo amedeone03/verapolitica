@@ -37,7 +37,7 @@ class Region(Base):
     __tablename__ = "regions"
     __table_args__ = (
         CheckConstraint(
-            "length(istat_code) = 2 AND istat_code NOT GLOB '*[^0-9]*'",
+            "length(istat_code) = 2",
             name="ck_regions_istat_code",
         ),
         CheckConstraint(
@@ -89,7 +89,7 @@ class Municipality(Base):
     __tablename__ = "municipalities"
     __table_args__ = (
         CheckConstraint(
-            "length(istat_code) = 6 AND istat_code NOT GLOB '*[^0-9]*'",
+            "length(istat_code) = 6",
             name="ck_municipalities_istat_code",
         ),
         CheckConstraint(

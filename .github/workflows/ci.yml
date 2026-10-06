@@ -35,5 +35,57 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r backend/requirements.txt
 
+      - name: Upgrade a throwaway SQLite database with Alembic
+        run: |
+          mkdir -p .ci
+          VERAPOLITICA_DATABASE_URL=sqlite:///./.ci/alembic-check.db python -m alembic upgrade head
+          VERAPOLITICA_DATABASE_URL=sqlite:///./.ci/alembic-check.db python -m alembic current
+
       - name: Run backend tests
         run: python -m pytest -q
+
+  postgres:
+    name: PostgreSQL migrations
+    runs-on: ubuntu-latest
+    env:
+      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@localhost:5432/verapolitica
+      VERAPOLITICA_POSTGRES_TEST_URL: postgresql+psycopg://verapolitica:verapolitica@localhost:5432/verapolitica
+      VERAPOLITICA_RAW_STORAGE_PATH: ./.ci/raw
+      VERAPOLITICA_ADMIN_API_KEY: ci-test-key-not-a-secret
+      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: ci-test-editor
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: verapolitica
+          POSTGRES_PASSWORD: verapolitica
+          POSTGRES_DB: verapolitica
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verapolitica -d verapolitica"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Run Alembic against PostgreSQL
+        run: |
+          python -m alembic upgrade head
+          python -m alembic current
+
+      - name: Run PostgreSQL compatibility tests
+        run: python -m pytest -q -m postgres

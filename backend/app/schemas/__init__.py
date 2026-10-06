@@ -165,6 +165,11 @@ from backend.app.schemas.proposal import (
     PublicProposalStatusEvent,
     PublicProposalSummary,
 )
+from backend.app.schemas.jobs import (
+    IngestionJobMetrics,
+    IngestionJobRunList,
+    IngestionJobRunResult,
+)
 from backend.app.schemas.territory import (
     MunicipalityObservation,
     RegionObservation,
@@ -233,6 +238,9 @@ __all__ = [
     "IdentityResolutionNoteRequest",
     "IdentityResolutionSourceResponse",
     "IdentitySourceIdentifierResponse",
+    "IngestionJobMetrics",
+    "IngestionJobRunList",
+    "IngestionJobRunResult",
     "Gender",
     "GoldActor",
     "GoldClaim",

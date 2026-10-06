@@ -3,6 +3,11 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from backend.app.jobs import (
+    IngestionJobConflictError,
+    IngestionJobNotFoundError,
+    IngestionJobValidationError,
+)
 from backend.app.schemas import APIErrorDetail, APIErrorResponse
 from backend.app.services import (
     DraftNotFoundError,
@@ -199,6 +204,34 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(PublishServiceError, conflict_handler)
     app.add_exception_handler(ReviewServiceError, conflict_handler)
     app.add_exception_handler(IdentityResolutionServiceError, identity_conflict_handler)
+
+    async def job_not_found_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            code="ingestion_job_not_found",
+            message=str(exc),
+        )
+
+    async def job_conflict_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            code="ingestion_job_conflict",
+            message=str(exc),
+        )
+
+    async def job_validation_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="invalid_ingestion_job",
+            message=str(exc),
+        )
+
+    app.add_exception_handler(IngestionJobNotFoundError, job_not_found_handler)
+    app.add_exception_handler(IngestionJobConflictError, job_conflict_handler)
+    app.add_exception_handler(IngestionJobValidationError, job_validation_handler)
     app.add_exception_handler(Exception, internal_handler)
 
 
