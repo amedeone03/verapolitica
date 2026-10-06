@@ -10,6 +10,9 @@ services:
     healthCheckPath: /health/live
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    # Free instances cannot SSH or run a one-off job. This start command
+    # migrates the service's own database, then serves traffic.
+    dockerCommand: /bin/sh -c "python -m alembic upgrade head && exec python -m scripts.run_web"
     envVars:
       - key: VERAPOLITICA_DATABASE_URL
         fromDatabase:
