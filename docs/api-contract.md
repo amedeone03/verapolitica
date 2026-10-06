@@ -53,9 +53,28 @@ collection containing role, so co-sponsorship is not implied authorship.
 
 `GET /search` is the public unified search. See `docs/search.md`. It accepts `q`
 (required, max 200 characters), optional `type`, `offset`, and `limit` (1–50).
-Only published politicians/proposals and official reference rows are searchable.
-`GET /parliamentary-groups/{id}` and `GET /political-parties/{id}` are thin
-public detail reads for search click-through.
+Only published politicians/proposals, official reference rows, published
+referendums, and glossary terms are searchable. `GET /parliamentary-groups/{id}`
+and `GET /political-parties/{id}` are thin public detail reads for search
+click-through.
+
+Civic citizen endpoints:
+
+```http
+GET /referendums
+GET /referendums/{referendum_id}
+GET /voting-guides
+GET /voting-guides/{guide_id}
+GET /glossary
+GET /glossary/{slug}
+```
+
+`GET /referendums` is paginated (`offset`, `limit` 1–100) and accepts `status`,
+`scope`, and `upcoming=true`. Only rows with `published_at` are returned. Drafts,
+reviews, identity keys, and reminder candidates are never exposed. Voting guides
+and glossary terms are likewise published-only. Glossary is alphabetical by term.
+Admin referendum review lives under `/admin/referendums/{id}/...` and is not a
+citizen contract. There is no public notification-subscription write API.
 
 `GET /regions/{region_id}` includes ISTAT code, status, municipality count, official
 source, and `current_president` when a linked mandate exists. This milestone does

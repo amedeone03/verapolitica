@@ -44,6 +44,16 @@ def test_disabled_schedule_is_not_registered(session_factory):
     scheduler.shutdown()
 
 
+def test_civic_reminders_schedule_registers(session_factory):
+    scheduler = IngestionScheduler(
+        Settings(schedule_civic_reminders_cron="0 6 * * *"),
+        session_factory,
+        scheduler=BackgroundScheduler(timezone="UTC"),
+    )
+    assert scheduler.register() == ("civic-reminders",)
+    scheduler.shutdown()
+
+
 def test_invalid_cron_is_skipped(session_factory):
     scheduler = IngestionScheduler(
         Settings(schedule_senato_cron="not-a-cron"),

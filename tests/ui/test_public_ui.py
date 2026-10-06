@@ -56,6 +56,12 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "/search?" in script.text
     assert "view=search" in archive.text
     assert "Search the public archive" in archive.text
+    assert "Referendums" in archive.text
+    assert "How to vote" in archive.text
+    assert "Glossary" in archive.text
+    assert "renderReferendumCard" in script.text
+    assert "renderVotingGuide" in script.text
+    assert "renderGlossaryTerm" in script.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
@@ -179,6 +185,12 @@ def test_public_ui_search_and_click_through(tmp_path):
             params={"q": "sottoposta all'esame della commissione"},
         )
         carlo = client.get("/search", params={"q": "Carlo Verdi"})
+        referendum = client.get("/search", params={"q": "synthetic civic", "type": "referendum"})
+        glossary = client.get("/search", params={"q": "quorum", "type": "glossary_term"})
+        referendums_page = client.get("/app/?view=referendums")
+        guide_page = client.get("/app/?view=voting-guide")
+        glossary_page = client.get("/app/?view=glossary")
+        unpublished_referendum = client.get("/search", params={"q": "Unpublished synthetic civic"})
 
     assert page.status_code == 200
     assert "Search the archive" in page.text
@@ -192,3 +204,9 @@ def test_public_ui_search_and_click_through(tmp_path):
     assert party.json()["items"][0]["subtitle"].startswith("Political party")
     assert unpublished.json()["total"] == 0
     assert carlo.json()["total"] == 0
+    assert referendum.json()["items"][0]["entity_type"] == "referendum"
+    assert glossary.json()["items"][0]["title"] == "Quorum"
+    assert "Referendums and voting events" in referendums_page.text
+    assert "How to vote" in guide_page.text
+    assert "Key terms" in glossary_page.text
+    assert unpublished_referendum.json()["total"] == 0

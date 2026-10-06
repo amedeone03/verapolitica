@@ -34,6 +34,11 @@ from backend.app.services import (
     ProposalReviewConflictError,
     ProposalReviewPersistenceError,
     ProposalReviewServiceError,
+    ReferendumDraftNotFoundError,
+    ReferendumDraftNotReviewableError,
+    ReferendumReviewConflictError,
+    ReferendumReviewPersistenceError,
+    ReferendumReviewServiceError,
 )
 
 
@@ -157,6 +162,31 @@ def register_exception_handlers(app: FastAPI) -> None:
     ):
         app.add_exception_handler(exception_type, proposal_conflict_handler)
     app.add_exception_handler(ProposalReviewPersistenceError, persistence_handler)
+
+    async def referendum_not_found_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            code="referendum_draft_not_found",
+            message=str(exc),
+        )
+
+    async def referendum_conflict_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            code="referendum_draft_not_reviewable",
+            message=str(exc),
+        )
+
+    app.add_exception_handler(ReferendumDraftNotFoundError, referendum_not_found_handler)
+    for exception_type in (
+        ReferendumDraftNotReviewableError,
+        ReferendumReviewConflictError,
+        ReferendumReviewServiceError,
+    ):
+        app.add_exception_handler(exception_type, referendum_conflict_handler)
+    app.add_exception_handler(ReferendumReviewPersistenceError, persistence_handler)
 
     async def identity_not_found_handler(request: Request, exc: Exception):
         del request

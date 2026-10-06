@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
+import json
 import shutil
 
 from sqlalchemy import func, select
@@ -30,6 +31,7 @@ from backend.app.models import (
     Source,
     TerritorialOffice,
 )
+from backend.app.pipeline.civic import map_referendum_fixture
 from backend.app.pipeline.collectors import CollectedDocument
 from backend.app.pipeline.ingestion_pipeline import IngestionPipeline
 from backend.app.pipeline.mappers import (
@@ -39,6 +41,7 @@ from backend.app.pipeline.mappers import (
 from backend.app.pipeline.parsers import GovernoParser, SenatoParser
 from backend.app.schemas import (
     DraftCreatedResult,
+    GlossaryTermInput,
     MatchedResult,
     MunicipalityObservation,
     ParliamentaryGroupObservation,
@@ -48,6 +51,8 @@ from backend.app.schemas import (
     ProposalObservation,
     RegionObservation,
     TerritorialMandateObservation,
+    VotingGuideInput,
+    VotingGuideSection,
 )
 from backend.app.services import (
     CandidateRebuildResult,
@@ -62,6 +67,9 @@ from backend.app.services import (
     ProposalService,
     TerritorialMandateService,
     TerritoryService,
+    CivicContentService,
+    ReferendumReviewService,
+    ReferendumService,
     normalize_person_name,
 )
 from backend.app.storage import LocalRawStorage
@@ -125,6 +133,8 @@ class DemoSummary:
     identity_resolution_status: IdentityResolutionStatus
     published_proposal_id: int
     pending_proposal_draft_id: int
+    published_referendum_id: int
+    pending_referendum_draft_id: int
 
 
 class FixtureCollector:
@@ -281,6 +291,9 @@ def prepare_demo(
             governo_fixture,
         )
         _prepare_territorial_example(session_factory)
+        published_referendum_id, pending_referendum_draft_id = _prepare_civic_example(
+            session_factory
+        )
         summary = _load_summary(
             session_factory,
             paths,
@@ -290,6 +303,8 @@ def prepare_demo(
             identity_case_id=identity_case_id,
             published_proposal_id=published_proposal_id,
             pending_proposal_draft_id=pending_proposal_draft_id,
+            published_referendum_id=published_referendum_id,
+            pending_referendum_draft_id=pending_referendum_draft_id,
         )
         _validate_expected_ids(summary)
         return summary
@@ -307,6 +322,8 @@ def _load_summary(
     identity_case_id: int,
     published_proposal_id: int,
     pending_proposal_draft_id: int,
+    published_referendum_id: int,
+    pending_referendum_draft_id: int,
 ) -> DemoSummary:
     with session_factory() as session:
         published = session.get(Politician, published_politician_id)
@@ -347,6 +364,8 @@ def _load_summary(
             identity_resolution_status=identity_case.status,
             published_proposal_id=published_proposal_id,
             pending_proposal_draft_id=pending_proposal_draft_id,
+            published_referendum_id=published_referendum_id,
+            pending_referendum_draft_id=pending_referendum_draft_id,
         )
 
 
@@ -697,6 +716,238 @@ def _prepare_territorial_example(session_factory) -> None:
         session.commit()
 
 
+def _prepare_civic_example(session_factory) -> tuple[int, int]:
+    observed_at = datetime(2026, 10, 6, 8, tzinfo=timezone.utc)
+    fixture_path = (
+        REPOSITORY_ROOT / "tests" / "fixtures" / "civic" / "synthetic_referendum.json"
+    )
+    record = json.loads(fixture_path.read_text(encoding="utf-8"))
+    with session_factory() as session:
+        source = Source(
+            key="ministero-interno-elezioni",
+            name="Ministero dell'Interno — Servizi elettorali",
+            base_url="https://dait.interno.gov.it",
+        )
+        demo_source = Source(
+            key="demo-civic",
+            name="Synthetic civic demo fixture",
+            base_url="https://example.test",
+        )
+        session.add_all((source, demo_source))
+        session.flush()
+        document = RawDocument(
+            source_id=demo_source.id,
+            retrieved_at=observed_at,
+            source_url="https://example.test/demo/synthetic-civic-referendum",
+            content_type="application/json",
+            storage_key="demo-civic/synthetic-referendum.json",
+            raw_sha256="b" * 64,
+            normalized_sha256="c" * 64,
+            structured_records=[record],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="synthetic_civic_v1",
+            parser_version="synthetic_civic_v1",
+        )
+        pending_document = RawDocument(
+            source_id=demo_source.id,
+            retrieved_at=observed_at,
+            source_url="https://example.test/demo/synthetic-civic-referendum-pending",
+            content_type="application/json",
+            storage_key="demo-civic/synthetic-referendum-pending.json",
+            raw_sha256="d" * 64,
+            normalized_sha256="e" * 64,
+            structured_records=[],
+            process_status=RawDocumentStatus.PARSED,
+            change_detected=True,
+            collector_version="synthetic_civic_v1",
+            parser_version="synthetic_civic_v1",
+        )
+        session.add_all((document, pending_document))
+        session.commit()
+        document_id = document.id
+        pending_document_id = pending_document.id
+
+    CivicContentService(session_factory).upsert_voting_guide(
+        VotingGuideInput(
+            title="How to vote in a national referendum",
+            scope="national",
+            source_key="ministero-interno-elezioni",
+            source_url="https://dait.interno.gov.it/elezioni/faq/faq-referendum-2026",
+            publish=True,
+            sections=(
+                VotingGuideSection(
+                    key="eligibility",
+                    title="Who can vote",
+                    body="The Constitution states that all citizens entitled to elect the Chamber of Deputies may take part in a national referendum.",
+                    source_url="https://www.senato.it/istituzione/la-costituzione/parte-ii/titolo-i/sezione-ii/articolo-75",
+                ),
+                VotingGuideSection(
+                    key="required_documents",
+                    title="What you need",
+                    body="Bring a valid identity document with photograph issued by a public administration and your electoral card (tessera elettorale). A CIE request receipt with photograph is also accepted as identification.",
+                    source_url="https://dait.interno.gov.it/elezioni/faq/faq-referendum-2026",
+                ),
+                VotingGuideSection(
+                    key="date_and_hours",
+                    title="When to vote",
+                    body="Polling hours are those published by the Ministry of the Interior for each consultation. For the March 2026 constitutional referendum they were Sunday 07:00–23:00 and Monday 07:00–15:00.",
+                    source_url="https://www.interno.gov.it/it/notizie/referendum-urne-aperte-domenica-22-marzo-dalle-7-23-e-lunedi-23-marzo-dalle-7-15",
+                ),
+                VotingGuideSection(
+                    key="ballot_instructions",
+                    title="How the ballot works",
+                    body="Mark the chosen answer on the ballot, inside the rectangle that contains it. Phones must be handed to polling-station staff before entering the cabin. If a voter realises a marking error, the station president may issue a replacement ballot.",
+                    source_url="https://dait.interno.gov.it/elezioni/faq/faq-referendum-2026",
+                ),
+                VotingGuideSection(
+                    key="quorum",
+                    title="Quorum",
+                    body="An abrogative referendum is approved if a majority of those entitled to vote take part and a majority of valid votes are in favour (Constitution Art. 75). A confirmatory constitutional referendum has no participation quorum: it is approved if yes votes exceed no votes among valid ballots.",
+                    source_url="https://www.senato.it/istituzione/la-costituzione/parte-ii/titolo-i/sezione-ii/articolo-75",
+                ),
+                VotingGuideSection(
+                    key="accessibility",
+                    title="Accessibility",
+                    body="Assisted voting in the cabin is available only where a disability prevents autonomous expression of the vote, as documented by the Ministry of the Interior FAQ (for example visual impairment or severe motor impairment of the upper limbs). One accompanying voter may assist only one person.",
+                    source_url="https://dait.interno.gov.it/elezioni/faq/faq-referendum-2026",
+                ),
+                VotingGuideSection(
+                    key="official_links",
+                    title="Official sources",
+                    body="Ministry of the Interior electoral pages, DAIT referendum FAQ and dossiers, Eligendo for turnout and results when published, and the Constitution on the Senate website.",
+                    source_url="https://dait.interno.gov.it/elezioni",
+                ),
+            ),
+        )
+    )
+    glossary = CivicContentService(session_factory)
+    for payload in _glossary_terms():
+        glossary.upsert_glossary_term(payload)
+
+    published = ReferendumService(session_factory).sync(
+        (
+            map_referendum_fixture(
+                record,
+                source_key="demo-civic",
+                raw_document_id=document_id,
+                observed_at=observed_at,
+            ),
+        )
+    )
+    ReferendumReviewService(session_factory).approve(
+        published.details[0].draft_id,
+        reviewer="demo-setup",
+        note="Synthetic civic demo publication — not a real vote",
+    )
+    pending_record = dict(record)
+    pending_record["official_identifier"] = "synthetic-demo-civic-referendum-pending"
+    pending_record["title"] = "Unpublished synthetic civic referendum (demo fixture)"
+    pending_record["official_question"] = (
+        "This unpublished synthetic question must remain hidden until editorial approval."
+    )
+    pending = ReferendumService(session_factory).sync(
+        (
+            map_referendum_fixture(
+                pending_record,
+                source_key="demo-civic",
+                raw_document_id=pending_document_id,
+                observed_at=observed_at,
+            ),
+        )
+    )
+    with session_factory() as session:
+        from backend.app.models.civic import Referendum, VotingGuide
+
+        guide = session.scalar(select(VotingGuide).order_by(VotingGuide.id.asc()))
+        referendum = session.get(Referendum, published.details[0].referendum_id)
+        if guide is not None and referendum is not None:
+            referendum.voting_guide_id = guide.id
+            session.commit()
+    return published.details[0].referendum_id, pending.details[0].draft_id
+
+
+def _glossary_terms():
+    constitution = "https://www.senato.it/istituzione/la-costituzione"
+    return (
+        GlossaryTermInput(
+            slug="quorum",
+            term="Quorum",
+            short_definition="For an abrogative referendum, the proposal is approved only if a majority of those entitled to vote take part, and a majority of valid votes are in favour.",
+            extended_definition="Constitution Article 75. A confirmatory constitutional referendum has no participation quorum.",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-ii/articolo-75",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="referendum-abrogativo",
+            term="Referendum abrogativo",
+            short_definition="A popular vote to repeal all or part of a law or an act with the force of law, when requested by 500,000 electors or five Regional Councils.",
+            extended_definition="Tax, budget, amnesty, pardon, and treaty-authorisation laws cannot be the object of an abrogative referendum (Constitution Article 75).",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-ii/articolo-75",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="legge",
+            term="Legge",
+            short_definition="The legislative function is exercised collectively by the two Houses of Parliament.",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-ii/articolo-70",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="decreto-legge",
+            term="Decreto-legge",
+            short_definition="In extraordinary cases of necessity and urgency the Government may adopt provisional measures with the force of law, which must be presented to Parliament on the same day.",
+            extended_definition="If not converted into law within sixty days of publication they lose effect from the beginning (Constitution Article 77).",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-ii/articolo-77",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="disegno-di-legge",
+            term="Disegno di legge",
+            short_definition="The initiative for legislation belongs to the Government, to each member of the Houses, and to the bodies and persons granted that power by constitutional law.",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-ii/articolo-71",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="maggioranza",
+            term="Maggioranza",
+            short_definition="Each House adopts its decisions by an absolute majority of those present, unless the Constitution prescribes a special majority.",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-i/articolo-64",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="legislatura",
+            term="Legislatura",
+            short_definition="The Chamber of Deputies and the Senate of the Republic are elected for five years.",
+            source_url=f"{constitution}/parte-ii/titolo-i/sezione-i/articolo-60",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="gruppo-parlamentare",
+            term="Gruppo parlamentare",
+            short_definition="A parliamentary group is the organisational unit of members inside a House of Parliament. It is not the same as a political party.",
+            source_url="https://www.senato.it/istituzione/il-senato",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+        GlossaryTermInput(
+            slug="partito-politico",
+            term="Partito politico",
+            short_definition="All citizens have the right to freely associate in parties in order to contribute to determining national policy through democratic methods.",
+            source_url=f"{constitution}/parte-i/titolo-iv/articolo-49",
+            source_key="ministero-interno-elezioni",
+            publish=True,
+        ),
+    )
+
+
 def _validate_demo_paths(paths: DemoPaths) -> None:
     expected_root = (paths.workspace_root / "data" / "demo").resolve()
     forbidden = {
@@ -765,6 +1016,12 @@ def _print_summary(summary: DemoSummary) -> None:
     print("  Synthetic mayor: Giulia Neri")
     print("  Synthetic political party: Demo Civic Alliance (DCA-SYN)")
     print()
+    print("Civic features (synthetic referendum is demo-only):")
+    print(f"  Published synthetic referendum ID: {summary.published_referendum_id}")
+    print(f"  Pending referendum draft ID: {summary.pending_referendum_draft_id}")
+    print("  Voting guide: How to vote in a national referendum")
+    print("  Glossary: quorum, referendum abrogativo, legge, and related terms")
+    print()
     print("Start API with:")
     print('  export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"')
     print('  export VERAPOLITICA_RAW_STORAGE_PATH="./data/demo/raw"')
@@ -779,7 +1036,9 @@ def _print_summary(summary: DemoSummary) -> None:
     print(f"  POST /admin/drafts/{summary.pending_draft_id}/start-review")
     print(f"  POST /admin/drafts/{summary.pending_draft_id}/approve")
     print(f"  GET /admin/identity-resolution/{summary.identity_resolution_case_id}")
+    print(f"  GET /admin/referendums/drafts/{summary.pending_referendum_draft_id}")
     print(f"  GET /politicians/{summary.pending_politician_id}")
+    print(f"  GET /referendums/{summary.published_referendum_id}")
     print()
     print("Reset after rehearsal:")
     print("  python -m scripts.prepare_demo")

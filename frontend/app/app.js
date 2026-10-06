@@ -455,6 +455,12 @@ export function createPublicApiClient(fetchImpl = fetch) {
     },
     getParliamentaryGroup: (id) => request(`/parliamentary-groups/${encodeURIComponent(id)}`),
     getPoliticalParty: (id) => request(`/political-parties/${encodeURIComponent(id)}`),
+    listReferendums: () => request("/referendums?offset=0&limit=50"),
+    getReferendum: (id) => request(`/referendums/${encodeURIComponent(id)}`),
+    listVotingGuides: () => request("/voting-guides?offset=0&limit=50"),
+    getVotingGuide: (id) => request(`/voting-guides/${encodeURIComponent(id)}`),
+    listGlossary: () => request("/glossary?offset=0&limit=50"),
+    getGlossaryTerm: (slug) => request(`/glossary/${encodeURIComponent(slug)}`),
   };
 }
 
@@ -619,6 +625,8 @@ function searchTypeLabel(value) {
     region: "Region",
     parliamentary_group: "Parliamentary group",
     political_party: "Political party",
+    referendum: "Referendum",
+    glossary_term: "Glossary",
   }[value] || titleCase(value);
 }
 
@@ -708,10 +716,154 @@ async function showMunicipalityDetail(api, municipalityId) {
   }
 }
 
+export function renderReferendumCard(item) {
+  const synthetic = item.is_synthetic
+    ? `<span class="institutional-note">Synthetic demo record</span>`
+    : `<span class="institutional-note">Official source</span>`;
+  return `<article class="proposal-card">
+    <p class="eyebrow">${escapeHtml(titleCase(item.referendum_type))} · ${escapeHtml(titleCase(item.status))}</p>
+    <h3><a href="./?referendum=${encodeURIComponent(item.id)}">${escapeHtml(item.title)}</a></h3>
+    <p>${escapeHtml(item.vote_date)} · ${escapeHtml(titleCase(item.scope_type))}${item.region_name ? ` · ${escapeHtml(item.region_name)}` : ""}</p>
+    ${synthetic}
+  </article>`;
+}
+
+export function renderReferendumDetail(item) {
+  const synthetic = item.is_synthetic
+    ? `<p class="hero-copy"><strong>Synthetic demo record.</strong> This is not a current official vote.</p>`
+    : "";
+  const quorum = item.quorum_description
+    ? `<p><strong>Quorum.</strong> ${escapeHtml(item.quorum_description)}</p>`
+    : "<p>No quorum description is published for this record.</p>";
+  const sources = (item.sources || []).map((source) => `
+    <p><a href="${escapeHtml(source.source_url)}" rel="noreferrer">${escapeHtml(source.source_name)}</a>
+    · ${escapeHtml(source.official_identifier)}</p>`).join("");
+  const guide = item.voting_guide_id
+    ? `<p><a href="./?view=voting-guide">Related voting guide</a></p>`
+    : "";
+  return `<article class="proposal-detail-hero">
+    <p class="eyebrow">${escapeHtml(titleCase(item.referendum_type))} · ${escapeHtml(titleCase(item.status))}</p>
+    <h1 id="referendum-detail-title">${escapeHtml(item.title)}</h1>
+    ${synthetic}
+    <p class="hero-copy"><strong>Official question.</strong> ${escapeHtml(item.official_question)}</p>
+    <p>${escapeHtml(item.vote_date)}${item.vote_end_date ? ` – ${escapeHtml(item.vote_end_date)}` : ""}${item.start_time ? ` · ${escapeHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeHtml(item.end_time)}` : ""} · ${escapeHtml(titleCase(item.scope_type))}</p>
+    ${item.voting_hours_description ? `<p>${escapeHtml(item.voting_hours_description)}</p>` : ""}
+    ${quorum}
+    ${guide}
+    <div class="section-rule"></div>
+    <p class="eyebrow">Official sources</p>
+    ${sources || `<p><a href="${escapeHtml(item.official_source_url)}" rel="noreferrer">${escapeHtml(item.official_source_url)}</a></p>`}
+  </article>`;
+}
+
+export function renderVotingGuide(guide) {
+  const sections = (guide.sections || []).map((section) => `
+    <section class="guide-section">
+      <h2>${escapeHtml(section.title)}</h2>
+      <p>${escapeHtml(section.body)}</p>
+      ${section.source_url ? `<p><a href="${escapeHtml(section.source_url)}" rel="noreferrer">Official source</a></p>` : ""}
+    </section>`).join("");
+  return `<article>
+    <p class="eyebrow">${escapeHtml(titleCase(guide.scope))}</p>
+    <h2>${escapeHtml(guide.title)}</h2>
+    <p class="hero-copy">Guidance compiled from ${escapeHtml(guide.source_name)}. It does not recommend a yes or no vote.</p>
+    ${sections}
+    <p><a href="${escapeHtml(guide.source_url)}" rel="noreferrer">Guide-level official source</a></p>
+  </article>`;
+}
+
+export function renderGlossaryTerm(item) {
+  return `<article class="glossary-card" id="${escapeHtml(item.slug)}">
+    <h3><a href="./?glossary=${encodeURIComponent(item.slug)}">${escapeHtml(item.term)}</a></h3>
+    <p>${escapeHtml(item.short_definition)}</p>
+    ${item.extended_definition ? `<p>${escapeHtml(item.extended_definition)}</p>` : ""}
+    <p><a href="${escapeHtml(item.source_url)}" rel="noreferrer">Official source</a></p>
+  </article>`;
+}
+
+async function showReferendums(api) {
+  byId("archive-view").hidden = true;
+  byId("referendums-view").hidden = false;
+  try {
+    const payload = await api.listReferendums();
+    byId("referendum-count").textContent = `${payload.total} published record${payload.total === 1 ? "" : "s"}`;
+    if (!payload.items.length) {
+      showState(byId("referendums-status"), "No published referendums are currently available.", "Published civic records will appear here after editorial review.");
+      return;
+    }
+    byId("referendums-status").hidden = true;
+    byId("referendum-list").hidden = false;
+    byId("referendum-list").innerHTML = payload.items.map(renderReferendumCard).join("");
+    document.title = "Referendums — VeraPolitica";
+  } catch {
+    byId("referendum-count").textContent = "Unavailable";
+    showState(byId("referendums-status"), "We couldn't load referendums.", "The public API is currently unavailable.", true);
+  }
+}
+
+async function showReferendumDetail(api, referendumId) {
+  byId("archive-view").hidden = true;
+  byId("referendum-detail-view").hidden = false;
+  try {
+    const record = await api.getReferendum(referendumId);
+    byId("referendum-detail-status").hidden = true;
+    byId("referendum-detail").hidden = false;
+    byId("referendum-detail").innerHTML = renderReferendumDetail(record);
+    document.title = `${record.title} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("referendum-detail-status"), missing ? "This referendum is not available." : "We couldn't load this referendum.", missing ? "It may not have been published yet." : "The public API is currently unavailable.", true);
+  }
+}
+
+async function showVotingGuide(api) {
+  byId("archive-view").hidden = true;
+  byId("voting-guide-view").hidden = false;
+  try {
+    const payload = await api.listVotingGuides();
+    if (!payload.items.length) {
+      showState(byId("voting-guide-status"), "No published voting guide is currently available.", "Official civic guidance appears after editorial publication.");
+      return;
+    }
+    byId("voting-guide-status").hidden = true;
+    byId("voting-guide-detail").hidden = false;
+    byId("voting-guide-detail").innerHTML = payload.items.map(renderVotingGuide).join("");
+    document.title = "How to vote — VeraPolitica";
+  } catch {
+    showState(byId("voting-guide-status"), "We couldn't load the voting guide.", "The public API is currently unavailable.", true);
+  }
+}
+
+async function showGlossary(api, slug) {
+  byId("archive-view").hidden = true;
+  byId("glossary-view").hidden = false;
+  try {
+    const payload = await api.listGlossary();
+    byId("glossary-count").textContent = `${payload.total} term${payload.total === 1 ? "" : "s"}`;
+    if (!payload.items.length) {
+      showState(byId("glossary-status"), "No glossary terms are currently published.", "Editorially reviewed definitions will appear here.");
+      return;
+    }
+    byId("glossary-status").hidden = true;
+    byId("glossary-list").hidden = false;
+    byId("glossary-list").innerHTML = payload.items.map(renderGlossaryTerm).join("");
+    document.title = slug ? `${slug} — Glossary — VeraPolitica` : "Glossary — VeraPolitica";
+    if (slug) {
+      const target = document.getElementById(slug);
+      if (target) target.scrollIntoView();
+    }
+  } catch {
+    byId("glossary-count").textContent = "Unavailable";
+    showState(byId("glossary-status"), "We couldn't load the glossary.", "The public API is currently unavailable.", true);
+  }
+}
+
 const api = createPublicApiClient();
 const params = new URLSearchParams(window.location.search);
 const politicianId = params.get("politician");
 const proposalId = params.get("proposal");
+const referendumId = params.get("referendum");
+const glossarySlug = params.get("glossary");
 const regionId = params.get("region");
 const municipalityId = params.get("municipality");
 const groupId = params.get("parliamentary_group");
@@ -721,6 +873,10 @@ if (proposalId && /^\d+$/.test(proposalId)) {
   showProposalDetail(api, proposalId);
 } else if (politicianId && /^\d+$/.test(politicianId)) {
   showDetail(api, politicianId);
+} else if (referendumId && /^\d+$/.test(referendumId)) {
+  showReferendumDetail(api, referendumId);
+} else if (glossarySlug) {
+  showGlossary(api, glossarySlug);
 } else if (municipalityId && /^\d+$/.test(municipalityId)) {
   showMunicipalityDetail(api, municipalityId);
 } else if (regionId && /^\d+$/.test(regionId)) {
@@ -731,6 +887,12 @@ if (proposalId && /^\d+$/.test(proposalId)) {
   showOrganization(api, "party", partyId);
 } else if (params.get("view") === "proposals") {
   showProposals(api);
+} else if (params.get("view") === "referendums") {
+  showReferendums(api);
+} else if (params.get("view") === "voting-guide") {
+  showVotingGuide(api);
+} else if (params.get("view") === "glossary") {
+  showGlossary(api);
 } else if (params.get("view") === "regions") {
   showRegions(api);
 } else if (params.get("view") === "municipalities") {

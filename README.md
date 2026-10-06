@@ -42,6 +42,8 @@ SQLite is the default local/test/demo database. PostgreSQL is the
 production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
 and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
 Public search is documented in [docs/search.md](docs/search.md).
+Civic referendums, voting guides, glossary, and reminders are documented in
+[docs/civic-features.md](docs/civic-features.md).
 
 ## Database
 
@@ -70,6 +72,7 @@ python -m scripts.run_jobs governo
 python -m scripts.run_jobs proposals
 python -m scripts.run_jobs territories
 python -m scripts.run_jobs territorial-offices
+python -m scripts.run_jobs civic-reminders
 python -m scripts.run_jobs list
 ```
 
@@ -423,6 +426,9 @@ curl "http://127.0.0.1:8000/proposals?offset=0&limit=50"
 curl http://127.0.0.1:8000/proposals/1
 curl "http://127.0.0.1:8000/search?q=Anna"
 curl "http://127.0.0.1:8000/search?q=Milano&type=municipality"
+curl "http://127.0.0.1:8000/referendums?upcoming=true"
+curl http://127.0.0.1:8000/voting-guides
+curl http://127.0.0.1:8000/glossary
 ```
 
 Only Politicians whose `current_version_id` references a published immutable

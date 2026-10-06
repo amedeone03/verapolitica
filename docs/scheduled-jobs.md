@@ -23,8 +23,10 @@ and uniqueness rules.
 | `proposals` | `senato-ddl` | Senato DDL proposal ingestion |
 | `territories` | `istat-territories` | ISTAT territorial reference ingestion |
 | `territorial-offices` | `dait-current-mayors` | DAIT current-mayor office ingestion |
+| `civic-reminders` | `civic-reminders` | Internal reminder-candidate generation for published referendums |
 
 There is no party-ingestion job because no live official affiliation source exists.
+`civic-reminders` does not scrape referendum pages and does not send email, SMS, or push.
 
 Existing commands remain valid:
 
@@ -44,6 +46,7 @@ python -m scripts.run_jobs governo
 python -m scripts.run_jobs proposals
 python -m scripts.run_jobs territories
 python -m scripts.run_jobs territorial-offices
+python -m scripts.run_jobs civic-reminders
 python -m scripts.run_jobs list
 ```
 
@@ -63,6 +66,7 @@ export VERAPOLITICA_SCHEDULE_GOVERNO_CRON="30 3 * * *"
 export VERAPOLITICA_SCHEDULE_PROPOSALS_CRON="0 4 * * *"
 export VERAPOLITICA_SCHEDULE_TERRITORIES_CRON="0 5 * * 0"
 export VERAPOLITICA_SCHEDULE_TERRITORIAL_OFFICES_CRON="30 5 * * 0"
+export VERAPOLITICA_SCHEDULE_CIVIC_REMINDERS_CRON="0 6 * * *"
 
 python -m scripts.run_scheduler
 ```

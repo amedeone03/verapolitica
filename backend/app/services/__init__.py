@@ -116,6 +116,32 @@ from backend.app.services.territory_service import (
     TerritoryServiceError,
     TerritoryValidationError,
 )
+from backend.app.services.referendum_service import (
+    ReferendumConflictError,
+    ReferendumPersistenceError,
+    ReferendumService,
+    ReferendumServiceError,
+    ReferendumValidationError,
+)
+from backend.app.services.referendum_review_service import (
+    ReferendumDraftNotFoundError,
+    ReferendumDraftNotReviewableError,
+    ReferendumReviewConflictError,
+    ReferendumReviewPersistenceError,
+    ReferendumReviewService,
+    ReferendumReviewServiceError,
+)
+from backend.app.services.civic_content_service import (
+    CivicContentService,
+    CivicContentServiceError,
+    CivicContentValidationError,
+)
+from backend.app.services.notification_service import (
+    NotificationService,
+    NotificationServiceError,
+    NotificationValidationError,
+)
+from backend.app.services.public_civic_service import PublicCivicQueryService
 
 __all__ = [
     "ActorIdentityHint",
@@ -209,4 +235,22 @@ __all__ = [
     "TerritoryValidationError",
     "TerritoryConflictError",
     "TerritoryPersistenceError",
+    "CivicContentService",
+    "CivicContentServiceError",
+    "CivicContentValidationError",
+    "NotificationService",
+    "NotificationServiceError",
+    "NotificationValidationError",
+    "PublicCivicQueryService",
+    "ReferendumConflictError",
+    "ReferendumDraftNotFoundError",
+    "ReferendumDraftNotReviewableError",
+    "ReferendumPersistenceError",
+    "ReferendumReviewConflictError",
+    "ReferendumReviewPersistenceError",
+    "ReferendumReviewService",
+    "ReferendumReviewServiceError",
+    "ReferendumService",
+    "ReferendumServiceError",
+    "ReferendumValidationError",
 ]

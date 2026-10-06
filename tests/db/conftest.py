@@ -42,6 +42,15 @@ EXPECTED_TABLES = frozenset(
         "municipalities",
         "territorial_office_mandates",
         "ingestion_job_runs",
+        "voting_guides",
+        "glossary_terms",
+        "referendums",
+        "referendum_source_identifiers",
+        "referendum_drafts",
+        "referendum_evidence",
+        "referendum_reviews",
+        "notification_subscriptions",
+        "notification_reminder_candidates",
     }
 )
 

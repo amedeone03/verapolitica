@@ -31,6 +31,12 @@ if TYPE_CHECKING:
     )
     from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
     from backend.app.models.territory import Municipality, Region
+    from backend.app.models.civic import (
+        GlossaryTerm,
+        ReferendumEvidence,
+        ReferendumSourceIdentifier,
+        VotingGuide,
+    )
 
 
 def utc_now() -> datetime:
@@ -84,3 +90,11 @@ class Source(Base):
     territorial_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
         back_populates="source"
     )
+    referendum_identifiers: Mapped[list["ReferendumSourceIdentifier"]] = relationship(
+        back_populates="source"
+    )
+    referendum_evidence: Mapped[list["ReferendumEvidence"]] = relationship(
+        back_populates="source"
+    )
+    voting_guides: Mapped[list["VotingGuide"]] = relationship(back_populates="source")
+    glossary_terms: Mapped[list["GlossaryTerm"]] = relationship(back_populates="source")

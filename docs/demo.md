@@ -16,6 +16,8 @@ PostgreSQL or Alembic. Scheduled ingestion stays disabled during a presentation.
 The header search box can find Anna, Milano, Lombardia, the synthetic housing
 proposal, Anna's parliamentary group, and the clearly synthetic Demo Civic
 Alliance party. Luca and Carlo stay hidden until publication or resolution.
+The header can also find the published synthetic civic referendum and glossary
+terms such as quorum. The unpublished civic draft stays hidden.
 
 ## Pre-demo setup
 
@@ -48,6 +50,10 @@ Expected opening state:
 - Lombardia and Milano are seeded from ISTAT-style reference data. Giulia Neri is a
   clearly synthetic published demo mayor of Milano and must not be presented as a
   real office holder. Regional presidents are not imported.
+- One clearly synthetic upcoming civic referendum is published and labelled as
+  demo-only. A second synthetic referendum draft remains unpublished until
+  editorial approval. A source-backed voting guide and glossary terms are
+  published. Reminder candidates are generated only by the operator job.
 
 Open these tabs before presenting:
 
@@ -58,6 +64,8 @@ Open these tabs before presenting:
 The citizen interface calls only public JSON endpoints. It contains
 no admin credential or editorial actions. Regions and municipalities are available
 from the same `/app/` navigation. Giulia Neri is labelled as a synthetic demo mayor.
+Referendums, How to vote, and Glossary are available from the same navigation.
+The synthetic referendum is labelled demo-only and is not a current official vote.
 
 ### Manual startup fallback
 
@@ -113,6 +121,12 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
     Approve it and refresh the public proposal: the second
     immutable timeline event appears only after review. Emphasize that the demo
     proposal is synthetic and is not presented as a real political fact.
+12. **Civic calendar.** Open `/app/?view=referendums`. The published synthetic
+    referendum shows date, scope, status, and an official-source / demo label.
+    Open the detail for the official question and quorum text. Open How to vote
+    and Glossary. In `/demo/`, approve the unpublished referendum draft, refresh
+    `/app/?view=referendums`, and confirm the second record appears. Reminders
+    stay internal: they are candidate rows, not email.
 
 ## Backup plan
 
@@ -126,6 +140,10 @@ GET /politicians/1
 GET /politicians/2
 GET /proposals
 GET /proposals/1
+GET /referendums
+GET /voting-guides
+GET /glossary
+GET /search?q=quorum
 ```
 
 Editorial sequence using bearer token `verapolitica-demo-admin`:
@@ -138,6 +156,9 @@ GET  /admin/identity-resolution/1
 GET  /admin/proposals/drafts/2
 POST /admin/proposals/drafts/2/start-review
 POST /admin/proposals/drafts/2/approve
+GET  /admin/referendums/drafts/2
+POST /admin/referendums/drafts/2/start-review
+POST /admin/referendums/drafts/2/approve
 ```
 
 Before approval, `GET /politicians/2` returns 404. After approval, it returns Luca's

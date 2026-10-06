@@ -31,6 +31,8 @@ def test_demo_ui_shell_and_rendering_assets_are_served(tmp_path):
     assert "Start review" in page.text
     assert "Approve &amp; publish" in page.text
     assert "Identity resolution" in page.text
+    assert "Unpublished referendum" in page.text
+    assert "referendum-start-review" in page.text
     assert "Create new politician" in page.text
     assert styles.status_code == 200
     assert ".workflow-panel" in styles.text

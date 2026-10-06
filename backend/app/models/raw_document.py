@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     )
     from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
     from backend.app.models.territory import Municipality, Region
+    from backend.app.models.civic import ReferendumDraft, ReferendumEvidence
 
 
 def utc_now() -> datetime:
@@ -110,5 +111,11 @@ class RawDocument(Base):
         back_populates="raw_document"
     )
     territorial_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
+        back_populates="raw_document"
+    )
+    referendum_drafts: Mapped[list["ReferendumDraft"]] = relationship(
+        back_populates="raw_document"
+    )
+    referendum_evidence: Mapped[list["ReferendumEvidence"]] = relationship(
         back_populates="raw_document"
     )

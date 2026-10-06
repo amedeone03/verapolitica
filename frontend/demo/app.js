@@ -4,6 +4,7 @@ const DEMO = Object.freeze({
   pendingPoliticianId: 2,
   publishedProposalId: 1,
   pendingProposalDraftId: 2,
+  pendingReferendumDraftId: 2,
   adminToken: "verapolitica-demo-admin",
 });
 
@@ -15,6 +16,7 @@ const state = {
   identityCase: null,
   proposal: null,
   proposalDraft: null,
+  referendumDraft: null,
   busy: false,
 };
 
@@ -212,6 +214,14 @@ export function createApiClient(baseUrl, token, fetchImpl = fetch) {
     rejectProposal: (id) => request(`/admin/proposals/drafts/${id}/reject`, {
       method: "POST", admin: true, body: { note: "Proposal update rejected during demo" },
     }),
+    referendumDraft: (id) => request(`/admin/referendums/drafts/${id}`, { admin: true }),
+    startReferendumReview: (id) => request(`/admin/referendums/drafts/${id}/start-review`, { method: "POST", admin: true }),
+    approveReferendum: (id) => request(`/admin/referendums/drafts/${id}/approve`, {
+      method: "POST", admin: true, body: { note: "Synthetic civic record approved during demo" },
+    }),
+    rejectReferendum: (id) => request(`/admin/referendums/drafts/${id}/reject`, {
+      method: "POST", admin: true, body: { note: "Referendum draft rejected during demo" },
+    }),
   };
 }
 
@@ -281,6 +291,7 @@ function render() {
   }
   renderIdentityResolution();
   renderProposalReview();
+  renderReferendumReview();
   updateWorkflow();
   updateControls();
 }
@@ -309,6 +320,24 @@ function renderProposalReview() {
   byId("proposal-start-review").disabled = state.busy || draft.status !== "pending";
   byId("proposal-approve").disabled = state.busy || final;
   byId("proposal-reject").disabled = state.busy || final;
+}
+
+function renderReferendumReview() {
+  if (!state.referendumDraft) return;
+  const draft = state.referendumDraft;
+  const [label, style] = badgeForDraft(draft.status);
+  byId("referendum-review-status").className = `badge ${style}`;
+  byId("referendum-review-status").textContent = label;
+  byId("referendum-review-body").className = "card-body";
+  const proposed = draft.proposed;
+  byId("referendum-review-body").innerHTML = `<div class="proposal-review-grid">
+    <div><p class="eyebrow">Official question</p><h3>${escapeHtml(proposed.title)}</h3><p>${escapeHtml(proposed.official_question)}</p></div>
+    <div><p class="eyebrow">Date / scope</p><h3>${escapeHtml(proposed.vote_date)}</h3><p>${escapeHtml(titleCase(proposed.scope_type))} · ${escapeHtml(titleCase(proposed.referendum_type))}</p><a href="${escapeHtml(proposed.official_source_url)}" target="_blank" rel="noopener noreferrer">Inspect official source ↗</a></div>
+  </div><details><summary>Evidence and JSON</summary><pre>${escapeHtml(JSON.stringify(draft, null, 2))}</pre></details>`;
+  const final = ["approved", "rejected", "superseded"].includes(draft.status);
+  byId("referendum-start-review").disabled = state.busy || draft.status !== "pending";
+  byId("referendum-approve").disabled = state.busy || final;
+  byId("referendum-reject").disabled = state.busy || final;
 }
 
 function renderIdentityResolution() {
@@ -365,6 +394,18 @@ function updateControls() {
   byId("identity-link").disabled = state.busy || !identityPending || !selection.value;
   byId("identity-create").disabled = state.busy || !identityPending;
   byId("identity-ignore").disabled = state.busy || !identityPending;
+  if (state.proposalDraft) {
+    const proposalFinal = ["approved", "rejected", "superseded"].includes(state.proposalDraft.status);
+    byId("proposal-start-review").disabled = state.busy || state.proposalDraft.status !== "pending";
+    byId("proposal-approve").disabled = state.busy || proposalFinal;
+    byId("proposal-reject").disabled = state.busy || proposalFinal;
+  }
+  if (state.referendumDraft) {
+    const referendumFinal = ["approved", "rejected", "superseded"].includes(state.referendumDraft.status);
+    byId("referendum-start-review").disabled = state.busy || state.referendumDraft.status !== "pending";
+    byId("referendum-approve").disabled = state.busy || referendumFinal;
+    byId("referendum-reject").disabled = state.busy || referendumFinal;
+  }
 }
 
 async function loadDemo() {
@@ -374,13 +415,14 @@ async function loadDemo() {
   setBusy(true);
   try {
     await api.health();
-    const [published, draft, newlyPublished, identityCases, proposal, proposalDraft] = await Promise.all([
+    const [published, draft, newlyPublished, identityCases, proposal, proposalDraft, referendumDraft] = await Promise.all([
       api.publicPolitician(DEMO.publishedPoliticianId),
       api.draft(DEMO.pendingDraftId),
       publicOrNull(api, DEMO.pendingPoliticianId),
       api.identityCases(),
       api.publicProposal(DEMO.publishedProposalId),
       api.proposalDraft(DEMO.pendingProposalDraftId),
+      api.referendumDraft(DEMO.pendingReferendumDraftId),
     ]);
     state.published = published;
     state.draft = draft;
@@ -390,6 +432,7 @@ async function loadDemo() {
       : null;
     state.proposal = proposal;
     state.proposalDraft = proposalDraft;
+    state.referendumDraft = referendumDraft;
     setConnection(true, "API connected");
     render();
   } catch (error) {
@@ -407,6 +450,22 @@ async function performProposalAction(action, successMessage) {
     await api[action](DEMO.pendingProposalDraftId);
     state.proposalDraft = await api.proposalDraft(DEMO.pendingProposalDraftId);
     state.proposal = await api.publicProposal(DEMO.publishedProposalId);
+    render();
+    showNotice(successMessage);
+  } catch (error) {
+    if (error.status === 409) await loadDemo();
+    showNotice(error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function performReferendumAction(action, successMessage) {
+  const api = createApiClient(state.apiBase, DEMO.adminToken);
+  setBusy(true);
+  try {
+    await api[action](DEMO.pendingReferendumDraftId);
+    state.referendumDraft = await api.referendumDraft(DEMO.pendingReferendumDraftId);
     render();
     showNotice(successMessage);
   } catch (error) {
@@ -500,6 +559,13 @@ function boot() {
     if (window.confirm("Publish this evidence-backed status transition?")) performProposalAction("approveProposal", "Proposal timeline updated.");
   });
   byId("proposal-reject").addEventListener("click", () => performProposalAction("rejectProposal", "Proposal update rejected."));
+  byId("referendum-start-review").addEventListener("click", () => performReferendumAction("startReferendumReview", "Referendum draft moved to in review."));
+  byId("referendum-approve").addEventListener("click", () => {
+    if (window.confirm("Publish this synthetic civic referendum? It remains labelled as demo-only.")) {
+      performReferendumAction("approveReferendum", "Referendum published.");
+    }
+  });
+  byId("referendum-reject").addEventListener("click", () => performReferendumAction("rejectReferendum", "Referendum draft rejected."));
   loadDemo();
 }
 

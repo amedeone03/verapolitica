@@ -1,8 +1,8 @@
 # Citizen search
 
 VeraPolitica exposes one public, read-only search across published politicians,
-published proposals, municipalities, regions, parliamentary groups, and
-source-backed political parties.
+published proposals, published referendums, municipalities, regions, parliamentary
+groups, source-backed political parties, and civic glossary terms.
 
 There is no Elasticsearch, vector index, LLM ranking, autocomplete, analytics, or
 personalization in this milestone.
@@ -18,8 +18,8 @@ GET /search?q=universita&type=proposal
 Parameters:
 
 - `q` required, 1–200 characters after the client sends the string
-- `type` optional: `politician`, `proposal`, `municipality`, `region`,
-  `parliamentary_group`, `political_party`
+- `type` optional: `politician`, `proposal`, `referendum`, `municipality`, `region`,
+  `parliamentary_group`, `political_party`, `glossary_term`
 - `offset` ≥ 0
 - `limit` 1–50 (default 20)
 
@@ -39,7 +39,8 @@ Search never inspects identity-resolution cases, profile/proposal drafts,
 reviews, AI extraction runs, job history, or reviewer notes.
 
 - Politicians: `current_version_id` points at a version with `published_at`
-- Proposals: `published_at` is set
+- Proposals and referendums: `published_at` is set
+- Glossary terms: `published_at` is set
 - Territories, groups, and parties: official reference rows, not editorial drafts
 
 Luca Bianchi and Carlo Verdi remain hidden in the deterministic demo until a
@@ -51,10 +52,12 @@ human publishes or resolves them.
 | --- | --- |
 | Politician | normalized full name, given/family name, office, institution, election area, territorial office names |
 | Proposal | published title, summary, exact statement, proposal type, public actor display names |
+| Referendum | published title, official question, referendum type |
 | Municipality | name, `Comune di …` convention, province abbreviation |
 | Region | name |
 | Parliamentary group | canonical name, abbreviation, institution, legislature |
 | Political party | canonical name, abbreviation |
+| Glossary term | term, slug, short definition |
 
 Proposal topic is not a published column yet; `proposal_type` is the public
 stand-in. Internal evidence excerpts are not searchable.
@@ -75,9 +78,9 @@ tier, then results merge deterministically:
 3. token / document match
 4. conservative PostgreSQL trigram match (`similarity >= 0.42`, query length ≥ 4)
 
-Ties break by title, then entity type order (politician, proposal, municipality,
-region, parliamentary group, political party), then id. There is no popularity
-or ideological boost.
+Ties break by title, then entity type order (politician, proposal, referendum,
+municipality, region, parliamentary group, political party, glossary term), then
+id. There is no popularity or ideological boost.
 
 PostgreSQL may use `pg_trgm` so `Giorga Meloni` can still find Giorgia Meloni.
 Fuzzy hits never outrank exact or prefix hits. SQLite has no fuzzy tier.
@@ -88,8 +91,8 @@ Tests and the demo stay on SQLite and use indexed `LIKE`/`prefix` matching on
 `search_primary` / `search_document`.
 
 PostgreSQL adds `CREATE EXTENSION IF NOT EXISTS pg_trgm` and GIN trigram
-indexes on municipality, politician, proposal, and region search keys. The
-public JSON contract is the same on both dialects.
+indexes on municipality, politician, proposal, region, referendum, and glossary
+search keys. The public JSON contract is the same on both dialects.
 
 Municipality queries are SQL-filtered and limited. The service does not load
 the full ~7,894-row table into Python.

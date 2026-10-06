@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     schedule_proposals_cron: str = ""
     schedule_territories_cron: str = ""
     schedule_territorial_offices_cron: str = ""
+    schedule_civic_reminders_cron: str = ""
     job_max_retries: int = Field(default=1, ge=0, le=5)
     job_retry_backoff_seconds: float = Field(default=2.0, gt=0, le=60)
 
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
                 self.schedule_proposals_cron,
                 self.schedule_territories_cron,
                 self.schedule_territorial_offices_cron,
+                self.schedule_civic_reminders_cron,
             )
         )
 

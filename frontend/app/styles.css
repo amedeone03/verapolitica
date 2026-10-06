@@ -253,6 +253,17 @@ footer { width: min(1180px, 92vw); margin: 0 auto; padding: 28px 0 38px; display
 footer strong { color: var(--ink); font: 600 1rem Georgia, serif; }
 footer p { max-width: 590px; margin: 4px 0 0; }
 
+.glossary-list { display: grid; gap: 16px; }
+.glossary-card, .guide-section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.guide-section { margin-bottom: 16px; }
+.guide-section h2 { margin: 0 0 8px; font: 600 1.15rem Georgia, serif; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 850px) {

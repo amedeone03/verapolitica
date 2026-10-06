@@ -7,6 +7,7 @@ from backend.app.models.parliamentary_group import ParliamentaryGroup
 from backend.app.models.political_party import PoliticalParty
 from backend.app.models.proposal import Proposal, ProposalActor
 from backend.app.models.territory import Municipality, Region
+from backend.app.models.civic import GlossaryTerm, Referendum
 
 
 def _set_search_fields(target, primary: str, *document_parts: str | None) -> None:
@@ -86,3 +87,34 @@ def _proposal_search(mapper, connection, target: Proposal) -> None:
 def _actor_search(mapper, connection, target: ProposalActor) -> None:
     del mapper, connection
     target.search_primary = normalize_search_text(target.display_name)
+
+
+@event.listens_for(Referendum, "before_insert")
+@event.listens_for(Referendum, "before_update")
+def _referendum_search(mapper, connection, target: Referendum) -> None:
+    del mapper, connection
+    kind = (
+        target.referendum_type.value
+        if hasattr(target.referendum_type, "value")
+        else str(target.referendum_type or "")
+    )
+    _set_search_fields(
+        target,
+        target.title,
+        target.title,
+        target.official_question,
+        kind,
+    )
+
+
+@event.listens_for(GlossaryTerm, "before_insert")
+@event.listens_for(GlossaryTerm, "before_update")
+def _glossary_search(mapper, connection, target: GlossaryTerm) -> None:
+    del mapper, connection
+    _set_search_fields(
+        target,
+        target.term,
+        target.term,
+        target.slug,
+        target.short_definition,
+    )

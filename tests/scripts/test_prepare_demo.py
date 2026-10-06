@@ -52,6 +52,8 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert summary.identity_resolution_status is IdentityResolutionStatus.PENDING
     assert summary.published_proposal_id == 1
     assert summary.pending_proposal_draft_id == 2
+    assert summary.published_referendum_id == 1
+    assert summary.pending_referendum_draft_id == 2
 
     app = create_app(
         Settings(
@@ -72,6 +74,14 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
         proposal = client.get("/proposals/1")
         proposal_draft = client.get(
             "/admin/proposals/drafts/2",
+            headers={"Authorization": f"Bearer {DEMO_ADMIN_KEY}"},
+        )
+        referendums = client.get("/referendums")
+        unpublished_referendum = client.get("/referendums/2")
+        guides = client.get("/voting-guides")
+        glossary = client.get("/glossary")
+        pending_referendum = client.get(
+            "/admin/referendums/drafts/2",
             headers={"Authorization": f"Bearer {DEMO_ADMIN_KEY}"},
         )
         regions = client.get("/regions")
@@ -98,6 +108,13 @@ def test_demo_setup_creates_published_and_pending_public_api_state(tmp_path):
     assert municipalities.json()["items"][0]["name"] == "Milano"
     assert municipalities.json()["items"][0]["current_mayor"]["given_name"] == "Giulia"
     assert giulia.json()["territorial_offices"][0]["municipality"] == "Milano"
+    assert referendums.json()["total"] == 1
+    assert referendums.json()["items"][0]["is_synthetic"] is True
+    assert unpublished_referendum.status_code == 404
+    assert guides.json()["total"] == 1
+    assert glossary.json()["total"] == 9
+    assert glossary.json()["items"][0]["term"] == "Decreto-legge"
+    assert pending_referendum.json()["status"] == "pending"
 
 
 def test_demo_reset_is_repeatable_and_preserves_normal_development_data(tmp_path):

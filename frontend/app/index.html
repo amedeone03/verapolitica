@@ -35,6 +35,9 @@
         <nav class="public-nav" aria-label="Public archive sections">
           <a href="./">Politicians</a>
           <a href="./?view=proposals">Proposals</a>
+          <a href="./?view=referendums">Referendums</a>
+          <a href="./?view=voting-guide">How to vote</a>
+          <a href="./?view=glossary">Glossary</a>
           <a href="./?view=regions">Regions</a>
           <a href="./?view=municipalities">Municipalities</a>
           <a href="./?view=search">Search</a>
@@ -96,6 +99,62 @@
           <div><strong>Loading published proposals…</strong><small>Contacting the public archive.</small></div>
         </div>
         <div id="proposal-list" class="proposal-grid" hidden></div>
+      </section>
+
+      <section id="referendums-view" aria-labelledby="referendums-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Civic calendar</p>
+          <h1 id="referendums-title">Referendums and voting events</h1>
+          <p class="hero-copy">Published official questions, dates, and voting rules. This is not voting advice and it does not list campaign arguments.</p>
+        </div>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Published records</p><h2>Upcoming and recorded votes</h2></div>
+          <span id="referendum-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+        <div id="referendums-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading referendums…</strong><small>Contacting the public archive.</small></div>
+        </div>
+        <div id="referendum-list" class="proposal-grid" hidden></div>
+      </section>
+
+      <section id="referendum-detail-view" aria-labelledby="referendum-detail-title" hidden>
+        <a class="back-link" href="./?view=referendums"><span aria-hidden="true">←</span> All referendums</a>
+        <div id="referendum-detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading referendum…</strong><small>Retrieving the published civic record.</small></div>
+        </div>
+        <article id="referendum-detail" hidden></article>
+      </section>
+
+      <section id="voting-guide-view" aria-labelledby="voting-guide-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Come si vota</p>
+          <h1 id="voting-guide-title">How to vote</h1>
+          <p class="hero-copy">Factual voting procedure from official sources. VeraPolitica does not tell anyone who or what to vote for.</p>
+        </div>
+        <div id="voting-guide-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading voting guidance…</strong><small>Retrieving published civic instructions.</small></div>
+        </div>
+        <article id="voting-guide-detail" hidden></article>
+      </section>
+
+      <section id="glossary-view" aria-labelledby="glossary-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Civic glossary</p>
+          <h1 id="glossary-title">Key terms</h1>
+          <p class="hero-copy">Neutral definitions backed by official legal or institutional sources.</p>
+        </div>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Alphabetical</p><h2>Published terms</h2></div>
+          <span id="glossary-count" class="count-pill" aria-live="polite">Loading</span>
+        </div>
+        <div id="glossary-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading glossary…</strong><small>Retrieving published civic terms.</small></div>
+        </div>
+        <div id="glossary-list" class="glossary-list" hidden></div>
       </section>
 
       <section id="proposal-detail-view" aria-labelledby="proposal-detail-title" hidden>
@@ -166,10 +225,12 @@
             <option value="">All types</option>
             <option value="politician">Politicians</option>
             <option value="proposal">Proposals</option>
+            <option value="referendum">Referendums</option>
             <option value="municipality">Municipalities</option>
             <option value="region">Regions</option>
             <option value="parliamentary_group">Parliamentary groups</option>
             <option value="political_party">Political parties</option>
+            <option value="glossary_term">Glossary</option>
           </select>
           <button type="submit">Search</button>
         </form>

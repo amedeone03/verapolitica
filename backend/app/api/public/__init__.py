@@ -1,5 +1,10 @@
 from fastapi import APIRouter
 
+from backend.app.api.public.civic import (
+    glossary_router,
+    referendums_router,
+    voting_guides_router,
+)
 from backend.app.api.public.municipalities import router as municipalities_router
 from backend.app.api.public.organizations import (
     groups_router,
@@ -19,5 +24,8 @@ router.include_router(regions_router)
 router.include_router(municipalities_router)
 router.include_router(groups_router)
 router.include_router(parties_router)
+router.include_router(referendums_router)
+router.include_router(voting_guides_router)
+router.include_router(glossary_router)
 
 __all__ = ["router"]

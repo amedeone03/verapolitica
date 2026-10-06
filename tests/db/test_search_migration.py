@@ -18,7 +18,7 @@ def test_search_revision_upgrade_downgrade_reupgrade(tmp_path):
         columns = {column["name"] for column in inspect(engine).get_columns("municipalities")}
         assert "search_primary" not in columns
         command.upgrade(cfg, "head")
-        assert current_revision(engine) == "b7c4e2a91f10"
+        assert current_revision(engine) == head_revision(url)
         columns = {column["name"] for column in inspect(engine).get_columns("proposals")}
         assert "search_primary" in columns
     finally:

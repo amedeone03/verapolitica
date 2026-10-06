@@ -37,12 +37,13 @@ def test_alembic_downgrade_and_reupgrade(tmp_path):
     cfg = alembic_config(url)
     try:
         command.downgrade(cfg, "-1")
-        assert current_revision(engine) == "1864a1eb302a"
+        assert current_revision(engine) == "b7c4e2a91f10"
         assert "politicians" in inspect(engine).get_table_names()
+        assert "referendums" not in inspect(engine).get_table_names()
         municipality_columns = {
             column["name"] for column in inspect(engine).get_columns("municipalities")
         }
-        assert "search_primary" not in municipality_columns
+        assert "search_primary" in municipality_columns
         command.upgrade(cfg, "head")
         assert current_revision(engine) == head_revision(url)
         assert EXPECTED_TABLES <= set(inspect(engine).get_table_names())

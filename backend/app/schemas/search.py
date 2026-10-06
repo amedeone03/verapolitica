@@ -9,10 +9,12 @@ from backend.app.schemas.candidate_profile import ImmutableSchema
 class SearchEntityType(StrEnum):
     POLITICIAN = "politician"
     PROPOSAL = "proposal"
+    REFERENDUM = "referendum"
     MUNICIPALITY = "municipality"
     REGION = "region"
     PARLIAMENTARY_GROUP = "parliamentary_group"
     POLITICAL_PARTY = "political_party"
+    GLOSSARY_TERM = "glossary_term"
 
 
 class PublicSearchResult(ImmutableSchema):

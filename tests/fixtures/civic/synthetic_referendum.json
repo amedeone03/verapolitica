@@ -1,0 +1,46 @@
+{
+  "official_identifier": "synthetic-demo-civic-referendum-2026-11-15",
+  "title": "Synthetic civic referendum (demo fixture)",
+  "official_question": "Do you approve the synthetic civic-procedure demonstration question used only inside the VeraPolitica editorial demo?",
+  "referendum_type": "consultative",
+  "status": "scheduled",
+  "vote_date": "2026-11-15",
+  "vote_end_date": "2026-11-16",
+  "start_time": "07:00:00",
+  "end_time": "23:00:00",
+  "voting_hours_description": "Synthetic voting hours for demonstration only: Sunday 07:00–23:00 and Monday 07:00–15:00.",
+  "scope_type": "national",
+  "quorum_required": true,
+  "quorum_description": "Synthetic quorum field for demonstration. Real abrogative referendums follow Constitution Article 75; this demo record is not a current official vote.",
+  "official_source_url": "https://example.test/demo/synthetic-civic-referendum",
+  "is_synthetic": true,
+  "metadata": {
+    "fixture": "synthetic_demo_only"
+  },
+  "evidence": [
+    {
+      "field_path": "title",
+      "source_url": "https://example.test/demo/synthetic-civic-referendum",
+      "source_field": "demo.title",
+      "source_value": "Synthetic civic referendum (demo fixture)"
+    },
+    {
+      "field_path": "official_question",
+      "source_url": "https://example.test/demo/synthetic-civic-referendum",
+      "source_field": "demo.question",
+      "source_value": "Do you approve the synthetic civic-procedure demonstration question used only inside the VeraPolitica editorial demo?"
+    },
+    {
+      "field_path": "vote_date",
+      "source_url": "https://example.test/demo/synthetic-civic-referendum",
+      "source_field": "demo.vote_date",
+      "source_value": "2026-11-15"
+    },
+    {
+      "field_path": "quorum_required",
+      "source_url": "https://example.test/demo/synthetic-civic-referendum",
+      "source_field": "demo.quorum",
+      "source_value": "true"
+    }
+  ]
+}

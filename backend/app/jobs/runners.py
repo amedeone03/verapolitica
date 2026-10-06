@@ -298,3 +298,23 @@ def run_territorial_office_ingestion(
         )
 
     return _wrap(run)
+
+
+def run_civic_reminders(
+    settings: Settings, session_factory: sessionmaker[Session]
+) -> IngestionJobMetrics:
+    del settings
+
+    def run() -> IngestionJobMetrics:
+        from backend.app.services.notification_service import NotificationService
+
+        result = NotificationService(session_factory).generate_reminder_candidates()
+        return IngestionJobMetrics(
+            records_processed=len(result.referendum_ids),
+            records_created=result.created,
+            records_updated=0,
+            records_skipped=result.already_present,
+            metadata={"referendum_ids": list(result.referendum_ids)},
+        )
+
+    return _wrap(run)

@@ -525,4 +525,35 @@ ingestion job. It is not a public record.
 A partial unique index allows at most one `running` row per `job_name`. Completed
 rows remain as history. Job state is owned by `IngestionJobService`; collectors do
 not write these rows.
-together but never creates a version or changes the current pointer.
+
+## Civic features
+
+`Referendum` is the stable civic event identity. Title is never identity:
+`ReferendumSourceIdentifier` uniquely maps `(source_id, official_identifier)`.
+Geographic scope is `national`, `region`, or `municipality`, with optional Region
+and Municipality foreign keys and a check constraint that national rows have no
+territory, regional rows have a region, and municipal rows have a municipality.
+
+`ReferendumDraft` is independent of `ProfileDraft` and `ProposalDraft`. Statuses
+are `pending`, `in_review`, `approved`, `rejected`, and `superseded`. Replay
+identity is a SHA-256 of the observation excluding retrieval time and
+RawDocument ID. Ingestion never sets `published_at`.
+
+`ReferendumEvidence` stores field-level official source, URL, field, and original
+value. `ReferendumReview` is the immutable final decision. Approval copies official
+fields onto the Referendum row and sets `published_at` once. Rejection creates no
+public record.
+
+`VotingGuide` stores structured official sections (`eligibility`, `date_and_hours`,
+`required_documents`, `ballot_instructions`, `quorum`, `accessibility`,
+`official_links`) with guide-level and optional section-level source URLs.
+
+`GlossaryTerm` is slug-keyed, alphabetically listed, and editorially published.
+Definitions are curated; they are not AI-generated.
+
+`NotificationSubscription` is an internal placeholder (`channel=internal`, opaque
+`destination_token`, no email). `NotificationReminderCandidate` is an idempotent
+reminder row keyed by SHA-256 of `event_type:referendum_id:scheduled_for`. The
+`civic-reminders` job writes these rows and does not send notifications.
+
+See `docs/civic-features.md`.

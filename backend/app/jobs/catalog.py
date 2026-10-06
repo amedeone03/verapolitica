@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import Settings
 from backend.app.jobs.runners import (
+    run_civic_reminders,
     run_politician_ingestion,
     run_proposal_ingestion,
     run_territorial_office_ingestion,
@@ -68,6 +69,12 @@ JOB_CATALOG: dict[str, JobSpec] = {
         "dait-current-mayors",
         run_territorial_office_ingestion,
         "schedule_territorial_offices_cron",
+    ),
+    "civic-reminders": JobSpec(
+        "civic-reminders",
+        "civic-reminders",
+        run_civic_reminders,
+        "schedule_civic_reminders_cron",
     ),
 }
 

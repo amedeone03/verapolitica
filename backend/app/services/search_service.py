@@ -20,6 +20,8 @@ from backend.app.models import (
     Region,
     TerritorialOffice,
     TerritorialOfficeMandate,
+    GlossaryTerm,
+    Referendum,
 )
 from backend.app.schemas.search import (
     PublicSearchResult,
@@ -37,10 +39,12 @@ SNIPPET_CHARS = 180
 ENTITY_ORDER = {
     SearchEntityType.POLITICIAN: 0,
     SearchEntityType.PROPOSAL: 1,
-    SearchEntityType.MUNICIPALITY: 2,
-    SearchEntityType.REGION: 3,
-    SearchEntityType.PARLIAMENTARY_GROUP: 4,
-    SearchEntityType.POLITICAL_PARTY: 5,
+    SearchEntityType.REFERENDUM: 2,
+    SearchEntityType.MUNICIPALITY: 3,
+    SearchEntityType.REGION: 4,
+    SearchEntityType.PARLIAMENTARY_GROUP: 5,
+    SearchEntityType.POLITICAL_PARTY: 6,
+    SearchEntityType.GLOSSARY_TERM: 7,
 }
 TIER_EXACT = 0
 TIER_PREFIX = 1
@@ -121,10 +125,12 @@ class SearchService:
         searchers = {
             SearchEntityType.POLITICIAN: self._politicians,
             SearchEntityType.PROPOSAL: self._proposals,
+            SearchEntityType.REFERENDUM: self._referendums,
             SearchEntityType.MUNICIPALITY: self._municipalities,
             SearchEntityType.REGION: self._regions,
             SearchEntityType.PARLIAMENTARY_GROUP: self._groups,
             SearchEntityType.POLITICAL_PARTY: self._parties,
+            SearchEntityType.GLOSSARY_TERM: self._glossary,
         }
         return searchers[entity_type](normalized, limited=limited)
 
@@ -441,6 +447,81 @@ class SearchService:
                 ),
             )
             for group in groups
+        ]
+
+    def _referendums(self, normalized: str, *, limited: bool) -> list[_Hit]:
+        referendums = list(
+            self.session.scalars(
+                select(Referendum)
+                .where(
+                    Referendum.published_at.is_not(None),
+                    self._text_match(
+                        Referendum.search_primary,
+                        Referendum.search_document,
+                        normalized,
+                    ),
+                )
+                .limit(self._cap(limited))
+            )
+        )
+        return [
+            _Hit(
+                self._tier(
+                    normalized, item.search_primary, item.search_document
+                ),
+                item.title,
+                SearchEntityType.REFERENDUM,
+                item.id,
+                PublicSearchResult(
+                    entity_type=SearchEntityType.REFERENDUM,
+                    title=item.title,
+                    subtitle=(
+                        f"Referendum · {item.referendum_type.value.replace('_', ' ')} · "
+                        f"{item.vote_date.isoformat()}"
+                    ),
+                    url=f"/app/?referendum={item.id}",
+                    snippet=self._snippet(item.official_question),
+                    metadata={
+                        "id": item.id,
+                        "status": item.status.value,
+                        "is_synthetic": item.is_synthetic,
+                    },
+                ),
+            )
+            for item in referendums
+        ]
+
+    def _glossary(self, normalized: str, *, limited: bool) -> list[_Hit]:
+        terms = list(
+            self.session.scalars(
+                select(GlossaryTerm)
+                .where(
+                    GlossaryTerm.published_at.is_not(None),
+                    self._text_match(
+                        GlossaryTerm.search_primary,
+                        GlossaryTerm.search_document,
+                        normalized,
+                    ),
+                )
+                .limit(self._cap(limited))
+            )
+        )
+        return [
+            _Hit(
+                self._tier(normalized, term.search_primary, term.search_document),
+                term.term,
+                SearchEntityType.GLOSSARY_TERM,
+                term.id,
+                PublicSearchResult(
+                    entity_type=SearchEntityType.GLOSSARY_TERM,
+                    title=term.term,
+                    subtitle="Civic glossary",
+                    url=f"/app/?glossary={term.slug}",
+                    snippet=self._snippet(term.short_definition),
+                    metadata={"slug": term.slug},
+                ),
+            )
+            for term in terms
         ]
 
     def _parties(self, normalized: str, *, limited: bool) -> list[_Hit]:

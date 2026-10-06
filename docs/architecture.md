@@ -490,7 +490,17 @@ type, assigns an exact/prefix/token/fuzzy tier, and merges results
 deterministically. SQL stays in the service; routers only validate parameters.
 PostgreSQL may use `pg_trgm` for conservative typos. SQLite uses the same
 contract with LIKE/prefix matching. Search never reads drafts, identity cases,
-reviews, AI runs, or job history. See `docs/search.md`.
+reviews, AI runs, or job history. See `docs/search.md`. Published referendums
+and glossary terms are included; unpublished civic drafts and voting guides are not.
+
+## Civic features
+
+`Referendum` is a reviewed civic event, not a news item. Fixture JSON maps to
+`ReferendumObservation`, then `ReferendumService` upserts drafts by
+`(source_id, official_identifier)`. Publication requires `ReferendumReview`
+approval. `VotingGuide` and `GlossaryTerm` are curated, source-backed pages.
+`civic-reminders` writes idempotent `NotificationReminderCandidate` rows and does
+not send email or push. See `docs/civic-features.md`.
 
 ## Database and scheduled jobs
 
@@ -524,5 +534,7 @@ Senato collector response
 The happy path asserts that pending and in-review data remains invisible, then
 becomes public only after explicit approval. Safety scenarios cover rejection,
 double approval, stale baselines, citation-insert rollback, and internal identities
-without a published current-version pointer. No E2E test contacts the live Senato
+without a published current-version pointer. A separate civic E2E covers fixture
+ingestion, unpublished referendum drafts, editorial approval, public API, citizen
+UI, and idempotent reminder-candidate replay. No E2E test contacts the live Senato
 service or depends on developer configuration or test ordering.
