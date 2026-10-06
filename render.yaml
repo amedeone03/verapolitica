@@ -10,10 +10,7 @@ services:
     healthCheckPath: /health/live
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    # Free instances cannot SSH, run a one-off job, or use a pre-deploy
-    # command. Render executes this as one program, then the script migrates
-    # the service's own database and starts the web process.
-    dockerCommand: python -m scripts.run_migrated_web
+    dockerCommand: python -m scripts.run_web
     envVars:
       - key: VERAPOLITICA_DATABASE_URL
         fromDatabase:
