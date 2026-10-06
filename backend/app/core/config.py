@@ -81,13 +81,19 @@ class Settings(BaseSettings):
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_api_key: SecretStr | None = None
-    llm_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
+    llm_timeout_seconds: float = Field(default=180.0, gt=0, le=600)
     llm_max_retries: int = Field(default=1, ge=0, le=3)
-    ai_max_document_bytes: int = Field(default=10_000_000, ge=1, le=50_000_000)
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ai_max_document_bytes: int = Field(default=50_000_000, ge=1, le=100_000_000)
+    demo_upload_path: Path = Path("./data/ceo_demo/uploads")
     ai_max_chunk_chars: int = Field(default=4_000, ge=100, le=20_000)
-    ai_max_document_chunks: int = Field(default=200, ge=1, le=2_000)
+    ai_max_document_chunks: int = Field(default=4_000, ge=1, le=10_000)
     ai_max_chunks_per_run: int = Field(default=40, ge=1, le=200)
+    ai_max_selected_chunks: int = Field(default=16, ge=4, le=40)
+    ai_max_document_tokens: int = Field(default=4_500, ge=500, le=20_000)
     ai_max_evidence_excerpt_chars: int = Field(default=600, ge=50, le=2_000)
+    ollama_num_ctx: int = Field(default=8_192, ge=2_048, le=32_768)
+    ollama_structured_format: str = "json"
     ai_eval_min_precision: float = Field(default=0.90, ge=0, le=1)
     ai_eval_min_evidence_accuracy: float = Field(default=0.95, ge=0, le=1)
     ai_eval_max_hallucination_rate: float = Field(default=0.05, ge=0, le=1)
@@ -114,6 +120,16 @@ class Settings(BaseSettings):
         if value.startswith("postgresql://"):
             return "postgresql+psycopg://" + value.removeprefix("postgresql://")
         return value
+
+    @field_validator("ollama_structured_format")
+    @classmethod
+    def normalize_ollama_structured_format(cls, value: str) -> str:
+        normalized = value.strip().casefold()
+        if normalized in {"json_schema", "schema"}:
+            return "json_schema"
+        if normalized == "json":
+            return "json"
+        raise ValueError("ollama_structured_format must be json_schema or json")
 
     @property
     def is_production(self) -> bool:
@@ -167,10 +183,14 @@ class Settings(BaseSettings):
 
     @property
     def ai_extraction_enabled(self) -> bool:
-        provider = (self.llm_provider or "").strip()
+        provider = (self.llm_provider or "").strip().casefold()
         model = (self.llm_model or "").strip()
+        if not provider or not model:
+            return False
+        if provider == "ollama":
+            return bool(self.ollama_base_url.strip())
         key = self.llm_api_key.get_secret_value() if self.llm_api_key else ""
-        return bool(provider and model and key)
+        return bool(key)
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
@@ -196,12 +216,16 @@ class Settings(BaseSettings):
             errors.append(
                 "production requires an explicit VERAPOLITICA_TRUSTED_HOSTS allowlist"
             )
-        provider = (self.llm_provider or "").strip()
+        provider = (self.llm_provider or "").strip().casefold()
         if provider:
             if not (self.llm_model or "").strip():
                 errors.append("AI extraction requires VERAPOLITICA_LLM_MODEL")
-            if not (self.llm_api_key and self.llm_api_key.get_secret_value().strip()):
+            if provider == "openai" and not (
+                self.llm_api_key and self.llm_api_key.get_secret_value().strip()
+            ):
                 errors.append("AI extraction requires VERAPOLITICA_LLM_API_KEY")
+            if provider not in {"openai", "ollama"}:
+                errors.append("AI extraction provider must be openai or ollama")
         if errors:
             raise ProductionConfigError("; ".join(errors))
         return self

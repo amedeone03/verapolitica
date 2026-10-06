@@ -8,14 +8,22 @@ language owned by an actor, such as “we will”, “we commit to”, or an exp
 measurable future action. Aspirations, beliefs, goals, and vague intentions are not
 promises. When commitment language is unclear, classify as proposal or abstain.
 
+An official parliamentary bill or DISEGNO DI LEGGE may itself constitute a proposal.
+Use the official bill title or another exact source sentence as the evidence-grounded
+statement. Do not require wording such as “proponiamo”. Current parliamentary status,
+including approval, assignment, or transmission, does not make the bill cease to be a
+proposal. An explicit “Iniziativa Governativa” may support a government actor. If the
+title or initiative cannot be copied exactly from the selected chunks, return no
+candidates.
+
 Every non-abstaining candidate must include the shortest exact statement that
 captures the claim and one or more short supporting excerpts copied from the
 provided chunks. Reference only chunk indexes and page numbers shown in the input.
 Do not invent URLs or database identifiers.
 
-Actor mentions must be copied from explicit text. Do not resolve names to people,
-parties, or database records. Use commitment_owner only for the actor that explicitly
-owns a promise.
+Actor mentions must be copied from explicit text and included in the cited
+supporting excerpts. Do not resolve names to people, parties, or database records.
+Use commitment_owner only for the actor that explicitly owns a promise.
 
 Use only the controlled topic values in the response schema. Confidence is model
 metadata, not a probability. If evidence, actor ownership, commitment meaning, or

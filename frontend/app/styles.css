@@ -204,10 +204,10 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .compact-hero { margin-bottom: 44px; }
 .proposal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .proposal-card { padding: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
-.proposal-card h3 { margin: 15px 0 12px; font: 600 1.45rem/1.2 Georgia, serif; }
+.proposal-card h3 { margin: 15px 0 12px; font: 600 1.45rem/1.2 Georgia, serif; overflow-wrap: anywhere; }
 .proposal-card > p { color: var(--muted); font-size: .82rem; }
-.proposal-card-top, .proposal-card-links { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.proposal-type, .status-chip { display: inline-flex; padding: 5px 9px; border-radius: 7px; font-size: .7rem; font-weight: 800; }
+.proposal-card-top, .proposal-card-links { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.proposal-type, .status-chip { display: inline-flex; padding: 5px 9px; border-radius: 7px; font-size: .7rem; font-weight: 800; max-width: 100%; overflow-wrap: anywhere; }
 .proposal-type { color: var(--teal-dark); background: var(--teal-soft); }
 .status-chip { color: var(--navy); background: #e9eff5; }
 .proposal-actors { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -215,7 +215,7 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .proposal-actor a { color: var(--teal-dark); font-weight: 750; }
 .proposal-actor small { margin-top: 2px; color: var(--muted); font-size: .65rem; }
 .proposal-detail-hero { padding: clamp(28px, 5vw, 52px); background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); }
-.proposal-detail-hero h1 { margin: 17px 0; font-size: clamp(2.2rem, 5vw, 4rem); }
+.proposal-detail-hero h1 { margin: 17px 0; font-size: clamp(2.2rem, 5vw, 4rem); overflow-wrap: anywhere; line-height: 1.12; }
 .proposal-timeline-card, .proposals-card { margin-top: 25px; }
 .proposal-timeline { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .proposal-timeline li { display: grid; grid-template-columns: 150px 1fr; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line); }
@@ -224,7 +224,7 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .proposal-timeline p { margin: 4px 0 8px; color: var(--muted); font-size: .82rem; }
 .linked-proposals { display: grid; gap: 11px; }
 .linked-proposals article { padding: 17px; border: 1px solid var(--line); border-radius: 12px; background: #fafaf8; }
-.linked-proposals h3 { margin: 8px 0 4px; font-size: 1.08rem; }
+.linked-proposals h3 { margin: 8px 0 4px; font-size: 1.08rem; overflow-wrap: anywhere; }
 .linked-proposals h3 a { color: inherit; }
 .linked-proposals p, .proposal-disclaimer { color: var(--muted); font-size: .82rem; }
 .territorial-offices { display: grid; gap: 11px; }
@@ -240,11 +240,23 @@ h2 { margin-bottom: 0; font: 600 clamp(1.7rem, 3vw, 2.35rem)/1.15 Georgia, serif
 .sources-summary { color: var(--muted); font-size: .78rem; text-align: right; }
 .source-list { display: grid; gap: 13px; }
 .source-block { padding: 20px; border: 1px solid var(--line); border-radius: 13px; background: #fafaf8; }
-.source-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-.source-top h3 { margin: 0 0 3px; font: 600 1.12rem Georgia, serif; }
+.source-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.source-top h3 { margin: 0 0 3px; font: 600 1.12rem Georgia, serif; overflow-wrap: anywhere; }
 .source-top small { color: var(--muted); }
-.source-link { flex: 0 0 auto; color: var(--teal-dark); font-size: .78rem; font-weight: 800; text-decoration: none; }
-.source-link:hover { text-decoration: underline; }
+.source-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid #bddbd5;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.source-link:hover { text-decoration: none; background: #d7efe9; }
 .supports-label { margin: 16px 0 7px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .supports { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .supports li { padding: 5px 9px; color: var(--navy); background: #e9eff5; border-radius: 7px; font-size: .75rem; }

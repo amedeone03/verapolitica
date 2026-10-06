@@ -1,0 +1,41 @@
+{
+  "output": {
+    "candidates": [
+      {
+        "claim_type": "proposal",
+        "exact_statement": "Disposizioni per l'accesso alle cure palliative e alla terapia del dolore nei luoghi di vita e di cura",
+        "normalized_title": "Disposizioni per l'accesso alle cure palliative e alla terapia del dolore nei luoghi di vita e di cura",
+        "summary": "Disposizioni per l'accesso alle cure palliative e alla terapia del dolore nei luoghi di vita e di cura. Sen. De Poli Antonio.",
+        "topic": "healthcare",
+        "actor_mentions": [
+          {
+            "name": "Sen. De Poli Antonio",
+            "role": "proposer"
+          }
+        ],
+        "announced_at": "2026-09-18",
+        "target_date": null,
+        "evidence": [
+          {
+            "chunk_index": 0,
+            "page": null,
+            "supporting_text": "Disposizioni per l'accesso alle cure palliative e alla terapia del dolore nei luoghi di vita e di cura"
+          },
+          {
+            "chunk_index": 0,
+            "page": null,
+            "supporting_text": "Sen. De Poli Antonio"
+          }
+        ],
+        "confidence": "high",
+        "abstention_reason": null
+      }
+    ]
+  },
+  "usage": {
+    "request_count": 1,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "provider_response_id": "simulated-ceo-demo-ddl-60476"
+}

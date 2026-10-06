@@ -151,6 +151,7 @@ def test_clear_proposal_creates_internal_draft_with_audit_metadata(
         assert run.status is AIExtractionRunStatus.COMPLETED
         assert run.prompt_version == "proposal_extraction_v1"
         assert run.input_tokens == 100
+        assert run.provider_response["chunk_selection"]["full_document_coverage"] is True
         assert proposal.published_at is None
 
 

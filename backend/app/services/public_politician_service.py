@@ -8,6 +8,7 @@ from backend.app.models import (
     PoliticalParty,
     PoliticalPartyAffiliation,
     Politician,
+    PoliticianSourceIdentifier,
     PoliticianVersion,
     PoliticianVersionCitation,
     Region,
@@ -28,6 +29,10 @@ from backend.app.schemas import (
     PublicTerritorialSource,
 )
 from backend.app.schemas.politician import PoliticianVersionProfile
+from backend.app.services.official_source_display import (
+    citizen_source_label,
+    citizen_source_url,
+)
 from backend.app.services.public_proposal_service import PublicProposalQueryService
 
 
@@ -77,11 +82,20 @@ class PublicPoliticianQueryService:
         if row is None:
             return None
         politician, version = row
+        identifier_hints = tuple(
+            self.session.scalars(
+                select(PoliticianSourceIdentifier.value).where(
+                    PoliticianSourceIdentifier.politician_id == politician.id
+                )
+            )
+        )
         citations = tuple(
             PublicCitation(
                 field_path=citation.field_path,
-                source_name=citation.source_name,
-                source_url=citation.source_url,
+                source_name=citizen_source_label(citation.source_name),
+                source_url=citizen_source_url(
+                    citation.source_url, *identifier_hints
+                ),
                 source_field=citation.source_field or None,
             )
             for citation in self.session.scalars(
@@ -134,8 +148,10 @@ class PublicPoliticianQueryService:
                 end_date=membership.end_date,
                 role=membership.role,
                 source=PublicParliamentaryGroupSource(
-                    name=source.name,
-                    url=membership.source_url,
+                    name=citizen_source_label(source.name),
+                    url=citizen_source_url(
+                        membership.source_url, membership.source_identifier
+                    ),
                 ),
             )
             for membership, group, source in group_rows
@@ -172,8 +188,10 @@ class PublicPoliticianQueryService:
                 end_date=affiliation.end_date,
                 affiliation_type=affiliation.affiliation_type,
                 source=PublicPoliticalPartySource(
-                    name=source.name,
-                    url=affiliation.source_url,
+                    name=citizen_source_label(source.name),
+                    url=citizen_source_url(
+                        affiliation.source_url, affiliation.source_identifier
+                    ),
                 ),
             )
             for affiliation, party, source in party_rows
@@ -231,8 +249,10 @@ class PublicPoliticianQueryService:
                     start_date=mandate.start_date,
                     end_date=mandate.end_date,
                     source=PublicTerritorialSource(
-                        name=source.name,
-                        url=mandate.source_url,
+                        name=citizen_source_label(source.name),
+                        url=citizen_source_url(
+                            mandate.source_url, mandate.source_identifier
+                        ),
                     ),
                 )
             )
@@ -245,8 +265,10 @@ class PublicPoliticianQueryService:
                     start_date=mandate.start_date,
                     end_date=mandate.end_date,
                     source=PublicTerritorialSource(
-                        name=source.name,
-                        url=mandate.source_url,
+                        name=citizen_source_label(source.name),
+                        url=citizen_source_url(
+                            mandate.source_url, mandate.source_identifier
+                        ),
                     ),
                 )
             )

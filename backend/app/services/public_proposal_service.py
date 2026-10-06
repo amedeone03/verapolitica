@@ -12,6 +12,10 @@ from backend.app.models import (
     ProposalType,
     Source,
 )
+from backend.app.services.official_source_display import (
+    citizen_source_label,
+    citizen_source_url,
+)
 from backend.app.schemas import (
     PublicPoliticianProposal,
     PublicProposal,
@@ -99,7 +103,10 @@ class PublicProposalQueryService:
                 status=event.normalized_status,
                 source_status_label=event.source_status_label,
                 effective_at=event.effective_at,
-                source=PublicProposalSource(name=source.name, url=event.source_url),
+                source=PublicProposalSource(
+                    name=citizen_source_label(source.name),
+                    url=citizen_source_url(event.source_url),
+                ),
             )
             for event, source in self.session.execute(
                 select(ProposalStatusEvent, Source)
@@ -112,7 +119,12 @@ class PublicProposalQueryService:
             )
         )
         sources = tuple(
-            PublicProposalSource(name=source.name, url=identifier.source_url)
+            PublicProposalSource(
+                name=citizen_source_label(source.name),
+                url=citizen_source_url(
+                    identifier.source_url, identifier.official_identifier
+                ),
+            )
             for identifier, source in self.session.execute(
                 select(ProposalSourceIdentifier, Source)
                 .join(Source, Source.id == ProposalSourceIdentifier.source_id)
@@ -179,7 +191,12 @@ class PublicProposalQueryService:
             introduced_at=proposal.introduced_at,
             current_status=proposal.current_status,
             actors=actors,
-            source=PublicProposalSource(name=source.name, url=identifier.source_url),
+            source=PublicProposalSource(
+                name=citizen_source_label(source.name),
+                url=citizen_source_url(
+                    identifier.source_url, identifier.official_identifier
+                ),
+            ),
         )
 
     def _public_actor(self, actor: ProposalActor) -> PublicProposalActor:

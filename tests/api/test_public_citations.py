@@ -11,6 +11,7 @@ from backend.app.models import (
     EvidenceExtractionMethod,
     ImmutablePoliticianVersionCitationError,
     Politician,
+    PoliticianSourceIdentifier,
     PoliticianVersion,
     PoliticianVersionCitation,
     ProfileDraft,
@@ -195,6 +196,33 @@ def test_detail_exposes_only_safe_snapshot_and_list_stays_compact(
     list_item = listing.json()["items"][0]
     assert list_item["citation_count"] == 3
     assert "citations" not in list_item
+
+
+def test_public_citations_resolve_senato_sparql_to_lodview_html(
+    session_factory, source, tmp_path
+):
+    politician_id, draft_id = seed_draft_with_evidence(session_factory, source)
+    with session_factory() as session:
+        session.add(
+            PoliticianSourceIdentifier(
+                politician_id=politician_id,
+                source_id=source.id,
+                value="http://dati.senato.it/senatore/25402",
+            )
+        )
+        session.commit()
+    PublishService(session_factory).approve(draft_id, reviewer="editor")
+
+    with make_client(session_factory, tmp_path) as client:
+        payload = client.get(f"/politicians/{politician_id}").json()
+
+    assert payload["citations"][0]["source_name"] == "Senato della Repubblica"
+    assert payload["citations"][0]["source_url"] == (
+        "https://dati.senato.it/senatore/25402.html"
+    )
+    with session_factory() as session:
+        stored = session.scalars(select(PoliticianVersionCitation)).first()
+        assert stored.source_url == "https://dati.senato.it/sparql"
 
 
 def test_later_draft_evidence_does_not_change_published_snapshot(

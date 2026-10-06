@@ -27,6 +27,7 @@ pypdf==6.19.0
 Pygments==2.21.0
 pytest==9.1.1
 python-dotenv==1.2.4
+python-multipart==0.0.20
 pytz==2026.5
 SQLAlchemy==2.1.2
 starlette==1.7.0

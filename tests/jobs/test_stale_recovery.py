@@ -65,6 +65,20 @@ def test_production_ai_requires_secret_when_provider_set():
         )
 
 
+def test_production_ollama_does_not_require_api_key():
+    settings = Settings(
+        env=AppEnvironment.PRODUCTION,
+        database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
+        admin_api_key="a-sufficiently-long-admin-token",
+        cors_origins="https://verapolitica.it",
+        trusted_hosts="verapolitica.it",
+        llm_provider="ollama",
+        llm_model="qwen2.5:7b",
+    )
+    assert settings.ai_extraction_enabled is True
+    assert settings.llm_api_key is None
+
+
 def test_production_requires_admin_key():
     with pytest.raises((ProductionConfigError, ValidationError), match="ADMIN_API_KEY"):
         Settings(

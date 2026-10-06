@@ -34,6 +34,11 @@ from backend.app.pipeline.prompts import (
     PROPOSAL_EXTRACTION_PROMPT_VERSION,
     load_proposal_extraction_prompt,
 )
+from backend.app.pipeline.chunk_selection import (
+    CHUNK_SELECTION_VERSION,
+    DEFAULT_DOCUMENT_TOKEN_BUDGET,
+    select_relevant_chunks,
+)
 from backend.app.schemas import (
     AI_EXTRACTION_SCHEMA_VERSION,
     ExtractedClaimType,
@@ -103,6 +108,8 @@ class ProposalExtractionService:
         *,
         max_chunks_per_run: int,
         max_evidence_excerpt_chars: int,
+        max_selected_chunks: int | None = None,
+        max_document_tokens: int | None = None,
         prompt_version: str = PROPOSAL_EXTRACTION_PROMPT_VERSION,
         schema_version: str = AI_EXTRACTION_SCHEMA_VERSION,
         actor_identity_hints: tuple[ActorIdentityHint, ...] = (),
@@ -111,6 +118,12 @@ class ProposalExtractionService:
         self.provider = provider
         self.max_chunks_per_run = max_chunks_per_run
         self.max_evidence_excerpt_chars = max_evidence_excerpt_chars
+        self.max_selected_chunks = max_selected_chunks or min(16, max_chunks_per_run)
+        self.max_document_tokens = (
+            DEFAULT_DOCUMENT_TOKEN_BUDGET
+            if max_document_tokens is None
+            else max_document_tokens
+        )
         self.prompt_version = prompt_version
         self.schema_version = schema_version
         self.actor_identity_hints = {
@@ -143,10 +156,14 @@ class ProposalExtractionService:
                 raise ProposalExtractionInputError(
                     "AI extraction requires persisted document chunks"
                 )
-            if len(chunks) > self.max_chunks_per_run:
+            selection = select_relevant_chunks(
+                chunks,
+                max_selected=min(self.max_selected_chunks, self.max_chunks_per_run),
+                max_document_tokens=self.max_document_tokens,
+            )
+            if not selection.chunks:
                 raise ProposalExtractionInputError(
-                    f"document has {len(chunks)} chunks; configured extraction limit is "
-                    f"{self.max_chunks_per_run}"
+                    "no relevant evidence sections could be selected from this document"
                 )
             idempotency_key = self._idempotency_key(document)
             completed = session.scalar(
@@ -162,6 +179,7 @@ class ProposalExtractionService:
             source_key = document.source.key
             source_url = document.source_url
             observed_at = document.retrieved_at
+            raw_sha256 = document.raw_sha256
             run = AIExtractionRun(
                 raw_document_id=document.id,
                 provider=self.provider.provider_name,
@@ -170,7 +188,8 @@ class ProposalExtractionService:
                 schema_version=self.schema_version,
                 status=AIExtractionRunStatus.RUNNING,
                 idempotency_key=idempotency_key,
-                input_chunk_count=len(chunks),
+                input_chunk_count=len(selection.chunks),
+                provider_response={"chunk_selection": selection.as_dict()},
             )
             session.add(run)
             session.commit()
@@ -186,7 +205,7 @@ class ProposalExtractionService:
                     page_start=chunk.page_start,
                     page_end=chunk.page_end,
                 )
-                for chunk in chunks
+                for chunk in selection.chunks
             ),
         )
         try:
@@ -214,7 +233,7 @@ class ProposalExtractionService:
                 "extraction provider failed", run_id=run_id
             ) from exc
 
-        chunk_by_index = {chunk.chunk_index: chunk for chunk in chunks}
+        chunk_by_index = {chunk.chunk_index: chunk for chunk in selection.chunks}
         accepted: list[tuple[int, ProposalObservation]] = []
         seen_deduplication_keys: set[str] = set()
         with self.session_factory() as session:
@@ -224,7 +243,15 @@ class ProposalExtractionService:
             run.provider_response = {
                 "output": result.output.model_dump(mode="json"),
                 "provider_response_id": result.provider_response_id,
+                "chunk_selection": selection.as_dict(),
             }
+            diagnostics = getattr(self.provider, "last_diagnostics", None)
+            dumped = getattr(diagnostics, "as_dict", None)
+            if callable(dumped):
+                run.provider_response = {
+                    **run.provider_response,
+                    "ollama_diagnostics": dumped(),
+                }
             run.request_count = result.usage.request_count
             run.input_tokens = result.usage.input_tokens
             run.output_tokens = result.usage.output_tokens
@@ -263,7 +290,7 @@ class ProposalExtractionService:
                         evidence=validated_evidence,
                         source_key=source_key,
                         raw_document_id=raw_document_id,
-                        raw_sha256=document.raw_sha256,
+                        raw_sha256=raw_sha256,
                         source_url=source_url,
                         observed_at=observed_at,
                         deduplication_key=deduplication_key,
@@ -359,6 +386,9 @@ class ProposalExtractionService:
                 self.provider.model_name,
                 self.prompt_version,
                 self.schema_version,
+                CHUNK_SELECTION_VERSION,
+                min(self.max_selected_chunks, self.max_chunks_per_run),
+                self.max_document_tokens,
             ],
             ensure_ascii=False,
             separators=(",", ":"),
@@ -575,8 +605,15 @@ class ProposalExtractionService:
             run.status = AIExtractionRunStatus.FAILED
             run.error_type = error_type[:200]
             run.error_message = error_message[:4_000]
+            current = run.provider_response if isinstance(run.provider_response, dict) else {}
             if provider_response is not None:
-                run.provider_response = provider_response
+                current = {**current, "provider_output": provider_response}
+            diagnostics = getattr(self.provider, "last_diagnostics", None)
+            dumped = getattr(diagnostics, "as_dict", None)
+            if callable(dumped):
+                current = {**current, "ollama_diagnostics": dumped()}
+            if current:
+                run.provider_response = current
             run.completed_at = datetime.now(timezone.utc)
             session.commit()
 
