@@ -77,6 +77,7 @@ from backend.app.models.ingestion_job import (
     IngestionJobStatus,
     IngestionJobTrigger,
 )
+from backend.app.models import search_fields as _search_fields  # noqa: F401
 
 __all__ = [
     "AIExtractionCandidate",

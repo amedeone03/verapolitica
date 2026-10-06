@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base
@@ -26,6 +26,8 @@ class ParliamentaryGroup(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     canonical_name: Mapped[str] = mapped_column(String(500))
     abbreviation: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
+    search_document: Mapped[str] = mapped_column(Text, default="")
     institution: Mapped[str] = mapped_column(String(200), index=True)
     legislature: Mapped[str] = mapped_column(String(50), index=True)
     created_at: Mapped[datetime] = mapped_column(

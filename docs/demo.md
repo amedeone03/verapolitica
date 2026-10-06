@@ -13,6 +13,9 @@ modifies, or resets the normal development database or raw storage.
 
 The demo is SQLite-only and uses `metadata.create_all`. It does not require
 PostgreSQL or Alembic. Scheduled ingestion stays disabled during a presentation.
+The header search box can find Anna, Milano, Lombardia, the synthetic housing
+proposal, Anna's parliamentary group, and the clearly synthetic Demo Civic
+Alliance party. Luca and Carlo stay hidden until publication or resolution.
 
 ## Pre-demo setup
 

@@ -1,9 +1,7 @@
-import re
-import unicodedata
-
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
+from backend.app.core.text import normalize_search_text
 from backend.app.models import Politician, PoliticianSourceIdentifier, Source
 from backend.app.schemas import (
     CandidateProfile,
@@ -19,16 +17,7 @@ from backend.app.schemas import (
 def normalize_person_name(given_name: str, family_name: str) -> str:
     """Produce a deterministic, non-fuzzy name key for identity matching."""
 
-    combined = unicodedata.normalize("NFKD", f"{given_name} {family_name}")
-    without_marks = "".join(
-        character
-        for character in combined
-        if not unicodedata.combining(character)
-    ).casefold()
-    alphanumeric = "".join(
-        character if character.isalnum() else " " for character in without_marks
-    )
-    return re.sub(r"\s+", " ", alphanumeric).strip()
+    return normalize_search_text(f"{given_name} {family_name}")
 
 
 class MatchingService:

@@ -49,8 +49,13 @@ collection containing role, so co-sponsorship is not implied authorship.
 
 `GET /regions` and `GET /municipalities` are unauthenticated, paginated
 (`offset`, `limit` 1–100), and ordered by official name. Municipalities also accept
-`region` as a public region id filter. There is no full-text search in this
-milestone.
+`region` as a public region id filter.
+
+`GET /search` is the public unified search. See `docs/search.md`. It accepts `q`
+(required, max 200 characters), optional `type`, `offset`, and `limit` (1–50).
+Only published politicians/proposals and official reference rows are searchable.
+`GET /parliamentary-groups/{id}` and `GET /political-parties/{id}` are thin
+public detail reads for search click-through.
 
 `GET /regions/{region_id}` includes ISTAT code, status, municipality count, official
 source, and `current_president` when a linked mandate exists. This milestone does

@@ -483,6 +483,15 @@ name + province abbreviation + region code. People are never created from names.
 public API paginates regions and municipalities and projects current holders plus
 politician `territorial_offices` without exposing identity keys or RawDocument IDs.
 
+## Citizen search
+
+`SearchService` normalizes the query, runs one indexed read per requested entity
+type, assigns an exact/prefix/token/fuzzy tier, and merges results
+deterministically. SQL stays in the service; routers only validate parameters.
+PostgreSQL may use `pg_trgm` for conservative typos. SQLite uses the same
+contract with LIKE/prefix matching. Search never reads drafts, identity cases,
+reviews, AI runs, or job history. See `docs/search.md`.
+
 ## Database and scheduled jobs
 
 SQLite remains the test and demo engine and may use `metadata.create_all`.

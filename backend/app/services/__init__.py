@@ -107,6 +107,7 @@ from backend.app.services.proposal_review_service import (
 )
 from backend.app.services.public_proposal_service import PublicProposalQueryService
 from backend.app.services.public_territory_service import PublicTerritoryQueryService
+from backend.app.services.search_service import SearchService, SearchValidationError
 from backend.app.services.territory_service import (
     TerritorialMandateService,
     TerritoryConflictError,
@@ -196,6 +197,8 @@ __all__ = [
     "PoliticalPartyServiceError",
     "PoliticalPartyValidationError",
     "ReviewServiceError",
+    "SearchService",
+    "SearchValidationError",
     "StaleDraftError",
     "SuggestedSourceIdentifier",
     "candidate_to_version_profile",

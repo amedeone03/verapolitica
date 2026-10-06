@@ -19,12 +19,25 @@
             <small>Public information, with sources</small>
           </span>
         </a>
-        <span class="institutional-note">Italian institutions</span>
+        <form class="site-search" action="./" method="get" role="search">
+          <input type="hidden" name="view" value="search" />
+          <label class="visually-hidden" for="site-search-q">Search the public archive</label>
+          <input
+            id="site-search-q"
+            name="q"
+            type="search"
+            maxlength="200"
+            placeholder="Search people, places, proposals"
+            autocomplete="off"
+          />
+          <button type="submit">Search</button>
+        </form>
         <nav class="public-nav" aria-label="Public archive sections">
           <a href="./">Politicians</a>
           <a href="./?view=proposals">Proposals</a>
           <a href="./?view=regions">Regions</a>
           <a href="./?view=municipalities">Municipalities</a>
+          <a href="./?view=search">Search</a>
         </nav>
       </div>
     </header>
@@ -136,6 +149,47 @@
         </div>
         <div id="municipality-list" class="proposal-grid" hidden></div>
         <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
+      </section>
+
+      <section id="search-view" aria-labelledby="search-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Public search</p>
+          <h1 id="search-title">Search the archive</h1>
+          <p class="hero-copy">Find published politicians, proposals, territories, parliamentary groups, and political parties. Unpublished editorial records stay hidden.</p>
+        </div>
+        <form class="search-panel" action="./" method="get">
+          <input type="hidden" name="view" value="search" />
+          <label class="visually-hidden" for="search-page-q">Search query</label>
+          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Try Anna, Milano, Lombardia" />
+          <label class="visually-hidden" for="search-type">Entity type</label>
+          <select id="search-type" name="type">
+            <option value="">All types</option>
+            <option value="politician">Politicians</option>
+            <option value="proposal">Proposals</option>
+            <option value="municipality">Municipalities</option>
+            <option value="region">Regions</option>
+            <option value="parliamentary_group">Parliamentary groups</option>
+            <option value="political_party">Political parties</option>
+          </select>
+          <button type="submit">Search</button>
+        </form>
+        <div class="archive-heading">
+          <div><p class="eyebrow">Results</p><h2 id="search-heading">Matching public records</h2></div>
+          <span id="search-count" class="count-pill" aria-live="polite">Ready</span>
+        </div>
+        <div id="search-status" class="state-card" role="status">
+          <div><strong>Enter a search term.</strong><small>Use the form above to search the public archive.</small></div>
+        </div>
+        <div id="search-list" class="search-grid" hidden></div>
+      </section>
+
+      <section id="organization-detail-view" aria-labelledby="organization-detail-title" hidden>
+        <a class="back-link" href="./?view=search"><span aria-hidden="true">←</span> Back to search</a>
+        <div id="organization-detail-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading…</strong><small>Retrieving the public record.</small></div>
+        </div>
+        <article id="organization-detail" hidden></article>
       </section>
 
       <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>

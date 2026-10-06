@@ -49,6 +49,8 @@ class Region(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     istat_code: Mapped[str] = mapped_column(String(2), unique=True, index=True)
     canonical_name: Mapped[str] = mapped_column(String(300), index=True)
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
+    search_document: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[TerritoryStatus] = mapped_column(
         Enum(
             TerritoryStatus,
@@ -106,6 +108,7 @@ class Municipality(Base):
             "province_abbreviation",
             "canonical_name",
         ),
+        Index("ix_municipalities_search_document", "search_document"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -116,6 +119,8 @@ class Municipality(Base):
     canonical_name: Mapped[str] = mapped_column(String(300), index=True)
     province_abbreviation: Mapped[str] = mapped_column(String(2), index=True)
     province_name: Mapped[str] = mapped_column(String(300))
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
+    search_document: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[TerritoryStatus] = mapped_column(
         Enum(
             TerritoryStatus,

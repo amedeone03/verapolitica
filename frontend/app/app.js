@@ -448,6 +448,13 @@ export function createPublicApiClient(fetchImpl = fetch) {
       return request(`/municipalities?${params}`);
     },
     getMunicipality: (id) => request(`/municipalities/${encodeURIComponent(id)}`),
+    search: ({ q, type = "", offset = 0 } = {}) => {
+      const params = new URLSearchParams({ q, offset: String(offset), limit: "20" });
+      if (type) params.set("type", type);
+      return request(`/search?${params}`);
+    },
+    getParliamentaryGroup: (id) => request(`/parliamentary-groups/${encodeURIComponent(id)}`),
+    getPoliticalParty: (id) => request(`/political-parties/${encodeURIComponent(id)}`),
   };
 }
 
@@ -584,6 +591,108 @@ async function showMunicipalities(api, offset) {
   }
 }
 
+function highlight(text, query) {
+  const source = String(text ?? "");
+  const tokens = String(query ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token.length >= 2);
+  if (!tokens.length) return escapeHtml(source);
+  const pattern = new RegExp(`(${tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  let result = "";
+  let cursor = 0;
+  for (const match of source.matchAll(pattern)) {
+    const start = match.index ?? 0;
+    result += escapeHtml(source.slice(cursor, start));
+    result += `<mark class="search-hit">${escapeHtml(match[0])}</mark>`;
+    cursor = start + match[0].length;
+  }
+  result += escapeHtml(source.slice(cursor));
+  return result;
+}
+
+function searchTypeLabel(value) {
+  return {
+    politician: "Politician",
+    proposal: "Proposal",
+    municipality: "Municipality",
+    region: "Region",
+    parliamentary_group: "Parliamentary group",
+    political_party: "Political party",
+  }[value] || titleCase(value);
+}
+
+export function renderSearchCard(item, query) {
+  return `<article class="search-card">
+    <span class="search-type">${escapeHtml(searchTypeLabel(item.entity_type))}</span>
+    <h3><a href="${escapeHtml(item.url)}">${highlight(item.title, query)}</a></h3>
+    <p>${highlight(item.subtitle, query)}</p>
+    ${item.snippet ? `<p>${highlight(item.snippet, query)}</p>` : ""}
+  </article>`;
+}
+
+async function showSearch(api, query, type) {
+  byId("archive-view").hidden = true;
+  byId("search-view").hidden = false;
+  byId("search-page-q").value = query;
+  byId("search-type").value = type;
+  byId("site-search-q").value = query;
+  if (!query.trim()) {
+    byId("search-count").textContent = "Ready";
+    byId("search-list").hidden = true;
+    showState(byId("search-status"), "Enter a search term.", "Use the form above to search the public archive.");
+    return;
+  }
+  byId("search-status").hidden = false;
+  byId("search-status").className = "state-card loading-state";
+  byId("search-status").innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Searching…</strong><small>Looking through published public records.</small></div>`;
+  try {
+    const payload = await api.search({ q: query, type });
+    byId("search-count").textContent = `${payload.total} result${payload.total === 1 ? "" : "s"}`;
+    if (!payload.items.length) {
+      byId("search-list").hidden = true;
+      showState(byId("search-status"), "No public records match this search.", "Try another spelling, or filter by a different entity type.");
+      return;
+    }
+    byId("search-status").hidden = true;
+    byId("search-list").hidden = false;
+    byId("search-list").innerHTML = payload.items.map((item) => renderSearchCard(item, query)).join("");
+    document.title = `${query} — Search — VeraPolitica`;
+  } catch (error) {
+    byId("search-count").textContent = "Unavailable";
+    showState(
+      byId("search-status"),
+      error.status === 422 ? "That search cannot be run." : "We couldn't complete this search.",
+      error.status === 422 ? "Check the query length or selected type." : "The public API is currently unavailable.",
+      true,
+    );
+  }
+}
+
+async function showOrganization(api, kind, entityId) {
+  byId("archive-view").hidden = true;
+  byId("organization-detail-view").hidden = false;
+  try {
+    const record = kind === "party"
+      ? await api.getPoliticalParty(entityId)
+      : await api.getParliamentaryGroup(entityId);
+    byId("organization-detail-status").hidden = true;
+    byId("organization-detail").hidden = false;
+    const subtitle = kind === "party"
+      ? "Political party"
+      : `Parliamentary group · ${record.institution} · ${record.legislature} legislature`;
+    byId("organization-detail").innerHTML = `<article class="proposal-detail-hero">
+      <p class="eyebrow">${escapeHtml(kind === "party" ? "Political party" : "Parliamentary group")}</p>
+      <h1 id="organization-detail-title">${escapeHtml(record.name)}</h1>
+      <p class="hero-copy">${escapeHtml(subtitle)}${record.abbreviation ? ` · ${escapeHtml(record.abbreviation)}` : ""}</p>
+    </article>`;
+    document.title = `${record.name} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("organization-detail-status"), missing ? "This record is not available." : "We couldn't load this record.", missing ? "It may not exist in the public archive." : "The public API is currently unavailable.", true);
+  }
+}
+
 async function showMunicipalityDetail(api, municipalityId) {
   byId("archive-view").hidden = true;
   byId("municipality-detail-view").hidden = false;
@@ -605,6 +714,8 @@ const politicianId = params.get("politician");
 const proposalId = params.get("proposal");
 const regionId = params.get("region");
 const municipalityId = params.get("municipality");
+const groupId = params.get("parliamentary_group");
+const partyId = params.get("political_party");
 const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 if (proposalId && /^\d+$/.test(proposalId)) {
   showProposalDetail(api, proposalId);
@@ -614,12 +725,18 @@ if (proposalId && /^\d+$/.test(proposalId)) {
   showMunicipalityDetail(api, municipalityId);
 } else if (regionId && /^\d+$/.test(regionId)) {
   showRegionDetail(api, regionId);
+} else if (groupId && /^\d+$/.test(groupId)) {
+  showOrganization(api, "group", groupId);
+} else if (partyId && /^\d+$/.test(partyId)) {
+  showOrganization(api, "party", partyId);
 } else if (params.get("view") === "proposals") {
   showProposals(api);
 } else if (params.get("view") === "regions") {
   showRegions(api);
 } else if (params.get("view") === "municipalities") {
   showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
+} else if (params.get("view") === "search") {
+  showSearch(api, params.get("q") || "", params.get("type") || "");
 } else {
   showArchive(api);
 }

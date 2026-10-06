@@ -165,6 +165,13 @@ from backend.app.schemas.proposal import (
     PublicProposalStatusEvent,
     PublicProposalSummary,
 )
+from backend.app.schemas.search import (
+    PublicParliamentaryGroup,
+    PublicPoliticalParty,
+    PublicSearchResult,
+    PublicSearchResultList,
+    SearchEntityType,
+)
 from backend.app.schemas.jobs import (
     IngestionJobMetrics,
     IngestionJobRunList,
@@ -269,6 +276,11 @@ __all__ = [
     "PublicMunicipalityList",
     "PublicMunicipalitySummary",
     "PublicOfficeHolder",
+    "PublicParliamentaryGroup",
+    "PublicPoliticalParty",
+    "PublicSearchResult",
+    "PublicSearchResultList",
+    "SearchEntityType",
     "PublicParliamentaryGroupMembership",
     "PublicParliamentaryGroupSource",
     "PublicPoliticalPartyAffiliation",

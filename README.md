@@ -41,6 +41,7 @@ you need to override the defaults.
 SQLite is the default local/test/demo database. PostgreSQL is the
 production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
 and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
+Public search is documented in [docs/search.md](docs/search.md).
 
 ## Database
 
@@ -420,6 +421,8 @@ curl "http://127.0.0.1:8000/politicians?offset=0&limit=50"
 curl http://127.0.0.1:8000/politicians/1
 curl "http://127.0.0.1:8000/proposals?offset=0&limit=50"
 curl http://127.0.0.1:8000/proposals/1
+curl "http://127.0.0.1:8000/search?q=Anna"
+curl "http://127.0.0.1:8000/search?q=Milano&type=municipality"
 ```
 
 Only Politicians whose `current_version_id` references a published immutable

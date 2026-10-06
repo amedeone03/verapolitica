@@ -52,6 +52,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "Territorial offices" in script.text
     assert "/regions?offset=0&limit=50" in script.text
     assert "/municipalities?" in script.text
+    assert "renderSearchCard" in script.text
+    assert "/search?" in script.text
+    assert "view=search" in archive.text
+    assert "Search the public archive" in archive.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
@@ -157,3 +161,34 @@ def test_real_approval_makes_profile_and_groupable_citations_public(tmp_path):
         (citation["source_name"], citation["source_url"])
         for citation in payload["citations"]
     } == {("Senato della Repubblica", "https://dati.senato.it/sparql")}
+
+
+def test_public_ui_search_and_click_through(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        page = client.get("/app/?view=search&q=Anna")
+        script = client.get("/app/app.js").text
+        anna = client.get("/search", params={"q": "Anna"})
+        luca = client.get("/search", params={"q": "Luca", "type": "politician"})
+        milano = client.get("/search", params={"q": "Milano", "type": "municipality"})
+        lombardia = client.get("/search", params={"q": "Lombardia", "type": "region"})
+        proposal = client.get("/search", params={"q": "housing", "type": "proposal"})
+        group = client.get("/search", params={"q": "Fratelli", "type": "parliamentary_group"})
+        party = client.get("/search", params={"q": "Demo Civic Alliance", "type": "political_party"})
+        unpublished = client.get(
+            "/search",
+            params={"q": "sottoposta all'esame della commissione"},
+        )
+        carlo = client.get("/search", params={"q": "Carlo Verdi"})
+
+    assert page.status_code == 200
+    assert "Search the archive" in page.text
+    assert "renderSearchCard" in script
+    assert anna.json()["items"][0]["url"] == "/app/?politician=1"
+    assert luca.json()["total"] == 0
+    assert milano.json()["items"][0]["title"] == "Milano"
+    assert lombardia.json()["items"][0]["title"] == "Lombardia"
+    assert proposal.json()["items"][0]["title"].startswith("Synthetic housing")
+    assert group.json()["items"][0]["subtitle"].startswith("Parliamentary group")
+    assert party.json()["items"][0]["subtitle"].startswith("Political party")
+    assert unpublished.json()["total"] == 0
+    assert carlo.json()["total"] == 0

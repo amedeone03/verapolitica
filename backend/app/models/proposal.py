@@ -95,6 +95,8 @@ class Proposal(Base):
     canonical_title: Mapped[str] = mapped_column(String(1000))
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     exact_statement: Mapped[str | None] = mapped_column(Text, nullable=True)
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
+    search_document: Mapped[str] = mapped_column(Text, default="")
     proposal_type: Mapped[ProposalType] = mapped_column(
         Enum(
             ProposalType,
@@ -198,6 +200,7 @@ class ProposalActor(Base):
     )
     institution_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
     display_name: Mapped[str] = mapped_column(String(500))
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
     source_actor_identifier: Mapped[str | None] = mapped_column(
         String(1000), nullable=True
     )

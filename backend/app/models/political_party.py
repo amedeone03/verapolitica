@@ -27,6 +27,8 @@ class PoliticalParty(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     canonical_name: Mapped[str] = mapped_column(String(500))
     abbreviation: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    search_primary: Mapped[str] = mapped_column(String(500), default="", index=True)
+    search_document: Mapped[str] = mapped_column(Text, default="")
     official_website_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     country: Mapped[str] = mapped_column(String(100), default="Italy")
     active_from: Mapped[date | None] = mapped_column(Date, nullable=True)

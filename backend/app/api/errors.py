@@ -8,6 +8,7 @@ from backend.app.jobs import (
     IngestionJobNotFoundError,
     IngestionJobValidationError,
 )
+from backend.app.services.search_service import SearchValidationError
 from backend.app.schemas import APIErrorDetail, APIErrorResponse
 from backend.app.services import (
     DraftNotFoundError,
@@ -232,6 +233,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(IngestionJobNotFoundError, job_not_found_handler)
     app.add_exception_handler(IngestionJobConflictError, job_conflict_handler)
     app.add_exception_handler(IngestionJobValidationError, job_validation_handler)
+
+    async def search_validation_handler(request: Request, exc: Exception):
+        del request
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="invalid_search_query",
+            message=str(exc),
+        )
+
+    app.add_exception_handler(SearchValidationError, search_validation_handler)
     app.add_exception_handler(Exception, internal_handler)
 
 

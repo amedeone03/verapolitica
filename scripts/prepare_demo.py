@@ -20,6 +20,7 @@ from backend.app.models import (
     Politician,
     PoliticianVersion,
     PoliticianVersionCitation,
+    PoliticalParty,
     ProfileDraft,
     ProfileDraftStatus,
     Proposal,
@@ -684,6 +685,16 @@ def _prepare_territorial_example(session_factory) -> None:
     )
     if result.mandates_created != 1:
         raise RuntimeError("demo territorial mayor mandate was not created")
+    with session_factory() as session:
+        session.add(
+            PoliticalParty(
+                canonical_name="Demo Civic Alliance",
+                abbreviation="DCA-SYN",
+                official_website_url=None,
+                country="Italy",
+            )
+        )
+        session.commit()
 
 
 def _validate_demo_paths(paths: DemoPaths) -> None:
@@ -752,6 +763,7 @@ def _print_summary(summary: DemoSummary) -> None:
     print("  Region: Lombardia")
     print("  Municipality: Milano")
     print("  Synthetic mayor: Giulia Neri")
+    print("  Synthetic political party: Demo Civic Alliance (DCA-SYN)")
     print()
     print("Start API with:")
     print('  export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"')
