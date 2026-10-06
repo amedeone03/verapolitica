@@ -59,6 +59,11 @@ class IngestionScheduler:
         return tuple(job.id for job in self.scheduler.get_jobs())
 
     def start(self) -> tuple[str, ...]:
+        recovered = IngestionJobService(
+            self.session_factory, self.settings
+        ).recover_stale_runs()
+        if recovered:
+            logger.warning("scheduler recovered %s stale running job(s)", recovered)
         names = self.register()
         if names:
             self.scheduler.start()

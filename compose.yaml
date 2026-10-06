@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: verapolitica
+      POSTGRES_PASSWORD: verapolitica
+      POSTGRES_DB: verapolitica
+    ports:
+      - "5432:5432"
+    volumes:
+      - verapolitica_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verapolitica -d verapolitica"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: python -m alembic upgrade head
+    environment:
+      VERAPOLITICA_ENV: production
+      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
+      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
+      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
+      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
+      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
+      VERAPOLITICA_LOG_FORMAT: json
+      VERAPOLITICA_ENABLE_DEMO_UI: "false"
+      VERAPOLITICA_ENABLE_API_DOCS: "false"
+      VERAPOLITICA_WEB_WORKERS: "2"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: .
+    environment:
+      VERAPOLITICA_ENV: production
+      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
+      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
+      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
+      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
+      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
+      VERAPOLITICA_LOG_FORMAT: json
+      VERAPOLITICA_ENABLE_DEMO_UI: "false"
+      VERAPOLITICA_ENABLE_API_DOCS: "false"
+      VERAPOLITICA_WEB_WORKERS: "2"
+    ports:
+      - "8000:8000"
+    volumes:
+      - verapolitica_raw:/app/data/raw
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  scheduler:
+    build: .
+    command: python -m scripts.run_scheduler
+    environment:
+      VERAPOLITICA_ENV: production
+      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
+      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
+      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
+      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
+      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
+      VERAPOLITICA_LOG_FORMAT: json
+      VERAPOLITICA_ENABLE_DEMO_UI: "false"
+      VERAPOLITICA_ENABLE_API_DOCS: "false"
+    volumes:
+      - verapolitica_raw:/app/data/raw
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  verapolitica_pg:
+  verapolitica_raw:

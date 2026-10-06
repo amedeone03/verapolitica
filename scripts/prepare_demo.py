@@ -6,6 +6,7 @@ import shutil
 
 from sqlalchemy import func, select
 
+from backend.app.core.config import AppEnvironment, configured_environment
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import (
@@ -193,6 +194,10 @@ def prepare_demo(
     fixture_path: Path = DEFAULT_FIXTURE,
     governo_fixture_path: Path = DEFAULT_GOVERNO_FIXTURE,
 ) -> DemoSummary:
+    if configured_environment() is AppEnvironment.PRODUCTION:
+        raise DemoSafetyError(
+            "prepare_demo refuses VERAPOLITICA_ENV=production"
+        )
     paths = DemoPaths.for_workspace(workspace_root)
     reset_demo_environment(paths)
     fixture = fixture_path.expanduser().resolve()

@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+import logging
 
 from backend.app.jobs import (
     IngestionJobConflictError,
@@ -10,6 +11,7 @@ from backend.app.jobs import (
 )
 from backend.app.services.search_service import SearchValidationError
 from backend.app.schemas import APIErrorDetail, APIErrorResponse
+from backend.app.core.request_context import current_request_id
 from backend.app.services import (
     DraftNotFoundError,
     DraftNotReviewableError,
@@ -49,21 +51,32 @@ def error_response(
     message: str,
     details=None,
     headers: dict[str, str] | None = None,
+    request: Request | None = None,
 ) -> JSONResponse:
+    request_id = current_request_id()
+    if request is not None:
+        request_id = getattr(request.state, "request_id", None) or request_id
     payload = APIErrorResponse(
-        error=APIErrorDetail(code=code, message=message, details=details)
+        error=APIErrorDetail(
+            code=code,
+            message=message,
+            details=details,
+            request_id=request_id,
+        )
     )
+    response_headers = dict(headers or {})
+    if request_id:
+        response_headers["X-Request-ID"] = request_id
     return JSONResponse(
         status_code=status_code,
         content=jsonable_encoder(payload.model_dump(mode="json")),
-        headers=headers,
+        headers=response_headers or None,
     )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
-        del request
         codes = {
             status.HTTP_401_UNAUTHORIZED: "unauthorized",
             status.HTTP_404_NOT_FOUND: "not_found",
@@ -75,6 +88,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code=codes.get(exc.status_code, "http_error"),
             message=str(exc.detail),
             headers=exc.headers,
+            request=request,
         )
 
     @app.exception_handler(RequestValidationError)
@@ -82,66 +96,72 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: RequestValidationError,
     ):
-        del request
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="validation_error",
             message="request validation failed",
             details=jsonable_encoder(exc.errors()),
+            request=request,
         )
 
     async def not_found_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_404_NOT_FOUND,
             code="draft_not_found",
             message=str(exc),
+            request=request,
         )
 
     async def conflict_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_409_CONFLICT,
             code=_conflict_code(exc),
             message=str(exc),
+            request=request,
         )
 
     async def input_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="invalid_review_input",
             message=str(exc),
+            request=request,
         )
 
     async def persistence_handler(request: Request, exc: Exception):
-        del request, exc
+        del exc
         return error_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="persistence_error",
             message="an internal persistence error occurred",
+            request=request,
         )
 
     async def internal_handler(request: Request, exc: Exception):
-        del request, exc
+        request_id = getattr(request.state, "request_id", None) or current_request_id()
+        logging.getLogger("verapolitica.http").error(
+            "unhandled application error",
+            exc_info=exc,
+            extra={"request_id": request_id},
+        )
         return error_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="internal_error",
             message="an unexpected internal error occurred",
+            request=request,
         )
 
     app.add_exception_handler(DraftNotFoundError, not_found_handler)
 
     async def proposal_not_found_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_404_NOT_FOUND,
             code="proposal_draft_not_found",
             message=str(exc),
+            request=request,
         )
 
     async def proposal_conflict_handler(request: Request, exc: Exception):
-        del request
         code = (
             "stale_proposal_draft"
             if isinstance(exc, ProposalDraftStaleError)
@@ -151,6 +171,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             status.HTTP_409_CONFLICT,
             code=code,
             message=str(exc),
+            request=request,
         )
 
     app.add_exception_handler(ProposalDraftNotFoundError, proposal_not_found_handler)
@@ -164,19 +185,19 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ProposalReviewPersistenceError, persistence_handler)
 
     async def referendum_not_found_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_404_NOT_FOUND,
             code="referendum_draft_not_found",
             message=str(exc),
+            request=request,
         )
 
     async def referendum_conflict_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_409_CONFLICT,
             code="referendum_draft_not_reviewable",
             message=str(exc),
+            request=request,
         )
 
     app.add_exception_handler(ReferendumDraftNotFoundError, referendum_not_found_handler)
@@ -189,27 +210,27 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ReferendumReviewPersistenceError, persistence_handler)
 
     async def identity_not_found_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_404_NOT_FOUND,
             code="identity_resolution_not_found",
             message=str(exc),
+            request=request,
         )
 
     async def identity_input_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="invalid_identity_resolution_input",
             message=str(exc),
+            request=request,
         )
 
     async def identity_conflict_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_409_CONFLICT,
             code="identity_resolution_conflict",
             message=str(exc),
+            request=request,
         )
 
     app.add_exception_handler(
@@ -237,27 +258,27 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(IdentityResolutionServiceError, identity_conflict_handler)
 
     async def job_not_found_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_404_NOT_FOUND,
             code="ingestion_job_not_found",
             message=str(exc),
+            request=request,
         )
 
     async def job_conflict_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_409_CONFLICT,
             code="ingestion_job_conflict",
             message=str(exc),
+            request=request,
         )
 
     async def job_validation_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="invalid_ingestion_job",
             message=str(exc),
+            request=request,
         )
 
     app.add_exception_handler(IngestionJobNotFoundError, job_not_found_handler)
@@ -265,11 +286,11 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(IngestionJobValidationError, job_validation_handler)
 
     async def search_validation_handler(request: Request, exc: Exception):
-        del request
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="invalid_search_query",
             message=str(exc),
+            request=request,
         )
 
     app.add_exception_handler(SearchValidationError, search_validation_handler)

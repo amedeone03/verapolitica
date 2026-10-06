@@ -82,6 +82,8 @@ def test_admin_job_history(tmp_path):
         assert payload["items"][0]["job_name"] == "senato"
         assert payload["items"][0]["status"] == "succeeded"
         assert payload["items"][0]["records_created"] == 4
+        assert payload["items"][0]["duration_ms"] is not None
+        assert payload["items"][0]["stale_recovered"] is False
         assert "password" not in str(payload).casefold()
         assert detail.status_code == 200
         assert detail.json()["id"] == run_id

@@ -366,13 +366,11 @@ def test_detail_returns_404_without_public_profile(public_api_context, identifie
     response = public_api_context.client.get(f"/politicians/{politician_id}")
 
     assert response.status_code == 404
-    assert response.json() == {
-        "error": {
-            "code": "not_found",
-            "message": "published politician not found",
-            "details": None,
-        }
-    }
+    payload = response.json()["error"]
+    assert payload["code"] == "not_found"
+    assert payload["message"] == "published politician not found"
+    assert payload["details"] is None
+    assert payload["request_id"]
 
 
 def test_detail_uses_current_pointer_not_max_version(public_api_context):

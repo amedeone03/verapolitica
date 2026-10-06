@@ -29,6 +29,8 @@ class IngestionJobRunResult(ImmutableSchema):
     records_skipped: int = Field(ge=0)
     attempt_count: int = Field(ge=1)
     error_message: str | None = None
+    duration_ms: int | None = None
+    stale_recovered: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

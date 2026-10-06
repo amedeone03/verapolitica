@@ -34,3 +34,4 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzlocal==5.4.4
 uvicorn==0.54.0
+gunicorn==23.0.0

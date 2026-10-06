@@ -1,0 +1,47 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to build (not pushed unless a provider is configured)
+        required: false
+        default: staging
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build deploy artifact
+    runs-on: ubuntu-latest
+    env:
+      VERAPOLITICA_ENV: test
+      VERAPOLITICA_DATABASE_URL: sqlite:///./.ci/verapolitica.db
+      VERAPOLITICA_RAW_STORAGE_PATH: ./.ci/raw
+      VERAPOLITICA_ADMIN_API_KEY: ci-test-key-not-a-secret
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build image
+        run: docker build -t verapolitica:${{ inputs.image_tag }} .
+
+      - name: Provider deploy placeholder
+        run: |
+          echo "Image built as verapolitica:${{ inputs.image_tag }}."
+          echo "Provider deploy is not configured in this repository."
+          echo "Follow docs/production-runbook.md to migrate, start web, and start the scheduler."

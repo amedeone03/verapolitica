@@ -34,7 +34,7 @@ Use the psycopg 3 SQLAlchemy dialect:
 createdb verapolitica
 export VERAPOLITICA_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/verapolitica
 alembic upgrade head
-uvicorn backend.app.main:app --reload
+python -m scripts.run_web
 ```
 
 Docker is not required. A GitHub Actions service container is optional CI coverage
@@ -56,7 +56,8 @@ alembic downgrade -1
 The initial revision creates the current full schema, including job-run history.
 
 PostgreSQL/dev startup **warns** when the database revision is behind head. It
-never runs `alembic upgrade head` automatically.
+never runs `alembic upgrade head` automatically. `/health/ready` fails until the
+schema is current.
 
 Operator commands that persist to the configured database (`run_ingestion`,
 `run_proposal_ingestion`, `run_territorial_ingestion`, `run_ai_extraction`,

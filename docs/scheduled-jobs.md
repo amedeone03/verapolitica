@@ -80,9 +80,13 @@ Two identical jobs cannot be `running` at once. The database unique partial inde
 `uq_ingestion_job_runs_running_name` is the lock. In-memory APScheduler
 `max_instances=1` is only a local convenience.
 
-If a process crashes while a row is `running`, the next start is blocked until an
-operator inspects and, if needed, marks that row failed. There is no automatic
-stale-lock sweeper.
+If a process crashes while a row is `running`, the next job start or scheduler
+start recovers rows older than `VERAPOLITICA_JOB_STALE_AFTER_MINUTES` (default
+60). Recovered rows stay in history as `failed` with `stale_recovered=true`. A
+fresh running row still blocks overlap. Do not run two scheduler processes.
+
+Admin job payloads include `duration_ms`, `attempt_count`, and
+`stale_recovered` so operators can see failures and recovered stale locks.
 
 ## Retries
 

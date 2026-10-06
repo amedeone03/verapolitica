@@ -5,6 +5,7 @@ import sys
 import time
 
 from backend.app.core.config import get_settings
+from backend.app.core.logging import configure_logging
 from backend.app.db.schema import require_persistent_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.jobs import IngestionScheduler, enabled_schedules
@@ -19,7 +20,14 @@ logger = logging.getLogger("verapolitica.scheduler")
 
 def main() -> int:
     settings = get_settings()
-    engine = create_db_engine(settings.database_url)
+    configure_logging(settings)
+    engine = create_db_engine(
+        settings.database_url,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_timeout=settings.db_pool_timeout,
+        pool_recycle=settings.db_pool_recycle,
+    )
     scheduler: IngestionScheduler | None = None
     try:
         require_persistent_schema(engine, settings)

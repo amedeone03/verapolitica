@@ -27,6 +27,7 @@ class APIErrorDetail(AdminAPISchema):
     code: str
     message: str
     details: Any = None
+    request_id: str | None = None
 
 
 class APIErrorResponse(AdminAPISchema):

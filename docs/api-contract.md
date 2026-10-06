@@ -309,11 +309,27 @@ fails closed with 503.
 
 ## `GET /health`
 
-Public health check:
+Compatibility health check. Includes database ping and schema revision fields.
+It does not expose DSNs or secrets.
+
+## `GET /health/live`
+
+Process liveness. Does not check the database or official sources.
 
 ```json
 {"status": "ok"}
 ```
+
+## `GET /health/ready`
+
+Readiness. Returns 503 when the database is unreachable or, when Alembic is in
+use, the schema revision is not head.
+
+The current public and admin paths are the V1 HTTP contract. This milestone does
+not rename them under `/v1`.
+
+OpenAPI (`/docs`, `/redoc`, `/openapi.json`) is disabled when
+`VERAPOLITICA_ENV=production` unless `VERAPOLITICA_ENABLE_API_DOCS=true`.
 
 ## `GET /admin/drafts`
 

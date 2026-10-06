@@ -44,6 +44,10 @@ and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
 Public search is documented in [docs/search.md](docs/search.md).
 Civic referendums, voting guides, glossary, and reminders are documented in
 [docs/civic-features.md](docs/civic-features.md).
+Production hardening is documented in
+[docs/production-runbook.md](docs/production-runbook.md),
+[docs/security.md](docs/security.md), and
+[docs/release-checklist.md](docs/release-checklist.md).
 
 ## Database
 
@@ -59,7 +63,21 @@ alembic current
 ```
 
 The application never runs `alembic upgrade head` on startup. If a PostgreSQL
-schema is behind head, it logs a warning.
+schema is behind head, `/health/ready` fails and the process logs a warning.
+
+## Production
+
+Staging/production is a reverse proxy plus two processes and PostgreSQL:
+
+```bash
+python -m alembic upgrade head
+python -m scripts.run_web
+python -m scripts.run_scheduler
+```
+
+Do not use `uvicorn --reload` in production. Do not start the scheduler inside
+web workers. `python -m scripts.prepare_demo` refuses `VERAPOLITICA_ENV=production`.
+The current public HTTP paths are the V1 API contract.
 
 ## Scheduled ingestion jobs
 

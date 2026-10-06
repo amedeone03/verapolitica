@@ -538,3 +538,18 @@ without a published current-version pointer. A separate civic E2E covers fixture
 ingestion, unpublished referendum drafts, editorial approval, public API, citizen
 UI, and idempotent reminder-candidate replay. No E2E test contacts the live Senato
 service or depends on developer configuration or test ordering.
+
+## Production deployment shape
+
+V1 production is intentionally small:
+
+```text
+HTTPS proxy -> gunicorn + UvicornWorker -> PostgreSQL
+python -m scripts.run_scheduler  (one replica)
+persistent volume for raw documents
+```
+
+The web process does not start APScheduler. Production config validation requires
+PostgreSQL, a strong admin API key, explicit CORS/hosts, and raw storage.
+`/health/live` is process liveness; `/health/ready` checks the database and
+Alembic head. See `docs/production-runbook.md` and `docs/security.md`.

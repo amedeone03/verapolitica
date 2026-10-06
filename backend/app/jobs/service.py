@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -69,6 +69,13 @@ class IngestionJobService:
         trigger_type: IngestionJobTrigger = IngestionJobTrigger.CLI,
     ) -> IngestionJobRunResult:
         spec = self._spec(job_name)
+        recovered = self.recover_stale_runs()
+        if recovered:
+            logger.warning(
+                "recovered %s stale running job(s) before starting %s",
+                recovered,
+                spec.job_name,
+            )
         run = self._start(spec, trigger_type)
         started = time.monotonic()
         logger.info(
@@ -169,6 +176,49 @@ class IngestionJobService:
                 raise IngestionJobNotFoundError(f"job run {job_run_id} does not exist")
             return self._result(run)
 
+    def recover_stale_runs(self) -> int:
+        """Mark running jobs older than the configured threshold as failed.
+
+        History rows are retained. A fresh running job still blocks overlap.
+        """
+
+        cutoff = _now() - timedelta(minutes=self.settings.job_stale_after_minutes)
+        recovered = 0
+        with self.session_factory() as session:
+            with session.begin():
+                rows = list(
+                    session.scalars(
+                        select(IngestionJobRun).where(
+                            IngestionJobRun.status == IngestionJobStatus.RUNNING
+                        )
+                    )
+                )
+                for run in rows:
+                    started = run.started_at
+                    if started.tzinfo is None:
+                        started = started.replace(tzinfo=timezone.utc)
+                    if started > cutoff:
+                        continue
+                    metadata = dict(run.job_metadata or {})
+                    metadata["stale_recovered"] = True
+                    metadata["stale_after_minutes"] = (
+                        self.settings.job_stale_after_minutes
+                    )
+                    run.status = IngestionJobStatus.FAILED
+                    run.completed_at = _now()
+                    run.error_message = (
+                        "stale running job recovered after "
+                        f"{self.settings.job_stale_after_minutes} minutes"
+                    )
+                    run.job_metadata = metadata
+                    recovered += 1
+                    logger.warning(
+                        "job %s run %s marked stale",
+                        run.job_name,
+                        run.id,
+                    )
+        return recovered
+
     def _spec(self, job_name: str) -> JobSpec:
         spec = JOB_CATALOG.get(job_name)
         if spec is None or job_name not in self.runners:
@@ -224,7 +274,20 @@ class IngestionJobService:
                 return self._result(run)
 
     @staticmethod
-    def _result(run: IngestionJobRun) -> IngestionJobRunResult:
+    def _aware(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    @classmethod
+    def _result(cls, run: IngestionJobRun) -> IngestionJobRunResult:
+        duration_ms = None
+        if run.completed_at is not None and run.started_at is not None:
+            duration_ms = int(
+                (cls._aware(run.completed_at) - cls._aware(run.started_at)).total_seconds()
+                * 1000
+            )
+        metadata = run.job_metadata or {}
         return IngestionJobRunResult(
             id=run.id,
             job_name=run.job_name,
@@ -239,5 +302,7 @@ class IngestionJobService:
             records_skipped=run.records_skipped,
             attempt_count=run.attempt_count,
             error_message=run.error_message,
-            metadata=run.job_metadata or {},
+            duration_ms=max(duration_ms, 0) if duration_ms is not None else None,
+            stale_recovered=bool(metadata.get("stale_recovered")),
+            metadata=metadata,
         )

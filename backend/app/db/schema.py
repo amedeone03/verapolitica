@@ -121,3 +121,21 @@ def schema_health(engine: Engine, settings: Settings) -> dict[str, object]:
         "schema_current": bool(revision and head and revision == head),
         "scheduler_enabled": settings.scheduler_enabled,
     }
+
+
+def readiness_payload(engine: Engine, settings: Settings) -> tuple[bool, dict[str, object]]:
+    """DB connectivity plus schema-at-head when Alembic is in use."""
+
+    payload = schema_health(engine, settings)
+    schema_required = is_postgresql(settings.database_url)
+    if not schema_required:
+        try:
+            schema_required = "alembic_version" in inspect(engine).get_table_names()
+        except Exception:
+            schema_required = False
+    ready = payload["database"] == "ok" and (
+        bool(payload["schema_current"]) if schema_required else True
+    )
+    payload["status"] = "ok" if ready else "not_ready"
+    payload["ready"] = ready
+    return ready, payload
