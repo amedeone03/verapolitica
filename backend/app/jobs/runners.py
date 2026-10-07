@@ -318,3 +318,35 @@ def run_civic_reminders(
         )
 
     return _wrap(run)
+
+
+def run_pledge_evidence_matching(
+    settings: Settings, session_factory: sessionmaker[Session]
+) -> IngestionJobMetrics:
+    """Propose fulfilment drafts for open pledges. Never publishes anything.
+
+    The default judge abstains, so the job only exercises retrieval until a
+    validated judge is configured (see docs/scoring-methodology.md).
+    """
+
+    del settings
+
+    def run() -> IngestionJobMetrics:
+        from backend.app.services.pledge_evidence_service import PledgeEvidenceService
+
+        service = PledgeEvidenceService(session_factory)
+        report = service.run()
+        return IngestionJobMetrics(
+            records_processed=report.pledges_considered,
+            records_created=report.drafts_created,
+            records_updated=0,
+            records_skipped=report.drafts_replayed + report.skipped_outcome_pledges,
+            metadata={
+                "judge": f"{service.judge.name}/{service.judge.version}",
+                "passages_judged": report.passages_judged,
+                "skipped_outcome_pledges": report.skipped_outcome_pledges,
+                "rejections": report.rejections,
+            },
+        )
+
+    return _wrap(run)

@@ -42,6 +42,9 @@ SQLite is the default local/test/demo database. PostgreSQL is the
 production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
 and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
 Public search is documented in [docs/search.md](docs/search.md).
+Pledge classification, fulfilment verdicts, the public scorecard, blind audits
+and partisan-skew checks are documented in
+[docs/scoring-methodology.md](docs/scoring-methodology.md).
 Civic referendums, voting guides, glossary, and reminders are documented in
 [docs/civic-features.md](docs/civic-features.md).
 Production hardening is documented in

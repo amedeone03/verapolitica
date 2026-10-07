@@ -36,8 +36,9 @@ def test_alembic_downgrade_and_reupgrade(tmp_path):
     url, engine, _factory = migrate_sqlite(tmp_path)
     cfg = alembic_config(url)
     try:
-        command.downgrade(cfg, "-1")
+        command.downgrade(cfg, "b7c4e2a91f10")
         assert current_revision(engine) == "b7c4e2a91f10"
+        assert "pledge_assessments" not in inspect(engine).get_table_names()
         assert "politicians" in inspect(engine).get_table_names()
         assert "referendums" not in inspect(engine).get_table_names()
         municipality_columns = {

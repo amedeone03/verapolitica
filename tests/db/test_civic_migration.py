@@ -20,7 +20,7 @@ def test_civic_revision_upgrade_downgrade_reupgrade(tmp_path):
         tables = set(inspect(engine).get_table_names())
         assert "referendums" not in tables
         command.upgrade(cfg, "head")
-        assert current_revision(engine) == "c8d5f3b02a21"
+        assert current_revision(engine) == head_revision(url)
         columns = {column["name"] for column in inspect(engine).get_columns("referendums")}
         assert "official_question" in columns
         assert "search_primary" in columns
