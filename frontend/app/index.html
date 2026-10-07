@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0b0c" />
     <meta name="description" content="Verified profiles of Italian public representatives, backed by official sources." />
     <title>VeraPolitica — Verified public profiles</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -38,6 +39,7 @@
           <a href="./?view=referendums">Referendums</a>
           <a href="./?view=voting-guide">How to vote</a>
           <a href="./?view=glossary">Glossary</a>
+          <a href="./?view=methodology">Methodology</a>
           <a href="./?view=regions">Regions</a>
           <a href="./?view=municipalities">Municipalities</a>
           <a href="./?view=search">Search</a>
@@ -208,6 +210,19 @@
         </div>
         <div id="municipality-list" class="proposal-grid" hidden></div>
         <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
+      </section>
+
+      <section id="methodology-view" aria-labelledby="methodology-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Said and done</p>
+          <h1 id="methodology-title">How commitments are scored</h1>
+          <p class="hero-copy">The method is public and applied in the same way to everyone. A score is a summary of evidence, not a political judgment.</p>
+        </div>
+        <div id="methodology-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Loading methodology…</strong><small>Retrieving the current scoring parameters.</small></div>
+        </div>
+        <article id="methodology-detail" hidden></article>
       </section>
 
       <section id="search-view" aria-labelledby="search-title" hidden>

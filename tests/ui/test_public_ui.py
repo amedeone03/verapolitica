@@ -62,6 +62,13 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderReferendumCard" in script.text
     assert "renderVotingGuide" in script.text
     assert "renderGlossaryTerm" in script.text
+    assert "renderScorecard" in script.text
+    assert "renderCompositionBar" in script.text
+    assert "/scorecard" in script.text
+    assert "Commitment record" in script.text
+    assert ".composition-bar" in styles.text
+    assert ".pledge-item" in styles.text
+    assert "view=methodology" in archive.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):

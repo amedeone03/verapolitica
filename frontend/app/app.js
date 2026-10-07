@@ -37,7 +37,7 @@ function initials(person) {
 function portrait(person) {
   const imageUrl = safeExternalUrl(person.profile?.image_url);
   if (imageUrl) {
-    return `<div class="portrait"><span aria-hidden="true">${escapeHtml(initials(person))}</span><img src="${escapeHtml(imageUrl)}" alt="Portrait of ${escapeHtml(`${person.given_name} ${person.family_name}`)}" onerror="this.remove()" /></div>`;
+    return `<div class="portrait"><span aria-hidden="true">${escapeHtml(initials(person))}</span><img src="${escapeHtml(imageUrl)}" alt="Portrait of ${escapeHtml(`${person.given_name} ${person.family_name}`)}" /></div>`;
   }
   return `<div class="portrait" aria-label="No portrait available">${escapeHtml(initials(person))}</div>`;
 }
@@ -60,6 +60,7 @@ export function renderPoliticianCard(person) {
       <h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>
       <p class="mandate">${escapeHtml(mandateTitle(mandate))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "National institution")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
+      <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Loading commitments…</p></div>
       <p class="source-count">${person.citation_count} verified data reference${person.citation_count === 1 ? "" : "s"}</p>
       <a class="profile-link" href="./?politician=${encodeURIComponent(person.id)}">View profile <span aria-hidden="true">→</span></a>
     </div>
@@ -362,62 +363,325 @@ export function renderSources(citations) {
   }).join("");
 }
 
-export function renderPoliticianDetail(person) {
+// ---------------------------------------------------------------------------
+// Commitment record ("detto / fatto"). Methodology: /methodology/scoring.
+// Composition comes before the number, roles are never mixed, and the score is
+// withheld when too few commitments are closed.
+
+const VERDICTS = {
+  kept: { label: "Kept", tone: "kept" },
+  partially_kept: { label: "Partly kept", tone: "partial" },
+  broken: { label: "Not kept", tone: "broken" },
+  in_progress: { label: "In progress", tone: "progress" },
+  stalled: { label: "Stalled", tone: "stalled" },
+  not_yet_rated: { label: "Not yet rated", tone: "unrated" },
+};
+
+const ROLE_LABELS = {
+  government_single_party: "Single-party government",
+  government_coalition: "Coalition government",
+  opposition: "Opposition",
+  unknown: "Role not established",
+};
+
+// Comparative Agendas Project major topics.
+const CAP_TOPICS = {
+  1: "Economy", 2: "Civil rights", 3: "Health", 4: "Agriculture", 5: "Labour",
+  6: "Education", 7: "Environment", 8: "Energy", 9: "Immigration", 10: "Transport",
+  12: "Justice and crime", 13: "Social welfare", 14: "Housing", 15: "Business",
+  16: "Defence", 17: "Technology and research", 18: "Foreign trade",
+  19: "International affairs", 20: "Government and institutions", 21: "Public lands", 23: "Culture",
+};
+
+const WITHHELD_REASONS = {
+  no_closed_pledges: "No commitment has reached a final assessment yet.",
+  below_minimum_closed_pledges: "Too few commitments are closed for a meaningful score.",
+};
+
+function verdictMeta(value) {
+  return VERDICTS[value] || { label: titleCase(value), tone: "unrated" };
+}
+
+function topicLabel(code) {
+  return CAP_TOPICS[Number(code)] || `Topic ${code}`;
+}
+
+function percent(value, digits = 0) {
+  return `${(Number(value) * 100).toFixed(digits)}%`;
+}
+
+export function renderVerdictChip(value) {
+  const meta = verdictMeta(value);
+  return `<span class="verdict-chip tone-${meta.tone}">${escapeHtml(meta.label)}</span>`;
+}
+
+export function renderCompositionBar(composition = [], { compact = false } = {}) {
+  const total = composition.reduce((sum, entry) => sum + entry.count, 0);
+  if (!total) return `<p class="empty-note">No commitments in this group yet.</p>`;
+  const present = composition.filter((entry) => entry.count > 0);
+  const summary = present.map((entry) => `${entry.count} ${verdictMeta(entry.verdict).label.toLowerCase()}`).join(", ");
+  const segments = present.map((entry) => `<span class="composition-segment tone-${verdictMeta(entry.verdict).tone}" style="flex-grow:${entry.count}"></span>`).join("");
+  const legend = compact ? "" : `<ul class="composition-legend">${present.map((entry) => `<li><span class="legend-dot tone-${verdictMeta(entry.verdict).tone}" aria-hidden="true"></span>${escapeHtml(verdictMeta(entry.verdict).label)} <strong>${entry.count}</strong></li>`).join("")}</ul>`;
+  return `<div class="composition${compact ? " is-compact" : ""}"><div class="composition-bar" role="img" aria-label="${escapeHtml(summary)}">${segments}</div>${legend}</div>`;
+}
+
+export function renderRateBlock(stratum, credibleLevel) {
+  if (stratum.rate === null || stratum.rate === undefined) {
+    const range = stratum.credible_interval
+      ? `<p class="rate-range">Plausible range so far: ${percent(stratum.credible_interval[0])} – ${percent(stratum.credible_interval[1])}</p>`
+      : "";
+    return `<div class="rate-block is-withheld">
+      <span class="rate-label">Score</span>
+      <strong class="rate-value">Withheld</strong>
+      <p class="rate-note">${escapeHtml(WITHHELD_REASONS[stratum.rate_withheld_reason] || "Not enough closed commitments.")}</p>
+      ${range}
+    </div>`;
+  }
+  const [low, high] = stratum.credible_interval;
+  return `<div class="rate-block">
+    <span class="rate-label">Kept score · ${stratum.closed_pledges} closed</span>
+    <strong class="rate-value">${percent(stratum.rate)}</strong>
+    <div class="interval-track" role="img" aria-label="${percent(credibleLevel)} plausible range from ${percent(low)} to ${percent(high)}">
+      <span class="interval-range" style="left:${low * 100}%;width:${(high - low) * 100}%"></span>
+      <span class="interval-point" style="left:${stratum.rate * 100}%"></span>
+    </div>
+    <p class="rate-range">${percent(credibleLevel)} plausible range ${percent(low)} – ${percent(high)}. Partly kept counts half.</p>
+  </div>`;
+}
+
+function renderStratum(stratum, scorecard) {
+  const topics = stratum.topics.length
+    ? `<div class="topic-chips">${stratum.topics.map((topic) => `<span class="topic-chip">${escapeHtml(topicLabel(topic.cap_topic_code))}<small>${topic.count}</small></span>`).join("")}</div>`
+    : "";
+  return `<section class="stratum-card">
+    <div class="stratum-head">
+      <div><p class="eyebrow">Role when promised</p><h3>${escapeHtml(ROLE_LABELS[stratum.role] || titleCase(stratum.role))}</h3></div>
+      <span class="count-pill">${stratum.scored_pledges} scored · ${stratum.open_pledges} open</span>
+    </div>
+    ${renderCompositionBar(stratum.composition)}
+    ${renderRateBlock(stratum, scorecard.credible_level)}
+    ${topics}
+  </section>`;
+}
+
+export function renderPledgeItem(pledge) {
+  const assessment = pledge.latest_assessment;
+  const sourceUrl = assessment ? safeExternalUrl(assessment.source_url) : null;
+  const meta = verdictMeta(pledge.verdict);
+  return `<article class="pledge-item" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
+    <div class="pledge-top">
+      ${renderVerdictChip(pledge.verdict)}
+      <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Too vague to score</span>`}</span>
+    </div>
+    <h4><a href="./?proposal=${encodeURIComponent(pledge.proposal_id)}">${escapeHtml(pledge.title)}</a></h4>
+    ${pledge.exact_statement ? `<blockquote class="pledge-quote">“${escapeHtml(pledge.exact_statement)}”</blockquote>` : ""}
+    ${assessment ? `<div class="pledge-evidence tone-${meta.tone}">
+      <p class="evidence-label">Evidence${assessment.effective_at ? ` · ${escapeHtml(formatDate(assessment.effective_at))}` : ""}</p>
+      <p class="evidence-text">${escapeHtml(assessment.quoted_excerpt)}</p>
+      <div class="evidence-foot"><span>${escapeHtml(assessment.rationale)}</span>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}</div>
+    </div>` : `<p class="empty-note">No evidence-backed assessment has been published yet.</p>`}
+  </article>`;
+}
+
+const PLEDGE_FILTERS = [
+  ["all", "All"],
+  ["kept", "Kept"],
+  ["partially_kept", "Partly kept"],
+  ["broken", "Not kept"],
+  ["open", "Open"],
+];
+
+export function renderScorecard(scorecard) {
+  if (!scorecard || !scorecard.tracked_pledges) {
+    return `<div class="state-card"><div><strong>No commitments are tracked for this person yet.</strong><small>Explicit, published promises appear here once they have been classified.</small></div></div>`;
+  }
+  const progress = scorecard.mandate_progress;
+  const open = new Set(["in_progress", "stalled", "not_yet_rated"]);
+  const counts = { all: scorecard.pledges.length, open: 0 };
+  for (const pledge of scorecard.pledges) {
+    counts[pledge.verdict] = (counts[pledge.verdict] || 0) + 1;
+    if (open.has(pledge.verdict)) counts.open += 1;
+  }
+  return `<div class="scorecard">
+    <div class="method-note">
+      <p>Scores count only closed commitments and are shown separately for each institutional role, because governing and opposition have very different powers. Each verdict cites an official document.</p>
+      <a class="profile-link" href="./?view=methodology">How the score works <span aria-hidden="true">→</span></a>
+    </div>
+    ${progress ? `<div class="mandate-progress"><div><span>Mandate elapsed</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
+    <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
+    <div class="pledge-list-head">
+      <h3>Commitments</h3>
+      <div class="filter-pills" role="tablist" aria-label="Filter commitments">${PLEDGE_FILTERS.map(([key, label], index) => `<button type="button" class="filter-pill${index === 0 ? " is-active" : ""}" data-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(label)} <small>${counts[key] || 0}</small></button>`).join("")}</div>
+    </div>
+    <div class="pledge-list">${scorecard.pledges.map(renderPledgeItem).join("")}</div>
+    ${scorecard.excluded_vague_pledges ? `<p class="empty-note">${scorecard.excluded_vague_pledges} commitment${scorecard.excluded_vague_pledges === 1 ? " is" : "s are"} too vague to verify and excluded from every score.</p>` : ""}
+    <p class="publication-meta">Methodology ${escapeHtml(scorecard.methodology_version)} · Data as of ${escapeHtml(formatDate(scorecard.as_of))}</p>
+  </div>`;
+}
+
+export function renderProfileStats(scorecard) {
+  if (!scorecard || !scorecard.tracked_pledges) {
+    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Commitments tracked</span></div></div>`;
+  }
+  const single = scorecard.strata.length === 1 ? scorecard.strata[0] : null;
+  const score = single
+    ? (single.rate === null || single.rate === undefined
+      ? `<div class="stat-tile"><strong class="is-muted">—</strong><span>Score withheld</span></div>`
+      : `<div class="stat-tile is-accent"><strong>${percent(single.rate)}</strong><span>Kept score</span></div>`)
+    : `<div class="stat-tile"><strong>${scorecard.strata.length}</strong><span>Roles scored separately</span></div>`;
+  const progress = scorecard.mandate_progress
+    ? `<div class="stat-tile"><strong>${percent(scorecard.mandate_progress.elapsed_fraction)}</strong><span>Mandate elapsed</span></div>`
+    : `<div class="stat-tile"><strong>${scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0)}</strong><span>Closed</span></div>`;
+  return `<div class="stat-row"><div class="stat-tile"><strong>${scorecard.tracked_pledges}</strong><span>Commitments tracked</span></div>${score}${progress}</div>`;
+}
+
+export function renderCardRecord(scorecard) {
+  if (!scorecard || !scorecard.tracked_pledges) {
+    return `<p class="card-record-empty">No commitments tracked yet</p>`;
+  }
+  const composition = new Map();
+  for (const stratum of scorecard.strata) {
+    for (const entry of stratum.composition) {
+      composition.set(entry.verdict, (composition.get(entry.verdict) || 0) + entry.count);
+    }
+  }
+  const entries = [...composition.entries()].map(([verdict, count]) => ({ verdict, count }));
+  const closed = scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0);
+  return `${renderCompositionBar(entries, { compact: true })}<p class="card-record-caption"><strong>${scorecard.tracked_pledges}</strong> commitments · ${closed} closed</p>`;
+}
+
+function bindPledgeFilters(root) {
+  const buttons = [...root.querySelectorAll(".filter-pill")];
+  const items = [...root.querySelectorAll(".pledge-item")];
+  const openVerdicts = new Set(["in_progress", "stalled", "not_yet_rated"]);
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      const filter = button.dataset.filter;
+      for (const other of buttons) {
+        other.classList.toggle("is-active", other === button);
+        other.setAttribute("aria-pressed", String(other === button));
+      }
+      for (const item of items) {
+        const verdict = item.dataset.verdict;
+        item.hidden = !(filter === "all" || verdict === filter || (filter === "open" && openVerdicts.has(verdict)));
+      }
+    });
+  }
+}
+
+function bindProfileTabs(root) {
+  const tabs = [...root.querySelectorAll(".profile-tab")];
+  const panels = [...root.querySelectorAll(".tab-panel")];
+  function activate(name) {
+    for (const tab of tabs) {
+      const active = tab.dataset.tab === name;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+    for (const panel of panels) panel.hidden = panel.dataset.panel !== name;
+  }
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      activate(tab.dataset.tab);
+      history.replaceState(null, "", `#${tab.dataset.tab}`);
+    });
+  }
+  const initial = window.location.hash.slice(1);
+  if (tabs.some((tab) => tab.dataset.tab === initial)) activate(initial);
+}
+
+export function renderMethodology(method) {
+  const rows = [
+    ["Formula", "(kept + ½ × partly kept) ÷ closed commitments"],
+    ["Denominator", "Only closed commitments: kept, partly kept, not kept. Open ones are shown next to the elapsed share of the mandate."],
+    ["Roles", "Scores are computed separately for single-party government, coalition government and opposition, and never combined or ranked across roles."],
+    ["Small numbers", `With fewer than ${method.min_closed_for_rate} closed commitments the score is withheld. A ${percent(method.interval.level)} plausible range is always shown.`],
+    ["Vague promises", "Commitments too vague to verify are listed but excluded from every score."],
+    ["Evidence", "Every verdict quotes an official document word for word. “Not kept” requires two independent editorial checks."],
+  ];
+  return `<section class="detail-card">
+    <p class="eyebrow">Methodology ${escapeHtml(method.version)}</p>
+    <h2>How the commitment score works</h2>
+    <dl class="facts">${rows.map(([label, value]) => fact(label, value)).join("")}</dl>
+  </section>`;
+}
+
+export function renderPoliticianDetail(person, scorecard = null) {
   const profile = person.profile;
   const homepage = safeExternalUrl(profile.official_homepage_url);
   const citationGroups = groupCitations(person.citations);
   const publishedDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(person.published_at));
+  const mandate = primaryMandate(person);
+  const topics = (scorecard?.strata || []).flatMap((stratum) => stratum.topics).slice(0, 6);
   return `<section class="profile-hero">
       ${portrait(person)}
       <div class="profile-intro">
         <span class="verified-badge">Verified from official sources</span>
         <h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>
-        <p class="lead">${escapeHtml(mandateTitle(primaryMandate(person)))}</p>
+        <p class="lead">${escapeHtml(mandateTitle(mandate))}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
+        ${renderProfileStats(scorecard)}
+        ${topics.length ? `<div class="topic-chips">${topics.map((topic) => `<span class="topic-chip">${escapeHtml(topicLabel(topic.cap_topic_code))}</span>`).join("")}</div>` : ""}
         <p class="publication-meta">Current published profile · Version ${person.current_version_number} · Published ${escapeHtml(publishedDate)}</p>
       </div>
     </section>
-    <div class="detail-grid">
-      <section class="detail-card">
-        <p class="eyebrow">Profile</p><h2>Personal information</h2>
-        <dl class="facts">
-          ${fact("Date of birth", formatDate(person.birth_date))}
-          ${fact("Place of birth", birthPlace(profile))}
-          ${fact("Profession", profile.profession || "Not provided")}
-          ${homepage ? fact("Official website", "Visit official page ↗", { href: homepage }) : fact("Official website", "Not provided")}
-        </dl>
+    <div class="profile-tabs" role="tablist" aria-label="Profile sections">
+      <button type="button" class="profile-tab is-active" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button type="button" class="profile-tab" role="tab" data-tab="commitments" aria-selected="false" tabindex="-1">Commitments${scorecard?.tracked_pledges ? ` <small>${scorecard.tracked_pledges}</small>` : ""}</button>
+      <button type="button" class="profile-tab" role="tab" data-tab="sources" aria-selected="false" tabindex="-1">Sources <small>${person.citation_count}</small></button>
+    </div>
+    <div class="tab-panel" data-panel="overview" role="tabpanel">
+      <div class="detail-grid">
+        <section class="detail-card">
+          <p class="eyebrow">Profile</p><h2>Personal information</h2>
+          <dl class="facts">
+            ${fact("Date of birth", formatDate(person.birth_date))}
+            ${fact("Place of birth", birthPlace(profile))}
+            ${fact("Profession", profile.profession || "Not provided")}
+            ${homepage ? fact("Official website", "Visit official page ↗", { href: homepage }) : fact("Official website", "Not provided")}
+          </dl>
+        </section>
+        <section class="detail-card">
+          <p class="eyebrow">Public office</p><h2>Mandates</h2>
+          ${profile.mandates.length ? profile.mandates.map(renderMandate).join("") : "<p>No mandate information is available.</p>"}
+        </section>
+      </div>
+      <section class="detail-card groups-card">
+        <p class="eyebrow">Institutional affiliation</p><h2>Parliamentary groups</h2>
+        <p class="group-disclaimer">Parliamentary groups are chamber-specific institutional bodies and are not the same as political parties.</p>
+        ${renderParliamentaryGroups(person.parliamentary_groups || [])}
       </section>
-      <section class="detail-card">
-        <p class="eyebrow">Public office</p><h2>Mandates</h2>
-        ${profile.mandates.length ? profile.mandates.map(renderMandate).join("") : "<p>No mandate information is available.</p>"}
+      <section class="detail-card parties-card">
+        <p class="eyebrow">Political affiliation</p><h2>Political party</h2>
+        <p class="party-disclaimer">Political parties and parliamentary groups are distinct institutional concepts.</p>
+        ${renderPoliticalParties(person.political_parties || [])}
+      </section>
+      <section class="detail-card territorial-card">
+        <p class="eyebrow">Local office</p><h2>Territorial offices</h2>
+        <p class="territorial-disclaimer">Regional and municipal offices are stored separately from national parliamentary mandates.</p>
+        ${renderTerritorialOffices(person.territorial_offices || [])}
+      </section>
+      <section class="detail-card proposals-card">
+        <p class="eyebrow">Public record</p><h2>Proposals / commitments</h2>
+        <p class="proposal-disclaimer">The displayed role states whether this person is a proposer, co-sponsor, or commitment owner.</p>
+        ${renderPoliticianProposals(person.proposals || [])}
       </section>
     </div>
-    <section class="detail-card groups-card">
-      <p class="eyebrow">Institutional affiliation</p><h2>Parliamentary groups</h2>
-      <p class="group-disclaimer">Parliamentary groups are chamber-specific institutional bodies and are not the same as political parties.</p>
-      ${renderParliamentaryGroups(person.parliamentary_groups || [])}
-    </section>
-    <section class="detail-card parties-card">
-      <p class="eyebrow">Political affiliation</p><h2>Political party</h2>
-      <p class="party-disclaimer">Political parties and parliamentary groups are distinct institutional concepts.</p>
-      ${renderPoliticalParties(person.political_parties || [])}
-    </section>
-    <section class="detail-card territorial-card">
-      <p class="eyebrow">Local office</p><h2>Territorial offices</h2>
-      <p class="territorial-disclaimer">Regional and municipal offices are stored separately from national parliamentary mandates.</p>
-      ${renderTerritorialOffices(person.territorial_offices || [])}
-    </section>
-    <section class="detail-card proposals-card">
-      <p class="eyebrow">Public record</p><h2>Proposals / commitments</h2>
-      <p class="proposal-disclaimer">The displayed role states whether this person is a proposer, co-sponsor, or commitment owner.</p>
-      ${renderPoliticianProposals(person.proposals || [])}
-    </section>
-    <section class="detail-card sources-card">
-      <div class="sources-heading">
-        <div><p class="eyebrow">Traceable information</p><h2>Official sources</h2></div>
-        <div class="sources-summary"><strong>${person.citation_count} verified data references</strong><br />${citationGroups.length} official source${citationGroups.length === 1 ? "" : "s"}</div>
-      </div>
-      <div class="source-list">${renderSources(person.citations)}</div>
-    </section>`;
+    <div class="tab-panel" data-panel="commitments" role="tabpanel" hidden>
+      <section class="detail-card commitments-card">
+        <p class="eyebrow">Said and done</p><h2>Commitment record</h2>
+        ${renderScorecard(scorecard)}
+      </section>
+    </div>
+    <div class="tab-panel" data-panel="sources" role="tabpanel" hidden>
+      <section class="detail-card sources-card">
+        <div class="sources-heading">
+          <div><p class="eyebrow">Traceable information</p><h2>Official sources</h2></div>
+          <div class="sources-summary"><strong>${person.citation_count} verified data references</strong><br />${citationGroups.length} official source${citationGroups.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="source-list">${renderSources(person.citations)}</div>
+      </section>
+    </div>`;
 }
 
 export function createPublicApiClient(fetchImpl = fetch) {
@@ -438,6 +702,8 @@ export function createPublicApiClient(fetchImpl = fetch) {
   return {
     listPoliticians: () => request("/politicians?offset=0&limit=50"),
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
+    getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
+    getScoringMethodology: () => request("/methodology/scoring"),
     listProposals: () => request("/proposals?offset=0&limit=50"),
     getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
     listRegions: () => request("/regions?offset=0&limit=50"),
@@ -470,6 +736,18 @@ function showState(element, title, detail, isError = false) {
   element.innerHTML = `<div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(detail)}</small></div>`;
 }
 
+async function fillCardRecords(api, people) {
+  await Promise.allSettled(people.map(async (person) => {
+    const slot = document.querySelector(`[data-record-for="${CSS.escape(String(person.id))}"]`);
+    if (!slot) return;
+    try {
+      slot.innerHTML = renderCardRecord(await api.getScorecard(person.id));
+    } catch {
+      slot.innerHTML = `<p class="card-record-empty">Commitments unavailable</p>`;
+    }
+  }));
+}
+
 async function showArchive(api) {
   try {
     const payload = await api.listPoliticians();
@@ -481,6 +759,7 @@ async function showArchive(api) {
     byId("archive-status").hidden = true;
     byId("politician-list").hidden = false;
     byId("politician-list").innerHTML = payload.items.map(renderPoliticianCard).join("");
+    fillCardRecords(api, payload.items);
   } catch {
     byId("archive-count").textContent = "Unavailable";
     showState(byId("archive-status"), "We couldn't load the verified profiles. Please try again.", "The public API is currently unavailable.", true);
@@ -491,10 +770,16 @@ async function showDetail(api, politicianId) {
   byId("archive-view").hidden = true;
   byId("detail-view").hidden = false;
   try {
-    const person = await api.getPolitician(politicianId);
+    const [person, scorecard] = await Promise.all([
+      api.getPolitician(politicianId),
+      api.getScorecard(politicianId).catch(() => null),
+    ]);
+    const detail = byId("profile-detail");
     byId("detail-status").hidden = true;
-    byId("profile-detail").hidden = false;
-    byId("profile-detail").innerHTML = renderPoliticianDetail(person);
+    detail.hidden = false;
+    detail.innerHTML = renderPoliticianDetail(person, scorecard);
+    bindProfileTabs(detail);
+    bindPledgeFilters(detail);
     document.title = `${person.given_name} ${person.family_name} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;
@@ -858,6 +1143,26 @@ async function showGlossary(api, slug) {
   }
 }
 
+async function showMethodology(api) {
+  byId("archive-view").hidden = true;
+  byId("methodology-view").hidden = false;
+  try {
+    const method = await api.getScoringMethodology();
+    byId("methodology-status").hidden = true;
+    byId("methodology-detail").hidden = false;
+    byId("methodology-detail").innerHTML = renderMethodology(method);
+  } catch {
+    showState(byId("methodology-status"), "We couldn't load the methodology.", "The public API is currently unavailable.", true);
+  }
+}
+
+// Broken portraits fall back to initials. Inline onerror handlers are blocked by
+// the Content-Security-Policy, so the cleanup is delegated here.
+document.addEventListener("error", (event) => {
+  const target = event.target;
+  if (target instanceof HTMLImageElement && target.closest(".portrait")) target.remove();
+}, true);
+
 const api = createPublicApiClient();
 const params = new URLSearchParams(window.location.search);
 const politicianId = params.get("politician");
@@ -897,6 +1202,8 @@ if (proposalId && /^\d+$/.test(proposalId)) {
   showRegions(api);
 } else if (params.get("view") === "municipalities") {
   showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
+} else if (params.get("view") === "methodology") {
+  showMethodology(api);
 } else if (params.get("view") === "search") {
   showSearch(api, params.get("q") || "", params.get("type") || "");
 } else {
