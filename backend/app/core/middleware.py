@@ -34,6 +34,24 @@ SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 }
 
+# FastAPI's Swagger UI and ReDoc pages load their bundles from jsdelivr and
+# bootstrap with an inline script. They are disabled in production by default
+# (Settings.api_docs_enabled); this relaxed policy applies to those pages only.
+DOCS_PATHS = frozenset({"/docs", "/docs/oauth2-redirect", "/redoc"})
+DOCS_CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+    "img-src 'self' data: https:; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "worker-src 'self' blob:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+
 
 def resolve_request_id(incoming: str | None) -> str:
     candidate = (incoming or "").strip()
@@ -42,7 +60,11 @@ def resolve_request_id(incoming: str | None) -> str:
     return str(uuid.uuid4())
 
 
-def apply_security_headers(response: Response) -> None:
+def apply_security_headers(response: Response, path: str = "") -> None:
+    if path in DOCS_PATHS:
+        response.headers.setdefault(
+            "Content-Security-Policy", DOCS_CONTENT_SECURITY_POLICY
+        )
     for name, value in SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
 
@@ -68,7 +90,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 raise
             duration_ms = int((time.perf_counter() - started) * 1000)
             response.headers["X-Request-ID"] = request_id
-            apply_security_headers(response)
+            apply_security_headers(response, request.url.path)
             logger.info(
                 "request completed",
                 extra={

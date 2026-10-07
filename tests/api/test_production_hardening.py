@@ -195,3 +195,24 @@ def test_docs_can_be_enabled_explicitly(tmp_path):
     assert docs.status_code == 200
     assert openapi.status_code == 200
     assert "paths" in openapi.json()
+
+
+def test_docs_csp_allows_swagger_assets_only_on_docs_pages(tmp_path):
+    from backend.app.core.config import Settings
+    from backend.app.main import create_app
+
+    settings = Settings(
+        database_url=f"sqlite:///{tmp_path / 'docs.db'}",
+        raw_storage_path=tmp_path / "raw",
+        enable_api_docs=True,
+    )
+    with TestClient(create_app(settings)) as client:
+        docs = client.get("/docs")
+        public = client.get("/app/")
+    assert docs.status_code == 200
+    docs_csp = docs.headers["Content-Security-Policy"]
+    assert "https://cdn.jsdelivr.net" in docs_csp
+    assert "frame-ancestors 'none'" in docs_csp
+    public_csp = public.headers["Content-Security-Policy"]
+    assert "cdn.jsdelivr.net" not in public_csp
+    assert "script-src 'self';" in public_csp
