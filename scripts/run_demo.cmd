@@ -42,6 +42,7 @@ set "VERAPOLITICA_DATABASE_URL=sqlite:///./data/demo/verapolitica_demo.db"
 set "VERAPOLITICA_RAW_STORAGE_PATH=./data/demo/raw"
 set "VERAPOLITICA_ADMIN_API_KEY=verapolitica-demo-admin"
 set "VERAPOLITICA_ADMIN_REVIEWER_IDENTITY=demo-presenter"
+set "VERAPOLITICA_PORTRAITS_PATH=./data/demo/portraits.json"
 
 echo.
 echo Starting VeraPolitica in DEMO-ONLY mode.

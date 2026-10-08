@@ -61,6 +61,9 @@ from backend.app.scoring import CommitmentType, HolderRole
 from backend.app.services import (
     CandidateRebuildResult,
     DraftService,
+    HumanIdentityResolutionCoordinator,
+    IdentityResolutionService,
+    IdentityResolutionServiceError,
     IndexedCandidate,
     MatchingService,
     PoliticianBootstrapService,
@@ -70,6 +73,7 @@ from backend.app.services import (
 )
 from backend.app.services.pledge_service import PledgeService
 from backend.app.storage import LocalRawStorage
+from scripts.demo_portraits import JsonGetter, build_portraits, http_get_json, write_portraits
 from scripts.prepare_demo import DemoPaths, DemoSafetyError, reset_demo_environment
 
 GOVERNO_SOURCE = ("governo-italiano", "Governo Italiano", "https://www.governo.it")
@@ -104,10 +108,12 @@ class RealDemoReport:
     politicians_collected: int = 0
     profiles_published: list[str] = field(default_factory=list)
     profiles_pending_review: int = 0
+    identities_confirmed_by_editor: list[str] = field(default_factory=list)
     programme_url: str | None = None
     programme_chunks: int = 0
     commitment_owner: str | None = None
     commitments_published: list[str] = field(default_factory=list)
+    portraits_found: int = 0
     warnings: list[str] = field(default_factory=list)
     extractor_version: str = EXTRACTOR_VERSION
 
@@ -159,15 +165,14 @@ def _publish_government(session_factory, storage, collector, report: RealDemoRep
     )
     bootstrap = PoliticianBootstrapService(session_factory)
     plan = bootstrap.plan(rebuilt, dry_run=False)
+    blocked: set[int] = set()
     if not plan.report.safe_to_apply:
-        # Identity safety rules (e.g. a missing birth date) block the whole batch.
-        # The demo bootstraps only the safe candidates and reports the others.
+        # Identity safety rules (e.g. no birth date on the official page) block
+        # automatic creation. Those candidates go through the editorial path
+        # instead: an identity-resolution case that the demo editor resolves.
         blocked = {item.candidate_index for item in plan.report.invalid} | {
             item.candidate_index for item in plan.report.uncertain
         }
-        for item in (*plan.report.invalid, *plan.report.uncertain):
-            reason = getattr(item, "error", "uncertain identity match")
-            report.warnings.append(f"identity not bootstrapped: {item.display_name} ({reason})")
         rebuilt = CandidateRebuildResult(
             raw_document_id=ingestion.raw_document_id,
             candidates=tuple(c for c in rebuilt.candidates if c.candidate_index not in blocked),
@@ -175,6 +180,28 @@ def _publish_government(session_factory, storage, collector, report: RealDemoRep
         )
         plan = bootstrap.plan(rebuilt, dry_run=False)
     bootstrap.apply(plan)
+
+    coordinator = HumanIdentityResolutionCoordinator(session_factory)
+    resolutions = IdentityResolutionService(session_factory)
+    for index in sorted(blocked):
+        candidate = candidates[index]
+        processed = coordinator.process(candidate)
+        if processed.case is None:
+            continue
+        try:
+            resolutions.resolve_as_new(
+                processed.case.case_id,
+                reviewer_identity=REVIEWER,
+                note=(
+                    "Local real-data demo: distinct office holder listed on the "
+                    "official governo.it Government page (no birth date published)"
+                ),
+            )
+            report.identities_confirmed_by_editor.append(candidate.identity.display_name)
+        except IdentityResolutionServiceError as exc:
+            report.warnings.append(
+                f"identity left for review: {candidate.identity.display_name} ({exc})"
+            )
 
     for candidate in candidates:
         with session_factory() as session:
@@ -365,11 +392,34 @@ def _publish_commitments(session_factory, url: str, raw_document_id: int, owner,
         report.commitments_published.append(candidate.title)
 
 
+def _published_people(session_factory) -> list[dict]:
+    with session_factory() as session:
+        rows = session.execute(
+            select(Politician, PoliticianVersion)
+            .join(PoliticianVersion, PoliticianVersion.id == Politician.current_version_id)
+            .where(PoliticianVersion.published_at.is_not(None))
+            .order_by(Politician.id)
+        ).all()
+    return [
+        {
+            "id": politician.id,
+            "name": f"{politician.canonical_given_name} {politician.canonical_family_name}",
+            "given_name": politician.canonical_given_name,
+            "family_name": politician.canonical_family_name,
+            "image_url": version.profile_data.get("image_url"),
+            "source_name": GOVERNO_SOURCE[1],
+            "source_url": version.profile_data.get("official_homepage_url"),
+        }
+        for politician, version in rows
+    ]
+
+
 def prepare_real_demo(
     *,
     workspace_root: Path,
     collector=None,
     fetch: Fetcher = http_fetch,
+    portrait_lookup: JsonGetter | None = http_get_json,
     settings: Settings | None = None,
 ) -> RealDemoReport:
     if configured_environment() is AppEnvironment.PRODUCTION:
@@ -400,6 +450,17 @@ def prepare_real_demo(
                 _publish_commitments(session_factory, url, raw_document_id, owner, report)
             except Exception as exc:  # the profiles are still useful on their own
                 report.warnings.append(f"programme not loaded: {exc}")
+        portraits = (
+            build_portraits(
+                _published_people(session_factory),
+                get_json=portrait_lookup,
+                warnings=report.warnings,
+            )
+            if portrait_lookup is not None
+            else {}
+        )
+        write_portraits(paths.demo_root / "portraits.json", portraits)
+        report.portraits_found = len(portraits)
     finally:
         engine.dispose()
     report_path = paths.demo_root / "real_demo_report.json"
@@ -420,6 +481,7 @@ def main() -> int:
     print(f"  Published profiles: {len(report.profiles_published)}")
     print(f"  Pending profile drafts for editors: {report.profiles_pending_review}")
     print(f"  Commitments from {report.programme_url}: {len(report.commitments_published)}")
+    print(f"  Portraits (official or Wikimedia Commons, credited): {report.portraits_found}")
     for warning in report.warnings:
         print(f"  warning: {warning}")
     return 0

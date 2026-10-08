@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ai_max_document_bytes: int = Field(default=50_000_000, ge=1, le=100_000_000)
     demo_upload_path: Path = Path("./data/ceo_demo/uploads")
+    portraits_path: Path | None = None
     ai_max_chunk_chars: int = Field(default=4_000, ge=100, le=20_000)
     ai_max_document_chunks: int = Field(default=4_000, ge=1, le=10_000)
     ai_max_chunks_per_run: int = Field(default=40, ge=1, le=200)

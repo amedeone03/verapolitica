@@ -48,21 +48,58 @@ function initials(person) {
   return value.toLocaleUpperCase() || "VP";
 }
 
-function portrait(person) {
-  const imageUrl = safeExternalUrl(person.profile?.image_url);
-  if (imageUrl) {
-    return `<div class="portrait"><span aria-hidden="true">${escapeHtml(initials(person))}</span><img src="${escapeHtml(imageUrl)}" alt="Portrait of ${escapeHtml(`${person.given_name} ${person.family_name}`)}" /></div>`;
-  }
-  return `<div class="portrait" aria-label="No portrait available">${escapeHtml(initials(person))}</div>`;
+// Credited portrait dataset (official source first, then Wikimedia Commons).
+const portraits = new Map();
+
+function portraitFor(person) {
+  const credited = portraits.get(String(person.id));
+  if (credited) return credited;
+  const official = safeExternalUrl(person.profile?.image_url);
+  return official ? { url: official, credit: "Official source", license: "Official institutional portrait", source_url: official, origin: "Official source" } : null;
+}
+
+function portrait(person, { size = "card" } = {}) {
+  const photo = portraitFor(person);
+  const imageUrl = photo ? safeExternalUrl(photo.url) : null;
+  const name = `${person.given_name} ${person.family_name}`;
+  const monogram = `<span class="monogram" aria-hidden="true">${escapeHtml(initials(person))}</span>`;
+  const image = imageUrl
+    ? `<img src="${escapeHtml(imageUrl)}" alt="Portrait of ${escapeHtml(name)}" loading="${size === "hero" ? "eager" : "lazy"}" decoding="async" referrerpolicy="no-referrer" />`
+    : "";
+  return `<div class="portrait glass-portrait is-${size}${imageUrl ? " has-photo" : ""}"${imageUrl ? "" : ` aria-label="No portrait available"`}>${monogram}${image}</div>`;
+}
+
+export function renderPhotoCredit(person) {
+  const photo = portraitFor(person);
+  if (!photo || !safeExternalUrl(photo.url)) return "";
+  const link = safeExternalUrl(photo.source_url);
+  const label = photo.origin === "Wikimedia Commons"
+    ? `Photo: ${photo.credit} · ${photo.license} · Wikimedia Commons`
+    : `Photo: ${photo.origin}`;
+  return link
+    ? `<a class="photo-credit" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ↗</a>`
+    : `<span class="photo-credit">${escapeHtml(label)}</span>`;
 }
 
 function primaryMandate(person) {
   return person.profile?.mandates?.[0] ?? null;
 }
 
+function isLegislatureNumber(value) {
+  return /^\d+$/.test(String(value ?? "").trim());
+}
+
+function mandateRole(mandate) {
+  // Government roles carry their full title ("Ministro della Cultura dal 06/09/2024").
+  const title = String(mandate.mandate_type ?? "").replace(/\s+dal\s+\d{1,2}\/\d{1,2}\/\d{4}\s*$/i, "").trim();
+  return title && !isLegislatureNumber(mandate.legislature) ? title : titleCase(mandate.office);
+}
+
 function mandateTitle(mandate) {
   if (!mandate) return "Mandate information not provided";
-  return `${titleCase(mandate.office)} — Legislature ${mandate.legislature}`;
+  return isLegislatureNumber(mandate.legislature)
+    ? `${titleCase(mandate.office)} — Legislature ${mandate.legislature}`
+    : `${mandateRole(mandate)} · ${mandate.legislature}`;
 }
 
 export function renderPoliticianCard(person) {
@@ -132,10 +169,13 @@ export function groupCitations(citations) {
 
 function renderMandate(mandate) {
   const dates = `${formatDate(mandate.start_date)}${mandate.end_date ? ` – ${formatDate(mandate.end_date)}` : " – present"}`;
+  const context = isLegislatureNumber(mandate.legislature)
+    ? `${mandate.institution} · Legislature ${mandate.legislature}`
+    : `${mandate.institution} · ${mandate.legislature}`;
   return `<div class="mandate-block">
-    <strong>${escapeHtml(titleCase(mandate.office))}</strong>
-    <p>${escapeHtml(mandate.institution)} · Legislature ${escapeHtml(mandate.legislature)}</p>
-    <p>${escapeHtml(mandate.election_area || "Election area not provided")} · ${escapeHtml(dates)}</p>
+    <strong>${escapeHtml(mandateRole(mandate))}</strong>
+    <p>${escapeHtml(context)}</p>
+    <p>${escapeHtml(mandate.election_area || (isLegislatureNumber(mandate.legislature) ? "Election area not provided" : "Government office"))} · ${escapeHtml(dates)}</p>
   </div>`;
 }
 
@@ -629,7 +669,10 @@ export function renderPoliticianDetail(person, scorecard = null) {
   const mandate = primaryMandate(person);
   const topics = (scorecard?.strata || []).flatMap((stratum) => stratum.topics).slice(0, 6);
   return `<section class="profile-hero">
-      ${portrait(person)}
+      <div class="hero-media">
+        ${portrait(person, { size: "hero" })}
+        ${renderPhotoCredit(person)}
+      </div>
       <div class="profile-intro">
         <span class="verified-badge">Verified from official sources</span>
         <h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>
@@ -717,6 +760,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     listPoliticians: () => request("/politicians?offset=0&limit=50"),
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
+    getPortraits: () => request("/portraits"),
     getScoringMethodology: () => request("/methodology/scoring"),
     listProposals: () => request("/proposals?offset=0&limit=50"),
     getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
@@ -762,9 +806,28 @@ async function fillCardRecords(api, people) {
   }));
 }
 
+const OFFICE_ORDER = ["presidente del consiglio", "vice presidente del consiglio", "ministro", "ministro senza portafoglio"];
+
+function officeRank(person) {
+  const office = String(primaryMandate(person)?.office ?? "").toLocaleLowerCase();
+  const index = OFFICE_ORDER.indexOf(office);
+  return index === -1 ? OFFICE_ORDER.length : index;
+}
+
+async function loadPortraits(api) {
+  try {
+    const data = await api.getPortraits();
+    for (const [id, value] of Object.entries(data || {})) portraits.set(id, value);
+  } catch {
+    // Portraits are optional; monograms are drawn instead.
+  }
+}
+
 async function showArchive(api) {
   try {
-    const payload = await api.listPoliticians();
+    const [payload] = await Promise.all([api.listPoliticians(), loadPortraits(api)]);
+    payload.items.sort((left, right) => officeRank(left) - officeRank(right)
+      || `${left.family_name} ${left.given_name}`.localeCompare(`${right.family_name} ${right.given_name}`, "it"));
     byId("archive-count").textContent = `${payload.total} verified profile${payload.total === 1 ? "" : "s"}`;
     if (!payload.items.length) {
       showState(byId("archive-status"), "No verified profiles are currently available.", "Published profiles will appear here after editorial verification.");
@@ -787,6 +850,7 @@ async function showDetail(api, politicianId) {
     const [person, scorecard] = await Promise.all([
       api.getPolitician(politicianId),
       api.getScorecard(politicianId).catch(() => null),
+      loadPortraits(api),
     ]);
     const detail = byId("profile-detail");
     byId("detail-status").hidden = true;
@@ -1174,7 +1238,11 @@ async function showMethodology(api) {
 // the Content-Security-Policy, so the cleanup is delegated here.
 document.addEventListener("error", (event) => {
   const target = event.target;
-  if (target instanceof HTMLImageElement && target.closest(".portrait")) target.remove();
+  if (target instanceof HTMLImageElement && target.closest(".portrait")) {
+    target.closest(".hero-media")?.querySelector(".photo-credit")?.remove();
+    target.closest(".portrait").classList.remove("has-photo");
+    target.remove();
+  }
 }, true);
 
 const api = createPublicApiClient();

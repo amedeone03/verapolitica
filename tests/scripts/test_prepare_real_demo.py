@@ -48,18 +48,19 @@ def test_candidate_selection_is_verbatim_and_skips_rhetoric():
     assert [c.sentence for c in picked] == [
         "Intendiamo ridurre il cuneo fiscale di cinque punti a favore dei lavoratori nel corso della legislatura."
     ]
-    assert picked[0].topic_code == "5"
+    assert picked[0].topic_code == "1"  # tax wedge: CAP macroeconomics / taxation
+    assert picked[0].title.startswith("Ridurre il cuneo fiscale")
     assert all(c.sentence in text for c in select_pledge_candidates(text))
 
 
 def test_real_demo_publishes_official_profiles_and_unrated_commitments(tmp_path):
     report = prepare_real_demo(
-        workspace_root=tmp_path, collector=FixtureGovernoCollector(), fetch=fetch
+        workspace_root=tmp_path, collector=FixtureGovernoCollector(), fetch=fetch, portrait_lookup=None
     )
     assert report.politicians_collected == 4
     assert len(report.profiles_published) == 2  # PM and minister; undersecretaries stay drafts
-    assert report.profiles_pending_review == 1  # the other one has no birth date to bootstrap safely
-    assert any("Carlo Verdi" in warning for warning in report.warnings)
+    assert report.profiles_pending_review == 2  # undersecretaries stay as drafts
+    assert report.identities_confirmed_by_editor == ["Carlo Verdi"]  # no birth date: editorial path
     assert report.commitment_owner == "Mario Rossi"
     assert len(report.commitments_published) == 4
     assert (tmp_path / "data/demo/real_demo_report.json").is_file()

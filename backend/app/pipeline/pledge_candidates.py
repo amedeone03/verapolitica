@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from backend.app.scoring.types import PledgeSpecificity
 
-EXTRACTOR_VERSION = "pledge-candidates/v1"
+EXTRACTOR_VERSION = "pledge-candidates/v2"
 
 # First-person plural or governmental commitment markers (Italian).
 _COMMITMENT = re.compile(
@@ -36,16 +36,38 @@ _COMMITMENT = re.compile(
 _CONCRETE = re.compile(
     r"\b(legge|riforma|decreto|fondo|tassa|imposta|aliquota|cuneo|"
     r"pension\w*|reddito|bonus|assegno|tariff\w*|bollett\w*|"
-    r"assunzion\w*|investiment\w*|piano|codice|registro|commissione|"
-    r"presidenzialismo|autonomia|flat tax|iva|irpef|pnrr|euro|miliard\w*)\b",
+    r"assunzion\w*|investiment\w*|piano|codice|registro|clausola|"
+    r"presidenzialismo|semipresidenzialismo|autonomia differenziata|roma capitale|"
+    r"concession\w*|reti|agenzia delle entrate|criteri|tutele|"
+    r"carcer\w*|certezza della pena|ordinamento giudiziario|magistratura|"
+    r"missione|hotspot|asilo|occupazione femminile|lavoratori autonomi|"
+    r"proprietà pubblica|infrastruttur\w*|flat tax|iva|irpef|pnrr|euro|miliard\w*)\b",
     re.IGNORECASE,
 )
 _NUMBER = re.compile(r"\d")
 
+# A policy verb right after the commitment marker ("intendiamo *introdurre* …").
+_ACTION_AFTER_MARKER = re.compile(
+    r"^\s*(?:\w+\s+){0,2}?(introdurre|completare|tutelare|assicurare|modificare|"
+    r"incentivare|recuperare|ridurre|aumentare|abbassare|eliminare|rivedere|"
+    r"riformare|istituire|approvare|estendere|semplificare|garantire|dare seguito|"
+    r"partire|mantenere|migliorare|riconoscere|rafforzare|colmare|restituire|"
+    r"riportare|difendere|sostenere|investire)\b",
+    re.IGNORECASE,
+)
+
+# Hard exclusions: questions reported, personal opinions, refusals, procedure only.
+_EXCLUDE = re.compile(
+    r"(ci è stato chiesto|mi sento di dire|non intendiamo|confrontarci|"
+    r"tutto quello che|quello che noi vogliamo fare è|ce ne faremo carico|"
+    r"lavoreremo sodo|^(?:a loro|e intendiamo farlo))",
+    re.IGNORECASE,
+)
+
 # Rhetoric that makes a sentence unverifiable on its own.
 _VAGUE = re.compile(
-    r"\b(nazione|patria|orgoglio|speranza|destino|futuro dei nostri|"
-    r"rimettere in piedi|grande|straordinari\w*|storic\w*)\b",
+    r"\b(nazione|patria|orgoglio|speranza|destino|futuro|"
+    r"rimettere in piedi|grande|straordinari\w*|storic\w*|energie)\b",
     re.IGNORECASE,
 )
 
@@ -53,6 +75,10 @@ _VAGUE = re.compile(
 _TOPICS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
     (code, re.compile(pattern, re.IGNORECASE))
     for code, pattern in (
+        ("20", r"\b(semipresidenzialismo|presidenzialismo|autonomia differenziata|roma capitale|comuni)\b"),
+        ("9", r"\b(immigra\w*|migranti|sbarchi|scafisti|asilo|missione navale|hotspot)\b"),
+        ("12", r"\b(carcer\w*|certezza della pena|ordinamento giudiziario|magistratura|forze dell.ordine|sicurezza)\b"),
+        ("1", r"\b(agenzia delle entrate|evasione|fisco|fiscal\w*|debito)\b"),
         ("8", r"\b(energi\w*|bollett\w*|gas|rinnovabil\w*|nucleare)\b"),
         ("9", r"\b(immigra\w*|migranti|sbarchi|confini|frontier\w*)\b"),
         ("12", r"\b(giustizia|magistrat\w*|carcer\w*|processo|reato|reati|criminalit\w*|mafi\w*)\b"),
@@ -60,6 +86,7 @@ _TOPICS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
         ("6", r"\b(scuol\w*|istruzione|universit\w*|studenti|insegnanti|docenti)\b"),
         ("13", r"\b(pension\w*|famigli\w*|natalit\w*|povert\w*|reddito di cittadinanza|disabil\w*|assegno)\b"),
         ("5", r"\b(lavor\w*|occupazion\w*|salari\w*|stipendi|cuneo)\b"),
+        ("10", r"\b(concession\w*|autostrade|aeroporti|reti|infrastruttur\w*)\b"),
         ("14", r"\b(casa|case|abitativ\w*|mutui|affitt\w*)\b"),
         ("15", r"\b(impres\w*|aziend\w*|pmi|commercio|burocrazia)\b"),
         ("16", r"\b(difesa|forze armate|militar\w*|nato)\b"),
@@ -106,12 +133,43 @@ def split_sentences(text: str) -> list[tuple[int, str]]:
     return result
 
 
-def _title(sentence: str, limit: int = 96) -> str:
-    text = sentence.rstrip(" .;!")
-    if len(text) <= limit:
-        return text
-    cut = text[:limit].rsplit(" ", 1)[0].rstrip(",;:")
-    return f"{cut}…"
+_INTENT_MARKERS = re.compile(
+    r"^(intendiamo|intende|vogliamo|ci impegneremo|ci impegniamo|"
+    r"è nostra intenzione|il nostro obiettivo è|il governo si impegna)$",
+    re.IGNORECASE,
+)
+
+
+def _commitment_marker(sentence: str) -> re.Match[str] | None:
+    """The marker that introduces the actual commitment (a policy verb follows)."""
+
+    markers = list(_COMMITMENT.finditer(sentence))
+    for marker in markers:
+        if _ACTION_AFTER_MARKER.search(sentence[marker.end():]):
+            return marker
+    return markers[0] if markers else None
+
+
+def _title(sentence: str, limit: int = 88) -> str:
+    """Short label for the commitment: from its verb, never a new wording."""
+
+    marker = _commitment_marker(sentence)
+    if marker is None:
+        text = sentence
+    elif _INTENT_MARKERS.match(marker.group(0)):
+        text = sentence[marker.end():]  # "intendiamo introdurre X" -> "introdurre X"
+    else:
+        text = sentence[marker.start():]  # "rivedremo X" stays "rivedremo X"
+    text = re.sub(r"^[\s,:;–—-]+", "", text).rstrip(" .;!")
+    text = re.sub(r"^(?:(?:di|a|ad|che|per|finalmente|anche)\s+)+", "", text, flags=re.IGNORECASE)
+    if len(text) < 25:
+        text = sentence.rstrip(" .;!")
+    if len(text) > limit:
+        cut = text[:limit]
+        comma = cut.rfind(",")
+        cut = cut[:comma] if comma > 40 else cut.rsplit(" ", 1)[0]
+        text = f"{cut.rstrip(',;:')}…"
+    return text[:1].upper() + text[1:]
 
 
 def _topic(sentence: str) -> str | None:
@@ -122,15 +180,18 @@ def _topic(sentence: str) -> str | None:
 
 
 def score_sentence(sentence: str) -> tuple[float, PledgeSpecificity] | None:
-    if not 70 <= len(sentence) <= 420 or "?" in sentence:
+    if not 70 <= len(sentence) <= 480 or "?" in sentence:
         return None
-    if not _COMMITMENT.search(sentence):
+    marker = _commitment_marker(sentence)
+    if marker is None or _EXCLUDE.search(sentence):
         return None
     concrete = len(_CONCRETE.findall(sentence))
     numbers = 1 if _NUMBER.search(sentence) else 0
     vague = len(_VAGUE.findall(sentence))
-    score = 1.0 + 1.2 * min(concrete, 3) + 1.5 * numbers - 1.0 * vague
-    if score < 2.0:
+    action = 1 if _ACTION_AFTER_MARKER.search(sentence[marker.end():]) else 0
+    early = 1 if marker.start() <= 80 else 0
+    score = 0.5 + 1.2 * min(concrete, 3) + 1.0 * numbers + 1.0 * action + 0.5 * early - 0.8 * vague
+    if concrete == 0 or score < 2.3:
         return None
     specificity = (
         PledgeSpecificity.HIGH if numbers or concrete >= 2 else PledgeSpecificity.MEDIUM
