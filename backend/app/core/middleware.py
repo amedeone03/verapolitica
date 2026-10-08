@@ -60,7 +60,14 @@ def resolve_request_id(incoming: str | None) -> str:
     return str(uuid.uuid4())
 
 
+# Front-end assets are small and change with every release: always revalidate
+# (ETag / Last-Modified) instead of letting browsers reuse a stale app.js.
+REVALIDATED_PREFIXES = ("/app", "/demo")
+
+
 def apply_security_headers(response: Response, path: str = "") -> None:
+    if path.startswith(REVALIDATED_PREFIXES):
+        response.headers.setdefault("Cache-Control", "no-cache")
     if path in DOCS_PATHS:
         response.headers.setdefault(
             "Content-Security-Policy", DOCS_CONTENT_SECURITY_POLICY

@@ -216,3 +216,15 @@ def test_docs_csp_allows_swagger_assets_only_on_docs_pages(tmp_path):
     public_csp = public.headers["Content-Security-Policy"]
     assert "cdn.jsdelivr.net" not in public_csp
     assert "script-src 'self';" in public_csp
+
+
+def test_frontend_assets_are_revalidated(tmp_path):
+    from backend.app.core.config import Settings
+    from backend.app.main import create_app
+
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'cache.db'}", raw_storage_path=tmp_path / "raw")
+    with TestClient(create_app(settings)) as client:
+        script = client.get("/app/app.js")
+        health = client.get("/health/live")
+    assert script.headers["Cache-Control"] == "no-cache"
+    assert "no-cache" not in health.headers.get("Cache-Control", "")

@@ -73,7 +73,14 @@ from backend.app.services import (
 )
 from backend.app.services.pledge_service import PledgeService
 from backend.app.storage import LocalRawStorage
-from scripts.demo_portraits import JsonGetter, build_portraits, http_get_json, write_portraits
+from scripts.demo_portraits import (
+    JsonGetter,
+    build_portraits,
+    http_get_json,
+    load_cache,
+    store_portrait_files,
+    write_portraits,
+)
 from scripts.prepare_demo import DemoPaths, DemoSafetyError, reset_demo_environment
 
 GOVERNO_SOURCE = ("governo-italiano", "Governo Italiano", "https://www.governo.it")
@@ -420,11 +427,14 @@ def prepare_real_demo(
     collector=None,
     fetch: Fetcher = http_fetch,
     portrait_lookup: JsonGetter | None = http_get_json,
+    portrait_download=None,
     settings: Settings | None = None,
 ) -> RealDemoReport:
     if configured_environment() is AppEnvironment.PRODUCTION:
         raise DemoSafetyError("prepare_real_demo refuses VERAPOLITICA_ENV=production")
     settings = settings or Settings()
+    if portrait_download is None:
+        from scripts.demo_portraits import http_get_bytes as portrait_download
     paths = DemoPaths.for_workspace(workspace_root)
     reset_demo_environment(paths)
     report = RealDemoReport(database_path=str(paths.database))
@@ -450,16 +460,27 @@ def prepare_real_demo(
                 _publish_commitments(session_factory, url, raw_document_id, owner, report)
             except Exception as exc:  # the profiles are still useful on their own
                 report.warnings.append(f"programme not loaded: {exc}")
+        cache_path = paths.demo_root / "portrait_cache.json"
+        cache = load_cache(cache_path)
         portraits = (
             build_portraits(
                 _published_people(session_factory),
                 get_json=portrait_lookup,
                 warnings=report.warnings,
+                cache=cache,
             )
             if portrait_lookup is not None
             else {}
         )
+        if portrait_lookup is not None:
+            store_portrait_files(
+                portraits,
+                paths.demo_root / "portraits",
+                fetch_bytes=portrait_download,
+                warnings=report.warnings,
+            )
         write_portraits(paths.demo_root / "portraits.json", portraits)
+        write_portraits(cache_path, cache)
         report.portraits_found = len(portraits)
     finally:
         engine.dispose()

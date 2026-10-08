@@ -51,6 +51,12 @@ function initials(person) {
 // Credited portrait dataset (official source first, then Wikimedia Commons).
 const portraits = new Map();
 
+function safeImageUrl(value) {
+  // Portraits stored by the demo are served by this API (same origin).
+  if (typeof value === "string" && /^\/portraits\/\d+\/image$/.test(value)) return value;
+  return safeExternalUrl(value);
+}
+
 function portraitFor(person) {
   const credited = portraits.get(String(person.id));
   if (credited) return credited;
@@ -60,7 +66,7 @@ function portraitFor(person) {
 
 function portrait(person, { size = "card" } = {}) {
   const photo = portraitFor(person);
-  const imageUrl = photo ? safeExternalUrl(photo.url) : null;
+  const imageUrl = photo ? safeImageUrl(photo.url) : null;
   const name = `${person.given_name} ${person.family_name}`;
   const monogram = `<span class="monogram" aria-hidden="true">${escapeHtml(initials(person))}</span>`;
   const image = imageUrl
@@ -71,7 +77,7 @@ function portrait(person, { size = "card" } = {}) {
 
 export function renderPhotoCredit(person) {
   const photo = portraitFor(person);
-  if (!photo || !safeExternalUrl(photo.url)) return "";
+  if (!photo || !safeImageUrl(photo.url)) return "";
   const link = safeExternalUrl(photo.source_url);
   const label = photo.origin === "Wikimedia Commons"
     ? `Photo: ${photo.credit} · ${photo.license} · Wikimedia Commons`
