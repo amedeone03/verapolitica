@@ -27,6 +27,10 @@ From the repository root, start the complete demo with one command:
 ./scripts/run_demo.sh
 ```
 
+On Windows, run `scripts\run_demo.cmd` instead (from cmd, PowerShell, or a
+double-click). It creates `.venv` with Python 3.13 if needed, installs the
+dependencies, rebuilds the demo data and starts the server on the same address.
+
 The launcher uses the repository `.venv`, rebuilds the isolated demo state, applies
 demo-only environment variables, and starts FastAPI on `127.0.0.1:8000`. Keep this
 terminal visible so you can stop the application with `Ctrl+C`.
