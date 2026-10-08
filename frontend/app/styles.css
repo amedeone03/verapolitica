@@ -92,11 +92,9 @@ img { max-width: 100%; }
   padding: 10px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #140a03;
   font-size: .78rem; font-weight: 800; cursor: pointer;
 }
-.site-search button:hover, .search-panel button:hover { background: var(--accent-strong); }
 .public-nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
 .public-nav::-webkit-scrollbar { display: none; }
 .public-nav a { padding: 7px 11px; color: var(--muted); border-radius: 999px; font-size: .78rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
-.public-nav a:hover { color: var(--ink); background: var(--surface-2); }
 
 /* Layout & type ----------------------------------------------------------- */
 main { width: min(1180px, 92vw); min-height: calc(100vh - 190px); margin: 0 auto; padding: 64px 0 80px; }
@@ -124,14 +122,13 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .verified-badge::before { content: "✓"; display: grid; place-items: center; width: 16px; height: 16px; color: #140a03; background: var(--accent); border-radius: 50%; font-size: .62rem; }
 
 /* Politician cards -------------------------------------------------------- */
-.politician-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.politician-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 18px; }
 .politician-card {
   position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 22px;
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow);
-  transition: transform .18s ease, border-color .18s ease;
+  transition: transform 200ms var(--ease-out), border-color 200ms ease;
 }
-.politician-card:hover { transform: translateY(-3px); border-color: var(--accent-line); }
 .politician-card .portrait { width: 58px; height: 58px; min-height: 0; border-radius: 50%; font-size: 1.1rem; box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--line-strong); }
 .portrait {
   position: relative; width: 100%; height: 100%; min-height: 255px; display: grid; place-items: center; overflow: hidden;
@@ -145,7 +142,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .area { margin: 2px 0 14px; color: var(--muted); font-size: .8rem; }
 .source-count { margin: 12px 0 14px; color: var(--faint); font-size: .74rem; }
 .profile-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-strong); font-size: .82rem; font-weight: 800; text-decoration: none; }
-.profile-link:hover { color: var(--accent); }
 .card-record { width: 100%; margin-top: auto; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(0, 0, 0, .25); }
 .card-record-caption, .card-record-empty { margin: 8px 0 0; color: var(--muted); font-size: .75rem; }
 .card-record-empty { margin: 0; color: var(--faint); }
@@ -162,7 +158,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 
 /* Profile ----------------------------------------------------------------- */
 .back-link { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 8px 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; font-size: .8rem; font-weight: 700; text-decoration: none; }
-.back-link:hover { border-color: var(--accent-line); }
 .profile-hero { position: relative; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 30px; box-shadow: var(--shadow); }
 .profile-hero::after { content: ""; position: absolute; right: -120px; top: -120px; width: 360px; height: 360px; background: radial-gradient(circle, rgba(255, 107, 26, .28), transparent 65%); pointer-events: none; }
 .profile-hero .portrait { min-height: 360px; font-size: 3.4rem; }
@@ -189,7 +184,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .profile-tabs::-webkit-scrollbar { display: none; }
 .profile-tab { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; color: var(--muted); background: transparent; border: 0; border-radius: 999px; font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer; }
 .profile-tab small { padding: 1px 7px; color: var(--muted); background: var(--surface-3); border-radius: 999px; font-size: .68rem; }
-.profile-tab:hover { color: var(--ink); }
 .profile-tab.is-active { color: #140a03; background: var(--accent); box-shadow: 0 8px 22px rgba(255, 107, 26, .3); }
 .profile-tab.is-active small { color: #140a03; background: rgba(0, 0, 0, .14); }
 
@@ -245,7 +239,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .proposal-timeline p { margin: 4px 0 8px; color: var(--muted); font-size: .82rem; }
 .linked-proposals h3 { margin: 8px 0 4px; font-size: 1.02rem; overflow-wrap: anywhere; }
 .linked-proposals h3 a { color: inherit; text-decoration: none; }
-.linked-proposals h3 a:hover { color: var(--accent-strong); }
 .linked-proposals p { color: var(--muted); font-size: .82rem; margin: 0; }
 .territorial-office { display: flex; justify-content: space-between; gap: 20px; }
 .territorial-office h3 { margin: 8px 0 4px; font-size: 1.02rem; }
@@ -267,7 +260,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
   flex: 0 0 auto; display: inline-flex; align-items: center; padding: 7px 13px; border: 1px solid var(--accent-line);
   border-radius: 999px; color: var(--accent-strong); background: var(--accent-soft); font-size: .76rem; font-weight: 800; text-decoration: none;
 }
-.source-link:hover { color: #140a03; background: var(--accent); }
 .supports-label { margin: 16px 0 7px; color: var(--faint); font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .supports { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .supports li { padding: 5px 10px; color: var(--ink); background: var(--surface-3); border-radius: 999px; font-size: .74rem; }
@@ -323,7 +315,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .filter-pills::-webkit-scrollbar { display: none; }
 .filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: .78rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .filter-pill small { color: var(--faint); }
-.filter-pill:hover { color: var(--ink); }
 .filter-pill.is-active { color: var(--ink); background: transparent; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .filter-pill.is-active small { color: var(--accent-strong); }
 
@@ -333,7 +324,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .pledge-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .pledge-item h4 { margin: 0; font-size: 1.04rem; line-height: 1.3; letter-spacing: -.01em; }
 .pledge-item h4 a { color: inherit; text-decoration: none; }
-.pledge-item h4 a:hover { color: var(--accent-strong); }
 .pledge-quote { margin: 0; font-size: .88rem; color: var(--muted); }
 .verdict-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent); border-radius: 999px; font-size: .72rem; font-weight: 800; }
 .verdict-chip::before { content: ""; width: 7px; height: 7px; background: var(--tone); border-radius: 50%; }
@@ -347,7 +337,6 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .search-card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); }
 .search-card h3 { margin: 8px 0 6px; font-size: 1.24rem; line-height: 1.15; }
 .search-card h3 a { color: inherit; text-decoration: none; }
-.search-card h3 a:hover { color: var(--accent-strong); }
 .search-card p { margin: 0; color: var(--muted); font-size: .84rem; }
 .search-type { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: .66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 mark.search-hit { padding: 0 2px; background: rgba(255, 107, 26, .3); color: var(--ink); border-radius: 3px; }
@@ -361,9 +350,114 @@ footer { width: min(1180px, 92vw); margin: 0 auto; padding: 28px 0 38px; display
 footer strong { color: var(--ink); font-size: .95rem; }
 footer p { max-width: 590px; margin: 4px 0 0; color: var(--muted); }
 
+/* Interaction & platform layer ---------------------------------------------
+   Motion follows a strict budget: press feedback ~140ms, reveals ~200ms,
+   custom ease-out, transform/opacity only. Hover styles exist only for
+   pointers that can hover, so taps never leave a stuck hover state. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Controls: immediate taps, no text selection on long-press. Content stays selectable. */
+button, .profile-tab, .filter-pill, .public-nav a, .back-link, .source-link, .profile-link {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Press feedback on every pressable, for touch and mouse alike. */
+.site-search button, .search-panel button, .profile-tab, .filter-pill, .back-link, .source-link {
+  transition: transform 140ms var(--ease-out), background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-search button:active, .search-panel button:active, .profile-tab:active,
+  .filter-pill:active, .back-link:active, .source-link:active { transform: scale(0.97); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site-search button:hover, .search-panel button:hover { background: var(--accent-strong); }
+  .public-nav a:hover { color: var(--ink); background: var(--surface-2); }
+  .politician-card:hover { transform: translateY(-3px); border-color: var(--accent-line); }
+  .profile-link:hover { color: var(--accent); }
+  .back-link:hover { border-color: var(--accent-line); }
+  .profile-tab:not(.is-active):hover { color: var(--ink); }
+  .filter-pill:not(.is-active):hover { color: var(--ink); border-color: var(--line-strong); }
+  .source-link:hover { color: #140a03; background: var(--accent); }
+  .linked-proposals h3 a:hover, .pledge-item h4 a:hover, .search-card h3 a:hover { color: var(--accent-strong); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .politician-card:hover { transform: none; }
+}
+
+/* Inputs: 16px on touch screens so iOS never zooms the page on focus. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px; }
+}
+
+/* Notch and home-indicator safe areas (needs viewport-fit=cover). */
+.site-header { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-top: env(safe-area-inset-top, 0px); }
+footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
+
+/* Scrollable pill rows hint that they continue. */
+.public-nav, .filter-pills, .profile-tabs {
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+}
+.public-nav a, .filter-pill, .profile-tab { scroll-snap-align: start; }
+.public-nav {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+  padding-right: 32px;
+}
+@media (max-width: 640px) {
+  .filter-pills {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+    padding-right: 28px;
+  }
+}
+
+/* Worst-case data: long names, unbroken URLs, narrow screens. */
+.scorecard > *, .stratum-card > *, .pledge-item, .pledge-list-head > * { min-width: 0; }
+.pledge-list-head .filter-pills { max-width: 100%; }
+.pledge-item h4, .pledge-quote, .evidence-text, .card-content h3,
+.proposal-card h3, .linked-proposals h3, .search-card h3 { overflow-wrap: anywhere; }
+.profile-intro h1 { overflow-wrap: break-word; font-size: clamp(1.9rem, 8.5vw, 4rem); }
+.stratum-head { flex-wrap: wrap; }
+.topic-chip { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) {
+  .stat-row { gap: 6px; }
+  .stat-tile { padding: 11px 10px; }
+  .stat-tile strong { font-size: 1.15rem; }
+  .stat-tile span { font-size: .64rem; }
+}
+.verdict-chip, .count-pill { flex-shrink: 0; white-space: nowrap; }
+.stat-tile span { line-height: 1.3; }
+.evidence-foot > span { min-width: 0; flex: 1 1 12rem; }
+
+/* Reveals: content that appears on a tab switch fades in quickly instead of popping. */
+.tab-panel { transition: opacity 200ms var(--ease-out); }
+@starting-style { .tab-panel { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .tab-panel { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+  @starting-style { .tab-panel { transform: translateY(6px); } }
+  /* The composition bar reads left to right once, the first time it is shown. */
+  .composition-bar { clip-path: inset(0 0 0 0 round 999px); transition: clip-path 520ms var(--ease-out); }
+  @starting-style { .composition-bar { clip-path: inset(0 100% 0 0 round 999px); } }
+  .interval-point { transition: transform 200ms var(--ease-out); }
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; }
+  html { scroll-behavior: auto; }
+  * { animation-duration: .01ms !important; }
 }
 
 @media (max-width: 900px) {
@@ -383,7 +477,7 @@ footer p { max-width: 590px; margin: 4px 0 0; color: var(--muted); }
   .archive-heading, .sources-heading, .method-note { align-items: flex-start; flex-direction: column; }
   .politician-grid { grid-template-columns: 1fr; }
   .profile-hero { grid-template-columns: 1fr; border-radius: var(--radius-lg); }
-  .profile-hero .portrait { min-height: 200px; max-height: 260px; font-size: 2.6rem; }
+  .profile-hero .portrait { min-height: 150px; max-height: 190px; font-size: 2.6rem; }
   .profile-tabs { position: static; }
   .stat-row { gap: 8px; }
   .stat-tile { padding: 12px; }

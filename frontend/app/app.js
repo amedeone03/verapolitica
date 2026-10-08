@@ -30,8 +30,22 @@ function formatDate(value) {
     : new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
+const graphemes = typeof Intl !== "undefined" && Intl.Segmenter
+  ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+  : null;
+
+function firstGrapheme(value) {
+  const text = String(value ?? "").trim().replace(/^[^\p{L}\p{N}]+/u, "");
+  if (!text) return "";
+  if (!graphemes) return text[0];
+  return graphemes.segment(text)[Symbol.iterator]().next().value?.segment ?? "";
+}
+
+// Initials from whole characters (accents, non-Latin scripts), first + last word.
 function initials(person) {
-  return `${person.given_name?.[0] ?? ""}${person.family_name?.[0] ?? ""}`.toUpperCase() || "VP";
+  const family = String(person.family_name ?? "").trim().split(/\s+/);
+  const value = `${firstGrapheme(person.given_name)}${firstGrapheme(family[family.length - 1])}`;
+  return value.toLocaleUpperCase() || "VP";
 }
 
 function portrait(person) {
@@ -521,7 +535,7 @@ export function renderScorecard(scorecard) {
 
 export function renderProfileStats(scorecard) {
   if (!scorecard || !scorecard.tracked_pledges) {
-    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Commitments tracked</span></div></div>`;
+    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Promises</span></div></div>`;
   }
   const single = scorecard.strata.length === 1 ? scorecard.strata[0] : null;
   const score = single
@@ -532,7 +546,7 @@ export function renderProfileStats(scorecard) {
   const progress = scorecard.mandate_progress
     ? `<div class="stat-tile"><strong>${percent(scorecard.mandate_progress.elapsed_fraction)}</strong><span>Mandate elapsed</span></div>`
     : `<div class="stat-tile"><strong>${scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0)}</strong><span>Closed</span></div>`;
-  return `<div class="stat-row"><div class="stat-tile"><strong>${scorecard.tracked_pledges}</strong><span>Commitments tracked</span></div>${score}${progress}</div>`;
+  return `<div class="stat-row"><div class="stat-tile"><strong>${scorecard.tracked_pledges}</strong><span>Promises</span></div>${score}${progress}</div>`;
 }
 
 export function renderCardRecord(scorecard) {
@@ -547,7 +561,7 @@ export function renderCardRecord(scorecard) {
   }
   const entries = [...composition.entries()].map(([verdict, count]) => ({ verdict, count }));
   const closed = scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0);
-  return `${renderCompositionBar(entries, { compact: true })}<p class="card-record-caption"><strong>${scorecard.tracked_pledges}</strong> commitments · ${closed} closed</p>`;
+  return `${renderCompositionBar(entries, { compact: true })}<p class="card-record-caption"><strong>${scorecard.tracked_pledges}</strong> ${scorecard.tracked_pledges === 1 ? "commitment" : "commitments"} · ${closed} closed</p>`;
 }
 
 function bindPledgeFilters(root) {

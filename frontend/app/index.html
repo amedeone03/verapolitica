@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0b0b0c" />
     <meta name="description" content="Verified profiles of Italian public representatives, backed by official sources." />
@@ -30,6 +30,8 @@
             maxlength="200"
             placeholder="Search people, places, proposals"
             autocomplete="off"
+            autocorrect="off"
+            enterkeyhint="search"
           />
           <button type="submit">Search</button>
         </form>
@@ -234,7 +236,7 @@
         <form class="search-panel" action="./" method="get">
           <input type="hidden" name="view" value="search" />
           <label class="visually-hidden" for="search-page-q">Search query</label>
-          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Try Anna, Milano, Lombardia" />
+          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Try Anna, Milano, Lombardia" autocomplete="off" autocorrect="off" enterkeyhint="search" />
           <label class="visually-hidden" for="search-type">Entity type</label>
           <select id="search-type" name="type">
             <option value="">All types</option>
