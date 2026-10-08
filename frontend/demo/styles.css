@@ -320,6 +320,11 @@ footer {
 }
 @media (pointer: coarse) { input, select { font-size: 16px; } }
 
+@media (max-width: 900px) {
+  /* The same mode label is repeated in the page hero. */
+  .topbar .mode-pill { display: none; }
+}
+
 @media (max-width: 980px) {
   .hero, .content-grid, .identity-layout, .proposal-review-grid { grid-template-columns: 1fr; }
   .workflow { grid-template-columns: repeat(3, 1fr); row-gap: 20px; }
