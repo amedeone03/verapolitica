@@ -1,6 +1,7 @@
 @echo off
 rem VeraPolitica local demo launcher for Windows (cmd or PowerShell).
-rem Usage from the repository root:  scripts\run_demo.cmd
+rem Usage from the repository root:  scripts\run_demo.cmd            (official data)
+rem                                  scripts\run_demo.cmd synthetic  (synthetic fixtures)
 setlocal
 cd /d "%~dp0.."
 title VeraPolitica demo
@@ -24,8 +25,13 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo === Rebuilding the isolated demo data ===
-".venv\Scripts\python.exe" -m scripts.prepare_demo
+if /i "%~1"=="synthetic" (
+  echo === Rebuilding the synthetic demo data ===
+  ".venv\Scripts\python.exe" -m scripts.prepare_demo
+) else (
+  echo === Rebuilding the demo from official governo.it data ===
+  ".venv\Scripts\python.exe" -m scripts.prepare_real_demo
+)
 if errorlevel 1 (
   echo Demo preparation failed.
   pause
