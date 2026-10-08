@@ -193,6 +193,7 @@ def prepare_demo(
     workspace_root: Path = REPOSITORY_ROOT,
     fixture_path: Path = DEFAULT_FIXTURE,
     governo_fixture_path: Path = DEFAULT_GOVERNO_FIXTURE,
+    include_pledges: bool = False,
 ) -> DemoSummary:
     if configured_environment() is AppEnvironment.PRODUCTION:
         raise DemoSafetyError(
@@ -299,6 +300,14 @@ def prepare_demo(
         published_referendum_id, pending_referendum_draft_id = _prepare_civic_example(
             session_factory
         )
+        if include_pledges:
+            from scripts.demo_pledges import seed_demo_pledges
+
+            seed_demo_pledges(
+                session_factory,
+                politician_source_key=SOURCE_KEY,
+                politician_source_identifier="https://dati.senato.it/senatore/demo-001",
+            )
         summary = _load_summary(
             session_factory,
             paths,
@@ -1015,6 +1024,10 @@ def _print_summary(summary: DemoSummary) -> None:
     print(f"  Published proposal ID: {summary.published_proposal_id}")
     print(f"  Pending status-update draft ID: {summary.pending_proposal_draft_id}")
     print()
+    print("Pledge tracker (synthetic demo data):")
+    print(f"  GET /politicians/{summary.published_politician_id}/scorecard")
+    print("  13 synthetic pledges, 1 pending matcher draft in /admin/pledges/assessment-drafts")
+    print()
     print("Territorial archive (synthetic demo mayor):")
     print("  Region: Lombardia")
     print("  Municipality: Milano")
@@ -1050,7 +1063,7 @@ def _print_summary(summary: DemoSummary) -> None:
 
 
 def main() -> int:
-    summary = prepare_demo()
+    summary = prepare_demo(include_pledges=True)
     _print_summary(summary)
     return 0
 

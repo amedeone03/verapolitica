@@ -505,9 +505,12 @@ def _page(
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0b0c" />
     <title>{escape(title)}</title>
-    <link rel="stylesheet" href="/demo/styles.css?v=ceo-demo-video" />
+    <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/demo/styles.css?v=glass-1" />
   </head>
   <body>
     <div class="page-shell">

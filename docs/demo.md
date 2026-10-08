@@ -1,5 +1,36 @@
 # VeraPolitica MVP presenter runbook
 
+## Real-data demo (default on Windows)
+
+`scripts\run_demo.cmd` (and the local `avvia-demo.cmd`) rebuilds the demo from
+official sources with `python -m scripts.prepare_real_demo`; it needs internet:
+
+- **Profiles**: the current Government from governo.it, through the production
+  Governo collector, parser and mapper. The Prime Minister, Deputy Prime
+  Ministers and Ministers are published; Deputy Ministers and Undersecretaries
+  stay as pending drafts for the editorial demo. governo.it pages publish no
+  birth date, so identity creation goes through identity-resolution cases that
+  the `demo-setup` editor resolves; every decision is recorded.
+- **Commitments**: the official *dichiarazioni programmatiche* (25 Oct 2022) are
+  ingested as an operator-approved document. Whole sentences that state a
+  concrete commitment are selected deterministically
+  (`backend/app/pipeline/pledge_candidates.py`), checked to be verbatim in the
+  stored text, published as explicit promises owned by the Prime Minister and
+  classified automatically (flagged for editorial review). **No fulfilment
+  verdict is created**: every commitment is "not yet rated", so the score is
+  withheld until editors approve evidence-backed assessments.
+- **Portraits** (`data/demo/portraits.json`, served at `GET /portraits`): the
+  official portrait when the source publishes one, otherwise a freely licensed
+  Wikimedia Commons photo found through Wikidata, accepted only for a single
+  exact-name match of an Italian politician. Author and licence are shown on
+  the profile. No match means a monogram in the same glass style.
+- A run report is written to `data/demo/real_demo_report.json`.
+
+The synthetic presenter walkthrough below is still available with
+`scripts\run_demo.cmd synthetic` (or `python -m scripts.prepare_demo`).
+
+## Synthetic presenter walkthrough
+
 This demonstration is deterministic and network-free. It uses only:
 
 - `data/demo/verapolitica_demo.db`
@@ -26,6 +57,10 @@ From the repository root, start the complete demo with one command:
 ```bash
 ./scripts/run_demo.sh
 ```
+
+On Windows, run `scripts\run_demo.cmd` instead (from cmd, PowerShell, or a
+double-click). It creates `.venv` with Python 3.13 if needed, installs the
+dependencies, rebuilds the demo data and starts the server on the same address.
 
 The launcher uses the repository `.venv`, rebuilds the isolated demo state, applies
 demo-only environment variables, and starts FastAPI on `127.0.0.1:8000`. Keep this

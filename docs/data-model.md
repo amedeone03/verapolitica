@@ -85,6 +85,30 @@ implementation can persist identity-resolution cases, reviewable profile drafts,
 and field-level Evidence, but
 only an explicit final Review can reject a draft or publish a new version.
 
+## Pledge scorecard
+
+See [scoring-methodology.md](scoring-methodology.md) for the method.
+
+`PledgeClassification` (one per explicit-promise Proposal) stores specificity,
+action/outcome type, Comparative Agendas topic code, the owner's role when the
+pledge was made, and the mandate window. It is editorial metadata and may be
+updated; it never changes a published verdict.
+
+`PledgeAssessmentDraft` is a proposed fulfilment verdict with FEVER evidence
+label, rationale, verbatim excerpt, RawDocument (and optional DocumentChunk),
+origin (`editor` or `evidence_matcher`), judge name/version, retrieval scores and
+a deterministic identity hash so replays create nothing. Statuses: `pending`,
+`awaiting_second_approval`, `approved`, `rejected`.
+
+`PledgeAssessmentApproval` records each distinct reviewer. `broken` needs two.
+
+`PledgeAssessment` is the immutable published verdict with its approvers and
+methodology version. The current verdict is the latest row per Proposal.
+
+`PledgeAuditSample` freezes a seeded random sample, its population and its
+inclusion probability. `PledgeAuditCoding` stores blind re-codes. Approvals,
+assessments, samples and codings reject updates at the ORM level.
+
 ## Source
 
 `Source` identifies one configured official provider.

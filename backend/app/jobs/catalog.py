@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.core.config import Settings
 from backend.app.jobs.runners import (
     run_civic_reminders,
+    run_pledge_evidence_matching,
     run_politician_ingestion,
     run_proposal_ingestion,
     run_territorial_office_ingestion,
@@ -75,6 +76,12 @@ JOB_CATALOG: dict[str, JobSpec] = {
         "civic-reminders",
         run_civic_reminders,
         "schedule_civic_reminders_cron",
+    ),
+    "pledge-evidence": JobSpec(
+        "pledge-evidence",
+        "pledge-evidence",
+        run_pledge_evidence_matching,
+        "schedule_pledge_evidence_cron",
     ),
 }
 

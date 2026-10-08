@@ -270,6 +270,35 @@ and source field.
 **Invariant:** No public politician profile exists unless it points to an explicitly
 approved immutable version.
 
+## Public scorecard API
+
+`GET /politicians/{politician_id}/scorecard?as_of=YYYY-MM-DD` returns 404 unless
+the politician has a published current version. The body lists, in this order,
+the pledges with their current verdicts, then per-role strata with composition,
+closed/open counts, `kept_equivalent`, `rate` (null below 8 closed pledges, with
+`rate_withheld_reason`) and `credible_interval`, plus `mandate_progress`.
+Strata are never combined. `GET /methodology/scoring` returns the machine-readable
+parameters of the current methodology.
+
+## Pledge editorial API
+
+All routes require the admin bearer token.
+
+* `PUT /admin/pledges/{proposal_id}/classification`
+* `POST /admin/pledges/{proposal_id}/assessment-drafts` (422 when the excerpt is
+  not verbatim or the verdict does not match the evidence label)
+* `GET /admin/pledges/assessment-drafts?status=`
+* `POST /admin/pledges/assessment-drafts/{draft_id}/approve` with optional
+  `{"reviewer": "...", "note": "..."}`; returns the draft and, once enough
+  approvals exist, the published assessment. 409 for self-approval, repeated
+  reviewer, terminal or stale drafts.
+* `POST /admin/pledges/assessment-drafts/{draft_id}/reject` with `{"note": "..."}`
+* `POST /admin/pledges/audit-samples` with `{"sample_key", "size", "seed"}`
+* `GET /admin/pledges/audit-samples/{sample_key}` (blind items, no verdicts)
+* `POST /admin/pledges/audit-samples/{sample_key}/codings/{assessment_id}`
+* `GET /admin/pledges/audit-samples/{sample_key}/quality`
+* `GET /admin/pledges/bias-audit?min_per_group=&flag_threshold=`
+
 ## Admin API
 
 The Admin API is the authenticated HTTP adapter for the existing editorial service

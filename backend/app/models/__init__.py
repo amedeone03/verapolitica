@@ -98,6 +98,17 @@ from backend.app.models.civic import (
     VotingGuide,
     VotingGuideSectionKey,
 )
+from backend.app.models.pledge import (
+    ImmutablePledgeRecordError,
+    PledgeAssessment,
+    PledgeAssessmentApproval,
+    PledgeAssessmentDraft,
+    PledgeAssessmentDraftStatus,
+    PledgeAssessmentOrigin,
+    PledgeAuditCoding,
+    PledgeAuditSample,
+    PledgeClassification,
+)
 from backend.app.models import search_fields as _search_fields  # noqa: F401
 
 __all__ = [
@@ -177,4 +188,13 @@ __all__ = [
     "ReferendumType",
     "VotingGuide",
     "VotingGuideSectionKey",
+    "ImmutablePledgeRecordError",
+    "PledgeAssessment",
+    "PledgeAssessmentApproval",
+    "PledgeAssessmentDraft",
+    "PledgeAssessmentDraftStatus",
+    "PledgeAssessmentOrigin",
+    "PledgeAuditCoding",
+    "PledgeAuditSample",
+    "PledgeClassification",
 ]

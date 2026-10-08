@@ -51,6 +51,12 @@ EXPECTED_TABLES = frozenset(
         "referendum_reviews",
         "notification_subscriptions",
         "notification_reminder_candidates",
+        "pledge_classifications",
+        "pledge_assessment_drafts",
+        "pledge_assessment_approvals",
+        "pledge_assessments",
+        "pledge_audit_samples",
+        "pledge_audit_codings",
     }
 )
 
