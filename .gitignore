@@ -15,6 +15,7 @@ venv/
 # Environment variables
 .env
 .env.ceo-demo
+.env.unified-demo
 
 # Local data
 data/*

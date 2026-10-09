@@ -83,6 +83,8 @@ def reset_ceo_ai_demo(
     source_url: str | None = None,
     dry_run: bool = False,
     demo_upload_path: Path | None = None,
+    protected_source_keys: tuple[str, ...] = (),
+    protected_source_urls: tuple[str, ...] = (),
 ) -> dict:
     runtime = settings or get_settings()
     upload_root = Path(demo_upload_path or runtime.demo_upload_path)
@@ -105,6 +107,14 @@ def reset_ceo_ai_demo(
                     document
                     for document in documents
                     if document.source_url == source_url
+                ]
+            if protected_source_keys or protected_source_urls:
+                documents = [
+                    document
+                    for document in documents
+                    if (document.source.key if document.source is not None else "")
+                    not in protected_source_keys
+                    and document.source_url not in protected_source_urls
                 ]
             proposal_ids: set[int] = set()
             draft_ids: set[int] = set()

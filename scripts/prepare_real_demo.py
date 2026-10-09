@@ -138,9 +138,12 @@ def http_fetch(url: str) -> tuple[bytes, str]:
 
 def _source(session_factory, key: str, name: str, base_url: str) -> int:
     with session_factory() as session:
-        source = Source(key=key, name=name, base_url=base_url)
-        session.add(source)
-        session.commit()
+        source = session.scalar(select(Source).where(Source.key == key))
+        if source is None:
+            source = Source(key=key, name=name, base_url=base_url)
+            session.add(source)
+            session.commit()
+            session.refresh(source)
         return source.id
 
 

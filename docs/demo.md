@@ -1,5 +1,61 @@
 # VeraPolitica MVP presenter runbook
 
+## Unified local demo (preferred on Mac)
+
+One environment combines the verified CEO/Senate snapshot with Government
+profiles, portraits, pledges, and the local qwen3 AI editorial flow.
+
+It writes only under `data/unified_demo/`. It does not reset or delete
+`data/ceo_demo/` or `data/demo/`.
+
+Build once (uses the existing CEO SPARQL snapshot when present, then overlays
+governo.it; needs internet for Government / programme / portraits):
+
+```bash
+cd /Users/ameboz/verapolitica
+source .venv/bin/activate
+set -a
+source .env.unified-demo
+set +a
+python -m scripts.prepare_unified_demo --seed-from-ceo
+```
+
+Rebuild only the unified tree:
+
+```bash
+python -m scripts.prepare_unified_demo --rebuild --seed-from-ceo
+```
+
+Offline fixture build (tests / no network):
+
+```bash
+python -m scripts.prepare_unified_demo --offline --no-portraits
+```
+
+Launch (does not rebuild data):
+
+```bash
+cd /Users/ameboz/verapolitica
+source .venv/bin/activate
+set -a
+source .env.unified-demo
+set +a
+.venv/bin/python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Or `./scripts/run_unified_demo.sh`.
+
+After an AI walkthrough, restore the published baseline without dropping
+Senate / Government / pledges / portraits:
+
+```bash
+python -m scripts.reset_unified_demo --dry-run
+python -m scripts.reset_unified_demo
+```
+
+The older CEO (`.env.ceo-demo`) and synthetic/real `data/demo` launchers remain
+available until this unified flow is the default.
+
 ## Real-data demo (default on Windows)
 
 `scripts\run_demo.cmd` (and the local `avvia-demo.cmd`) rebuilds the demo from
