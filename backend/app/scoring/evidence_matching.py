@@ -24,6 +24,7 @@ import re
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Protocol
 
 from backend.app.core.text import normalize_search_text
@@ -34,7 +35,7 @@ from backend.app.scoring.types import (
     VERDICTS_BY_EVIDENCE_LABEL,
 )
 
-MATCHER_VERSION = "pledge-evidence/v1"
+MATCHER_VERSION = "pledge-evidence/v2"
 
 # Short, high-frequency Italian function words. Content words are kept.
 ITALIAN_STOPWORDS: frozenset[str] = frozenset(
@@ -72,6 +73,10 @@ class Passage:
     raw_document_id: int
     text: str
     source_url: str
+    retrieved_at: datetime | None = None
+    source_key: str = ""
+    source_name: str = ""
+    published_at: date | None = None
 
 
 @dataclass(frozen=True, slots=True)

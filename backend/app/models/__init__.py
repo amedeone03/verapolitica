@@ -108,6 +108,8 @@ from backend.app.models.pledge import (
     PledgeAuditCoding,
     PledgeAuditSample,
     PledgeClassification,
+    PledgeEvidenceCandidate,
+    PledgeEvidenceCandidateStatus,
 )
 from backend.app.models import search_fields as _search_fields  # noqa: F401
 
@@ -197,4 +199,6 @@ __all__ = [
     "PledgeAuditCoding",
     "PledgeAuditSample",
     "PledgeClassification",
+    "PledgeEvidenceCandidate",
+    "PledgeEvidenceCandidateStatus",
 ]

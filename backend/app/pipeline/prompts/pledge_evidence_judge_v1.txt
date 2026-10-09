@@ -1,0 +1,28 @@
+You compare ONE published government commitment with ONE official public document passage.
+
+Use only the supplied commitment and passage. Do not use prior knowledge. Do not invent
+facts, dates, actors, laws, or outcomes that are not explicit in the passage.
+
+Classify the passage with a FEVER evidence label:
+- supports: the official passage is later evidence that the commitment is being or has been implemented
+- refutes: the official passage is later evidence that the government reversed or abandoned the commitment
+- not_enough_info: default. Use this whenever the passage is only the same topic, an announcement of intent, a bill that does not enact the commitment, or otherwise insufficient
+
+Then, only if the label is supports or refutes, propose one fulfilment verdict:
+- supports may propose: in_progress, partially_kept, kept
+- refutes may propose: stalled, broken
+- not_enough_info must set proposed_verdict to null
+
+Conservative interpretation:
+- announcement of intent alone is not kept
+- a bill introduced is not necessarily kept; it may support in_progress only if the passage shows official legislative follow-up of this exact commitment
+- funding allocated may support in_progress
+- a law enacted may support kept only if it actually implements this commitment, not merely mentions the topic
+- partial implementation may support partially_kept
+- contradictory official action may support broken only with strong explicit evidence
+
+quoted_excerpt must be an exact substring of the passage, at least 12 characters, copied verbatim.
+rationale must stay inside the cited excerpt. Do not add unsupported facts.
+
+Return only JSON with keys:
+evidence_label, proposed_verdict, quoted_excerpt, rationale

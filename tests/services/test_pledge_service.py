@@ -293,7 +293,7 @@ def test_evidence_matcher_creates_only_verified_drafts(session_factory, data):
 
     abstaining = PledgeEvidenceService(session_factory).run()
     assert abstaining.drafts_created == 0
-    assert abstaining.rejections == {"not_enough_info": abstaining.passages_judged}
+    assert abstaining.rejections.get("not_enough_info", 0) == abstaining.passages_judged
     assert abstaining.skipped_outcome_pledges == 1
 
     judge = FakeJudge()

@@ -85,6 +85,37 @@ class PledgeAssessmentDraftResponse(_Frozen):
     judge_version: str | None
     created_by: str
     created_at: datetime
+    commitment_title: str | None = None
+    commitment_statement: str | None = None
+    source_title: str | None = None
+
+
+class PledgeEvidenceCandidateResponse(_Frozen):
+    id: int
+    proposal_id: int
+    source_url: str
+    source_title: str | None
+    published_at: date | None
+    exact_excerpt: str
+    retrieval_reason: str
+    deterministic_score: float
+    evidence_label_candidate: EvidenceLabel | None
+    status: str
+    raw_document_id: int
+    document_chunk_id: int
+
+
+class PledgeEvidenceRunResponse(_Frozen):
+    pledges_considered: int
+    skipped_outcome_pledges: int
+    passages_judged: int
+    drafts_created: int
+    drafts_replayed: int
+    candidates_stored: int
+    no_candidate_abstentions: int
+    rejections: dict[str, int]
+    dry_run: bool
+    published: bool = False
 
 
 class PledgeAssessmentResponse(_Frozen):

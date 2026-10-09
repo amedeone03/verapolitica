@@ -21,7 +21,13 @@ from backend.app.schemas.pledge import (
     PledgeAssessmentResponse,
     PledgeClassificationRequest,
     PledgeClassificationResponse,
+    PledgeEvidenceCandidateResponse,
+    PledgeEvidenceRunResponse,
     PledgeRejectionRequest,
+)
+from backend.app.services.pledge_evidence_service import (
+    PledgeEvidenceService,
+    judge_from_name,
 )
 from backend.app.services.pledge_service import (
     NewAssessmentDraft,
@@ -98,6 +104,16 @@ def propose_assessment(
             )
         )
         return draft
+
+
+@router.get(
+    "/assessment-drafts/{draft_id}", response_model=PledgeAssessmentDraftResponse
+)
+def get_assessment_draft(
+    draft_id: Annotated[int, Path(gt=0)], service: Service
+) -> PledgeAssessmentDraftResponse:
+    with _errors():
+        return service.get_draft(draft_id)
 
 
 @router.get("/assessment-drafts", response_model=list[PledgeAssessmentDraftResponse])
@@ -209,3 +225,46 @@ def bias_audit(
     flag_threshold: Annotated[float, Query(gt=0, le=1)] = 0.15,
 ) -> BiasAuditResponse:
     return service.bias_audit(min_per_group=min_per_group, flag_threshold=flag_threshold)
+
+
+@router.get(
+    "/{proposal_id}/evidence-candidates",
+    response_model=list[PledgeEvidenceCandidateResponse],
+)
+def list_evidence_candidates(
+    proposal_id: Annotated[int, Path(gt=0)],
+    session_factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    principal: Principal,
+) -> list[PledgeEvidenceCandidateResponse]:
+    del principal
+    return PledgeEvidenceService(session_factory).list_candidates(proposal_id)
+
+
+@router.post(
+    "/{proposal_id}/evidence-matching",
+    response_model=PledgeEvidenceRunResponse,
+)
+def run_evidence_matching(
+    proposal_id: Annotated[int, Path(gt=0)],
+    session_factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    principal: Principal,
+    dry_run: Annotated[bool, Query()] = False,
+    judge: Annotated[str, Query()] = "conservative",
+) -> PledgeEvidenceRunResponse:
+    del principal
+    service = PledgeEvidenceService(
+        session_factory, judge=judge_from_name(judge)
+    )
+    report = service.run(proposal_ids=[proposal_id], dry_run=dry_run)
+    return PledgeEvidenceRunResponse(
+        pledges_considered=report.pledges_considered,
+        skipped_outcome_pledges=report.skipped_outcome_pledges,
+        passages_judged=report.passages_judged,
+        drafts_created=report.drafts_created,
+        drafts_replayed=report.drafts_replayed,
+        candidates_stored=report.candidates_stored,
+        no_candidate_abstentions=report.no_candidate_abstentions,
+        rejections=report.rejections,
+        dry_run=report.dry_run,
+        published=False,
+    )

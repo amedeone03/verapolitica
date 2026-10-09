@@ -202,6 +202,7 @@ class PledgeService:
 
     @staticmethod
     def draft_response(draft: PledgeAssessmentDraft) -> PledgeAssessmentDraftResponse:
+        proposal = getattr(draft, "proposal", None)
         return PledgeAssessmentDraftResponse(
             id=draft.id,
             proposal_id=draft.proposal_id,
@@ -221,6 +222,9 @@ class PledgeService:
             judge_version=draft.judge_version,
             created_by=draft.created_by,
             created_at=draft.created_at,
+            commitment_title=proposal.canonical_title if proposal is not None else None,
+            commitment_statement=proposal.exact_statement if proposal is not None else None,
+            source_title=None,
         )
 
     @staticmethod
@@ -301,7 +305,10 @@ class PledgeService:
             )
             existing = session.scalar(
                 select(PledgeAssessmentDraft)
-                .options(selectinload(PledgeAssessmentDraft.approvals))
+                .options(
+                    selectinload(PledgeAssessmentDraft.approvals),
+                    selectinload(PledgeAssessmentDraft.proposal),
+                )
                 .where(
                     PledgeAssessmentDraft.proposal_id == new.proposal_id,
                     PledgeAssessmentDraft.identity_key == key,
@@ -332,7 +339,7 @@ class PledgeService:
             )
             session.add(draft)
             session.flush()
-            session.refresh(draft, ["approvals"])
+            session.refresh(draft, ["approvals", "proposal"])
             return self.draft_response(draft), True
 
     def list_drafts(
@@ -344,7 +351,8 @@ class PledgeService:
     ) -> list[PledgeAssessmentDraftResponse]:
         with self.session_factory() as session:
             query = select(PledgeAssessmentDraft).options(
-                selectinload(PledgeAssessmentDraft.approvals)
+                selectinload(PledgeAssessmentDraft.approvals),
+                selectinload(PledgeAssessmentDraft.proposal),
             )
             if status is not None:
                 query = query.where(PledgeAssessmentDraft.status == status)
@@ -355,13 +363,30 @@ class PledgeService:
             )
             return [self.draft_response(row) for row in rows]
 
+    def get_draft(self, draft_id: int) -> PledgeAssessmentDraftResponse:
+        with self.session_factory() as session:
+            draft = session.scalar(
+                select(PledgeAssessmentDraft)
+                .options(
+                    selectinload(PledgeAssessmentDraft.approvals),
+                    selectinload(PledgeAssessmentDraft.proposal),
+                )
+                .where(PledgeAssessmentDraft.id == draft_id)
+            )
+            if draft is None:
+                raise PledgeNotFoundError("assessment draft not found")
+            return self.draft_response(draft)
+
     def approve(
         self, draft_id: int, *, reviewer: str, note: str | None = None
     ) -> tuple[PledgeAssessmentDraftResponse, PledgeAssessmentResponse | None]:
         with self.session_factory.begin() as session:
             draft = session.scalar(
                 select(PledgeAssessmentDraft)
-                .options(selectinload(PledgeAssessmentDraft.approvals))
+                .options(
+                    selectinload(PledgeAssessmentDraft.approvals),
+                    selectinload(PledgeAssessmentDraft.proposal),
+                )
                 .where(PledgeAssessmentDraft.id == draft_id)
                 .with_for_update()
             )
@@ -430,7 +455,10 @@ class PledgeService:
         with self.session_factory.begin() as session:
             draft = session.scalar(
                 select(PledgeAssessmentDraft)
-                .options(selectinload(PledgeAssessmentDraft.approvals))
+                .options(
+                    selectinload(PledgeAssessmentDraft.approvals),
+                    selectinload(PledgeAssessmentDraft.proposal),
+                )
                 .where(PledgeAssessmentDraft.id == draft_id)
             )
             if draft is None:

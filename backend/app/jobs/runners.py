@@ -345,7 +345,10 @@ def run_pledge_evidence_matching(
                 "judge": f"{service.judge.name}/{service.judge.version}",
                 "passages_judged": report.passages_judged,
                 "skipped_outcome_pledges": report.skipped_outcome_pledges,
+                "candidates_stored": report.candidates_stored,
+                "no_candidate_abstentions": report.no_candidate_abstentions,
                 "rejections": report.rejections,
+                "published": False,
             },
         )
 

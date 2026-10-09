@@ -37,6 +37,19 @@ Every verdict is first a `PledgeAssessmentDraft` that must carry:
   cite text that is not there (Gao et al. 2023, ALCE);
 * a rationale.
 
+Practical interpretation used by reviewers (the public formula does not change):
+
+* `not_yet_rated` — no approved assessment yet. Pending drafts do not count.
+* `in_progress` — later official follow-up exists (funding, a bill, a framework
+  law) but the commitment is not fully implemented.
+* `stalled` — official evidence shows the effort stopped without fulfilment.
+* `kept` — an official act actually implements the commitment, not merely the
+  same topic. Announcement of intent alone is never `kept`. A bill introduced
+  is not necessarily `kept`.
+* `partially_kept` — official implementation covers only part of the pledge.
+* `broken` — official action contradicts or abandons the pledge. Requires two
+  distinct reviewers.
+
 Publication rules:
 
 * one human approval publishes a draft; **`broken` needs two distinct reviewers**;
@@ -49,21 +62,30 @@ Publication rules:
 > `<credential identity>/<name>` and is an attestation, not an authenticated
 > identity. Real four-eyes control requires per-user editorial accounts.
 
-## 3. Evidence matching (monthly job `pledge-evidence`)
+## 3. Evidence matching (job `pledge-evidence`, matcher `pledge-evidence/v2`)
 
 For every classified, non-vague, `action` pledge whose verdict is still open:
 
-1. retrieve candidate passages from stored `DocumentChunk`s with BM25 over
-   accent-insensitive, prefix-stemmed Italian tokens; an optional embedding
-   ranker is fused with reciprocal rank fusion (no embedding backend ships yet);
-2. ask an `EvidenceJudge` for a FEVER judgment, proposed verdict and excerpt;
-3. reject anything that fails the rules in section 2; turn the rest into drafts
-   with `origin=evidence_matcher`, retrieval scores and judge name/version.
+1. build a deterministic retrieval profile (actor, title, exact statement,
+   topic, policy-instrument phrases, mandate dates);
+2. keep only HTTPS passages from configured official hosts (governo.it,
+   ministries, Gazzetta Ufficiale, Normattiva, Senato, Camera, other listed
+   PA domains). Newspapers, blogs, social media and campaign sites are rejected;
+3. exclude the pledge's own announcement document — that text is the
+   commitment, not later evidence;
+4. require the official passage to name a policy instrument from the
+   commitment. Same-topic documents without that instrument abstain;
+5. persist unpublished `PledgeEvidenceCandidate` rows;
+6. only then ask an `EvidenceJudge`. The scheduled job still uses the
+   abstaining judge. A CLI/admin run may use a conservative official-act
+   heuristic (open `in_progress` only) or local qwen3:8b. Invalid model
+   JSON is rejected, never rewritten;
+7. fail-closed checks: verbatim excerpt, official URL, date window,
+   instrument overlap, verdict/label compatibility. Failures create no draft.
 
-The default judge abstains (`not_enough_info`), so nothing is proposed until a
-judge has been validated against the gold set (see `docs/ai-evaluation.md`).
-`outcome` pledges are skipped: an act cannot prove an outcome. They need a
-statistics matcher (ISTAT/MEF), which is not implemented.
+The default judge abstains (`not_enough_info`). `outcome` pledges are skipped.
+Nothing is auto-published. Internal judge/prompt metadata never appears on
+the public scorecard.
 
 ## 4. The score
 

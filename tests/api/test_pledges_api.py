@@ -163,3 +163,36 @@ def test_public_scorecard_requires_published_politician(tmp_path):
     with test_client as client:
         assert client.get(f"/politicians/{data.politician_id}/scorecard").status_code == 404
         assert client.get("/politicians/999999/scorecard").status_code == 404
+
+
+def test_admin_draft_shows_commitment_versus_evidence_and_matching_does_not_publish(tmp_path):
+    test_client, data, _extra = _client(tmp_path)
+    with test_client as client:
+        client.put(
+            f"/admin/pledges/{data.pledge_id}/classification",
+            headers=ADMIN,
+            json=CLASSIFICATION,
+        )
+        draft = _draft(client, data, data.pledge_id)
+        detail = client.get(f"/admin/pledges/assessment-drafts/{draft['id']}", headers=ADMIN)
+        assert detail.status_code == 200, detail.text
+        body = detail.json()
+        assert body["commitment_title"]
+        assert body["quoted_excerpt"]
+        assert body["source_url"]
+        assert body["status"] == "pending"
+        before = client.get(f"/politicians/{data.politician_id}/scorecard").json()
+        assert before["pledges"][0]["latest_assessment"] is None
+        matching = client.post(
+            f"/admin/pledges/{data.pledge_id}/evidence-matching?dry_run=true&judge=abstaining",
+            headers=ADMIN,
+        )
+        assert matching.status_code == 200, matching.text
+        assert matching.json()["published"] is False
+        candidates = client.get(
+            f"/admin/pledges/{data.pledge_id}/evidence-candidates", headers=ADMIN
+        )
+        assert candidates.status_code == 200
+        after = client.get(f"/politicians/{data.politician_id}/scorecard").json()
+        assert after["pledges"][0]["latest_assessment"] is None
+        assert after["methodology_version"] == "pledge-score/v1"

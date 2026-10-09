@@ -73,6 +73,14 @@ class PledgeAssessmentOrigin(StrEnum):
     EDITOR = "editor"
 
 
+class PledgeEvidenceCandidateStatus(StrEnum):
+    RETRIEVED = "retrieved"
+    REJECTED = "rejected"
+    JUDGED = "judged"
+    DRAFTED = "drafted"
+    ABSTAINED = "abstained"
+
+
 class PledgeAssessmentDraftStatus(StrEnum):
     PENDING = "pending"
     AWAITING_SECOND_APPROVAL = "awaiting_second_approval"
@@ -82,6 +90,59 @@ class PledgeAssessmentDraftStatus(StrEnum):
 
 class ImmutablePledgeRecordError(RuntimeError):
     pass
+
+
+class PledgeEvidenceCandidate(Base):
+    """Internal, unpublished official-evidence candidate. Never public."""
+
+    __tablename__ = "pledge_evidence_candidates"
+    __table_args__ = (
+        UniqueConstraint(
+            "proposal_id",
+            "document_chunk_id",
+            name="uq_pledge_evidence_candidate_chunk",
+        ),
+        Index("ix_pledge_evidence_candidates_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    proposal_id: Mapped[int] = mapped_column(
+        ForeignKey("proposals.id", ondelete="CASCADE"), index=True
+    )
+    source_id: Mapped[int] = mapped_column(
+        ForeignKey("sources.id", ondelete="RESTRICT"), index=True
+    )
+    raw_document_id: Mapped[int] = mapped_column(
+        ForeignKey("raw_documents.id", ondelete="RESTRICT"), index=True
+    )
+    document_chunk_id: Mapped[int] = mapped_column(
+        ForeignKey("document_chunks.id", ondelete="RESTRICT"), index=True
+    )
+    source_url: Mapped[str] = mapped_column(Text)
+    source_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    published_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    retrieved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    exact_excerpt: Mapped[str] = mapped_column(Text)
+    retrieval_reason: Mapped[str] = mapped_column(String(200))
+    deterministic_score: Mapped[float] = mapped_column(Float)
+    evidence_label_candidate: Mapped[EvidenceLabel | None] = mapped_column(
+        _enum(EvidenceLabel), nullable=True
+    )
+    status: Mapped[PledgeEvidenceCandidateStatus] = mapped_column(
+        _enum(PledgeEvidenceCandidateStatus),
+        default=PledgeEvidenceCandidateStatus.RETRIEVED,
+    )
+    retrieval: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    proposal: Mapped["Proposal"] = relationship()
+    raw_document: Mapped["RawDocument"] = relationship()
+    document_chunk: Mapped["DocumentChunk | None"] = relationship()
 
 
 class PledgeClassification(Base):
