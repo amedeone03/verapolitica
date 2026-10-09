@@ -11,20 +11,28 @@ from __future__ import annotations
 import re
 
 from backend.app.scoring.evidence_matching import EvidenceJudgment, excerpt_is_verbatim
+from backend.app.scoring.instrument_aliases import aliases_for
 from backend.app.scoring.retrieval_profile import extract_instrument_phrases
 from backend.app.scoring.types import CommitmentType, EvidenceLabel, FulfillmentVerdict
 
 ENACTMENT = re.compile(
     r"\b("
-    r"legge(?:\s+\d|\s+n\.)|decreto-legge|d\.lgs|d\.l\.|"
+    r"legge(?:\s+\d|\s+n\.)|decreto-legge|decreto\s+legislativo|d\.lgs|"
     r"approvat[aoe]\s+in\s+via\s+definitiva|"
-    r"pubblicat[ao]\s+nella\s+gazzetta|gazzetta\s+ufficiale|"
-    r"entrata\s+in\s+vigore|promulga|"
-    r"disposizioni\s+per\s+l.attuazione|"
-    r"disegno\s+di\s+legge"
+    r"pubblicat[ao]\s+nella\s+gazzetta|"
+    r"entrata\s+in\s+vigore|promulga"
     r")\b",
     re.IGNORECASE,
 )
+ANNOUNCEMENT = re.compile(
+    r"\b(disegno\s+di\s+legge|comunicato\s+stampa|esame\s+preliminare)\b",
+    re.IGNORECASE,
+)
+CONSTITUTIONAL_LIMIT = re.compile(
+    r"illegittimit[aà']\s+costituzionale",
+    re.IGNORECASE,
+)
+PURPOSE_INSTRUMENTS: tuple[str, ...] = ("logiche correntizie",)
 
 
 def _excerpt(passage_text: str, phrases: tuple[str, ...]) -> str:
@@ -46,16 +54,30 @@ class ConservativeOfficialActJudge:
     """Propose ``in_progress`` only when an official act names the instrument."""
 
     name = "conservative-official-act"
-    version = "v1"
+    version = "v1.1"
 
     def judge(
         self, *, pledge_text: str, commitment_type: CommitmentType, passage_text: str
     ) -> EvidenceJudgment:
         del commitment_type
-        phrases = extract_instrument_phrases(pledge_text)
-        if not phrases or not ENACTMENT.search(passage_text):
+        originals = extract_instrument_phrases(pledge_text)
+        phrases = tuple(dict.fromkeys([*originals, *aliases_for(originals)]))
+        if not originals or not ENACTMENT.search(passage_text):
+            return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
+        if ANNOUNCEMENT.search(passage_text) and not re.search(
+            r"\bpromulga\b", passage_text, re.IGNORECASE
+        ):
+            return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
+        if CONSTITUTIONAL_LIMIT.search(passage_text):
             return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
         if not any(phrase.lower() in passage_text.lower() for phrase in phrases):
+            return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
+        missing_purpose = [
+            phrase
+            for phrase in PURPOSE_INSTRUMENTS
+            if phrase in originals and phrase.lower() not in passage_text.lower()
+        ]
+        if missing_purpose:
             return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
         excerpt = _excerpt(passage_text, phrases)
         if not excerpt_is_verbatim(passage_text, excerpt) and not excerpt_is_verbatim(

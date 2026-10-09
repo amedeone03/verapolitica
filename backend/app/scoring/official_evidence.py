@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from backend.app.core.text import normalize_search_text
 from backend.app.scoring.evidence_matching import (
     Passage,
+    RankedPassage,
     excerpt_is_verbatim,
     retrieve,
     validate_judgment,
@@ -22,7 +23,7 @@ from backend.app.scoring.retrieval_profile import RetrievalProfile
 from backend.app.scoring.types import EvidenceLabel, FulfillmentVerdict, VERDICTS_BY_EVIDENCE_LABEL
 
 
-MATCHER_VERSION = "pledge-evidence/v2"
+MATCHER_VERSION = "pledge-evidence/v3"
 MIN_INSTRUMENT_HITS = 1
 MIN_DETERMINISTIC_SCORE = 1.5
 
@@ -107,6 +108,28 @@ def instrument_hits(profile: RetrievalProfile, text: str) -> tuple[str, ...]:
     return _hits(profile.instrument_phrases, text)
 
 
+def original_instrument_hits(profile: RetrievalProfile, text: str) -> tuple[str, ...]:
+    originals = getattr(profile, "original_instrument_phrases", profile.instrument_phrases)
+    return _hits(originals, text)
+
+
+def alias_only_hits(profile: RetrievalProfile, text: str) -> tuple[str, ...]:
+    originals = set(original_instrument_hits(profile, text))
+    return tuple(item for item in instrument_hits(profile, text) if item not in originals)
+
+
+def alias_has_supporting_context(profile: RetrievalProfile, text: str) -> bool:
+    """Alias matches are not enough without topic, institution, and enactment."""
+
+    from backend.app.scoring.conservative_evidence_judge import ENACTMENT
+
+    if not topic_hits(profile, text):
+        return False
+    if not ENACTMENT.search(text):
+        return False
+    return actor_or_institution_plausible(profile, text)
+
+
 def topic_hits(profile: RetrievalProfile, text: str) -> tuple[str, ...]:
     return _hits(profile.topic_terms, text)
 
@@ -150,11 +173,18 @@ def filter_official_passages(
         if not date_is_usable(passage, profile):
             reasons["outside_date_window"] = reasons.get("outside_date_window", 0) + 1
             continue
-        if len(instrument_hits(profile, passage.passage.text)) < MIN_INSTRUMENT_HITS:
+        hits = instrument_hits(profile, passage.passage.text)
+        if len(hits) < MIN_INSTRUMENT_HITS:
             reasons["missing_instrument_overlap"] = reasons.get(
                 "missing_instrument_overlap", 0
             ) + 1
             continue
+        if not original_instrument_hits(profile, passage.passage.text):
+            if not alias_has_supporting_context(profile, passage.passage.text):
+                reasons["alias_without_supporting_context"] = reasons.get(
+                    "alias_without_supporting_context", 0
+                ) + 1
+                continue
         kept.append(passage)
     return kept, reasons
 
@@ -173,6 +203,18 @@ def retrieve_official_candidates(
         [item.passage for item in usable],
         limit=limit,
     )
+    if not ranked:
+        # Deterministic filters already accepted these passages. BM25 must not
+        # drop an alias/instrument match just because the query stems differ.
+        ranked = [
+            RankedPassage(
+                passage=item.passage,
+                score=0.0,
+                lexical_rank=None,
+                semantic_rank=None,
+            )
+            for item in usable[:limit]
+        ]
     by_id = {item.passage.passage_id: item for item in usable}
     candidates: list[EvidenceCandidate] = []
     for item in ranked:
@@ -193,7 +235,11 @@ def retrieve_official_candidates(
                 published_at=official.published_at,
                 retrieved_at=official.retrieved_at,
                 exact_excerpt=excerpt_window(item.passage.text, instruments),
-                retrieval_reason="official_instrument_and_date_match",
+                retrieval_reason=(
+                    "official_alias_with_context"
+                    if not original_instrument_hits(profile, item.passage.text)
+                    else "official_instrument_and_date_match"
+                ),
                 deterministic_score=score,
                 lexical_rank=item.lexical_rank,
                 instrument_hits=instruments,

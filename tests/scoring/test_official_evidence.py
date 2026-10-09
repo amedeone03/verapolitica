@@ -3,13 +3,18 @@ from datetime import date, datetime, timezone
 from backend.app.scoring.conservative_evidence_judge import ConservativeOfficialActJudge
 from backend.app.scoring.evidence_matching import EvidenceJudgment, Passage
 from backend.app.scoring.llm_evidence_judge import parse_judge_output
+from backend.app.scoring.instrument_aliases import ALIAS_POLICY_VERSION
 from backend.app.scoring.official_evidence import (
+    MATCHER_VERSION,
     OfficialPassage,
     retrieve_official_candidates,
     validate_official_judgment,
 )
 from backend.app.scoring.official_sources import classify_source_url, is_official_source_url
-from backend.app.scoring.retrieval_profile import build_retrieval_profile
+from backend.app.scoring.retrieval_profile import (
+    RETRIEVAL_POLICY_VERSION,
+    build_retrieval_profile,
+)
 from backend.app.scoring.types import (
     CommitmentType,
     EvidenceLabel,
@@ -68,6 +73,51 @@ def test_no_candidate_when_corpus_empty_or_only_origin():
     assert none == [] and empty_reasons == {}
 
 
+def test_same_topic_and_title_only_documents_do_not_retrieve_without_instrument():
+    justice = build_retrieval_profile(
+        proposal_id=103,
+        title="Certezza della pena e nuovo piano carceri",
+        commitment_text="rimettendo al centro il principio fondamentale della certezza della pena, grazie anche a un nuovo piano carceri.",
+        actor_names=("Giorgia Meloni",),
+        topic_code="12",
+        specificity=PledgeSpecificity.HIGH,
+        commitment_type=CommitmentType.ACTION,
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    title_only = _passage(
+        "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2024-08-09;114",
+        "LEGGE 9 agosto 2024, n. 114. Modifiche all'ordinamento giudiziario e tabelle infradistrettuali.",
+    )
+    candidates, reasons = retrieve_official_candidates(justice, [title_only])
+    assert candidates == []
+    assert reasons["missing_instrument_overlap"] == 1
+
+
+def test_procedural_calendar_is_not_a_candidate():
+    profile = build_retrieval_profile(
+        proposal_id=104,
+        title="Riforma dell'ordinamento giudiziario",
+        commitment_text="rivedremo anche la riforma dell'ordinamento giudiziario per le logiche correntizie",
+        actor_names=("Giorgia Meloni",),
+        topic_code="12",
+        specificity=PledgeSpecificity.HIGH,
+        commitment_type=CommitmentType.ACTION,
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    calendar = _passage(
+        "https://www.giustizia.it/giustizia/it/mg_2_4.page",
+        "Il Ministero della giustizia pubblica il calendario delle commissioni per marzo.",
+        published=date(2024, 3, 1),
+    )
+    candidates, reasons = retrieve_official_candidates(profile, [calendar])
+    assert candidates == []
+    assert reasons["missing_instrument_overlap"] == 1
+
+
 def test_same_topic_without_instrument_abstains():
     profile = _profile()
     justice = _passage(
@@ -100,6 +150,15 @@ def test_other_official_law_without_instrument_phrase_is_rejected():
     candidates, reasons = retrieve_official_candidates(justice, [law])
     assert candidates == []
     assert reasons["missing_instrument_overlap"] == 1
+
+
+def test_retrieval_policy_versions_are_deterministic():
+    profile = _profile()
+    assert MATCHER_VERSION == "pledge-evidence/v3"
+    assert profile.retrieval_policy_version == RETRIEVAL_POLICY_VERSION
+    assert profile.alias_policy_version == ALIAS_POLICY_VERSION
+    assert RETRIEVAL_POLICY_VERSION == "pledge_evidence_retrieval_v2"
+    assert ALIAS_POLICY_VERSION == "instrument-alias/v1"
 
 
 def test_official_law_with_instrument_becomes_candidate():
@@ -206,6 +265,18 @@ def test_conservative_judge_never_proposes_closed_verdicts():
         passage_text="Calendario dei lavori della commissione agricoltura.",
     )
     assert unrelated.label is EvidenceLabel.NOT_ENOUGH_INFO
+    title_only = judge.judge(
+        pledge_text=(
+            "rivedremo anche la riforma dell'ordinamento giudiziario, "
+            "per mettere fine alle logiche correntizie"
+        ),
+        commitment_type=CommitmentType.ACTION,
+        passage_text=(
+            "LEGGE 9 agosto 2024, n. 114. Promulga. Modifiche all'ordinamento "
+            "giudiziario: tabelle infradistrettuali e collegio per la custodia cautelare."
+        ),
+    )
+    assert title_only.label is EvidenceLabel.NOT_ENOUGH_INFO
 
 
 def test_invalid_llm_json_is_not_rewritten():

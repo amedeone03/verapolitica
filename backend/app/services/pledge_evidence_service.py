@@ -218,8 +218,12 @@ class PledgeEvidenceService:
             )
             payload = {
                 "matcher_version": MATCHER_VERSION,
+                "retrieval_policy_version": profile.retrieval_policy_version,
+                "alias_policy_version": profile.alias_policy_version,
                 "query": profile.query,
+                "original_instrument_phrases": list(profile.original_instrument_phrases),
                 "instrument_phrases": list(profile.instrument_phrases),
+                "alias_phrases": list(profile.alias_phrases),
                 "instrument_hits": list(candidate.instrument_hits),
                 "topic_hits": list(candidate.topic_hits),
                 "lexical_rank": candidate.lexical_rank,
@@ -401,10 +405,13 @@ class PledgeEvidenceService:
                             created_by=MATCHER_IDENTITY,
                             retrieval={
                                 "matcher_version": MATCHER_VERSION,
+                                "retrieval_policy_version": profile.retrieval_policy_version,
+                                "alias_policy_version": profile.alias_policy_version,
                                 "candidate_id": candidate.id,
                                 "score": candidate.deterministic_score,
                                 "lexical_rank": retrieval_meta.get("lexical_rank"),
                                 "instrument_hits": retrieval_meta.get("instrument_hits"),
+                                "retrieval_reason": candidate.retrieval_reason,
                                 "query": profile.query,
                                 "validation_result": "accepted",
                             },

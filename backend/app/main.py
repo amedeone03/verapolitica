@@ -10,6 +10,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from backend.app.api.admin import router as admin_router
 from backend.app.api.demo_editorial import router as demo_editorial_router
+from backend.app.api.demo_pledge_review import router as demo_pledge_review_router
 from backend.app.api.errors import register_exception_handlers
 from backend.app.api.public import router as public_router
 from backend.app.core.config import Settings, get_settings
@@ -78,6 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(admin_router)
     if runtime_settings.demo_ui_enabled and not runtime_settings.is_production:
         application.include_router(demo_editorial_router)
+        application.include_router(demo_pledge_review_router)
         application.mount(
             "/demo",
             StaticFiles(directory=DEMO_UI_DIRECTORY, html=True),

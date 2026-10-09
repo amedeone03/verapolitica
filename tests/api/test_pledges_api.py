@@ -180,6 +180,7 @@ def test_admin_draft_shows_commitment_versus_evidence_and_matching_does_not_publ
         assert body["commitment_title"]
         assert body["quoted_excerpt"]
         assert body["source_url"]
+        assert body["source_title"] == "Senato"
         assert body["status"] == "pending"
         before = client.get(f"/politicians/{data.politician_id}/scorecard").json()
         assert before["pledges"][0]["latest_assessment"] is None

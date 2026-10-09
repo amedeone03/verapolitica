@@ -88,6 +88,7 @@ class PledgeAssessmentDraftResponse(_Frozen):
     commitment_title: str | None = None
     commitment_statement: str | None = None
     source_title: str | None = None
+    retrieval_reason: str | None = None
 
 
 class PledgeEvidenceCandidateResponse(_Frozen):

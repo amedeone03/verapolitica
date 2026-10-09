@@ -123,6 +123,8 @@ def test_official_act_creates_pending_draft_without_publishing(session_factory):
     assert draft.proposed_verdict is FulfillmentVerdict.IN_PROGRESS
     assert draft.evidence_label is EvidenceLabel.SUPPORTS
     assert "autonomia differenziata" in draft.quoted_excerpt
+    assert draft.source_title == "Gazzetta Ufficiale"
+    assert draft.retrieval_reason == "official_instrument_and_date_match"
     after = pledges.scorecard_for_politician(data.politician_id)
     assert after.pledges[0].verdict is FulfillmentVerdict.NOT_YET_RATED
     assert after.pledges[0].latest_assessment is None
@@ -183,6 +185,47 @@ def test_invalid_excerpt_creates_no_draft(session_factory):
     assert report.rejections.get("excerpt_not_found_in_source", 0) >= 1
     with session_factory() as session:
         assert session.scalar(select(func.count()).select_from(PledgeAssessmentDraft)) == 0
+
+
+def test_rejected_draft_never_updates_scorecard(session_factory):
+    data = seed(session_factory)
+    service = PledgeService(session_factory)
+    service.classify(data.pledge_id, classification(), classified_by="ed")
+    from backend.app.models import PledgeAssessmentOrigin
+    from backend.app.schemas.pledge import PledgeAssessmentProposal
+    from backend.app.services.pledge_service import NewAssessmentDraft
+
+    excerpt = "approvato in via definitiva la legge che aumenta le pensioni minime"
+    draft, _ = service.propose(
+        NewAssessmentDraft(
+            proposal_id=data.pledge_id,
+            proposal=PledgeAssessmentProposal(
+                verdict=FulfillmentVerdict.IN_PROGRESS,
+                evidence_label=EvidenceLabel.SUPPORTS,
+                rationale="Proposed from official-act retrieval.",
+                quoted_excerpt=excerpt,
+                raw_document_id=data.raw_document_id,
+                document_chunk_id=data.chunk_id,
+            ),
+            origin=PledgeAssessmentOrigin.EVIDENCE_MATCHER,
+            created_by="system:pledge-evidence-matcher",
+        )
+    )
+    before = service.scorecard_for_politician(data.politician_id)
+    rejected = service.reject(
+        draft.id,
+        reviewer="editor-reviewer",
+        note=(
+            "Retrieved official evidence concerns autonomia differenziata and does not "
+            "support the judicial-system commitment."
+        ),
+    )
+    after = service.scorecard_for_politician(data.politician_id)
+    assert rejected.status == "rejected"
+    assert before.pledges[0].verdict is after.pledges[0].verdict is FulfillmentVerdict.NOT_YET_RATED
+    assert after.pledges[0].latest_assessment is None
+    with session_factory() as session:
+        assert session.scalar(select(func.count()).select_from(PledgeAssessment)) == 0
 
 
 def test_approved_assessment_updates_scorecard_pending_does_not(session_factory):

@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from datetime import date
 
 from backend.app.core.text import normalize_search_text
-from backend.app.scoring.evidence_matching import ITALIAN_STOPWORDS
+from backend.app.scoring.instrument_aliases import ALIAS_POLICY_VERSION, aliases_for
 from backend.app.scoring.types import CommitmentType, PledgeSpecificity
+
+RETRIEVAL_POLICY_VERSION = "pledge_evidence_retrieval_v2"
 
 
 KNOWN_INSTRUMENTS: tuple[str, ...] = (
@@ -27,12 +29,14 @@ KNOWN_INSTRUMENTS: tuple[str, ...] = (
     "agenzia delle entrate",
     "occupazione femminile",
     "asili nido",
+    "pensioni minime",
     "missione navale",
     "missione sophia",
     "reti di comunicazioni",
     "concessioni di infrastrutture",
     "logiche correntizie",
     "criteri di valutazione",
+    "soggetti effettivamente fragili",
 )
 
 TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -40,7 +44,7 @@ TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
     "9": ("immigrazione", "migranti", "sophia", "navale", "hotspot"),
     "10": ("infrastrutture", "reti", "concessioni", "autostrade", "aeroporti"),
     "12": ("giustizia", "magistratura", "carceri", "ordinamento"),
-    "13": ("welfare", "pensioni", "invalidi", "sostegno"),
+    "13": ("welfare", "pensioni", "invalidi", "sostegno", "inclusione"),
     "20": ("autonomia", "regioni", "sussidiarieta", "asili"),
 }
 
@@ -54,9 +58,13 @@ class RetrievalProfile:
     topic_code: str | None
     specificity: PledgeSpecificity
     commitment_type: CommitmentType
+    original_instrument_phrases: tuple[str, ...]
     instrument_phrases: tuple[str, ...]
+    alias_phrases: tuple[str, ...]
     topic_terms: tuple[str, ...]
     query: str
+    retrieval_policy_version: str
+    alias_policy_version: str
     announcement_date: date | None
     mandate_start: date | None
     mandate_end: date | None
@@ -81,14 +89,15 @@ def _unique(items: list[str]) -> tuple[str, ...]:
 
 
 def extract_instrument_phrases(*texts: str) -> tuple[str, ...]:
+    """Return known policy-instrument phrases only.
+
+    Auto-generated bigrams such as ``interesse nazionale`` collide with
+    same-topic official notes and are not instruments.
+    """
+
     blob = normalize_search_text(" ".join(part for part in texts if part))
     found = [phrase for phrase in KNOWN_INSTRUMENTS if normalize_search_text(phrase) in blob]
-    words = [
-        token
-        for token in blob.split()
-        if len(token) >= 8 and token not in ITALIAN_STOPWORDS
-    ]
-    return _unique([*found, *words[:12]])
+    return _unique(found)
 
 
 def topic_terms_for(topic_code: str | None, *texts: str) -> tuple[str, ...]:
@@ -111,9 +120,13 @@ def build_retrieval_profile(
     origin_urls: tuple[str, ...] = (),
     origin_document_ids: tuple[int, ...] = (),
 ) -> RetrievalProfile:
-    instruments = extract_instrument_phrases(title, commitment_text)
+    originals = extract_instrument_phrases(title, commitment_text)
+    aliases = aliases_for(originals, topic_code=topic_code)
+    instruments = _unique([*originals, *aliases])
     topics = topic_terms_for(topic_code, title, commitment_text)
-    query = " ".join(part for part in (commitment_text, title, *instruments) if part)
+    query = " ".join(
+        part for part in (commitment_text, title, *originals, *aliases) if part
+    )
     return RetrievalProfile(
         proposal_id=proposal_id,
         actor_names=tuple(name for name in actor_names if name.strip()),
@@ -122,9 +135,13 @@ def build_retrieval_profile(
         topic_code=topic_code,
         specificity=specificity,
         commitment_type=commitment_type,
+        original_instrument_phrases=originals,
         instrument_phrases=instruments,
+        alias_phrases=aliases,
         topic_terms=topics,
         query=query,
+        retrieval_policy_version=RETRIEVAL_POLICY_VERSION,
+        alias_policy_version=ALIAS_POLICY_VERSION,
         announcement_date=announcement_date,
         mandate_start=mandate_start,
         mandate_end=mandate_end,

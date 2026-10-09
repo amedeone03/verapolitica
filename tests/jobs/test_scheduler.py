@@ -5,6 +5,13 @@ from backend.app.jobs.catalog import enabled_schedules
 from backend.app.jobs.scheduler import IngestionScheduler
 
 
+def test_pledge_evidence_schedule_remains_disabled_by_default():
+    assert Settings.model_fields["schedule_pledge_evidence_cron"].default == ""
+    settings = Settings(schedule_pledge_evidence_cron="")
+    assert settings.schedule_pledge_evidence_cron == ""
+    assert "pledge-evidence" not in [spec.job_name for spec, _cron in enabled_schedules(settings)]
+
+
 def test_enabled_schedules_skip_blank_cron():
     settings = Settings(
         schedule_senato_cron="0 3 * * *",
