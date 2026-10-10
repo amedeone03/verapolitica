@@ -12,8 +12,11 @@ from backend.app.scoring.official_evidence import (
 )
 from backend.app.scoring.official_sources import classify_source_url, is_official_source_url
 from backend.app.scoring.retrieval_profile import (
+    KNOWN_INSTRUMENT_VOCABULARY_VERSION,
+    KNOWN_INSTRUMENTS,
     RETRIEVAL_POLICY_VERSION,
     build_retrieval_profile,
+    extract_instrument_phrases,
 )
 from backend.app.scoring.types import (
     CommitmentType,
@@ -159,6 +162,8 @@ def test_retrieval_policy_versions_are_deterministic():
     assert profile.alias_policy_version == ALIAS_POLICY_VERSION
     assert RETRIEVAL_POLICY_VERSION == "pledge_evidence_retrieval_v2"
     assert ALIAS_POLICY_VERSION == "instrument-alias/v1"
+    assert profile.instrument_vocabulary_version == KNOWN_INSTRUMENT_VOCABULARY_VERSION
+    assert KNOWN_INSTRUMENT_VOCABULARY_VERSION == "known-instruments/v2"
 
 
 def test_official_law_with_instrument_becomes_candidate():
@@ -277,6 +282,84 @@ def test_conservative_judge_never_proposes_closed_verdicts():
         ),
     )
     assert title_only.label is EvidenceLabel.NOT_ENOUGH_INFO
+
+
+def test_known_instrument_phrases_are_exact_and_not_stemmed():
+    added = (
+        "reddito di cittadinanza",
+        "piano nazionale di ripresa e resilienza",
+        "green pass",
+        "liste di attesa",
+        "cuneo fiscale",
+        "assegno unico e universale",
+    )
+    for phrase in added:
+        assert phrase in KNOWN_INSTRUMENTS
+        assert extract_instrument_phrases(phrase) == (phrase,)
+    assert extract_instrument_phrases("assegno unico") == ()
+    assert extract_instrument_phrases("reddito minimo") == ()
+    assert extract_instrument_phrases("lista di attesa") == ()
+
+
+def test_conservative_judge_abstains_outside_temporal_window():
+    judge = ConservativeOfficialActJudge()
+    text = (
+        "LEGGE 18 gennaio 2028, n. 4. Promulga. Autorizzazione della "
+        "missione navale italiana nel Mediterraneo per l'anno 2028."
+    )
+    pledge = "Rafforzeremo la missione navale italiana nel Mediterraneo"
+    inside = judge.judge(
+        pledge_text=pledge,
+        commitment_type=CommitmentType.ACTION,
+        passage_text=text,
+        published_at=date(2023, 7, 14),
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    assert inside.label is EvidenceLabel.SUPPORTS
+    post = judge.judge(
+        pledge_text=pledge,
+        commitment_type=CommitmentType.ACTION,
+        passage_text=text,
+        published_at=date(2028, 1, 20),
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    assert post.label is EvidenceLabel.NOT_ENOUGH_INFO
+    pre = judge.judge(
+        pledge_text=pledge,
+        commitment_type=CommitmentType.ACTION,
+        passage_text=text,
+        published_at=date(2021, 1, 1),
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    assert pre.label is EvidenceLabel.NOT_ENOUGH_INFO
+    unknown = judge.judge(
+        pledge_text=pledge,
+        commitment_type=CommitmentType.ACTION,
+        passage_text=text,
+        announcement_date=date(2022, 10, 25),
+        mandate_end=date(2027, 10, 12),
+    )
+    assert unknown.label is EvidenceLabel.NOT_ENOUGH_INFO
+    announcement = judge.judge(
+        pledge_text="dare seguito al processo di autonomia differenziata",
+        commitment_type=CommitmentType.ACTION,
+        passage_text=(
+            "Comunicato stampa. Il Consiglio dei Ministri ha approvato un "
+            "disegno di legge che reca disposizioni per l'attuazione "
+            "dell'autonomia differenziata. Esame preliminare."
+        ),
+        published_at=date(2023, 2, 2),
+        announcement_date=date(2022, 10, 25),
+        mandate_start=date(2022, 10, 22),
+        mandate_end=date(2027, 10, 12),
+    )
+    assert announcement.label is EvidenceLabel.NOT_ENOUGH_INFO
 
 
 def test_invalid_llm_json_is_not_rewritten():

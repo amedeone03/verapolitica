@@ -1,5 +1,5 @@
 {
-  "version": "pledge-evidence-gold/v4",
+  "version": "pledge-evidence-gold/v5",
   "notes": "Official-source gold set for evidence relevance and conservative FEVER semantics. Multi-actor, multi-topic, multi-domain. Not a political score.",
   "cases": [
     {
@@ -1340,7 +1340,7 @@
       "source_title": "Comunicato stampa del Consiglio dei Ministri — reddito di cittadinanza",
       "published_at": "2018-09-27",
       "exact_excerpt": "ha approvato un disegno di legge che istituisce il reddito di cittadinanza",
-      "expected_retrieval": "irrelevant",
+      "expected_retrieval": "relevant",
       "expected_label": "not_enough_info",
       "acceptable_verdicts": [],
       "unacceptable_verdicts": [
@@ -1350,7 +1350,7 @@
         "stalled",
         "in_progress"
       ],
-      "explanation": "Bill announcement without a known frozen instrument phrase. Must not retrieve as implementation."
+      "explanation": "Official bill announcement names reddito di cittadinanza. Retrieval may surface it; the judge must abstain without promulgation."
     },
     {
       "case_id": "pos-draghi-pnrr",
@@ -1382,7 +1382,7 @@
         "broken",
         "stalled"
       ],
-      "explanation": "Official PNRR governance decree. Frozen retrieval may miss the unnamed instrument."
+      "explanation": "Official PNRR governance decree names the pledged recovery plan."
     },
     {
       "case_id": "date-draghi-post-mandate-law86",
@@ -1446,7 +1446,7 @@
         "broken",
         "stalled"
       ],
-      "explanation": "Promulgated decree introduces the pledged green-pass access rule. Frozen retrieval may miss the unnamed instrument."
+      "explanation": "Promulgated decree introduces the pledged green-pass access rule."
     },
     {
       "case_id": "actor-speranza-salute",
@@ -1542,7 +1542,7 @@
         "broken",
         "stalled"
       ],
-      "explanation": "Official waiting-list decree. Frozen retrieval may miss the unnamed instrument."
+      "explanation": "Official waiting-list decree names the pledged liste di attesa instrument."
     },
     {
       "case_id": "date-schillaci-pre-mandate",
@@ -1627,7 +1627,7 @@
       "source_url": "https://www.salute.gov.it/portale/news/circolare-liste-attesa",
       "source_title": "Ministero della salute — circolare alle regioni",
       "published_at": "2024-04-03",
-      "exact_excerpt": "indicazioni operative alle regioni per il monitoraggio delle liste di attesa",
+      "exact_excerpt": "indicazioni operative alle regioni per il monitoraggio dei livelli essenziali di assistenza",
       "expected_retrieval": "irrelevant",
       "expected_label": "not_enough_info",
       "acceptable_verdicts": [],
@@ -1638,7 +1638,7 @@
         "stalled",
         "in_progress"
       ],
-      "explanation": "Ministry circular. Not a promulgated waiting-list act."
+      "explanation": "Ministry circular on essential care levels. Does not name liste di attesa."
     },
     {
       "case_id": "pos-giorgetti-cuneo",
@@ -1671,7 +1671,7 @@
         "broken",
         "stalled"
       ],
-      "explanation": "Budget law reduces the labour tax wedge. Frozen retrieval may miss the unnamed instrument."
+      "explanation": "Budget law reduces the pledged cuneo fiscale."
     },
     {
       "case_id": "same-giorgetti-concordato",
@@ -1799,7 +1799,7 @@
         "broken",
         "stalled"
       ],
-      "explanation": "Official legislative decree institutes the pledged child allowance. Frozen retrieval may miss the unnamed instrument."
+      "explanation": "Official legislative decree institutes the pledged assegno unico e universale."
     },
     {
       "case_id": "proc-104-camera",
@@ -1928,6 +1928,262 @@
         "stalled"
       ],
       "explanation": "Official promulgation notice of Law 86 names the autonomia differenziata instrument."
+    },
+    {
+      "case_id": "same-conte-lavoro-poverta",
+      "kind": "negative",
+      "overlap_type": "same_topic",
+      "commitment_id": "203",
+      "commitment_title": "Introdurre il reddito di cittadinanza",
+      "commitment_text": "Introdurremo il reddito di cittadinanza come misura nazionale di contrasto alla poverta' per i nuclei in difficolta'.",
+      "topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Giuseppe Conte",
+      "announcement_date": "2018-06-05",
+      "mandate_start": "2018-06-01",
+      "mandate_end": "2021-02-13",
+      "document": "../lavoro_inclusione_linee_guida_2024.html",
+      "source_url": "https://www.lavoro.gov.it/temi-e-priorita/poverta-ed-esclusione-sociale",
+      "source_title": "Ministero del lavoro — linee guida inclusione sociale",
+      "published_at": "2019-03-12",
+      "exact_excerpt": "indicazioni operative per i servizi sociali territoriali a favore delle persone in condizione di fragilita'",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official social-inclusion guidance during the Conte window. Does not name reddito di cittadinanza."
+    },
+    {
+      "case_id": "date-draghi-pnrr-2024",
+      "kind": "negative",
+      "overlap_type": "date_window",
+      "commitment_id": "204",
+      "commitment_title": "Attuare il Piano nazionale di ripresa e resilienza",
+      "commitment_text": "Attueremo il Piano nazionale di ripresa e resilienza per modernizzare la pubblica amministrazione e gli investimenti pubblici.",
+      "topic_code": "20",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Mario Draghi",
+      "announcement_date": "2021-02-17",
+      "mandate_start": "2021-02-13",
+      "mandate_end": "2022-10-22",
+      "document": "../mef_pnrr_relazione_2024.html",
+      "source_url": "https://www.mef.gov.it/ufficio-stampa/comunicati/2024/relazione-pnrr/",
+      "source_title": "MEF — relazione sul Piano nazionale di ripresa e resilienza",
+      "published_at": "2024-05-20",
+      "exact_excerpt": "stato di attuazione del Piano nazionale di ripresa e resilienza",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official later PNRR progress note falls after the Draghi mandate end."
+    },
+    {
+      "case_id": "same-speranza-influenza",
+      "kind": "negative",
+      "overlap_type": "same_topic",
+      "commitment_id": "205",
+      "commitment_title": "Introdurre la certificazione verde COVID-19",
+      "commitment_text": "Introdurremo la certificazione verde COVID-19, il green pass, per l'accesso ai luoghi di lavoro e ai servizi.",
+      "topic_code": "3",
+      "specificity": "high",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Roberto Speranza",
+      "announcement_date": "2021-07-22",
+      "mandate_start": "2019-09-05",
+      "mandate_end": "2022-10-22",
+      "document": "../salute_circolare_influenza_2021.html",
+      "source_url": "https://www.salute.gov.it/portale/news/circolare-influenza-2021",
+      "source_title": "Ministero della salute — campagna antinfluenzale",
+      "published_at": "2021-09-15",
+      "exact_excerpt": "indicazioni per la campagna di vaccinazione antinfluenzale 2021-2022",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official same-ministry health circular. Does not name the green pass."
+    },
+    {
+      "case_id": "same-giorgetti-mef-circolare",
+      "kind": "negative",
+      "overlap_type": "procedural",
+      "commitment_id": "207",
+      "commitment_title": "Ridurre il cuneo fiscale per i lavoratori dipendenti",
+      "commitment_text": "Ridurremo il cuneo fiscale per i lavoratori dipendenti con una misura strutturale in legge di bilancio.",
+      "topic_code": "1",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Giancarlo Giorgetti",
+      "announcement_date": "2022-10-25",
+      "mandate_start": "2022-10-22",
+      "mandate_end": "2027-10-12",
+      "document": "../mef_circolare_2024.html",
+      "source_url": "https://www.mef.gov.it/ufficio-stampa/comunicati/2024/circolare-contabile/",
+      "source_title": "MEF — circolare contabile",
+      "published_at": "2024-02-08",
+      "exact_excerpt": "Il Ministero dell'economia pubblica la circolare sui termini di chiusura dell'esercizio.",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official accounting circular. Does not name cuneo fiscale."
+    },
+    {
+      "case_id": "same-draghi-natalita",
+      "kind": "negative",
+      "overlap_type": "same_topic",
+      "commitment_id": "209",
+      "commitment_title": "Istituire l'assegno unico e universale per i figli",
+      "commitment_text": "Istituiremo l'assegno unico e universale per i figli a carico, in sostituzione delle misure frammentate di sostegno alla natalita'.",
+      "topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Mario Draghi",
+      "announcement_date": "2021-02-17",
+      "mandate_start": "2021-02-13",
+      "mandate_end": "2022-10-22",
+      "document": "../lavoro_natalita_2021.html",
+      "source_url": "https://www.lavoro.gov.it/temi-e-priorita/famiglia-e-natalita",
+      "source_title": "Ministero del lavoro — nota sulla natalita'",
+      "published_at": "2021-06-10",
+      "exact_excerpt": "indicazioni ai comuni sui servizi per la prima infanzia e il sostegno alla natalita'",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official family-policy note. Does not name assegno unico e universale."
+    },
+    {
+      "case_id": "same-conte-assegno-unico",
+      "kind": "negative",
+      "overlap_type": "same_topic",
+      "commitment_id": "203",
+      "commitment_title": "Introdurre il reddito di cittadinanza",
+      "commitment_text": "Introdurremo il reddito di cittadinanza come misura nazionale di contrasto alla poverta' per i nuclei in difficolta'.",
+      "topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Giuseppe Conte",
+      "announcement_date": "2018-06-05",
+      "mandate_start": "2018-06-01",
+      "mandate_end": "2021-02-13",
+      "document": "../mef_assegno_unico_2023.html",
+      "source_url": "https://www.mef.gov.it/ufficio-stampa/comunicati/2023/assegno-unico/",
+      "source_title": "MEF — assegno unico e universale",
+      "published_at": "2020-12-15",
+      "exact_excerpt": "erogazione dell'assegno unico e universale per i figli a carico",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Different cash benefit. Names assegno unico, not reddito di cittadinanza."
+    },
+    {
+      "case_id": "same-schillaci-ospedali",
+      "kind": "negative",
+      "overlap_type": "same_topic",
+      "commitment_id": "206",
+      "commitment_title": "Ridurre le liste di attesa del Servizio sanitario nazionale",
+      "commitment_text": "Rafforzeremo il Servizio sanitario nazionale e ridurremo le liste di attesa per le prestazioni ambulatoriali.",
+      "topic_code": "3",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Orazio Schillaci",
+      "announcement_date": "2022-10-25",
+      "mandate_start": "2022-10-22",
+      "mandate_end": "2027-10-12",
+      "document": "../salute_ospedali_2024.html",
+      "source_url": "https://www.salute.gov.it/portale/news/ospedali-2024",
+      "source_title": "Ministero della salute — rete ospedaliera",
+      "published_at": "2024-03-18",
+      "exact_excerpt": "riordino della rete ospedaliera e dei posti letto per acuti",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Official hospital-network note. Does not name liste di attesa."
+    },
+    {
+      "case_id": "date-giorgetti-pre-cuneo",
+      "kind": "negative",
+      "overlap_type": "date_window",
+      "commitment_id": "207",
+      "commitment_title": "Ridurre il cuneo fiscale per i lavoratori dipendenti",
+      "commitment_text": "Ridurremo il cuneo fiscale per i lavoratori dipendenti con una misura strutturale in legge di bilancio.",
+      "topic_code": "1",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "holder_role": "government_coalition",
+      "actor": "Giancarlo Giorgetti",
+      "announcement_date": "2022-10-25",
+      "mandate_start": "2022-10-22",
+      "mandate_end": "2027-10-12",
+      "document": "../legge_cuneo_2014.html",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2014/04/24/14G00079/sg",
+      "source_title": "Gazzetta Ufficiale — misure sul cuneo fiscale 2014",
+      "published_at": "2014-04-24",
+      "exact_excerpt": "e' ridotto il cuneo fiscale per i lavoratori dipendenti",
+      "expected_retrieval": "irrelevant",
+      "expected_label": "not_enough_info",
+      "acceptable_verdicts": [],
+      "unacceptable_verdicts": [
+        "kept",
+        "partially_kept",
+        "broken",
+        "stalled",
+        "in_progress"
+      ],
+      "explanation": "Earlier official tax-wedge cut is before Giorgetti's announcement window."
     }
   ]
 }

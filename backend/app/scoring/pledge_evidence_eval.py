@@ -326,6 +326,10 @@ def evaluate_conservative(
                 pledge_text=case.commitment_text,
                 commitment_type=CommitmentType.ACTION,
                 passage_text=text,
+                published_at=case.published_at,
+                announcement_date=case.announcement_date,
+                mandate_start=case.mandate_start,
+                mandate_end=case.mandate_end,
             )
         results.append(_judge_case(case, judgment, text))
     return tuple(results)

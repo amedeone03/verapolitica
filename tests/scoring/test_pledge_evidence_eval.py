@@ -10,7 +10,10 @@ from backend.app.scoring.pledge_evidence_eval import (
     readiness_gate,
     run_gold_evaluation,
 )
-from backend.app.scoring.retrieval_profile import RETRIEVAL_POLICY_VERSION
+from backend.app.scoring.retrieval_profile import (
+    KNOWN_INSTRUMENT_VOCABULARY_VERSION,
+    RETRIEVAL_POLICY_VERSION,
+)
 from backend.app.scoring.types import EvidenceLabel, FulfillmentVerdict
 from backend.app.services.pledge_service import PledgeService
 
@@ -51,8 +54,8 @@ FROZEN_V3_IDS = {
 def test_gold_set_is_deterministic_and_never_publishes():
     first = run_gold_evaluation()
     second = run_gold_evaluation()
-    assert first.dataset_version == "pledge-evidence-gold/v4"
-    assert first.case_count >= 50
+    assert first.dataset_version == "pledge-evidence-gold/v5"
+    assert first.case_count >= 66
     assert first.published is False
     assert first.as_dict()["published"] is False
     assert [item.outcome for item in first.retrieval] == [
@@ -64,7 +67,7 @@ def test_gold_set_is_deterministic_and_never_publishes():
     dataset = load_gold_dataset()
     kinds = {case.kind for case in dataset.cases}
     overlaps = {case.overlap_type for case in dataset.cases}
-    assert len(dataset.cases) >= 50
+    assert len(dataset.cases) >= 66
     assert {"positive", "negative", "abstain"} <= kinds
     assert {
         "same_topic",
@@ -94,18 +97,28 @@ def test_gold_set_is_deterministic_and_never_publishes():
     assert by_id["abstain-sophia-no-later-evidence"].outcome == "tn"
     assert first.conservative_closed_verdicts == 0
     assert first.false_positives == 0
-    assert {item.case_id for item in first.retrieval if item.outcome == "fn"} <= {
-        "pos-conte-rdc",
-        "pos-draghi-pnrr",
-        "pos-speranza-greenpass",
-        "pos-schillaci-liste",
-        "pos-giorgetti-cuneo",
-        "pos-draghi-assegno-unico",
-    }
+    assert first.false_negatives == 0
+    assert first.precision == 1.0
+    assert by_id["pos-conte-rdc"].outcome == "tp"
+    assert by_id["pos-draghi-pnrr"].outcome == "tp"
+    assert by_id["pos-speranza-greenpass"].outcome == "tp"
+    assert by_id["pos-schillaci-liste"].outcome == "tp"
+    assert by_id["pos-giorgetti-cuneo"].outcome == "tp"
+    assert by_id["pos-draghi-assegno-unico"].outcome == "tp"
+    assert by_id["same-conte-lavoro-poverta"].outcome == "tn"
+    assert by_id["date-draghi-pnrr-2024"].outcome == "tn"
+    assert by_id["same-speranza-influenza"].outcome == "tn"
+    assert by_id["same-giorgetti-mef-circolare"].outcome == "tn"
+    assert by_id["same-draghi-natalita"].outcome == "tn"
+    assert by_id["date-giorgetti-pre-cuneo"].outcome == "tn"
     cons = {item.case_id: item for item in first.conservative}
     assert cons["title-giudiziario-law114"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
     assert cons["announce-106-cdm"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
+    assert cons["announce-conte-rdc"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
     assert cons["contradict-autonomia-corte192"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
+    assert cons["date-tajani-post-mandate"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
+    assert first.conservative_false_supports == 0
+    assert first.conservative_false_refutes == 0
     assert all(item.excerpt_valid for item in first.conservative)
     assert all(item.compatible for item in first.conservative)
     assert not any(item.predicted_verdict in {FulfillmentVerdict.KEPT, FulfillmentVerdict.BROKEN} for item in first.conservative)
@@ -120,7 +133,7 @@ def test_expanded_gold_has_required_fields_and_diversity():
         for case in dataset.cases
         if case.source_url
     }
-    assert len(dataset.cases) >= 50
+    assert len(dataset.cases) >= 66
     assert len(actors) >= 5
     assert len(topics) >= 5
     assert len(hosts) >= 5
@@ -139,6 +152,7 @@ def test_expanded_gold_has_required_fields_and_diversity():
             assert case.document
     assert ALIAS_POLICY_VERSION == "instrument-alias/v1"
     assert RETRIEVAL_POLICY_VERSION == "pledge_evidence_retrieval_v2"
+    assert KNOWN_INSTRUMENT_VOCABULARY_VERSION == "known-instruments/v2"
     assert {item.source for item in INSTRUMENT_ALIASES} == {
         "piano carceri",
         "soggetti effettivamente fragili",

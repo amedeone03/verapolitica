@@ -15,6 +15,7 @@ never publishes.
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any
@@ -93,6 +94,25 @@ def _published_at_from_document(document: RawDocument) -> date | None:
             except ValueError:
                 continue
     return None
+
+
+def _call_judge(judge, *, pledge_text, commitment_type, passage_text, **temporal):
+    """Pass temporal context only when the judge implements those parameters."""
+
+    params = inspect.signature(judge.judge).parameters
+    accepts_extra = any(
+        item.kind is inspect.Parameter.VAR_KEYWORD for item in params.values()
+    )
+    kwargs = {
+        "pledge_text": pledge_text,
+        "commitment_type": commitment_type,
+        "passage_text": passage_text,
+    }
+    if accepts_extra:
+        kwargs.update(temporal)
+    else:
+        kwargs.update({key: value for key, value in temporal.items() if key in params})
+    return judge.judge(**kwargs)
 
 
 class PledgeEvidenceService:
@@ -220,6 +240,7 @@ class PledgeEvidenceService:
                 "matcher_version": MATCHER_VERSION,
                 "retrieval_policy_version": profile.retrieval_policy_version,
                 "alias_policy_version": profile.alias_policy_version,
+                "instrument_vocabulary_version": profile.instrument_vocabulary_version,
                 "query": profile.query,
                 "original_instrument_phrases": list(profile.original_instrument_phrases),
                 "instrument_phrases": list(profile.instrument_phrases),
@@ -348,10 +369,15 @@ class PledgeEvidenceService:
                     row = session.get(PledgeEvidenceCandidate, candidate.id) if candidate.id else candidate
                     chunk = session.get(DocumentChunk, candidate.document_chunk_id)
                     passage_text = chunk.text if chunk is not None else candidate.exact_excerpt
-                    judgment = self.judge.judge(
+                    judgment = _call_judge(
+                        self.judge,
                         pledge_text=profile.query,
                         commitment_type=profile.commitment_type,
                         passage_text=passage_text,
+                        published_at=candidate.published_at,
+                        announcement_date=profile.announcement_date,
+                        mandate_start=profile.mandate_start,
+                        mandate_end=profile.mandate_end,
                     )
                     reason = validate_official_judgment(
                         judgment,
@@ -407,6 +433,7 @@ class PledgeEvidenceService:
                                 "matcher_version": MATCHER_VERSION,
                                 "retrieval_policy_version": profile.retrieval_policy_version,
                                 "alias_policy_version": profile.alias_policy_version,
+                                "instrument_vocabulary_version": profile.instrument_vocabulary_version,
                                 "candidate_id": candidate.id,
                                 "score": candidate.deterministic_score,
                                 "lexical_rank": retrieval_meta.get("lexical_rank"),

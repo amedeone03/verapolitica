@@ -15,6 +15,7 @@ from backend.app.scoring.instrument_aliases import ALIAS_POLICY_VERSION, aliases
 from backend.app.scoring.types import CommitmentType, PledgeSpecificity
 
 RETRIEVAL_POLICY_VERSION = "pledge_evidence_retrieval_v2"
+KNOWN_INSTRUMENT_VOCABULARY_VERSION = "known-instruments/v2"
 
 
 KNOWN_INSTRUMENTS: tuple[str, ...] = (
@@ -37,6 +38,12 @@ KNOWN_INSTRUMENTS: tuple[str, ...] = (
     "logiche correntizie",
     "criteri di valutazione",
     "soggetti effettivamente fragili",
+    "reddito di cittadinanza",
+    "piano nazionale di ripresa e resilienza",
+    "green pass",
+    "liste di attesa",
+    "cuneo fiscale",
+    "assegno unico e universale",
 )
 
 TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -65,6 +72,7 @@ class RetrievalProfile:
     query: str
     retrieval_policy_version: str
     alias_policy_version: str
+    instrument_vocabulary_version: str
     announcement_date: date | None
     mandate_start: date | None
     mandate_end: date | None
@@ -142,6 +150,7 @@ def build_retrieval_profile(
         query=query,
         retrieval_policy_version=RETRIEVAL_POLICY_VERSION,
         alias_policy_version=ALIAS_POLICY_VERSION,
+        instrument_vocabulary_version=KNOWN_INSTRUMENT_VOCABULARY_VERSION,
         announcement_date=announcement_date,
         mandate_start=mandate_start,
         mandate_end=mandate_end,

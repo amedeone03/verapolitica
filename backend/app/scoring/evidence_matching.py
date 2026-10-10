@@ -201,7 +201,12 @@ class EvidenceJudge(Protocol):
     def version(self) -> str: ...
 
     def judge(
-        self, *, pledge_text: str, commitment_type: CommitmentType, passage_text: str
+        self,
+        *,
+        pledge_text: str,
+        commitment_type: CommitmentType,
+        passage_text: str,
+        **_temporal: object,
     ) -> EvidenceJudgment: ...
 
 
@@ -212,9 +217,14 @@ class AbstainingJudge:
     version = "v1"
 
     def judge(
-        self, *, pledge_text: str, commitment_type: CommitmentType, passage_text: str
+        self,
+        *,
+        pledge_text: str,
+        commitment_type: CommitmentType,
+        passage_text: str,
+        **_temporal: object,
     ) -> EvidenceJudgment:
-        del pledge_text, commitment_type, passage_text
+        del pledge_text, commitment_type, passage_text, _temporal
         return EvidenceJudgment(EvidenceLabel.NOT_ENOUGH_INFO, None, "", "")
 
 

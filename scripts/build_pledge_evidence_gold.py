@@ -721,8 +721,8 @@ CASES = [
         source_title="Comunicato stampa del Consiglio dei Ministri — reddito di cittadinanza",
         published_at="2018-09-27",
         excerpt="ha approvato un disegno di legge che istituisce il reddito di cittadinanza",
-        retrieval="irrelevant", label="not_enough_info", overlap="announcement",
-        explanation="Bill announcement without a known frozen instrument phrase. Must not retrieve as implementation.",
+        retrieval="relevant", label="not_enough_info", overlap="announcement",
+        explanation="Official bill announcement names reddito di cittadinanza. Retrieval may surface it; the judge must abstain without promulgation.",
     ),
     case(
         "pos-draghi-pnrr", "positive", "204",
@@ -733,7 +733,7 @@ CASES = [
         excerpt="Governance del Piano nazionale di ripresa e resilienza e prime misure di rafforzamento delle strutture amministrative",
         retrieval="relevant", label="supports", overlap="implementation",
         acceptable=("in_progress",), unacceptable=CLOSED,
-        explanation="Official PNRR governance decree. Frozen retrieval may miss the unnamed instrument.",
+        explanation="Official PNRR governance decree names the pledged recovery plan.",
     ),
     case(
         "date-draghi-post-mandate-law86", "negative", "204",
@@ -754,7 +754,7 @@ CASES = [
         excerpt="estende l'obbligo della certificazione verde COVID-19, il green pass, per l'accesso ai servizi",
         retrieval="relevant", label="supports", overlap="implementation",
         acceptable=("in_progress", "kept"), unacceptable=["broken", "stalled"],
-        explanation="Promulgated decree introduces the pledged green-pass access rule. Frozen retrieval may miss the unnamed instrument.",
+        explanation="Promulgated decree introduces the pledged green-pass access rule.",
     ),
     case(
         "actor-speranza-salute", "negative", "205",
@@ -785,7 +785,7 @@ CASES = [
         excerpt="misure urgenti per la riduzione delle liste di attesa delle prestazioni sanitarie",
         retrieval="relevant", label="supports", overlap="implementation",
         acceptable=("in_progress",), unacceptable=CLOSED,
-        explanation="Official waiting-list decree. Frozen retrieval may miss the unnamed instrument.",
+        explanation="Official waiting-list decree names the pledged liste di attesa instrument.",
     ),
     case(
         "date-schillaci-pre-mandate", "negative", "206",
@@ -813,9 +813,9 @@ CASES = [
         source_url="https://www.salute.gov.it/portale/news/circolare-liste-attesa",
         source_title="Ministero della salute — circolare alle regioni",
         published_at="2024-04-03",
-        excerpt="indicazioni operative alle regioni per il monitoraggio delle liste di attesa",
+        excerpt="indicazioni operative alle regioni per il monitoraggio dei livelli essenziali di assistenza",
         retrieval="irrelevant", label="not_enough_info", overlap="procedural",
-        explanation="Ministry circular. Not a promulgated waiting-list act.",
+        explanation="Ministry circular on essential care levels. Does not name liste di attesa.",
     ),
     case(
         "pos-giorgetti-cuneo", "positive", "207",
@@ -826,7 +826,7 @@ CASES = [
         excerpt="e' ridotto il cuneo fiscale per i lavoratori dipendenti",
         retrieval="relevant", label="supports", overlap="implementation",
         acceptable=("in_progress", "partially_kept"), unacceptable=CLOSED,
-        explanation="Budget law reduces the labour tax wedge. Frozen retrieval may miss the unnamed instrument.",
+        explanation="Budget law reduces the pledged cuneo fiscale.",
     ),
     case(
         "same-giorgetti-concordato", "negative", "207",
@@ -863,7 +863,7 @@ CASES = [
         excerpt="E' istituito l'assegno unico e universale per i figli a carico",
         retrieval="relevant", label="supports", overlap="implementation",
         acceptable=("in_progress", "kept"), unacceptable=["broken", "stalled"],
-        explanation="Official legislative decree institutes the pledged child allowance. Frozen retrieval may miss the unnamed instrument.",
+        explanation="Official legislative decree institutes the pledged assegno unico e universale.",
     ),
     case(
         "proc-104-camera", "procedural", "104",
@@ -906,13 +906,93 @@ CASES = [
         acceptable=("in_progress",), unacceptable=CLOSED,
         explanation="Official promulgation notice of Law 86 names the autonomia differenziata instrument.",
     ),
+    case(
+        "same-conte-lavoro-poverta", "negative", "203",
+        document="../lavoro_inclusione_linee_guida_2024.html",
+        source_url="https://www.lavoro.gov.it/temi-e-priorita/poverta-ed-esclusione-sociale",
+        source_title="Ministero del lavoro — linee guida inclusione sociale",
+        published_at="2019-03-12",
+        excerpt="indicazioni operative per i servizi sociali territoriali a favore delle persone in condizione di fragilita'",
+        retrieval="irrelevant", label="not_enough_info", overlap="same_topic",
+        explanation="Official social-inclusion guidance during the Conte window. Does not name reddito di cittadinanza.",
+    ),
+    case(
+        "date-draghi-pnrr-2024", "negative", "204",
+        document="../mef_pnrr_relazione_2024.html",
+        source_url="https://www.mef.gov.it/ufficio-stampa/comunicati/2024/relazione-pnrr/",
+        source_title="MEF — relazione sul Piano nazionale di ripresa e resilienza",
+        published_at="2024-05-20",
+        excerpt="stato di attuazione del Piano nazionale di ripresa e resilienza",
+        retrieval="irrelevant", label="not_enough_info", overlap="date_window",
+        explanation="Official later PNRR progress note falls after the Draghi mandate end.",
+    ),
+    case(
+        "same-speranza-influenza", "negative", "205",
+        document="../salute_circolare_influenza_2021.html",
+        source_url="https://www.salute.gov.it/portale/news/circolare-influenza-2021",
+        source_title="Ministero della salute — campagna antinfluenzale",
+        published_at="2021-09-15",
+        excerpt="indicazioni per la campagna di vaccinazione antinfluenzale 2021-2022",
+        retrieval="irrelevant", label="not_enough_info", overlap="same_topic",
+        explanation="Official same-ministry health circular. Does not name the green pass.",
+    ),
+    case(
+        "same-giorgetti-mef-circolare", "negative", "207",
+        document="../mef_circolare_2024.html",
+        source_url="https://www.mef.gov.it/ufficio-stampa/comunicati/2024/circolare-contabile/",
+        source_title="MEF — circolare contabile",
+        published_at="2024-02-08",
+        excerpt="Il Ministero dell'economia pubblica la circolare sui termini di chiusura dell'esercizio.",
+        retrieval="irrelevant", label="not_enough_info", overlap="procedural",
+        explanation="Official accounting circular. Does not name cuneo fiscale.",
+    ),
+    case(
+        "same-draghi-natalita", "negative", "209",
+        document="../lavoro_natalita_2021.html",
+        source_url="https://www.lavoro.gov.it/temi-e-priorita/famiglia-e-natalita",
+        source_title="Ministero del lavoro — nota sulla natalita'",
+        published_at="2021-06-10",
+        excerpt="indicazioni ai comuni sui servizi per la prima infanzia e il sostegno alla natalita'",
+        retrieval="irrelevant", label="not_enough_info", overlap="same_topic",
+        explanation="Official family-policy note. Does not name assegno unico e universale.",
+    ),
+    case(
+        "same-conte-assegno-unico", "negative", "203",
+        document="../mef_assegno_unico_2023.html",
+        source_url="https://www.mef.gov.it/ufficio-stampa/comunicati/2023/assegno-unico/",
+        source_title="MEF — assegno unico e universale",
+        published_at="2020-12-15",
+        excerpt="erogazione dell'assegno unico e universale per i figli a carico",
+        retrieval="irrelevant", label="not_enough_info", overlap="same_topic",
+        explanation="Different cash benefit. Names assegno unico, not reddito di cittadinanza.",
+    ),
+    case(
+        "same-schillaci-ospedali", "negative", "206",
+        document="../salute_ospedali_2024.html",
+        source_url="https://www.salute.gov.it/portale/news/ospedali-2024",
+        source_title="Ministero della salute — rete ospedaliera",
+        published_at="2024-03-18",
+        excerpt="riordino della rete ospedaliera e dei posti letto per acuti",
+        retrieval="irrelevant", label="not_enough_info", overlap="same_topic",
+        explanation="Official hospital-network note. Does not name liste di attesa.",
+    ),
+    case(
+        "date-giorgetti-pre-cuneo", "negative", "207",
+        document="../legge_cuneo_2014.html",
+        source_url="https://www.gazzettaufficiale.it/eli/id/2014/04/24/14G00079/sg",
+        source_title="Gazzetta Ufficiale — misure sul cuneo fiscale 2014",
+        published_at="2014-04-24",
+        excerpt="e' ridotto il cuneo fiscale per i lavoratori dipendenti",
+        retrieval="irrelevant", label="not_enough_info", overlap="date_window",
+        explanation="Earlier official tax-wedge cut is before Giorgetti's announcement window.",
+    ),
 ]
 
 
 def main() -> int:
     ROOT.mkdir(parents=True, exist_ok=True)
     payload = {
-        "version": "pledge-evidence-gold/v4",
+        "version": "pledge-evidence-gold/v5",
         "notes": (
             "Official-source gold set for evidence relevance and conservative FEVER "
             "semantics. Multi-actor, multi-topic, multi-domain. Not a political score."

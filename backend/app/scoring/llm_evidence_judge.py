@@ -77,8 +77,14 @@ class OllamaEvidenceJudge:
         self._prompt = load_pledge_evidence_judge_prompt()
 
     def judge(
-        self, *, pledge_text: str, commitment_type: CommitmentType, passage_text: str
+        self,
+        *,
+        pledge_text: str,
+        commitment_type: CommitmentType,
+        passage_text: str,
+        **_temporal: object,
     ) -> EvidenceJudgment:
+        del _temporal
         user = (
             f"{self._prompt}\n\nCOMMITMENT ({commitment_type.value}):\n{pledge_text}\n\n"
             f"OFFICIAL EVIDENCE PASSAGE:\n{passage_text}\n"
