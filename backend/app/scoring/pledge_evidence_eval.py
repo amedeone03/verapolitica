@@ -55,6 +55,8 @@ class GoldPledgeCase(BaseModel):
     holder_role: str = "government_coalition"
     topic_code: str | None = None
     announcement_date: date | None = None
+    mandate_start: date | None = None
+    mandate_end: date | None = None
     document: str | None = None
     source_url: str = ""
     source_title: str = ""
@@ -197,8 +199,8 @@ def _profile(case: GoldPledgeCase):
         specificity=case.specificity,
         commitment_type=case.commitment_type,
         announcement_date=case.announcement_date,
-        mandate_start=date(2022, 10, 22),
-        mandate_end=date(2027, 10, 12),
+        mandate_start=case.mandate_start or date(2022, 10, 22),
+        mandate_end=case.mandate_end or date(2027, 10, 12),
     )
 
 

@@ -1,20 +1,58 @@
+from urllib.parse import urlsplit
+
 from backend.app.core.config import Settings
 from backend.app.jobs.catalog import enabled_schedules
 from backend.app.scoring.evidence_matching import EvidenceJudgment
+from backend.app.scoring.instrument_aliases import ALIAS_POLICY_VERSION, INSTRUMENT_ALIASES
+from backend.app.scoring.official_sources import is_official_source_url
 from backend.app.scoring.pledge_evidence_eval import (
     load_gold_dataset,
     readiness_gate,
     run_gold_evaluation,
 )
+from backend.app.scoring.retrieval_profile import RETRIEVAL_POLICY_VERSION
 from backend.app.scoring.types import EvidenceLabel, FulfillmentVerdict
 from backend.app.services.pledge_service import PledgeService
+
+FROZEN_V3_IDS = {
+    "pos-autonomia-law86",
+    "title-giudiziario-law114",
+    "neg-giudiziario-law86",
+    "neg-infrastrutture-tim-note",
+    "abstain-sophia-no-later-evidence",
+    "contradict-autonomia-corte192",
+    "pos-carceri-law112",
+    "neg-carceri-law114",
+    "neg-carceri-law86",
+    "same-102-tim",
+    "same-102-sky-alps",
+    "title-102-a24",
+    "same-105-riscossione",
+    "same-105-concordato",
+    "abstain-105-no-criteria",
+    "pos-107-assegno-inclusione",
+    "neg-107-law86",
+    "pos-108-asili-nido",
+    "neg-108-law114",
+    "same-109-cutro",
+    "proc-104-calendar",
+    "announce-106-cdm",
+    "actor-108-esteri",
+    "date-106-legge42",
+    "neg-carceri-sovraffollamento",
+    "neg-carceri-organigramma",
+    "neg-carceri-polizia",
+    "neg-107-linee-guida",
+    "neg-107-adi-statistica",
+    "neg-107-assegno-unico",
+}
 
 
 def test_gold_set_is_deterministic_and_never_publishes():
     first = run_gold_evaluation()
     second = run_gold_evaluation()
-    assert first.dataset_version == "pledge-evidence-gold/v3"
-    assert first.case_count >= 28
+    assert first.dataset_version == "pledge-evidence-gold/v4"
+    assert first.case_count >= 50
     assert first.published is False
     assert first.as_dict()["published"] is False
     assert [item.outcome for item in first.retrieval] == [
@@ -26,22 +64,25 @@ def test_gold_set_is_deterministic_and_never_publishes():
     dataset = load_gold_dataset()
     kinds = {case.kind for case in dataset.cases}
     overlaps = {case.overlap_type for case in dataset.cases}
-    assert len(dataset.cases) >= 28
+    assert len(dataset.cases) >= 50
     assert {"positive", "negative", "abstain"} <= kinds
-    assert {"same_topic", "title_only", "procedural", "implementation"} <= overlaps
-    ids = {case.case_id for case in dataset.cases}
     assert {
-        "pos-autonomia-law86",
-        "title-giudiziario-law114",
-        "neg-giudiziario-law86",
-        "neg-infrastrutture-tim-note",
-        "abstain-sophia-no-later-evidence",
-        "proc-104-calendar",
-        "same-109-cutro",
-        "neg-carceri-sovraffollamento",
-        "neg-107-adi-statistica",
-    } <= ids
+        "same_topic",
+        "title_only",
+        "procedural",
+        "implementation",
+        "announcement",
+        "actor_only",
+        "date_window",
+        "contradictory",
+        "no_evidence",
+    } <= overlaps
+    ids = {case.case_id for case in dataset.cases}
+    assert FROZEN_V3_IDS <= ids
     by_id = {item.case_id: item for item in first.retrieval}
+    frozen = [item for item in first.retrieval if item.case_id in FROZEN_V3_IDS]
+    assert all(item.outcome in {"tp", "tn"} for item in frozen)
+    assert not any(item.outcome == "fp" for item in frozen)
     assert by_id["pos-autonomia-law86"].outcome == "tp"
     assert by_id["pos-carceri-law112"].outcome == "tp"
     assert by_id["pos-107-assegno-inclusione"].outcome == "tp"
@@ -53,8 +94,14 @@ def test_gold_set_is_deterministic_and_never_publishes():
     assert by_id["abstain-sophia-no-later-evidence"].outcome == "tn"
     assert first.conservative_closed_verdicts == 0
     assert first.false_positives == 0
-    assert first.false_negatives == 0
-    assert first.precision == 1.0
+    assert {item.case_id for item in first.retrieval if item.outcome == "fn"} <= {
+        "pos-conte-rdc",
+        "pos-draghi-pnrr",
+        "pos-speranza-greenpass",
+        "pos-schillaci-liste",
+        "pos-giorgetti-cuneo",
+        "pos-draghi-assegno-unico",
+    }
     cons = {item.case_id: item for item in first.conservative}
     assert cons["title-giudiziario-law114"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
     assert cons["announce-106-cdm"].predicted_label is EvidenceLabel.NOT_ENOUGH_INFO
@@ -62,6 +109,40 @@ def test_gold_set_is_deterministic_and_never_publishes():
     assert all(item.excerpt_valid for item in first.conservative)
     assert all(item.compatible for item in first.conservative)
     assert not any(item.predicted_verdict in {FulfillmentVerdict.KEPT, FulfillmentVerdict.BROKEN} for item in first.conservative)
+
+
+def test_expanded_gold_has_required_fields_and_diversity():
+    dataset = load_gold_dataset()
+    actors = {case.actor for case in dataset.cases}
+    topics = {case.topic_code for case in dataset.cases if case.topic_code}
+    hosts = {
+        (urlsplit(case.source_url).hostname or "").casefold()
+        for case in dataset.cases
+        if case.source_url
+    }
+    assert len(dataset.cases) >= 50
+    assert len(actors) >= 5
+    assert len(topics) >= 5
+    assert len(hosts) >= 5
+    for case in dataset.cases:
+        assert case.commitment_id
+        assert case.actor
+        assert case.commitment_text
+        assert case.expected_retrieval in {"relevant", "irrelevant"}
+        assert case.expected_label
+        assert case.explanation
+        if case.source_url:
+            assert is_official_source_url(case.source_url)
+            assert case.source_title
+            assert case.published_at is not None
+            assert case.exact_excerpt
+            assert case.document
+    assert ALIAS_POLICY_VERSION == "instrument-alias/v1"
+    assert RETRIEVAL_POLICY_VERSION == "pledge_evidence_retrieval_v2"
+    assert {item.source for item in INSTRUMENT_ALIASES} == {
+        "piano carceri",
+        "soggetti effettivamente fragili",
+    }
 
 
 def test_llm_gold_evaluation_cannot_publish(monkeypatch):
