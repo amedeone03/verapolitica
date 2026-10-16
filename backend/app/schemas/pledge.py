@@ -191,6 +191,9 @@ class PublicScorecardPledge(_Frozen):
     cap_topic_code: str | None
     included_in_score: bool
     latest_assessment: PledgeAssessmentResponse | None
+    introduced_at: date | None = None
+    declaration_source_name: str | None = None
+    declaration_source_url: str | None = None
 
 
 class PublicScorecard(_Frozen):

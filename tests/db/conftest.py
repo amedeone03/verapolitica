@@ -67,6 +67,11 @@ EXPECTED_TABLES = frozenset(
         "pledge_audit_samples",
         "pledge_audit_codings",
         "pledge_evidence_candidates",
+        "politician_biographies",
+        "politician_career_entries",
+        "politician_positions",
+        "politician_proceedings",
+        "politician_profile_sources",
     }
 )
 

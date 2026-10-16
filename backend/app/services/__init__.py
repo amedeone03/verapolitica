@@ -80,6 +80,13 @@ from backend.app.services.political_party_service import (
     PoliticalPartyServiceError,
     PoliticalPartyValidationError,
 )
+from backend.app.services.politician_profile_service import (
+    PoliticianProfileConflictError,
+    PoliticianProfileNotFoundError,
+    PoliticianProfileService,
+    PoliticianProfileServiceError,
+    PoliticianProfileValidationError,
+)
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
 from backend.app.services.proposal_service import (
     ProposalConflictError,
@@ -187,6 +194,11 @@ __all__ = [
     "PublishPersistenceError",
     "PublishService",
     "PublishServiceError",
+    "PoliticianProfileConflictError",
+    "PoliticianProfileNotFoundError",
+    "PoliticianProfileService",
+    "PoliticianProfileServiceError",
+    "PoliticianProfileValidationError",
     "PublicPoliticianQueryService",
     "PublicProposalQueryService",
     "PublicTerritoryQueryService",

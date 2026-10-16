@@ -316,19 +316,50 @@ function sourceHostLabel(url) {
   }
 }
 
+const SOURCE_KIND_LABELS = {
+  official: "Fonte ufficiale",
+  institutional: "Fonte istituzionale",
+  news: "Fonte giornalistica",
+  party_politician: "Fonte del partito o della persona",
+  fact_check: "Verifica",
+  other: "Fonte",
+};
+
+function sourceKindFromUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "").toLocaleLowerCase("it");
+    if (/(senato\.it|camera\.it|governo\.it|gazzettaufficiale\.it|interno\.gov\.it|inps\.it|riformeistituzionali\.gov\.it)$/.test(host)) {
+      return "official";
+    }
+    if (/(europa\.eu|ecrparty\.eu)$/.test(host)) return "institutional";
+    if (host.includes("pagellapolitica.it")) return "fact_check";
+    if (host.includes("giorgiameloni.it") || host.includes("fratelli-italia.it")) return "party_politician";
+    if (/(corriere\.it|rainews\.it|ansa\.it|sky\.it|fanpage\.it|youtube\.com)$/.test(host)) return "news";
+    return "other";
+  } catch {
+    return "other";
+  }
+}
+
+function sourceKindLabel(kind, url = "") {
+  if (kind && SOURCE_KIND_LABELS[kind]) return SOURCE_KIND_LABELS[kind];
+  return SOURCE_KIND_LABELS[sourceKindFromUrl(url)] || "Fonte";
+}
+
 export function renderSourceCard({
   name = "",
   url = "",
   title = "",
   date = "",
-  kind = "Fonte ufficiale",
+  kind = "",
   extra = "",
 } = {}) {
   const href = safeExternalUrl(url);
   const displayName = name || (href ? sourceHostLabel(href) : "") || "";
   if (!displayName && !href && !title) return "";
+  const kindLabel = kind && !SOURCE_KIND_LABELS[kind] ? kind : sourceKindLabel(kind, href);
   return `<article class="source-card">
-    <p class="source-card-kind">${escapeHtml(kind)}</p>
+    <p class="source-card-kind">${escapeHtml(kindLabel)}</p>
     ${displayName ? `<h3>${escapeHtml(displayName)}</h3>` : ""}
     ${title ? `<p class="source-card-title">${escapeHtml(title)}</p>` : ""}
     ${date ? `<p class="source-card-date">${escapeHtml(date)}</p>` : ""}
@@ -337,9 +368,24 @@ export function renderSourceCard({
   </article>`;
 }
 
+function careerDedupeKey(entry) {
+  return `${String(entry.role || "").toLocaleLowerCase("it")}|${String(entry.start || "").slice(0, 4)}`;
+}
+
 export function careerEntries(person) {
   const gender = person.profile?.gender;
   const entries = [];
+  for (const item of person.career_entries || []) {
+    entries.push({
+      start: item.start_date,
+      end: item.is_current ? null : item.end_date,
+      role: item.role,
+      institution: item.institution,
+      extra: [item.organization, item.party_or_group].filter(Boolean).join(" · "),
+      source: (item.sources || [])[0] || null,
+      editorial: true,
+    });
+  }
   (person.profile?.mandates || []).forEach((mandate, index) => {
     const citation = (person.citations || []).find((item) => item.field_path.startsWith(`mandates[${index}]`));
     entries.push({
@@ -366,12 +412,20 @@ export function careerEntries(person) {
       source: office.source || null,
     });
   }
-  entries.sort((left, right) => {
+  const seen = new Set();
+  const unique = [];
+  for (const entry of entries) {
+    const key = careerDedupeKey(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(entry);
+  }
+  unique.sort((left, right) => {
     const byStart = String(left.start || "").localeCompare(String(right.start || ""));
     if (byStart) return byStart;
     return String(left.role || "").localeCompare(String(right.role || ""), "it");
   });
-  return entries;
+  return unique;
 }
 
 export function renderCareerTimeline(person) {
@@ -387,7 +441,7 @@ export function renderCareerTimeline(person) {
       ${entry.source ? renderSourceCard({
         name: entry.source.name,
         url: entry.source.url,
-        kind: "Fonte ufficiale",
+        kind: entry.source.kind || "official",
       }) : ""}
     </div>
   </li>`).join("")}</ol>`;
@@ -399,6 +453,21 @@ export function renderWhoIs(person) {
   const mandate = currentMandate(person);
   const party = currentParty(person);
   const place = birthPlace(profile);
+  const biography = person.biography?.body;
+  if (biography) {
+    const bioSources = (person.biography.sources || []).map((source) => renderSourceCard({
+      name: source.name,
+      url: source.url,
+      title: source.title,
+      kind: source.kind,
+    })).filter(Boolean);
+    return `<section class="detail-card profile-who" id="profilo">
+    <p class="eyebrow">Profilo</p>
+    <h2>Chi è</h2>
+    ${biography.split(/\n+/).map((paragraph) => `<p class="who-copy">${escapeHtml(paragraph)}</p>`).join("")}
+    ${bioSources.length ? `<div class="source-card-list">${bioSources.join("")}</div>` : ""}
+  </section>`;
+  }
   const sentences = [];
   if (mandate) {
     sentences.push(`${name} è ${mandateRole(mandate, profile.gender)} presso ${mandate.institution}.`);
@@ -432,19 +501,72 @@ export function renderWhoIs(person) {
   </section>`;
 }
 
-export function renderKeyPositions() {
+const PROCEEDING_TYPE_LABELS = {
+  judicial_proceeding: "Procedimento giudiziario",
+  investigation: "Inchiesta",
+  political_controversy: "Controversia politica",
+  legal_controversy: "Controversia giuridica",
+  media_controversy: "Controversia mediatica",
+};
+
+const PROCEEDING_OUTCOME_LABELS = {
+  archived: "Archiviato",
+  ongoing: "In corso",
+  dismissed: "Archiviato",
+  unknown: "Non indicato",
+};
+
+function proceedingTypeLabel(types = []) {
+  const labels = types.map((value) => PROCEEDING_TYPE_LABELS[value] || titleCase(value));
+  if (labels.length === 2) return `${labels[0]} e ${labels[1].replace(/^Controversia /i, "").toLocaleLowerCase("it")}`;
+  return labels.join(" · ");
+}
+
+export function renderKeyPositions(person = {}) {
+  const items = person.positions || [];
+  const body = items.length
+    ? `<div class="position-list">${items.map((item) => `<article class="position-card">
+        <h3>${escapeHtml(item.topic)}</h3>
+        <dl class="facts">
+          ${fact("Posizione", item.position_statement)}
+          ${fact("Dichiarazione / atto verificabile", item.verifiable_statement)}
+          ${item.statement_date ? fact("Data", formatDate(item.statement_date)) : ""}
+        </dl>
+        <div class="source-card-list">${(item.sources || []).map((source) => renderSourceCard({
+          name: source.name,
+          url: source.url,
+          title: source.title,
+          kind: source.kind,
+        })).join("")}</div>
+      </article>`).join("")}</div>`
+    : `<p class="empty-note">Non sono ancora disponibili posizioni verificate per questo profilo.</p>`;
   return `<section class="detail-card profile-positions" id="posizioni">
     <p class="eyebrow">Posizioni</p>
     <h2>Posizioni su temi chiave</h2>
-    <p class="empty-note">Non sono ancora disponibili posizioni verificate per questo profilo.</p>
+    ${body}
   </section>`;
 }
 
-export function renderProceedings() {
+export function renderProceedings(person = {}) {
+  const items = person.proceedings || [];
+  const body = items.length
+    ? `<div class="proceeding-list">${items.map((item) => `<article class="proceeding-card">
+        <h3>${escapeHtml(item.title)}</h3>
+        <p class="proceeding-meta"><span class="proceeding-type">${escapeHtml(proceedingTypeLabel(item.proceeding_types || []))}</span>${item.outcome ? `<span class="proceeding-outcome">Stato/Esito: ${escapeHtml(PROCEEDING_OUTCOME_LABELS[item.outcome] || item.outcome)}</span>` : ""}</p>
+        <p class="who-copy">${escapeHtml(item.summary)}</p>
+        ${item.outcome_summary ? `<p class="empty-note">${escapeHtml(item.outcome_summary)}</p>` : ""}
+        <div class="source-card-list">${(item.sources || []).map((source) => renderSourceCard({
+          name: source.name,
+          url: source.url,
+          title: source.title,
+          kind: source.kind,
+        })).join("")}</div>
+      </article>`).join("")}</div>`
+    : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`;
   return `<section class="detail-card profile-proceedings" id="procedimenti">
     <p class="eyebrow">Procedimenti</p>
     <h2>Procedimenti e controversie</h2>
-    <p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>
+    ${body}
   </section>`;
 }
 
@@ -868,24 +990,33 @@ function renderStratum(stratum, scorecard) {
 export function renderPledgeItem(pledge) {
   const assessment = pledge.latest_assessment;
   const meta = verdictMeta(pledge.verdict);
-  const origin = assessment?.effective_at ? formatDate(assessment.effective_at) : "";
+  const declared = pledge.introduced_at ? formatDate(pledge.introduced_at) : "";
+  const assessed = assessment?.effective_at ? formatDate(assessment.effective_at) : "";
+  const declarationUrl = pledge.declaration_source_url || "";
   return `<article class="pledge-item" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
     <div class="pledge-top">
       ${renderVerdictChip(pledge.verdict)}
       <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Troppo vaga da valutare</span>`}</span>
     </div>
     <h4><a href="./?proposal=${encodeURIComponent(pledge.proposal_id)}">${escapeHtml(pledge.title)}</a></h4>
-    ${origin ? `<p class="pledge-origin">${escapeHtml(origin)}</p>` : ""}
+    ${declared ? `<p class="pledge-origin">Dichiarata il ${escapeHtml(declared)}</p>` : ""}
     ${pledge.exact_statement ? `<blockquote class="pledge-quote">“${escapeHtml(pledge.exact_statement)}”</blockquote>` : ""}
+    ${declarationUrl || pledge.declaration_source_name ? renderSourceCard({
+      kind: sourceKindFromUrl(declarationUrl),
+      name: pledge.declaration_source_name || sourceHostLabel(declarationUrl) || "",
+      url: declarationUrl,
+      title: "Fonte della dichiarazione",
+    }) : ""}
     ${assessment ? `<div class="pledge-evidence tone-${meta.tone}">
       <p class="evidence-label">Perché questo stato</p>
       <p class="evidence-text">${escapeHtml(assessment.rationale)}</p>
       ${assessment.quoted_excerpt ? `<p class="evidence-quote">“${escapeHtml(assessment.quoted_excerpt)}”</p>` : ""}
       ${renderSourceCard({
-        kind: "Fonte ufficiale",
+        kind: "official",
         name: sourceHostLabel(assessment.source_url) || "",
         url: assessment.source_url,
-        date: origin,
+        title: "Fonte della valutazione",
+        date: assessed,
       })}
     </div>` : `<p class="empty-note">Non ancora valutata</p>`}
     <button type="button" class="explain-pledge" data-pledge-id="${encodeURIComponent(pledge.proposal_id)}">Spiegami questa promessa</button>
@@ -1117,13 +1248,13 @@ export function renderPoliticianDetail(person, scorecard = null) {
       ${hasParties ? `<h3 class="career-subhead">Partito politico</h3><p class="party-disclaimer">I partiti politici e i gruppi parlamentari sono concetti istituzionali distinti.</p>${renderPoliticalParties(person.political_parties || [])}` : ""}
       ${hasProposals ? `<h3 class="career-subhead">Proposte e promesse</h3>${renderPoliticianProposals(person.proposals || [])}` : ""}
     </section>` : ""}
-    ${renderKeyPositions()}
+    ${renderKeyPositions(person)}
     <section class="detail-card commitments-card" id="promesse">
       <p class="eyebrow">Detto e fatto</p>
       <h2>Scheda delle promesse</h2>
       ${renderScorecard(scorecard)}
     </section>
-    ${renderProceedings()}
+    ${renderProceedings(person)}
     ${sourcesMarkup ? `<section class="detail-card sources-card" id="fonti">
       <div class="sources-heading">
         <div><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2></div>

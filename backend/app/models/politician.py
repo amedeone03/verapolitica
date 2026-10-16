@@ -19,6 +19,12 @@ if TYPE_CHECKING:
     from backend.app.models.political_party_affiliation import (
         PoliticalPartyAffiliation,
     )
+    from backend.app.models.politician_profile import (
+        PoliticianBiography,
+        PoliticianCareerEntry,
+        PoliticianPosition,
+        PoliticianProceeding,
+    )
     from backend.app.models.proposal import ProposalActor
     from backend.app.models.territorial_office_mandate import TerritorialOfficeMandate
 
@@ -93,4 +99,16 @@ class Politician(Base):
     territorial_office_mandates: Mapped[list["TerritorialOfficeMandate"]] = relationship(
         back_populates="politician",
         order_by="TerritorialOfficeMandate.start_date",
+    )
+    biographies: Mapped[list["PoliticianBiography"]] = relationship(
+        back_populates="politician"
+    )
+    career_entries: Mapped[list["PoliticianCareerEntry"]] = relationship(
+        back_populates="politician"
+    )
+    positions: Mapped[list["PoliticianPosition"]] = relationship(
+        back_populates="politician"
+    )
+    proceedings: Mapped[list["PoliticianProceeding"]] = relationship(
+        back_populates="politician"
     )

@@ -65,6 +65,13 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "no controversies" not in script.casefold()
     assert "nessuna controversia" not in script.casefold()
     assert "Giorgia Meloni è nata" not in script
+    assert 'family_name === "Meloni"' not in script
+    assert "giorgia-meloni" not in script
+    assert "renderKeyPositions(person)" in script
+    assert "renderProceedings(person)" in script
+    assert "Fonte giornalistica" in script
+    assert "Procedimento giudiziario" in script
+    assert "Controversia politica" in script
 
     assert ".profile-section-nav" in styles
     assert "flex-wrap: wrap" in styles
@@ -111,8 +118,12 @@ def test_public_profile_payload_has_career_inputs_not_positions_or_proceedings(t
 
     assert payload["profile"]["mandates"][0]["office"]
     assert payload["profile"]["mandates"][0]["start_date"]
-    assert "positions" not in payload
-    assert "proceedings" not in payload
+    assert payload["biography"] is None
+    assert payload["career_entries"] == []
+    assert payload["positions"] == []
+    assert payload["proceedings"] == []
     assert "controversies" not in payload
-    assert "biography" not in payload
     assert "biography" not in payload["profile"]
+    assert "reviewer_identity" not in payload
+    assert "review_note" not in payload
+    assert "status" not in payload

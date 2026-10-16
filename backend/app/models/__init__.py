@@ -98,6 +98,20 @@ from backend.app.models.civic import (
     VotingGuide,
     VotingGuideSectionKey,
 )
+from backend.app.models.politician_profile import (
+    DatePrecision,
+    ImmutableProfileContentError,
+    PoliticianBiography,
+    PoliticianCareerEntry,
+    PoliticianPosition,
+    PoliticianProceeding,
+    PoliticianProfileSource,
+    ProceedingOutcome,
+    ProceedingType,
+    ProfileContentKind,
+    ProfileContentStatus,
+    ProfileSourceKind,
+)
 from backend.app.models.pledge import (
     ImmutablePledgeRecordError,
     PledgeAssessment,
@@ -201,4 +215,16 @@ __all__ = [
     "PledgeClassification",
     "PledgeEvidenceCandidate",
     "PledgeEvidenceCandidateStatus",
+    "DatePrecision",
+    "ImmutableProfileContentError",
+    "PoliticianBiography",
+    "PoliticianCareerEntry",
+    "PoliticianPosition",
+    "PoliticianProceeding",
+    "PoliticianProfileSource",
+    "ProceedingOutcome",
+    "ProceedingType",
+    "ProfileContentKind",
+    "ProfileContentStatus",
+    "ProfileSourceKind",
 ]

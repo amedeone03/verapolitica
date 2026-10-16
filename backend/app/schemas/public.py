@@ -4,6 +4,12 @@ from pydantic import AnyHttpUrl, Field
 
 from backend.app.schemas.candidate_profile import ImmutableSchema
 from backend.app.schemas.politician import PoliticianVersionProfile
+from backend.app.schemas.politician_profile import (
+    PublicBiography,
+    PublicCareerEntry,
+    PublicPosition,
+    PublicProceeding,
+)
 from backend.app.schemas.proposal import PublicPoliticianProposal
 
 
@@ -63,6 +69,10 @@ class PublicPolitician(PublicPoliticianSummary):
     political_parties: tuple[PublicPoliticalPartyAffiliation, ...] = ()
     proposals: tuple[PublicPoliticianProposal, ...] = ()
     territorial_offices: tuple["PublicTerritorialOffice", ...] = ()
+    biography: PublicBiography | None = None
+    career_entries: tuple[PublicCareerEntry, ...] = ()
+    positions: tuple[PublicPosition, ...] = ()
+    proceedings: tuple[PublicProceeding, ...] = ()
 
 
 class PublicPoliticianList(ImmutableSchema):

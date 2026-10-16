@@ -1,0 +1,612 @@
+{
+  "fixture_id": "giorgia_meloni_v1",
+  "disclaimer": "derived from CEO reference PDF; requires editorial verification",
+  "source_pdf": "Giorgia_Meloni.pdf",
+  "created_by": "reference-profile-operator",
+  "politician": {
+    "given_name": "Giorgia",
+    "family_name": "Meloni",
+    "birth_date": "1977-01-15"
+  },
+  "biography": {
+    "identity_key": "primary",
+    "body": "Giorgia Meloni, diplomata in lingue e giornalista professionista, inizia l’attività politica nel 1992 nel Fronte della Gioventù, organizzazione giovanile del Movimento Sociale Italiano. Nel 1998 viene eletta consigliera provinciale a Roma e nel 2006 deputata. Ministra della Gioventù dal 2008 al 2011, nel 2012 fonda Fratelli d’Italia insieme a Ignazio La Russa e Guido Crosetto. Presidente del partito dal 2014, guida il governo italiano dal 22 ottobre 2022.",
+    "sources": [
+      {
+        "name": "Presidenza del Consiglio — Curriculum ufficiale",
+        "kind": "official",
+        "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
+      },
+      {
+        "name": "Camera dei Deputati — Profilo parlamentare",
+        "kind": "official",
+        "url": null
+      },
+      {
+        "name": "Treccani — Biografia di Giorgia Meloni",
+        "kind": "institutional",
+        "url": null
+      }
+    ]
+  },
+  "career_entries": [
+    {
+      "identity_key": "consigliera-provincia-roma-1998",
+      "start_date": "1998-01-01",
+      "end_date": "2002-12-31",
+      "start_precision": "year",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Consigliera della Provincia di Roma",
+      "institution": "Provincia di Roma",
+      "party_or_group": "Alleanza Nazionale",
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-azione-giovani-2004",
+      "start_date": "2004-01-01",
+      "end_date": "2009-12-31",
+      "start_precision": "year",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Presidente di Azione Giovani",
+      "institution": "Azione Giovani",
+      "organization": "organizzazione giovanile di Alleanza Nazionale",
+      "party_or_group": "Alleanza Nazionale",
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "deputata-2006",
+      "start_date": "2006-01-01",
+      "end_date": null,
+      "start_precision": "year",
+      "end_precision": null,
+      "is_current": true,
+      "role": "Deputata della Repubblica italiana",
+      "institution": "Camera dei Deputati",
+      "party_or_group": null,
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "vicepresidente-camera-2006",
+      "start_date": "2006-01-01",
+      "end_date": "2008-12-31",
+      "start_precision": "year",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Vicepresidente della Camera dei Deputati",
+      "institution": "Camera dei Deputati",
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "ministra-gioventu-2008",
+      "start_date": "2008-05-07",
+      "end_date": "2011-11-15",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Ministra senza portafoglio con delega alle politiche giovanili",
+      "institution": "Governo Berlusconi IV",
+      "sources": [
+        {
+          "name": "Presidenza del Consiglio — Curriculum ufficiale",
+          "kind": "official",
+          "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-giovane-italia-2009",
+      "start_date": "2009-01-01",
+      "end_date": "2012-12-31",
+      "start_precision": "year",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Presidente della Giovane Italia",
+      "institution": "Giovane Italia",
+      "organization": "organizzazione giovanile del Popolo della Libertà",
+      "party_or_group": "Il Popolo della Libertà",
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "cofondatrice-fdi-2012",
+      "start_date": "2012-12-21",
+      "end_date": "2012-12-21",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Cofondatrice di Fratelli d’Italia",
+      "institution": "Fratelli d’Italia",
+      "party_or_group": "Fratelli d’Italia",
+      "sources": [
+        {
+          "name": "Presidenza del Consiglio — Curriculum ufficiale",
+          "kind": "official",
+          "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-gruppo-fdi-2013",
+      "start_date": "2013-04-03",
+      "end_date": null,
+      "start_precision": "day",
+      "is_current": false,
+      "role": "Presidente del gruppo parlamentare di Fratelli d’Italia",
+      "institution": "Camera dei Deputati",
+      "party_or_group": "Fratelli d’Italia",
+      "sources": [
+        {
+          "name": "Ministero dell’Interno — Curriculum elettorale 2022",
+          "kind": "official",
+          "url": "https://dait.interno.gov.it/documenti/trasparenza/POLITICHE_20220925/CAMERA_ITALIA_20220925/candidati/CI17/CU1713/1353601/5277_1353601_giorgia_meloni_25092022_cv.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-fdi-2014",
+      "start_date": "2014-03-08",
+      "end_date": null,
+      "start_precision": "day",
+      "is_current": true,
+      "role": "Presidente nazionale di Fratelli d’Italia",
+      "institution": "Fratelli d’Italia",
+      "party_or_group": "Fratelli d’Italia",
+      "sources": [
+        {
+          "name": "Presidenza del Consiglio — Curriculum ufficiale",
+          "kind": "official",
+          "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-ecr-2020",
+      "start_date": "2020-01-01",
+      "end_date": "2025-01-14",
+      "start_precision": "year",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Presidente del Partito dei Conservatori e Riformisti Europei",
+      "institution": "ECR Party",
+      "sources": [
+        {
+          "name": "Partito dei Conservatori e Riformisti Europei",
+          "kind": "party_politician",
+          "url": "https://ecrparty.eu/2025/01/14/election-of-the-new-presidency-of-the-european-conservatives-and-reformists-party-ecr-brussels-january-14-2025/"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-consiglio-2022",
+      "start_date": "2022-10-22",
+      "end_date": null,
+      "start_precision": "day",
+      "is_current": true,
+      "role": "Presidente del Consiglio dei Ministri della Repubblica Italiana",
+      "institution": "Presidenza del Consiglio dei Ministri",
+      "sources": [
+        {
+          "name": "Presidenza del Consiglio — Curriculum ufficiale",
+          "kind": "official",
+          "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
+        }
+      ]
+    }
+  ],
+  "positions": [
+    {
+      "identity_key": "immigrazione",
+      "topic": "Immigrazione",
+      "position_statement": "Favorevole a una politica di contrasto all’immigrazione irregolare, con procedure di rimpatrio e accordi con Paesi terzi.",
+      "verifiable_statement": "Il 16 maggio 2026 Meloni ha difeso la possibilità di realizzare centri per i rimpatri fuori dall’Unione europea, richiamando il modello dell’accordo Italia-Albania.",
+      "statement_date": "2026-05-16",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "Corriere della Sera",
+          "title": "16 maggio 2026",
+          "kind": "news",
+          "url": "https://roma.corriere.it/notizie/cronaca/26_maggio_16/migranti-giorgia-meloni-il-consiglio-d-europa-riconosce-legittimi-gli-hub-e-il-modello-albania-ea405ce1-9f8e-4c6a-96e8-2f4971b65xlk_amp.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "economia-fiscalita",
+      "topic": "Economia e fiscalità",
+      "position_statement": "Favorevole alla riduzione dell’imposizione fiscale sui redditi da lavoro, attraverso interventi sull’IRPEF e sul cuneo fiscale.",
+      "verifiable_statement": "Il 18 ottobre 2025 Meloni ha illustrato la riduzione dal 35% al 33% dell’aliquota IRPEF applicabile allo scaglione di reddito tra 28.000 e 50.000 euro, nell’ambito della manovra per il 2026.",
+      "statement_date": "2025-10-18",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "Sky TG24",
+          "title": "18 ottobre 2025",
+          "kind": "news",
+          "url": "https://tg24.sky.it/politica/2025/10/18/manovra-meloni"
+        }
+      ]
+    },
+    {
+      "identity_key": "riforme-istituzionali",
+      "topic": "Riforme istituzionali",
+      "position_statement": "Favorevole all’elezione diretta del Presidente del Consiglio, con l’obiettivo dichiarato di rafforzare la stabilità dei governi.",
+      "verifiable_statement": "Il 3 novembre 2023 il Consiglio dei ministri, su proposta di Meloni e della ministra Maria Elisabetta Alberti Casellati, ha approvato il disegno di legge costituzionale sul cosiddetto premierato.",
+      "statement_date": "2023-11-03",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "Dipartimento per le Riforme Istituzionali — Presidenza del Consiglio",
+          "kind": "official",
+          "url": "https://www.riformeistituzionali.gov.it/it/comunicazione/notizie/elezione-diretta-del-presidente-del-consiglio-dei-ministri/"
+        }
+      ]
+    },
+    {
+      "identity_key": "ucraina",
+      "topic": "Politica estera e Ucraina",
+      "position_statement": "Favorevole al sostegno politico, economico e militare all’Ucraina contro l’invasione russa, nell’ambito delle alleanze euro-atlantiche.",
+      "verifiable_statement": "Il 22 ottobre 2025, durante le comunicazioni al Senato, Meloni ha ribadito che il sostegno italiano all’Ucraina sarebbe rimasto fermo, con l’obiettivo di raggiungere una pace negoziata.",
+      "statement_date": "2025-10-22",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "RaiNews",
+          "title": "22 ottobre 2025 — Intervento in Parlamento",
+          "kind": "news",
+          "url": "https://www.rainews.it/video/2025/10/la-nostra-posizione-non-cambia-e-non-puo-cambiare-meloni-sul-sostegno-allucraina-lintervento-in-parlamento-66f7a5c8-0ca8-4280-923c-f4c88838629e.html"
+        }
+      ]
+    },
+    {
+      "identity_key": "sicurezza-europea",
+      "topic": "Sicurezza europea e difesa",
+      "position_statement": "Favorevole a garanzie internazionali di sicurezza per l’Ucraina, ma contraria all’ipotesi di inviare truppe italiane sul territorio ucraino.",
+      "verifiable_statement": "Il 18 marzo 2025 Meloni ha escluso l’invio di truppe italiane in Ucraina e proposto garanzie di sicurezza ispirate all’articolo 5 del Trattato NATO, senza richiedere necessariamente l’adesione ucraina all’Alleanza.",
+      "statement_date": "2025-03-18",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "giorgiameloni.it — Comunicazioni parlamentari del 18 marzo 2025",
+          "kind": "party_politician",
+          "url": "https://www.giorgiameloni.it/2025/03/18/comunicazioni-del-presidente-del-consiglio-giorgia-meloni-in-vista-del-consiglio-europeo-del-20-21-marzo-2025-video/"
+        }
+      ]
+    }
+  ],
+  "pledges": [
+    {
+      "number": 1,
+      "identity_key": "rdc",
+      "title": "Abolire e sostituire il Reddito di cittadinanza",
+      "exact_statement": "Abolire e sostituire il Reddito di cittadinanza",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche alla Camera",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "PDF cites D.L. 48/2023 and legge 85/2023. No verbatim official excerpt is stored here, so no assessment draft is created.",
+      "match_phrases": ["reddito di cittadinanza"]
+    },
+    {
+      "number": 2,
+      "identity_key": "cuneo-fiscale",
+      "title": "Ridurre il cuneo fiscale di almeno cinque punti",
+      "exact_statement": "Ridurre il cuneo fiscale di almeno cinque punti",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "PDF maps the old green+NON MANTENUTA combination to broken. Evidence is not auto-approved.",
+      "match_phrases": ["cuneo fiscale"]
+    },
+    {
+      "number": 3,
+      "identity_key": "irpef-scaglioni",
+      "title": "Ridurre gli scaglioni IRPEF da quattro a tre",
+      "exact_statement": "Ridurre gli scaglioni IRPEF da quattro a tre",
+      "introduced_at": "2023-11-23",
+      "origin_label": "23 novembre 2023, question time al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1397756&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "match_phrases": ["scaglioni irpef"]
+    },
+    {
+      "number": 4,
+      "identity_key": "flat-tax-iva-100k",
+      "title": "Estendere la flat tax alle partite IVA fino a 100.000 euro",
+      "exact_statement": "Estendere la flat tax per le partite IVA a 100.000 euro",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "match_phrases": ["flat tax"]
+    },
+    {
+      "number": 5,
+      "identity_key": "piu-assumi-meno-paghi",
+      "title": "Introdurre il principio «più assumi, meno paghi»",
+      "exact_statement": "Introdurre il principio «più assumi, meno paghi»",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "5",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "match_phrases": ["più assumi", "piu assumi"]
+    },
+    {
+      "number": 6,
+      "identity_key": "flat-tax-incrementale",
+      "title": "Introdurre una flat tax incrementale",
+      "exact_statement": "Introdurre una flat tax incrementale",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "match_phrases": ["flat tax incrementale"]
+    },
+    {
+      "number": 7,
+      "identity_key": "separazione-carriere",
+      "title": "Separare le carriere dei magistrati entro la legislatura",
+      "exact_statement": "Separare le carriere dei magistrati entro la legislatura",
+      "introduced_at": "2023-07-12",
+      "origin_label": "12 luglio 2023, impegno politico",
+      "declaration_url": "https://www.youtube.com/watch?v=aKcVKGe8IgU",
+      "cap_topic_code": "12",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "broken would require two distinct reviewers after a published pledge exists. Left not_yet_rated.",
+      "match_phrases": ["separare le carriere", "carriere dei magistrati"]
+    },
+    {
+      "number": 8,
+      "identity_key": "premierato",
+      "title": "Introdurre l’elezione diretta del Presidente del Consiglio",
+      "exact_statement": "Introdurre l’elezione diretta del Presidente del Consiglio",
+      "introduced_at": "2023-11-03",
+      "origin_label": "3 novembre 2023, presentazione del disegno di legge costituzionale",
+      "declaration_url": "https://video.corriere.it/politica/via-libera-all-elezione-diretta-premier-meloni-il-premierato-madre-tutte-possibili-riforme/422e4e56-7a49-11ee-b53e-9ce47cd2f4d8",
+      "cap_topic_code": "20",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "stalled",
+      "pdf_implied_verdict_label": "Iter bloccato",
+      "assessment_note": "PDF 'IN CORSO — ITER FERMO' maps to stalled, not a combined status.",
+      "match_phrases": ["elezione diretta del presidente del consiglio", "premierato"]
+    },
+    {
+      "number": 9,
+      "identity_key": "blocco-navale",
+      "title": "Realizzare un blocco navale europeo",
+      "exact_statement": "Realizzare un blocco navale europeo",
+      "introduced_at": "2022-08-01",
+      "origin_label": "Agosto 2022, video elettorale",
+      "declaration_url": "https://www.rainews.it/video/2022/08/immigrazione-meloni-fratelli-ditalia-propone-blocco-navale-in-italia-si-entra-solo-legalmente-f3ddfc18-f4f2-4e6b-9071-f6575e3ae18c.html",
+      "cap_topic_code": "9",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "match_phrases": ["blocco navale"]
+    },
+    {
+      "number": 10,
+      "identity_key": "accise",
+      "title": "Abolire progressivamente le accise sui carburanti",
+      "exact_statement": "Abolire progressivamente le accise sui carburanti",
+      "introduced_at": "2019-01-01",
+      "origin_label": "2019, dichiarazione pubblica precedente alle elezioni politiche del 2022",
+      "declaration_url": "https://pagellapolitica.it/articoli/fact-checking-meloni-taglio-accise",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "match_phrases": ["accise"]
+    },
+    {
+      "number": 11,
+      "identity_key": "fornero",
+      "title": "Rivedere la legge Fornero correggendone gli effetti negativi",
+      "exact_statement": "Rivedere la legge Fornero correggendone gli effetti negativi",
+      "introduced_at": "2018-01-12",
+      "origin_label": "12 gennaio 2018, dichiarazione pubblicata sul sito di Meloni",
+      "declaration_url": "https://www.giorgiameloni.it/2018/01/12/pensioni-legge-fornero-storture-serve-revisione-un-sistema-sia-uguale-tutti/",
+      "cap_topic_code": "13",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "match_phrases": ["legge fornero", "fornero"]
+    },
+    {
+      "number": 12,
+      "identity_key": "quoziente-familiare",
+      "title": "Introdurre progressivamente il quoziente familiare",
+      "exact_statement": "Introdurre progressivamente il quoziente familiare",
+      "introduced_at": "2022-10-25",
+      "origin_label": "26 agosto 2022, video elettorale; 25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "in_progress",
+      "pdf_implied_verdict_label": "In corso",
+      "match_phrases": ["quoziente familiare"]
+    },
+    {
+      "number": 13,
+      "identity_key": "assegno-unico",
+      "title": "Aumentare del 50% l’Assegno unico per i figli",
+      "exact_statement": "Aumentare del 50% l’Assegno unico per i figli",
+      "introduced_at": "2022-08-26",
+      "origin_label": "26 agosto 2022, video pubblicato da Meloni durante la campagna elettorale",
+      "declaration_url": "https://www.ansa.it/sito/notizie/topnews/2022/08/26/meloni-aumenteremo-lassegno-unico-per-i-figli-del-50_42ba9ba1-5d70-4642-977c-6fd4f5e3786d.html",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "match_phrases": ["assegno unico"]
+    },
+    {
+      "number": 14,
+      "identity_key": "asili-nido",
+      "title": "Rendere gratuiti gli asili nido e ampliarne gli orari",
+      "exact_statement": "Rendere gratuiti gli asili nido e ampliarne gli orari",
+      "introduced_at": "2022-10-25",
+      "origin_label": "25 ottobre 2022, dichiarazioni programmatiche",
+      "declaration_url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula",
+      "cap_topic_code": "6",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "match_phrases": ["asili nido"]
+    },
+    {
+      "number": 15,
+      "identity_key": "liste-attesa",
+      "title": "Abbattere le liste d’attesa nella sanità",
+      "exact_statement": "Abbattere le liste d’attesa nella sanità",
+      "introduced_at": "2024-06-04",
+      "origin_label": "4 giugno 2024, dichiarazione video",
+      "declaration_url": "https://www.youtube.com/watch?v=-va-B7SfDPM",
+      "cap_topic_code": "3",
+      "specificity": "medium",
+      "commitment_type": "outcome",
+      "suggested_verdict": "in_progress",
+      "pdf_implied_verdict_label": "In corso",
+      "match_phrases": ["liste d’attesa", "liste d'attesa"]
+    },
+    {
+      "number": 16,
+      "identity_key": "bollo-auto",
+      "title": "Rendere strutturale l’esenzione dal bollo auto",
+      "exact_statement": "Rendere strutturale l’esenzione dal bollo auto",
+      "introduced_at": "2026-09-17",
+      "origin_label": "17 settembre 2026 (data da verificare), dichiarazione pubblica",
+      "declaration_url": "https://www.rainews.it/video/2026/09/decreto-carburanti-e-abolizione-bollo-la-conferenza-stampa-della-premier-meloni-90fba798-2413-4974-9e0b-55beb1ebd509.html",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "date_unverified": true,
+      "match_phrases": ["bollo auto"]
+    }
+  ],
+  "proceedings": [
+    {
+      "identity_key": "caso-almasri-2025",
+      "title": "Caso Almasri (2025)",
+      "proceeding_types": ["judicial_proceeding"],
+      "event_date": "2025-01-01",
+      "event_precision": "year",
+      "outcome": "archived",
+      "outcome_date": "2025-08-01",
+      "summary": "Nel gennaio 2025 Giorgia Meloni ha annunciato di essere stata iscritta nel registro degli indagati in relazione alla vicenda di Osama Almasri, cittadino libico ricercato dalla Corte penale internazionale e successivamente rimpatriato dall’Italia. Le ipotesi di reato comunicate riguardavano il favoreggiamento e il peculato. La vicenda ha coinvolto anche i ministri Carlo Nordio e Matteo Piantedosi e il sottosegretario Alfredo Mantovano.",
+      "outcome_summary": "Nell’agosto 2025 il Tribunale dei ministri ha disposto l’archiviazione della posizione di Giorgia Meloni, ritenendo insufficienti gli elementi per attribuirle un coinvolgimento penalmente rilevante nella decisione.",
+      "sources": [
+        {"name": "ANSA", "kind": "news", "url": null},
+        {"name": "Camera dei deputati", "kind": "official", "url": null}
+      ]
+    },
+    {
+      "identity_key": "naufragio-cutro-2023",
+      "title": "Naufragio di Cutro (2023)",
+      "proceeding_types": ["political_controversy"],
+      "event_date": "2023-02-26",
+      "event_precision": "day",
+      "outcome": null,
+      "summary": "Il 26 febbraio 2023 un’imbarcazione con migranti è naufragata al largo di Steccato di Cutro, in Calabria, causando almeno 94 vittime. La gestione delle operazioni di soccorso ha provocato forti polemiche politiche. Le opposizioni e diverse organizzazioni umanitarie hanno contestato al governo la gestione delle politiche migratorie e la risposta istituzionale alla tragedia. Meloni ha difeso l’operato dell’esecutivo, sostenendo che non vi fosse stata una volontà di impedire i soccorsi. Non risulta, sulla base degli elementi qui riportati, un procedimento penale personale a carico di Giorgia Meloni per il naufragio.",
+      "outcome_summary": "Controversia politica. Non un procedimento penale personale secondo la scheda di riferimento.",
+      "sources": [
+        {"name": "RaiNews", "kind": "news", "url": null},
+        {"name": "ANSA", "kind": "news", "url": null}
+      ]
+    },
+    {
+      "identity_key": "accordo-italia-albania-2023",
+      "title": "Accordo Italia–Albania sui migranti (2023–2026)",
+      "proceeding_types": ["political_controversy", "legal_controversy"],
+      "event_date": "2023-11-01",
+      "event_precision": "month",
+      "outcome": null,
+      "summary": "Nel novembre 2023 Giorgia Meloni ha firmato con il primo ministro albanese Edi Rama un protocollo per realizzare in Albania strutture destinate alla gestione di determinate procedure relative ai migranti soccorsi dalle autorità italiane. L’iniziativa ha suscitato contestazioni politiche e giuridiche. Diversi provvedimenti giudiziari hanno messo in discussione la legittimità di alcuni trattenimenti, anche in relazione alla normativa europea sui Paesi di origine sicuri. Il governo ha difeso il progetto, presentandolo come uno strumento per contrastare l’immigrazione irregolare. Le decisioni sui trattenimenti non costituiscono procedimenti penali personali contro Meloni.",
+      "outcome_summary": "Controversia politica e giuridica relativa a un’iniziativa governativa.",
+      "sources": [
+        {"name": "Corte di giustizia dell'Unione europea", "kind": "institutional", "url": null},
+        {"name": "Governo italiano", "kind": "official", "url": null}
+      ]
+    },
+    {
+      "identity_key": "gioventu-nazionale-2024",
+      "title": "Rapporti con il passato fascista e inchiesta su Gioventù Nazionale (2024)",
+      "proceeding_types": ["political_controversy", "media_controversy"],
+      "event_date": "2024-06-01",
+      "event_precision": "month",
+      "outcome": null,
+      "summary": "Nel giugno 2024 un’inchiesta giornalistica di Fanpage ha documentato, attraverso riprese effettuate sotto copertura, episodi di saluti fascisti, riferimenti al nazismo e dichiarazioni antisemite in ambienti di Gioventù Nazionale, organizzazione giovanile collegata a Fratelli d’Italia. L’inchiesta ha suscitato un ampio dibattito pubblico sul rapporto tra il partito guidato da Meloni e l’eredità dell’estrema destra. Meloni ha condannato le espressioni antisemite e razziste emerse, contestando al contempo alcuni aspetti del metodo giornalistico utilizzato nell’inchiesta. Gli episodi documentati riguardavano esponenti dell’organizzazione giovanile e non comportano automaticamente responsabilità personali della Presidente del Consiglio.",
+      "outcome_summary": "Controversia politica e mediatica.",
+      "sources": [
+        {"name": "Fanpage – Testata autrice dell’inchiesta", "kind": "news", "url": null}
+      ]
+    }
+  ]
+}

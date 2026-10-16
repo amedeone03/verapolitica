@@ -36,8 +36,10 @@ from backend.app.models import (
     ProposalActor,
     ProposalActorRole,
     ProposalActorType,
+    ProposalSourceIdentifier,
     ProposalType,
     RawDocument,
+    Source,
 )
 from backend.app.schemas.pledge import (
     AgreementResponse,
@@ -505,6 +507,18 @@ class PledgeService:
                 )
             } if ids else {}
             latest = self._latest_assessments(session, ids)
+            declaration_sources: dict[int, tuple[str, str]] = {}
+            if ids:
+                for identifier, source in session.execute(
+                    select(ProposalSourceIdentifier, Source)
+                    .join(Source, Source.id == ProposalSourceIdentifier.source_id)
+                    .where(ProposalSourceIdentifier.proposal_id.in_(ids))
+                    .order_by(ProposalSourceIdentifier.id)
+                ):
+                    declaration_sources.setdefault(
+                        identifier.proposal_id,
+                        (source.name, identifier.source_url),
+                    )
 
             outcomes: list[PledgeOutcome] = []
             items: list[PublicScorecardPledge] = []
@@ -524,6 +538,7 @@ class PledgeService:
                         topic_code=classification.cap_topic_code,
                     )
                 )
+                declaration = declaration_sources.get(pledge.id)
                 items.append(
                     PublicScorecardPledge(
                         proposal_id=pledge.id,
@@ -539,6 +554,9 @@ class PledgeService:
                         latest_assessment=(
                             self.assessment_response(assessment) if assessment else None
                         ),
+                        introduced_at=pledge.introduced_at,
+                        declaration_source_name=declaration[0] if declaration else None,
+                        declaration_source_url=declaration[1] if declaration else None,
                     )
                 )
 

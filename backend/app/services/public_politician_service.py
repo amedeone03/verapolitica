@@ -33,6 +33,7 @@ from backend.app.services.official_source_display import (
     citizen_source_label,
     citizen_source_url,
 )
+from backend.app.services.politician_profile_service import PoliticianProfileService
 from backend.app.services.public_proposal_service import PublicProposalQueryService
 
 
@@ -205,6 +206,18 @@ class PublicPoliticianQueryService:
                 politician.id
             ),
             territorial_offices=self._territorial_offices(politician.id),
+            biography=PoliticianProfileService.published_biography(
+                self.session, politician.id
+            ),
+            career_entries=PoliticianProfileService.published_career_entries(
+                self.session, politician.id
+            ),
+            positions=PoliticianProfileService.published_positions(
+                self.session, politician.id
+            ),
+            proceedings=PoliticianProfileService.published_proceedings(
+                self.session, politician.id
+            ),
         )
 
     def _territorial_offices(

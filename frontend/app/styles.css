@@ -204,6 +204,17 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .header-facts { margin-top: 18px; }
 .header-facts .fact { grid-template-columns: auto 1fr; gap: 8px 16px; padding: 8px 0; }
 .who-copy { max-width: 42rem; color: var(--ink); font-size: 1.02rem; }
+.position-list, .proceeding-list { display: grid; gap: 16px; }
+.position-card, .proceeding-card {
+  padding: 18px 18px 16px; background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.position-card h3, .proceeding-card h3 { margin: 0 0 12px; font-size: 1.08rem; }
+.proceeding-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.proceeding-type, .proceeding-outcome {
+  display: inline-flex; padding: 4px 10px; border-radius: 999px;
+  font-size: .68rem; font-weight: 800; color: var(--ink); background: var(--surface-3);
+}
 .source-card-list { display: grid; gap: 10px; margin-top: 16px; }
 .career-timeline { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .career-timeline li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 18px; padding: 16px 0; border-top: 1px solid var(--line); }
