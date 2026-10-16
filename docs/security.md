@@ -34,6 +34,9 @@ stay disabled in production.
 - `.env` and `.env.*` are gitignored except `.env.example` and
   `.env.production.example`, which have placeholders only. Compose reads
   `.env.production`; that filled file stays gitignored.
+- Operator dumps live under gitignored `backups/` (mode `0700` / files `0600`).
+  Archives skip `.env*` files. Backup manifests omit DSNs and keys. See
+  [backup_and_restore.md](backup_and_restore.md).
 - The production image runs as user `verapolitica` (uid 10001), not root.
   `.dockerignore` excludes `.env*`, tests, demo UI, and local data trees.
 - `admin_api_key` and `llm_api_key` are `SecretStr` values.

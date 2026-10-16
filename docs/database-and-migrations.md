@@ -48,10 +48,14 @@ python -m alembic current
 Existing database (upgrade to latest schema):
 
 ```bash
-pg_dump "$VERAPOLITICA_DATABASE_URL" -Fc -f "verapolitica-pre-migrate.dump"
+python -m scripts.backup_postgres --output-dir /mnt/offsite/verapolitica
 python -m alembic upgrade head
 python -m alembic current
 ```
+
+See [backup_and_restore.md](backup_and_restore.md). Restore with `pg_restore`
+into an empty database **before** running `alembic upgrade head`, unless the
+restored schema is behind the new code.
 
 `alembic current` must match `alembic heads` (`e2b8f6c03d41`) before starting
 web processes. `/health/ready` returns 503 until that is true, including when

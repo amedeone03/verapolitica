@@ -13,7 +13,8 @@ def test_sanitize_log_text_redacts_secrets():
     message = (
         "Authorization: Bearer super-secret-token "
         "VERAPOLITICA_ADMIN_API_KEY=another-secret "
-        "postgresql+psycopg://verapolitica:hunter2@db/verapolitica"
+        "postgresql+psycopg://verapolitica:hunter2@db/verapolitica "
+        "postgres://verapolitica:hunter2@db/verapolitica"
     )
     redacted = sanitize_log_text(message)
     assert "super-secret-token" not in redacted

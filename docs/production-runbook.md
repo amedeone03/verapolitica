@@ -150,40 +150,19 @@ running row still blocks overlap.
 Do not start a second scheduler. Do not run `python -m scripts.prepare_demo`
 against production.
 
-## Backup
+## Backup and restore
 
-Prefer the managed provider's automated snapshots plus a periodic logical dump.
-
-```bash
-pg_dump "$DATABASE_URL" -Fc -f "verapolitica-$(date -u +%Y%m%dT%H%M%SZ).dump"
-```
-
-Do not embed passwords in scripts or docs. Use the environment or a secret
-manager. Keep dumps off the web container. Define retention (for example 7 daily
-+ 4 weekly) with the provider.
-
-Also back up the raw-storage volume. Published provenance depends on immutable
-raw artifacts.
-
-A backup that has never been restored is unverified.
-
-## Restore
-
-Restore into a new database when possible:
+Use [backup_and_restore.md](backup_and_restore.md). Take a PostgreSQL custom
+dump plus a raw-storage archive; keep a copy off the VPS.
 
 ```bash
-createdb verapolitica_restore
-pg_restore --dbname "$RESTORE_DATABASE_URL" backup.dump
-# or: pg_restore --clean --if-exists ... only on an isolated restore target
-export VERAPOLITICA_DATABASE_URL="$RESTORE_DATABASE_URL"
-python -m alembic current
-python -m scripts.release_check
-python -m scripts.smoke_test --base-url http://127.0.0.1:8000
+python -m scripts.backup_postgres --output-dir /mnt/offsite/verapolitica
+python -m scripts.restore_postgres --dump PATH.dump --raw-archive PATH.tar.gz --yes
 ```
 
-Verify row counts for `politicians`, `proposals`, `referendums`,
-`ingestion_job_runs`, and `raw_documents` against the pre-incident notes.
-Remount the matching raw-storage snapshot.
+Do not embed passwords in scripts or docs. A backup that has never been
+restored is unverified. Suggested retention: 7 daily + 4 weekly, plus one
+off-server copy. Do not add cron in this milestone.
 
 ## Raw storage
 

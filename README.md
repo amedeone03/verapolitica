@@ -52,6 +52,8 @@ Production configuration is documented in
 [docs/production_configuration.md](docs/production_configuration.md).
 The local production-like container stack is documented in
 [docs/production_containers.md](docs/production_containers.md).
+Backup and disaster recovery are documented in
+[docs/backup_and_restore.md](docs/backup_and_restore.md).
 Production hardening is documented in
 [docs/production-runbook.md](docs/production-runbook.md),
 [docs/security.md](docs/security.md), and

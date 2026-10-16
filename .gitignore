@@ -41,3 +41,7 @@ frontend/dist/
 
 # Logs
 *.log
+
+# Operator backups (never commit dumps or archives)
+backups/
+*.dump

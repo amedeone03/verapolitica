@@ -82,9 +82,9 @@ Do not run `./scripts/run_demo.sh` against this stack.
 
 ## Persistent volumes
 
-| Volume | Mount | Survives restart | Back up later |
+| Volume | Mount | Survives restart | Back up |
 | --- | --- | --- | --- |
-| `verapolitica_pg` | PostgreSQL data dir | yes | **yes** |
+| `verapolitica_pg` | PostgreSQL data dir | yes | **yes** — [backup_and_restore.md](backup_and_restore.md) |
 | `verapolitica_raw` | `/var/lib/verapolitica/raw` | yes | **yes** (raw provenance) |
 
 Optional later bind-mounts (not created by default):

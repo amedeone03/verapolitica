@@ -32,7 +32,7 @@ Use this before promoting a VeraPolitica V1 build to staging or production.
 
 ## Data safety
 
-- [ ] Database backup taken and a restore has been tested at least once
+- [ ] Database backup taken (`python -m scripts.backup_postgres`) and a restore has been tested at least once ([backup_and_restore.md](backup_and_restore.md))
 - [ ] `python -m scripts.prepare_demo` will not be run
 - [ ] `python -m scripts.release_check` reports no synthetic civic contamination
 - [ ] Raw storage is writable and will survive container replacement

@@ -18,7 +18,7 @@ _SECRET_PATTERNS = (
         ),
         r"\1[redacted]",
     ),
-    (re.compile(r"postgresql\+psycopg://[^\s\"']+"), "[redacted-db-url]"),
+    (re.compile(r"postgres(?:ql(?:\+psycopg)?)?://[^\s\"']+"), "[redacted-db-url]"),
 )
 
 
