@@ -1,38 +1,51 @@
 {
   "corpus_name": "unified-demo",
-  "corpus_date": "2026-10-10",
+  "corpus_date": "2026-10-16",
   "database_relpath": "data/unified_demo/verapolitica.db",
-  "published_fingerprint": "9e546cd7033954f59e79a3c12b1c1738b01b218595e4f0e3cfb9a65f6a135f91",
+  "published_fingerprint": "e971220f6613e751da1bd9085dd366c25c7c4d987ccfb9e67702af5c8ce87054",
   "counts": {
     "published_politician_profiles": 22,
-    "published_explicit_promises": 9,
-    "classified_published_promises": 9,
+    "published_explicit_promises": 21,
+    "classified_published_promises": 21,
     "published_assessments": 1,
     "politicians_with_published_promises": 1,
-    "unpublished_explicit_promises": 0
+    "unpublished_explicit_promises": 2
   },
   "verdict_distribution": {
     "in_progress": 1,
-    "not_yet_rated": 8,
+    "not_yet_rated": 20,
     "kept": 0,
     "partially_kept": 0,
     "stalled": 0,
     "broken": 0
   },
   "topic_distribution": {
-    "1": 1,
+    "1": 6,
+    "3": 1,
+    "5": 1,
     "9": 1,
     "10": 2,
-    "12": 2,
-    "13": 1,
-    "20": 2
+    "12": 3,
+    "13": 4,
+    "20": 3
   },
-  "source_hosts": ["www.gazzettaufficiale.it"],
-  "notes": "Ask-visible world is nine classified Meloni promises and one published autonomia assessment. No published surname collision exists, so this slice has no natural ambiguity case. IDs are documented as frozen_id only; the evaluator resolves keys by published title prefix.",
+  "source_hosts": [
+    "www.gazzettaufficiale.it"
+  ],
+  "notes": "Ask-visible world is 21 classified Meloni promises and one published autonomia assessment. Twelve newly approved reference pledges remain not_yet_rated. Two reference drafts stay unpublished (accise source issue; bollo auto unverified date). No published surname collision exists, so this slice has no natural ambiguity case. Listing queries are capped at Ask MAX_RESULTS=12. IDs are documented as frozen_id only; the evaluator resolves keys by published title prefix.",
   "politicians": {
-    "giorgia-meloni": {"given_name": "Giorgia", "family_name": "Meloni"},
-    "antonio-tajani": {"given_name": "Antonio", "family_name": "Tajani"},
-    "carlo-nordio": {"given_name": "Carlo", "family_name": "Nordio"}
+    "giorgia-meloni": {
+      "given_name": "Giorgia",
+      "family_name": "Meloni"
+    },
+    "antonio-tajani": {
+      "given_name": "Antonio",
+      "family_name": "Tajani"
+    },
+    "carlo-nordio": {
+      "given_name": "Carlo",
+      "family_name": "Nordio"
+    }
   },
   "pledges": {
     "infra-reti": {
@@ -89,6 +102,78 @@
       "title_prefix": "Recuperare la proposta originaria della missione navale Sophia",
       "frozen_id": "109",
       "topic_code": "9",
+      "verdict": "not_yet_rated"
+    },
+    "rdc": {
+      "title_prefix": "Abolire e sostituire il Reddito di cittadinanza",
+      "frozen_id": "111",
+      "topic_code": "13",
+      "verdict": "not_yet_rated"
+    },
+    "cuneo-fiscale": {
+      "title_prefix": "Ridurre il cuneo fiscale di almeno cinque punti",
+      "frozen_id": "112",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "irpef-scaglioni": {
+      "title_prefix": "Ridurre gli scaglioni IRPEF da quattro a tre",
+      "frozen_id": "113",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "flat-tax-iva": {
+      "title_prefix": "Estendere la flat tax alle partite IVA",
+      "frozen_id": "114",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "piu-assumi": {
+      "title_prefix": "Introdurre il principio",
+      "frozen_id": "115",
+      "topic_code": "5",
+      "verdict": "not_yet_rated"
+    },
+    "flat-tax-incrementale": {
+      "title_prefix": "Introdurre una flat tax incrementale",
+      "frozen_id": "116",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "separazione-carriere": {
+      "title_prefix": "Separare le carriere dei magistrati",
+      "frozen_id": "117",
+      "topic_code": "12",
+      "verdict": "not_yet_rated"
+    },
+    "premierato": {
+      "title_prefix": "elezione diretta del Presidente del Consiglio",
+      "frozen_id": "118",
+      "topic_code": "20",
+      "verdict": "not_yet_rated"
+    },
+    "fornero": {
+      "title_prefix": "Rivedere la legge Fornero",
+      "frozen_id": "120",
+      "topic_code": "13",
+      "verdict": "not_yet_rated"
+    },
+    "quoziente-familiare": {
+      "title_prefix": "Introdurre progressivamente il quoziente familiare",
+      "frozen_id": "121",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "assegno-unico": {
+      "title_prefix": "Aumentare del 50%",
+      "frozen_id": "122",
+      "topic_code": "13",
+      "verdict": "not_yet_rated"
+    },
+    "liste-attesa": {
+      "title_prefix": "Abbattere le liste",
+      "frozen_id": "123",
+      "topic_code": "3",
       "verdict": "not_yet_rated"
     }
   }

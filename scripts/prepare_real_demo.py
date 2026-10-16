@@ -94,9 +94,9 @@ PROGRAMME_URL = (
     "le-dichiarazioni-programmatiche-del-governo-meloni/20770"
 )
 PROGRAMME_DATE = date(2022, 10, 25)
-# Mandate window used for "mandate elapsed": government sworn in on 22 Oct 2022;
+# Mandate window used for "mandate elapsed": Gazzetta appointment is 21 Oct 2022;
 # the XIX legislature reaches its natural end five years after its first sitting.
-MANDATE_START = date(2022, 10, 22)
+MANDATE_START = date(2022, 10, 21)
 MANDATE_END = date(2027, 10, 12)
 PUBLISHED_OFFICES = (
     "Presidente del Consiglio",
