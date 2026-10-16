@@ -37,7 +37,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; background: var(--bg); }
+html { scroll-behavior: smooth; background: var(--bg); scroll-padding-top: 5.5rem; }
 
 body {
   margin: 0;
@@ -602,6 +602,7 @@ footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (max-width: 640px) {
+  html { scroll-padding-top: 11rem; }
   .header-inner { min-height: 0; padding: 12px 0; flex-wrap: wrap; gap: 12px; }
   .institutional-note { display: none; }
   .site-search { order: 2; width: 100%; }

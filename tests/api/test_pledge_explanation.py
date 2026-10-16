@@ -160,6 +160,25 @@ def test_fake_provider_returns_ai_explanation(tmp_path, monkeypatch):
     assert "do not alter the verdict" in fake.requests[0][0].casefold() or "immutable" in fake.requests[0][0].casefold()
 
 
+def test_ai_markdown_and_internal_tokens_are_scrubbed(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.pledge_explanation_service.completer_from_settings",
+        lambda settings: FakeTextCompleter(
+            "Questa promessa riguarda le pensioni minime. VeraPolitica la classifica "
+            "come **In corso** (in_progress) perché è stato avviato un atto ufficiale. "
+            "La valutazione si basa sull'estratto pubblicato e non è conclusa."
+        ),
+    )
+    client, data, factory = _client(tmp_path)
+    _publish(factory, data)
+    with client:
+        body = client.get(f"/proposals/{data.pledge_id}/explanation").json()
+    assert body["generated_by_ai"] is True
+    assert "in_progress" not in body["explanation"]
+    assert "**" not in body["explanation"]
+    assert "In corso" in body["explanation"]
+
+
 def test_provider_failure_falls_back(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "backend.app.services.pledge_explanation_service.completer_from_settings",

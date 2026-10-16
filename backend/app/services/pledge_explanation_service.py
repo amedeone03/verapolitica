@@ -28,6 +28,7 @@ from backend.app.schemas.pledge import PledgeExplanationResponse, PledgeExplanat
 from backend.app.scoring.public_presentation import (
     PUBLIC_VERDICT_STYLES,
     public_verdict_label,
+    scrub_public_ai_text,
 )
 from backend.app.scoring.types import FulfillmentVerdict, OPEN_VERDICTS
 from backend.app.services.pledge_service import PledgeService
@@ -313,6 +314,7 @@ class PledgeExplanationService:
         except Exception:
             logger.info("pledge explanation model failed unexpectedly; using fallback")
             return None
+        text = scrub_public_ai_text(text)
         if (
             _word_count(text) < 20
             or explanation_contradicts_verdict(context.verdict, text)

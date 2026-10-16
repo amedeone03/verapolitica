@@ -10,6 +10,7 @@ from backend.app.scoring.public_presentation import (
     public_verdict_chip_html,
     public_verdict_label,
     public_verdict_tone,
+    scrub_public_ai_text,
 )
 from backend.app.scoring.scorecard import METHODOLOGY_VERSION
 from backend.app.scoring.types import (
@@ -94,6 +95,18 @@ def test_frontend_mapping_matches_python_helper():
     assert "Partly kept" not in script
     assert "Not kept" not in script
     assert "Not yet rated" not in script
+
+
+def test_scrub_public_ai_text_hides_internal_tokens_and_markdown():
+    cleaned = scrub_public_ai_text(
+        "VeraPolitica la classifica come **In corso** (in_progress). "
+        "Fonte: [Gazzetta](https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg)."
+    )
+    assert "in_progress" not in cleaned
+    assert "**" not in cleaned
+    assert "[" not in cleaned
+    assert "In corso" in cleaned
+    assert "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg" in cleaned
 
 
 def test_autonomia_gold_still_treats_follow_through_as_in_progress():

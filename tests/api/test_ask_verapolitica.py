@@ -139,6 +139,13 @@ def test_planner_detects_supported_families():
     assert sources.intent is AskIntent.PLEDGE_SOURCES
     unsupported = plan_ask_question("Chi vincerà le elezioni il prossimo anno?")
     assert unsupported.intent is AskIntent.UNSUPPORTED
+    ranking = plan_ask_question("Chi è il miglior politico italiano?")
+    assert ranking.intent is AskIntent.UNSUPPORTED
+    autonomia = plan_ask_question("Perché la promessa sull'autonomia è in corso?")
+    assert autonomia.intent is AskIntent.PLEDGE_EXPLANATION
+    assert autonomia.topic_code == "20"
+    assert autonomia.entity_query is None
+    assert "sull" not in (autonomia.entity_query or "")
 
 
 def test_politician_and_verdict_query(tmp_path):
@@ -187,6 +194,22 @@ def test_pledge_explanation_query(tmp_path):
     assert body["results"][0]["id"] == data.pledge_id
     assert "In corso" in body["answer"]
     assert body["sources"][0]["url"] == "https://www.senato.it/legge/1"
+
+
+def test_topic_only_explanation_and_source_match_unique_pledge(tmp_path):
+    client, data, factory = _client(tmp_path)
+    _classify_public(factory, data)
+    _publish(factory, data)
+    with client:
+        explained = _ask(client, "Perché la promessa sulle pensioni è in corso?").json()
+        source = _ask(
+            client, "Qual è la fonte della valutazione sulle pensioni?"
+        ).json()
+    assert explained["intent"] == "pledge_explanation"
+    assert explained["results"][0]["id"] == data.pledge_id
+    assert explained["results"][0]["verdict"] == "in_progress"
+    assert source["intent"] == "pledge_sources"
+    assert source["sources"][0]["url"] == "https://www.senato.it/legge/1"
 
 
 def test_source_evidence_query(tmp_path):

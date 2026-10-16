@@ -37,6 +37,7 @@ from backend.app.scoring.public_presentation import (
     PUBLIC_VERDICT_LEGEND_ORDER,
     PUBLIC_VERDICT_STYLES,
     public_verdict_label,
+    scrub_public_ai_text,
 )
 from backend.app.scoring.retrieval_profile import TOPIC_KEYWORDS
 from backend.app.scoring.types import FulfillmentVerdict
@@ -398,13 +399,17 @@ class AskVeraPoliticaService:
             if title_norm and title_norm in question_norm:
                 scored.append((0, row))
                 continue
-            if query and (query in title_norm or query in statement_norm):
+            if (
+                query
+                and len(query) >= 5
+                and (query in title_norm or query in statement_norm)
+            ):
                 scored.append((1, row))
                 continue
             if self._tokens_fit_pledge(query, row, politician):
                 scored.append((2, row))
         if not scored:
-            return None
+            return self._unique_topic_or_verdict_pledge(rows, plan)
         scored.sort(key=lambda item: (item[0], item[1].pledge_id))
         best_tier = scored[0][0]
         best = [row for tier, row in scored if tier == best_tier]
@@ -414,6 +419,31 @@ class AskVeraPoliticaService:
             matching = [row for row in best if row.verdict is plan.verdict]
             if len(matching) == 1:
                 return matching[0]
+        return None
+
+    def _unique_topic_or_verdict_pledge(
+        self, rows: list[_PledgeRow], plan: AskPlan
+    ) -> _PledgeRow | None:
+        if not (plan.wants_explanation or plan.wants_sources):
+            return None
+        filtered = list(rows)
+        if plan.topic_code is not None:
+            filtered = [
+                row
+                for row in filtered
+                if row.topic_code == plan.topic_code
+                or self._topic_text_match(row, plan.topic_code, plan.topic_label)
+            ]
+        if plan.verdict is not None:
+            with_verdict = [row for row in filtered if row.verdict is plan.verdict]
+            if with_verdict:
+                filtered = with_verdict
+        if plan.wants_sources:
+            with_source = [row for row in filtered if row.assessment_id is not None]
+            if with_source:
+                filtered = with_source
+        if len(filtered) == 1:
+            return filtered[0]
         return None
 
     def _tokens_fit_pledge(
@@ -637,6 +667,7 @@ class AskVeraPoliticaService:
         except Exception:
             logger.info("ask model failed unexpectedly; using fallback")
             return None
+        text = scrub_public_ai_text(text)
         if self._reject_generation(text, intent, rows, sources, politician, session):
             return None
         return text
@@ -846,6 +877,14 @@ class AskVeraPoliticaService:
             if not number:
                 continue
             label = public_verdict_label(verdict)
+            if number != 1:
+                label = {
+                    FulfillmentVerdict.KEPT: "Mantenute",
+                    FulfillmentVerdict.PARTIALLY_KEPT: "Mantenute parzialmente",
+                    FulfillmentVerdict.BROKEN: "Non mantenute",
+                    FulfillmentVerdict.NOT_YET_RATED: "Non ancora valutate",
+                    FulfillmentVerdict.STALLED: "Iter bloccato",
+                }.get(verdict, label)
             verb = "è" if number == 1 else "sono"
             parts.append(f"{number} {verb} {label}")
         if not parts:

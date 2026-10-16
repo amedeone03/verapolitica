@@ -7,10 +7,21 @@ must not be used by scoring, approval, or evidence matching.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from html import escape
 
 from backend.app.scoring.types import CLOSED_VERDICTS, FulfillmentVerdict, OPEN_VERDICTS
+
+_MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+_INTERNAL_VERDICT_RE = re.compile(
+    r"\b("
+    + "|".join(
+        sorted((item.value for item in FulfillmentVerdict), key=len, reverse=True)
+    )
+    + r")\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +87,21 @@ def public_verdict_chip_html(value: str | FulfillmentVerdict) -> str:
         f'<span class="verdict-chip tone-{escape(style.tone, quote=True)}">'
         f"{escape(style.label)}</span>"
     )
+
+
+def scrub_public_ai_text(text: str) -> str:
+    """Strip model markup and replace internal enum tokens with public labels."""
+    cleaned = text.replace("**", "").replace("__", "")
+    cleaned = _MARKDOWN_LINK_RE.sub(r"\2", cleaned)
+    cleaned = re.sub(r"(?<!\w)\*+|\*+(?!\w)", "", cleaned)
+
+    def _replace(match: re.Match[str]) -> str:
+        try:
+            return public_verdict_label(match.group(1).casefold())
+        except ValueError:
+            return match.group(0)
+
+    return _INTERNAL_VERDICT_RE.sub(_replace, cleaned).strip()
 
 
 def is_open_verdict(value: str | FulfillmentVerdict) -> bool:

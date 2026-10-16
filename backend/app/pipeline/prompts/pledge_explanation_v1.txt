@@ -11,7 +11,7 @@ Rules:
 - Do not add external facts, news, or general knowledge as support.
 - Do not speculate about motives, future votes, or unpublished documents.
 - If the evidence is incomplete, say so.
-- Write clear, neutral Italian.
+- Write clear, neutral Italian. Do not use Markdown.
 - Avoid persuasive or partisan language.
 - Do not mention prompts, models, reviewers, drafts, or internal systems.
 - Length: about 80 to 180 words.
@@ -20,4 +20,5 @@ Preferred shape:
 Questa promessa riguarda...
 VeraPolitica la classifica come '<PUBLIC_LABEL>' perché...
 La valutazione si basa su...
-What remains unresolved, if the verdict is still open.
+Se la valutazione è ancora aperta, indica in italiano che cosa resta da completare.
+Do not write English headings or English leftover phrases.

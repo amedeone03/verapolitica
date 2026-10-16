@@ -132,6 +132,12 @@ _STOPWORDS = frozenset(
         "risultano",
         "si",
         "sono",
+        "sull",
+        "suo",
+        "sua",
+        "suoi",
+        "sue",
+        "qual",
         "spiega",
         "spiegami",
         "stata",
@@ -167,6 +173,14 @@ _SOURCE_CUES = (
     "da dove",
     "url",
     "estratto",
+)
+_RANKING_CUES = (
+    "miglior",
+    "migliore",
+    "peggior",
+    "peggiore",
+    "classifica",
+    "ranking",
 )
 
 _VERDICT_PHRASES: tuple[tuple[str, FulfillmentVerdict], ...] = (
@@ -271,6 +285,8 @@ def _leftover_query(normalized: str, *, verdict: FulfillmentVerdict | None, topi
         for phrase, code in _topic_phrases():
             if code == topic_code:
                 remainder = _strip_phrase(remainder, phrase)
+    for cue in (*_EXPLAIN_CUES, *_SOURCE_CUES, *_COUNT_CUES, *_RANKING_CUES):
+        remainder = _strip_phrase(remainder, cue)
     tokens = [
         token
         for token in remainder.split()
@@ -295,11 +311,22 @@ def plan_ask_question(question: str) -> AskPlan:
     leftover_tokens = search_tokens(entity_query or "")
     has_entity = bool(leftover_tokens or (entity_query and len(entity_query) >= 3))
     name_like = bool(entity_query) and len(entity_query.split()) <= 3
+    ranking = any(_phrase_in(normalized, cue) for cue in _RANKING_CUES)
 
-    if wants_sources and not wants_explanation:
-        intent = AskIntent.PLEDGE_SOURCES if has_entity else AskIntent.UNSUPPORTED
+    if ranking and not wants_explanation and not wants_sources:
+        intent = AskIntent.UNSUPPORTED
+    elif wants_sources and not wants_explanation:
+        intent = (
+            AskIntent.PLEDGE_SOURCES
+            if has_entity or topic_code is not None
+            else AskIntent.UNSUPPORTED
+        )
     elif wants_explanation:
-        intent = AskIntent.PLEDGE_EXPLANATION if has_entity else AskIntent.UNSUPPORTED
+        intent = (
+            AskIntent.PLEDGE_EXPLANATION
+            if has_entity or topic_code is not None or verdict is not None
+            else AskIntent.UNSUPPORTED
+        )
     elif name_like:
         intent = AskIntent.POLITICIAN_PLEDGES
     elif topic_code is not None:
