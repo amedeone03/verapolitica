@@ -2,7 +2,9 @@
 
 This document describes V1 operational controls. It is not a compliance
 certification, pentest report, or claim that the HTTP headers below “make the
-app secure”.
+app secure”. Production route inventory, API-key limits, upload/file rules, and
+reverse-proxy responsibilities are in
+[production_security.md](production_security.md).
 
 ## Threat assumptions
 
@@ -24,10 +26,10 @@ recommendation, and enterprise IAM.
 Comparison is constant-time (`secrets.compare_digest`). Missing or invalid
 tokens return 401. The token is never accepted from query strings or bodies.
 
-This is an initial operational control for a small editorial team. It is not a
-multi-user identity system. Rotate the key if it leaks. Do not put the key in
-frontend production pages. The `/demo/` UI embeds a presentation token and must
-stay disabled in production.
+This is a **temporary** production control for a small editorial team. It is
+not a multi-user identity system. Rotate the key if it leaks. Do not put the
+key in frontend production pages. The `/demo/` UI embeds a presentation token
+and must stay disabled in production.
 
 ## Secret handling
 
@@ -86,13 +88,16 @@ Responses set conservative `X-Content-Type-Options`, `Referrer-Policy`,
 `X-Frame-Options`, `Content-Security-Policy`, and `Permissions-Policy` values
 compatible with the current static citizen UI (module scripts plus official
 HTTPS portrait URLs). They reduce some browser risk classes; they are not a
-security guarantee.
+security guarantee. `Strict-Transport-Security` is set at the reverse proxy
+after TLS exists, not on the HTTP app port.
 
 ## Rate limiting
 
 Preferred control is provider/reverse-proxy rate limiting. There is no Redis
-limiter. Search length and pagination caps bound application work. Admin
-routes remain key-protected.
+limiter. Search length, pagination caps, and a per-process
+`VERAPOLITICA_MAX_REQUEST_BODY_BYTES` ceiling bound application work. Admin
+routes remain key-protected. Multi-worker production still needs proxy
+rate limits.
 
 ## Data privacy
 

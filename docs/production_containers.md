@@ -96,7 +96,9 @@ Do not persist pytest caches or `.venv`.
 
 ## Web process
 
+- Process user: `verapolitica` (uid 10001); `/app` is not writable; raw volume is
 - Bind: `0.0.0.0` inside the container; published as `127.0.0.1:8000` on the host
+- PostgreSQL port is not published; no `privileged` and no Docker socket
 - Port / workers: `VERAPOLITICA_WEB_PORT`, `VERAPOLITICA_WEB_WORKERS`
 - Logs: `VERAPOLITICA_LOG_FORMAT=json`
 - Runner: gunicorn + `uvicorn.workers.UvicornWorker` (existing `scripts.run_web`)

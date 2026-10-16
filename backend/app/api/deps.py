@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from collections.abc import Iterator
 from typing import Annotated
@@ -11,6 +12,12 @@ from backend.app.schemas import AdminPrincipal
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def _credential_digest(value: str) -> bytes:
+    """Hash before compare_digest so token length is not leaked."""
+
+    return hashlib.sha256(value.encode("utf-8")).digest()
 
 
 def get_api_settings(request: Request) -> Settings:
@@ -45,10 +52,13 @@ def require_admin(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="admin authentication is not configured",
         )
-    if (
-        credentials is None
-        or credentials.scheme.casefold() != "bearer"
-        or not secrets.compare_digest(credentials.credentials, configured)
+    provided = (
+        credentials.credentials
+        if credentials is not None and credentials.scheme.casefold() == "bearer"
+        else ""
+    )
+    if not secrets.compare_digest(
+        _credential_digest(provided), _credential_digest(configured)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -55,6 +55,8 @@ def test_gunicorn_command_is_production_safe():
     assert "--reload" not in argv
     assert "uvicorn.workers.UvicornWorker" in argv
     assert "0.0.0.0:8000" in argv
+    assert "--limit-request-line" in argv
+    assert "--limit-request-fields" in argv
 
 
 def test_gunicorn_binds_render_port(monkeypatch):

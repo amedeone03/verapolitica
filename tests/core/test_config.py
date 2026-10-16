@@ -88,6 +88,11 @@ def test_production_rejects_wildcard_forwarded_allow_ips():
         Settings(**{**_PRODUCTION, "forwarded_allow_ips": "*"})
 
 
+def test_production_rejects_oversized_request_body_limit():
+    with pytest.raises((ProductionConfigError, ValidationError), match="MAX_REQUEST_BODY_BYTES"):
+        Settings(**{**_PRODUCTION, "max_request_body_bytes": 5_000_000})
+
+
 def test_production_rejects_demo_ui_and_placeholder_admin_key():
     with pytest.raises((ProductionConfigError, ValidationError), match="ENABLE_DEMO_UI"):
         Settings(**{**_PRODUCTION, "enable_demo_ui": True})

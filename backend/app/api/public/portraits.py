@@ -42,8 +42,11 @@ def _local_file(entry: dict, directory: Path | None) -> Path | None:
     name = entry.get("file")
     if directory is None or not isinstance(name, str) or not _FILE_NAME.fullmatch(name):
         return None
-    candidate = directory / name
-    return candidate if candidate.is_file() else None
+    root = directory.expanduser().resolve()
+    candidate = (root / name).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return candidate
 
 
 @router.get("/portraits", response_model=dict[str, PortraitCredit])

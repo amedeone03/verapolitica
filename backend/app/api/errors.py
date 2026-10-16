@@ -96,11 +96,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: RequestValidationError,
     ):
+        settings = getattr(request.app.state, "settings", None)
+        production = bool(getattr(settings, "is_production", False))
         return error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="validation_error",
             message="request validation failed",
-            details=jsonable_encoder(exc.errors()),
+            details=_safe_validation_details(exc.errors(), production=production),
             request=request,
         )
 
@@ -295,6 +297,21 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     app.add_exception_handler(SearchValidationError, search_validation_handler)
     app.add_exception_handler(Exception, internal_handler)
+
+
+def _safe_validation_details(errors, *, production: bool):
+    encoded = jsonable_encoder(errors)
+    if not production:
+        return encoded
+    sanitized = []
+    for item in encoded:
+        if isinstance(item, dict):
+            sanitized.append(
+                {key: value for key, value in item.items() if key not in {"input", "ctx"}}
+            )
+        else:
+            sanitized.append(item)
+    return sanitized
 
 
 def _conflict_code(exc: Exception) -> str:

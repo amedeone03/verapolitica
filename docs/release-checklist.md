@@ -48,6 +48,7 @@ Use this before promoting a VeraPolitica V1 build to staging or production.
 - [ ] Invalid admin bearer is 401
 - [ ] `/demo/` is unavailable
 - [ ] `/docs` matches the chosen docs policy
+- [ ] Reverse proxy will set TLS, HSTS, and request rate limits ([production_security.md](production_security.md))
 - [ ] Domain, DNS, and HTTPS are confirmed at the provider
 - [ ] Source ingestion sanity: one operator job or a recent successful
       `/admin/jobs` row, if live sources are in use

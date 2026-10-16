@@ -33,6 +33,7 @@ required values raise `ProductionConfigError` at process start.
 | --- | --- | --- | --- | --- |
 | `VERAPOLITICA_ADMIN_REVIEWER_IDENTITY` | optional | `admin-editor` | final review records | Server-side reviewer label; never taken from request JSON. |
 | `VERAPOLITICA_FORWARDED_ALLOW_IPS` | optional | empty (ignore `X-Forwarded-*`) | uvicorn `ProxyHeadersMiddleware` | Set only to trusted proxy IPs/CIDRs. `*` is rejected in production. |
+| `VERAPOLITICA_MAX_REQUEST_BODY_BYTES` | optional | `1048576` (1 MiB) | request middleware | Production must stay ≤ 2 MiB (no HTTP uploads). Demo `/demo/*` uses the AI document cap instead. |
 | `VERAPOLITICA_ENABLE_DEMO_UI` | optional | off in production | `/demo/` mount | Must not be `true` in production. Demo routes are also not mounted when `env=production`. |
 | `VERAPOLITICA_ENABLE_API_DOCS` | optional | off in production | `/docs`, `/redoc`, `/openapi.json` | Leave `false` unless docs are intentionally public. |
 | `VERAPOLITICA_WEB_HOST` | optional | `0.0.0.0` | `scripts.run_web` | Bind address behind the reverse proxy. |

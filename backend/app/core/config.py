@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
     forwarded_allow_ips: str = ""
+    max_request_body_bytes: int = Field(default=1_048_576, ge=65_536, le=52_428_800)
     log_format: str = ""
     log_level: str = "INFO"
     enable_demo_ui: bool | None = None
@@ -268,6 +269,10 @@ class Settings(BaseSettings):
         if "*" in self.forwarded_allow_ip_list:
             errors.append(
                 "production must not set VERAPOLITICA_FORWARDED_ALLOW_IPS to *"
+            )
+        if self.max_request_body_bytes > 2_097_152:
+            errors.append(
+                "production VERAPOLITICA_MAX_REQUEST_BODY_BYTES must be <= 2097152"
             )
         if self.enable_demo_ui is True:
             errors.append("production must not enable VERAPOLITICA_ENABLE_DEMO_UI")

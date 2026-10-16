@@ -56,7 +56,8 @@ Backup and disaster recovery are documented in
 [docs/backup_and_restore.md](docs/backup_and_restore.md).
 Production hardening is documented in
 [docs/production-runbook.md](docs/production-runbook.md),
-[docs/security.md](docs/security.md), and
+[docs/security.md](docs/security.md),
+[docs/production_security.md](docs/production_security.md), and
 [docs/release-checklist.md](docs/release-checklist.md).
 
 ## Database

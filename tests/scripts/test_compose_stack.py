@@ -26,6 +26,10 @@ def test_compose_is_production_like_and_scheduler_is_opt_in():
     assert 'CMD ["python", "-m", "scripts.run_web"]' in dockerfile
     assert "/health/live" in dockerfile
     assert "/var/lib/verapolitica/raw" in dockerfile
+    assert "chown -R verapolitica:verapolitica /app" not in dockerfile
+    assert "privileged" not in compose
+    assert "docker.sock" not in compose
+    assert "5432:5432" not in compose
 
     assert "frontend/demo" in dockerignore
     assert "tests" in dockerignore

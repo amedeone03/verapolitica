@@ -7,8 +7,9 @@ import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
+from backend.app.core.config import Settings
 from backend.app.core.request_context import request_id_var
 
 
@@ -53,6 +54,15 @@ DOCS_CONTENT_SECURITY_POLICY = (
 )
 
 
+def request_body_limit(settings: Settings, path: str) -> int:
+    """Per-request Content-Length ceiling. Demo uploads may use the AI document cap."""
+
+    if settings.demo_ui_enabled and path.startswith("/demo/"):
+        # Multipart form fields sit on top of the document cap used by upload validation.
+        return settings.ai_max_document_bytes + 65_536
+    return settings.max_request_body_bytes
+
+
 def resolve_request_id(incoming: str | None) -> str:
     candidate = (incoming or "").strip()
     if _REQUEST_ID.fullmatch(candidate):
@@ -83,6 +93,26 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         token = request_id_var.set(request_id)
         started = time.perf_counter()
         try:
+            settings = getattr(request.app.state, "settings", None)
+            if isinstance(settings, Settings):
+                limit = request_body_limit(settings, request.url.path)
+                length_header = request.headers.get("content-length")
+                if length_header and length_header.isdigit():
+                    if int(length_header) > limit:
+                        response = JSONResponse(
+                            status_code=413,
+                            content={
+                                "error": {
+                                    "code": "payload_too_large",
+                                    "message": "request body is too large",
+                                    "details": None,
+                                    "request_id": request_id,
+                                }
+                            },
+                            headers={"X-Request-ID": request_id},
+                        )
+                        apply_security_headers(response, request.url.path)
+                        return response
             try:
                 response = await call_next(request)
             except Exception:
