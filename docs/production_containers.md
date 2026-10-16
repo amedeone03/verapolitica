@@ -1,8 +1,8 @@
 # Production-like containers
 
 This is the local compose stack used to prove VeraPolitica can run as
-containers before a VPS reverse proxy and TLS are configured. It is not the
-final VPS deployment guide.
+containers before a VPS reverse proxy and TLS are configured. The executable
+first-deploy procedure is [production_deployment.md](production_deployment.md).
 
 Citizen UI is served by FastAPI from `frontend/app` at `/app/`. There is no
 separate frontend container.

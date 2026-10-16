@@ -54,8 +54,12 @@ The local production-like container stack is documented in
 [docs/production_containers.md](docs/production_containers.md).
 Backup and disaster recovery are documented in
 [docs/backup_and_restore.md](docs/backup_and_restore.md).
-Production hardening is documented in
-[docs/production-runbook.md](docs/production-runbook.md),
+First VPS deploy is documented in
+[docs/production_deployment.md](docs/production_deployment.md)
+([first_deploy_checklist.md](docs/first_deploy_checklist.md)).
+Day-2 operations are in
+[docs/production-runbook.md](docs/production-runbook.md).
+Hardening is documented in
 [docs/security.md](docs/security.md),
 [docs/production_security.md](docs/production_security.md), and
 [docs/release-checklist.md](docs/release-checklist.md).
@@ -78,17 +82,19 @@ schema is behind head, `/health/ready` fails and the process logs a warning.
 
 ## Production
 
-Staging/production is a reverse proxy plus two processes and PostgreSQL:
+First deploy on a VPS uses the compose stack (`db` → `migrate` → `web`) behind
+a reverse proxy. Do **not** start the scheduler on first boot.
 
 ```bash
-python -m alembic upgrade head
-python -m scripts.run_web
-python -m scripts.run_scheduler
+./scripts/run_production_compose.sh up -d --build
+python -m scripts.smoke_test --base-url http://127.0.0.1:8000 --production \
+  --host-header YOUR_DOMAIN
 ```
 
-Do not use `uvicorn --reload` in production. Do not start the scheduler inside
-web workers. `python -m scripts.prepare_demo` refuses `VERAPOLITICA_ENV=production`.
-The current public HTTP paths are the V1 API contract.
+Full order: [docs/production_deployment.md](docs/production_deployment.md).
+Do not use `uvicorn --reload`. `python -m scripts.prepare_demo` refuses
+`VERAPOLITICA_ENV=production`. The current public HTTP paths are the V1 API
+contract.
 
 ## Scheduled ingestion jobs
 

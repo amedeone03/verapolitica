@@ -42,4 +42,5 @@ def test_production_compose_helper_requires_env_file(tmp_path, monkeypatch):
     text = script.read_text(encoding="utf-8")
     assert ".env.production" in text
     assert "docker compose --env-file" in text
+    assert "production_deployment.md" in text
     assert "run_demo" not in text

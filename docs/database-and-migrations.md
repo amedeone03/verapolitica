@@ -108,7 +108,8 @@ review and publish:
 - `python -m scripts.run_territorial_ingestion`
 - `python -m scripts.bootstrap_politicians` (explicit identity bootstrap after ingestion)
 
-These are not a one-shot production dump import. A dedicated production
+These are not a one-shot production dump import. First-deploy command order is
+in [production_deployment.md](production_deployment.md). A dedicated production
 bootstrap/import command may still be needed later.
 
 Demo scripts are **not** a production strategy. They refuse

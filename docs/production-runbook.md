@@ -1,9 +1,14 @@
-# Production runbook
+# Production runbook (day-2)
 
-VeraPolitica V1 is a small-team deployment: one web process, one scheduler
-process, managed PostgreSQL, and a persistent volume for raw documents.
-HTTPS terminates at the hosting provider or reverse proxy. The application
-listens for HTTP internally.
+**First VPS deploy:** follow [production_deployment.md](production_deployment.md)
+and [first_deploy_checklist.md](first_deploy_checklist.md). This file is
+ongoing operations after that bring-up. Do not start the scheduler on first
+deploy.
+
+VeraPolitica V1 is a small-team deployment: one web process, optional later
+scheduler process, PostgreSQL, and a persistent volume for raw documents.
+HTTPS terminates at the reverse proxy. The application listens for HTTP
+internally.
 
 ```text
 Internet
@@ -71,10 +76,12 @@ python -m alembic current
 Existing database:
 
 ```bash
-pg_dump "$VERAPOLITICA_DATABASE_URL" -Fc -f backup.dump   # see backup section
+python -m scripts.backup_postgres --output-dir /var/lib/verapolitica/backups
 python -m alembic upgrade head
 python -m alembic current
 ```
+
+On compose, dump via the `db` container; see [production_deployment.md](production_deployment.md).
 
 If the schema is behind head, or PostgreSQL is unreachable, `/health/ready`
 returns 503. `/health/live` only means the process is up. Start web only after
@@ -97,7 +104,7 @@ gunicorn backend.app.main:app \
   --workers "$VERAPOLITICA_WEB_WORKERS"
 ```
 
-Scheduler (exactly one replica):
+Scheduler (exactly one replica, **not** first deploy):
 
 ```bash
 python -m scripts.run_scheduler
@@ -118,21 +125,21 @@ Citizen UI is served at `/app/`. `/demo/` is off in production unless
 Liveness does not depend on Senato, Camera, or Governo availability.
 
 ```bash
-python -m scripts.smoke_test --base-url https://verapolitica.it
+python -m scripts.smoke_test --base-url https://verapolitica.it --production
 python -m scripts.release_check
 ```
 
 `release_check` does not run ingestion. It must not print DSNs or API keys.
 
-## Deployment order
+## Deployment order (upgrades, not first boot)
 
-1. Take a PostgreSQL backup.
-2. Deploy the migration-compatible image/code.
-3. Run `alembic upgrade head`.
+1. Take a PostgreSQL + raw-storage backup ([backup_and_restore.md](backup_and_restore.md)).
+2. Deploy the migration-compatible image/code (known SHA).
+3. Run `alembic upgrade head` (compose `migrate` service).
 4. Start or restart the web process.
-5. Start or restart the single scheduler process.
+5. Leave the scheduler **off** unless a later step has enabled cron on exactly one replica.
 6. Confirm `/health/live` and `/health/ready`.
-7. Run the read-only smoke test.
+7. Run `python -m scripts.smoke_test --base-url … --production`.
 
 Rollback: restore the previous image only if it is schema-compatible with the
 current database. Alembic downgrade is not a safe production data rollback.

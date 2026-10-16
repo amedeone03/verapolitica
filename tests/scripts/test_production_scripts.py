@@ -8,7 +8,7 @@ from backend.app.db.session import create_db_engine
 from scripts.prepare_demo import DemoSafetyError, prepare_demo
 from scripts.release_check import main as release_check_main
 from scripts.run_web import gunicorn_argv
-from scripts.smoke_test import READ_ONLY_PATHS, parse_args
+from scripts.smoke_test import PRODUCTION_ABSENT_PATHS, READ_ONLY_PATHS, parse_args
 
 
 def test_prepare_demo_refuses_production(monkeypatch, tmp_path):
@@ -38,13 +38,21 @@ def test_release_check_passes_isolated_sqlite(tmp_path, monkeypatch, capsys):
 
 
 def test_smoke_test_is_read_only():
-    args = parse_args(["--base-url", "http://127.0.0.1:8000"])
+    args = parse_args(["--base-url", "http://127.0.0.1:8000", "--production"])
     assert args.base_url == "http://127.0.0.1:8000"
+    assert args.production is True
     assert all(path.startswith("/") for path in READ_ONLY_PATHS)
     assert all("/admin" not in path for path in READ_ONLY_PATHS)
     assert "/health/live" in READ_ONLY_PATHS
     assert "/health/ready" in READ_ONLY_PATHS
+    assert "/app/" in READ_ONLY_PATHS
     assert any(path.startswith("/politicians") for path in READ_ONLY_PATHS)
+    assert any(path.startswith("/proposals") for path in READ_ONLY_PATHS)
+    assert any(path.startswith("/referendums") for path in READ_ONLY_PATHS)
+    assert "/demo/" in PRODUCTION_ABSENT_PATHS
+    assert "/docs" in PRODUCTION_ABSENT_PATHS
+    assert parse_args([]).production is False
+    assert parse_args(["--host-header", "example.com"]).host_header == "example.com"
 
 
 def test_gunicorn_command_is_production_safe():

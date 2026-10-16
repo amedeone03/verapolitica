@@ -171,6 +171,38 @@ def test_raw_storage_and_web_command_are_configurable(tmp_path):
     assert "--reload" not in argv
 
 
+def test_run_smoke_production_against_migrated_sqlite(tmp_path, monkeypatch):
+    from alembic import command
+
+    from backend.app.db.schema import alembic_config
+    from scripts.smoke_test import run_smoke
+
+    url = f"sqlite:///{tmp_path / 'smoke.db'}"
+    command.upgrade(alembic_config(url), "head")
+    settings = Settings(
+        env=AppEnvironment.TEST,
+        database_url=url,
+        raw_storage_path=tmp_path / "raw",
+        admin_api_key="test-admin-secret",
+        trusted_hosts="localhost,127.0.0.1,testserver",
+        enable_demo_ui=False,
+        enable_api_docs=False,
+    )
+    app = create_app(settings)
+
+    def factory(*args, **kwargs):
+        return TestClient(
+            app,
+            base_url=kwargs.get("base_url", "http://testserver"),
+            follow_redirects=kwargs.get("follow_redirects", True),
+        )
+
+    monkeypatch.setattr("scripts.smoke_test.httpx.Client", factory)
+    result = run_smoke("http://testserver", production=True)
+    assert result["ok"] is True, result["failures"]
+    assert result["production"] is True
+
+
 def test_smoke_test_against_local_app(tmp_path):
     app, _settings = _app(tmp_path)
     with TestClient(app) as client:
@@ -182,6 +214,7 @@ def test_smoke_test_against_local_app(tmp_path):
         politicians = client.get("/politicians", params={"offset": 0, "limit": 1})
         proposals = client.get("/proposals", params={"offset": 0, "limit": 1})
         referendums = client.get("/referendums", params={"offset": 0, "limit": 1})
+        app_ui = client.get("/app/")
     assert live.status_code == 200
     assert ready.status_code == 200
     assert search.status_code == 200
@@ -190,6 +223,7 @@ def test_smoke_test_against_local_app(tmp_path):
     assert politicians.status_code == 200
     assert proposals.status_code == 200
     assert referendums.status_code == 200
+    assert app_ui.status_code == 200
 
 
 def test_web_process_does_not_start_scheduler(tmp_path):

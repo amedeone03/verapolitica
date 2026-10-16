@@ -1,63 +1,54 @@
 # Release checklist
 
-Use this before promoting a VeraPolitica V1 build to staging or production.
+Use before promoting a VeraPolitica V1 build. First VPS bring-up follows
+[production_deployment.md](production_deployment.md) and
+[first_deploy_checklist.md](first_deploy_checklist.md).
 
-## Quality
+## Before deploy
 
-- [ ] `python -m pytest -q` is green
-- [ ] PostgreSQL CI job is green (`pytest -m postgres` against a migrated DB)
-- [ ] `python -m compileall -q backend scripts tests`
-- [ ] `git diff --check` is clean
-- [ ] Docker image builds (`docker build -t verapolitica:release .`)
-- [ ] Local production-like compose documented in `docs/production_containers.md`
-- [ ] Alembic revisions reviewed; `alembic upgrade head` is the deploy step
-- [ ] No real secrets in git (`.env` ignored, example templates are placeholders)
-
-## Configuration
-
-- [ ] Filled from `.env.production.example`, not `.env.example`
+- [ ] Git working tree clean; deploy SHA recorded (`git rev-parse HEAD`)
+- [ ] GitHub Backend CI green on that SHA (Python tests, PostgreSQL migrations, Docker image)
+- [ ] `python -m pytest -q` and `python -m compileall -q backend scripts tests` if you built locally
+- [ ] `.env.production` filled from `.env.production.example` (never committed)
 - [ ] `VERAPOLITICA_ENV=production`
-- [ ] `VERAPOLITICA_PUBLIC_BASE_URL` is the public HTTPS origin
-- [ ] PostgreSQL `VERAPOLITICA_DATABASE_URL`
-- [ ] `VERAPOLITICA_ADMIN_API_KEY` is long, random, and not a demo/test value
-- [ ] `VERAPOLITICA_CORS_ORIGINS` is an HTTPS allowlist (not `*`) and includes the public origin
-- [ ] `VERAPOLITICA_TRUSTED_HOSTS` lists the public hostnames
-- [ ] `VERAPOLITICA_FORWARDED_ALLOW_IPS` set only if a trusted proxy exists
-- [ ] `VERAPOLITICA_RAW_STORAGE_PATH` is a persistent volume
-- [ ] `VERAPOLITICA_ENABLE_DEMO_UI=false`
-- [ ] `VERAPOLITICA_ENABLE_API_DOCS=false` unless docs are intentionally public
+- [ ] `PUBLIC_BASE_URL`, CORS, and trusted hosts match the public origin/host
+- [ ] PostgreSQL URL / compose `POSTGRES_*` are real secrets (not example `verapolitica`)
+- [ ] `VERAPOLITICA_ADMIN_API_KEY` is long, random, not a demo/placeholder
+- [ ] `VERAPOLITICA_RAW_STORAGE_PATH` persists (`/var/lib/verapolitica/raw` in compose)
+- [ ] `VERAPOLITICA_ENABLE_DEMO_UI=false` and `VERAPOLITICA_ENABLE_API_DOCS=false`
 - [ ] `VERAPOLITICA_LOG_FORMAT=json`
-- [ ] Paid AI provider config is blank, or provider+model+key are intentional
-- [ ] Cron schedules are intentional; scheduler runs as a single replica
-
-## Data safety
-
-- [ ] Database backup taken (`python -m scripts.backup_postgres`) and a restore has been tested at least once ([backup_and_restore.md](backup_and_restore.md))
+- [ ] Scheduler cron blank; LLM provider blank
 - [ ] `python -m scripts.prepare_demo` will not be run
-- [ ] `python -m scripts.release_check` reports no synthetic civic contamination
-- [ ] Raw storage is writable and will survive container replacement
+
+## If this is an upgrade (data already exists)
+
+- [ ] PostgreSQL dump + raw archive taken and copied off-VPS
+- [ ] Restore has been tested at least once on an isolated database
 
 ## Runtime
 
-- [ ] `alembic upgrade head` then `alembic current`
-- [ ] Web: `python -m scripts.run_web`
-- [ ] Scheduler: `python -m scripts.run_scheduler` (one process)
-- [ ] `GET /health/live` returns 200
-- [ ] `GET /health/ready` returns 200 with `schema_current: true`
-- [ ] `python -m scripts.smoke_test --base-url ...` is read-only and green
-- [ ] Invalid admin bearer is 401
-- [ ] `/demo/` is unavailable
-- [ ] `/docs` matches the chosen docs policy
-- [ ] Reverse proxy will set TLS, HSTS, and request rate limits ([production_security.md](production_security.md))
-- [ ] Domain, DNS, and HTTPS are confirmed at the provider
-- [ ] Source ingestion sanity: one operator job or a recent successful
-      `/admin/jobs` row, if live sources are in use
+- [ ] `migrate` succeeded; `alembic current` equals `alembic heads` (`e2b8f6c03d41`)
+- [ ] `web` up; **scheduler container not running**
+- [ ] `GET /health/live` → 200
+- [ ] `GET /health/ready` → 200 with `schema_current: true`
+- [ ] `GET /app/` and `GET /politicians` → 200
+- [ ] `/demo/` and `/docs` absent
+- [ ] Unauthenticated `GET /admin/drafts` → 401
+- [ ] `python -m scripts.smoke_test --base-url … --production` is read-only and green
+- [ ] Logs do not print DSNs or the admin key
+
+## Public exposure (when DNS/TLS are in scope)
+
+- [ ] Reverse proxy to `127.0.0.1:8000`; `FORWARDED_ALLOW_IPS` is the proxy only
+- [ ] HTTPS works; HSTS only after that
+- [ ] Rate limit and body size set at the proxy ([production_security.md](production_security.md))
 
 ## After release
 
-- [ ] Watch 5xx rate, readiness failures, and job failures
-- [ ] Confirm disk/volume capacity for PostgreSQL and raw storage
-- [ ] Keep a single scheduler heartbeat (recent job history or process uptime)
+- [ ] Watch readiness failures and 5xx
+- [ ] Confirm disk for PostgreSQL and raw storage
+- [ ] First ingest uses official scripts, then editorial publish — not demo seed
+- [ ] First backup copied off-VPS after ingest
 
 The current public HTTP surface is the V1 contract. Do not break existing
 clients for a `/v1` rename in this release.
