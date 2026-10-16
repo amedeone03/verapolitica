@@ -24,7 +24,21 @@ Unclassified pledges are listed as `unclassified_pledges` and excluded from scor
 ## 2. Fulfilment verdicts
 
 Closed: `kept`, `partially_kept`, `broken`. Open: `not_yet_rated` (default, no
-assessment yet), `in_progress`, `stalled`.
+assessment yet), `in_progress`, `stalled`. Public labels (presentation only;
+internal values are unchanged):
+
+| Internal value | Public label | Colour |
+|---|---|---|
+| `kept` | Mantenuta | green |
+| `partially_kept` | Mantenuta parzialmente | yellow |
+| `in_progress` | In corso | blue |
+| `stalled` | Iter bloccato | black |
+| `broken` | Non mantenuta | red |
+| `not_yet_rated` | Non ancora valutata | grey |
+
+`in_progress` and `stalled` remain open states and do not enter the score.
+`not_yet_rated` means no published assessment yet. Only published assessments
+are public.
 
 Every verdict is first a `PledgeAssessmentDraft` that must carry:
 

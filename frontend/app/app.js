@@ -429,13 +429,22 @@ export function renderSources(citations) {
 // withheld when too few commitments are closed.
 
 const VERDICTS = {
-  kept: { label: "Kept", tone: "kept" },
-  partially_kept: { label: "Partly kept", tone: "partial" },
-  broken: { label: "Not kept", tone: "broken" },
-  in_progress: { label: "In progress", tone: "progress" },
-  stalled: { label: "Stalled", tone: "stalled" },
-  not_yet_rated: { label: "Not yet rated", tone: "unrated" },
+  kept: { label: "Mantenuta", tone: "kept" },
+  partially_kept: { label: "Mantenuta parzialmente", tone: "partial" },
+  in_progress: { label: "In corso", tone: "progress" },
+  stalled: { label: "Iter bloccato", tone: "stalled" },
+  broken: { label: "Non mantenuta", tone: "broken" },
+  not_yet_rated: { label: "Non ancora valutata", tone: "unrated" },
 };
+
+const VERDICT_LEGEND_ORDER = [
+  "kept",
+  "partially_kept",
+  "in_progress",
+  "stalled",
+  "broken",
+  "not_yet_rated",
+];
 
 const ROLE_LABELS = {
   government_single_party: "Single-party government",
@@ -475,6 +484,12 @@ export function renderVerdictChip(value) {
   return `<span class="verdict-chip tone-${meta.tone}">${escapeHtml(meta.label)}</span>`;
 }
 
+export function renderVerdictLegend() {
+  return `<ul class="verdict-legend" aria-label="Legenda stati delle promesse">${
+    VERDICT_LEGEND_ORDER.map((value) => `<li>${renderVerdictChip(value)}</li>`).join("")
+  }</ul>`;
+}
+
 export function renderCompositionBar(composition = [], { compact = false } = {}) {
   const total = composition.reduce((sum, entry) => sum + entry.count, 0);
   if (!total) return `<p class="empty-note">No commitments in this group yet.</p>`;
@@ -505,7 +520,7 @@ export function renderRateBlock(stratum, credibleLevel) {
       <span class="interval-range" style="left:${low * 100}%;width:${(high - low) * 100}%"></span>
       <span class="interval-point" style="left:${stratum.rate * 100}%"></span>
     </div>
-    <p class="rate-range">${percent(credibleLevel)} plausible range ${percent(low)} – ${percent(high)}. Partly kept counts half.</p>
+    <p class="rate-range">${percent(credibleLevel)} plausible range ${percent(low)} – ${percent(high)}. Mantenuta parzialmente counts half.</p>
   </div>`;
 }
 
@@ -545,10 +560,7 @@ export function renderPledgeItem(pledge) {
 
 const PLEDGE_FILTERS = [
   ["all", "All"],
-  ["kept", "Kept"],
-  ["partially_kept", "Partly kept"],
-  ["broken", "Not kept"],
-  ["open", "Open"],
+  ...VERDICT_LEGEND_ORDER.map((value) => [value, VERDICTS[value].label]),
 ];
 
 export function renderScorecard(scorecard) {
@@ -556,17 +568,16 @@ export function renderScorecard(scorecard) {
     return `<div class="state-card"><div><strong>No commitments are tracked for this person yet.</strong><small>Explicit, published promises appear here once they have been classified.</small></div></div>`;
   }
   const progress = scorecard.mandate_progress;
-  const open = new Set(["in_progress", "stalled", "not_yet_rated"]);
-  const counts = { all: scorecard.pledges.length, open: 0 };
+  const counts = { all: scorecard.pledges.length };
   for (const pledge of scorecard.pledges) {
     counts[pledge.verdict] = (counts[pledge.verdict] || 0) + 1;
-    if (open.has(pledge.verdict)) counts.open += 1;
   }
   return `<div class="scorecard">
     <div class="method-note">
       <p>Scores count only closed commitments and are shown separately for each institutional role, because governing and opposition have very different powers. Each verdict cites an official document.</p>
       <a class="profile-link" href="./?view=methodology">How the score works <span aria-hidden="true">→</span></a>
     </div>
+    ${renderVerdictLegend()}
     ${progress ? `<div class="mandate-progress"><div><span>Mandate elapsed</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
     <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
     <div class="pledge-list-head">
@@ -613,7 +624,6 @@ export function renderCardRecord(scorecard) {
 function bindPledgeFilters(root) {
   const buttons = [...root.querySelectorAll(".filter-pill")];
   const items = [...root.querySelectorAll(".pledge-item")];
-  const openVerdicts = new Set(["in_progress", "stalled", "not_yet_rated"]);
   for (const button of buttons) {
     button.addEventListener("click", () => {
       const filter = button.dataset.filter;
@@ -623,7 +633,7 @@ function bindPledgeFilters(root) {
       }
       for (const item of items) {
         const verdict = item.dataset.verdict;
-        item.hidden = !(filter === "all" || verdict === filter || (filter === "open" && openVerdicts.has(verdict)));
+        item.hidden = !(filter === "all" || verdict === filter);
       }
     });
   }
@@ -653,16 +663,18 @@ function bindProfileTabs(root) {
 
 export function renderMethodology(method) {
   const rows = [
-    ["Formula", "(kept + ½ × partly kept) ÷ closed commitments"],
-    ["Denominator", "Only closed commitments: kept, partly kept, not kept. Open ones are shown next to the elapsed share of the mandate."],
+    ["Formula", "(kept + ½ × partially_kept) ÷ closed commitments. Unchanged: pledge-score/v1."],
+    ["Public labels", "Mantenuta (kept, closed), Mantenuta parzialmente (partially_kept, closed), In corso (in_progress, open), Iter bloccato (stalled, open), Non mantenuta (broken, closed), Non ancora valutata (not_yet_rated: no published assessment yet)."],
+    ["Denominator", "Only closed commitments enter the score: kept, partially_kept, broken. Open states (in_progress, stalled, not_yet_rated) are listed but not scored."],
     ["Roles", "Scores are computed separately for single-party government, coalition government and opposition, and never combined or ranked across roles."],
     ["Small numbers", `With fewer than ${method.min_closed_for_rate} closed commitments the score is withheld. A ${percent(method.interval.level)} plausible range is always shown.`],
     ["Vague promises", "Commitments too vague to verify are listed but excluded from every score."],
-    ["Evidence", "Every verdict quotes an official document word for word. “Not kept” requires two independent editorial checks."],
+    ["Evidence", "Every verdict quotes an official document word for word. Non mantenuta (broken) requires two independent editorial checks. Only published assessments appear on the public scorecard."],
   ];
   return `<section class="detail-card">
     <p class="eyebrow">Methodology ${escapeHtml(method.version)}</p>
     <h2>How the commitment score works</h2>
+    ${renderVerdictLegend()}
     <dl class="facts">${rows.map(([label, value]) => fact(label, value)).join("")}</dl>
   </section>`;
 }

@@ -12,6 +12,7 @@ from backend.app.api.demo_editorial import _page
 from backend.app.api.deps import get_api_settings, get_session_factory
 from backend.app.core.config import Settings
 from backend.app.models import PledgeAssessmentDraftStatus
+from backend.app.scoring.public_presentation import public_verdict_chip_html
 from backend.app.services.pledge_service import (
     PledgeConflictError,
     PledgeNotFoundError,
@@ -86,7 +87,7 @@ def _draft_card(draft) -> str:
         </div>
         <dl class="review-meta">
           <div><dt>Proposed FEVER label</dt><dd>{escape(draft.evidence_label.value)}</dd></div>
-          <div><dt>Proposed verdict</dt><dd>{escape(draft.proposed_verdict.value)}</dd></div>
+          <div><dt>Proposed verdict</dt><dd><code>{escape(draft.proposed_verdict.value)}</code> {public_verdict_chip_html(draft.proposed_verdict)}</dd></div>
           <div><dt>Retrieval reason</dt><dd>{escape(draft.retrieval_reason or "not recorded")}</dd></div>
         </dl>
         <p class="rationale">{escape(draft.rationale)}</p>

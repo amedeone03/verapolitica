@@ -46,6 +46,9 @@ def test_pledge_review_page_shows_commitment_versus_official_evidence(tmp_path):
         assert "Official evidence" in page.text
         assert "Proposed FEVER label" in page.text
         assert "Proposed verdict" in page.text
+        assert "in_progress" in page.text
+        assert "In corso" in page.text
+        assert "verdict-chip tone-progress" in page.text
         assert "Exact quote" in page.text
         assert "Official evidence" in page.text
         assert "Approve" in page.text

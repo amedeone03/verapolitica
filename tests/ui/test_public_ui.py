@@ -64,10 +64,20 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderGlossaryTerm" in script.text
     assert "renderScorecard" in script.text
     assert "renderCompositionBar" in script.text
+    assert "renderVerdictLegend" in script.text
     assert "/scorecard" in script.text
     assert "Commitment record" in script.text
+    assert "Mantenuta parzialmente" in script.text
+    assert "In corso" in script.text
+    assert "Iter bloccato" in script.text
+    assert "Non mantenuta" in script.text
+    assert "Non ancora valutata" in script.text
+    assert 'tone: "partial"' in script.text
+    assert 'tone: "stalled"' in script.text
+    assert 'tone: "progress"' in script.text
     assert ".composition-bar" in styles.text
     assert ".pledge-item" in styles.text
+    assert ".verdict-legend" in styles.text
     assert "view=methodology" in archive.text
 
 
