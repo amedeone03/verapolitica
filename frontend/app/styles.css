@@ -344,6 +344,17 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .evidence-label { margin: 0; color: var(--faint); font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .evidence-text { margin: 0; color: var(--ink); font-size: .84rem; }
 .evidence-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: .74rem; }
+.explain-pledge {
+  align-self: flex-start; margin-top: 4px; padding: 7px 13px; color: var(--accent-strong);
+  background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 999px;
+  font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer;
+}
+.explain-pledge:disabled { opacity: .55; cursor: wait; }
+.pledge-explanation { display: grid; gap: 8px; padding: 13px 14px; background: rgba(0, 0, 0, .22); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.pledge-explanation.is-error { border-color: color-mix(in srgb, var(--error) 40%, transparent); }
+.explanation-text { margin: 0; color: var(--ink); font-size: .88rem; }
+.explanation-sources { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.explanation-note { margin: 0; color: var(--faint); font-size: .72rem; }
 
 /* Misc views -------------------------------------------------------------- */
 .search-grid { display: grid; gap: 14px; }

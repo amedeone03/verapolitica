@@ -137,7 +137,11 @@ fails with an OCR-required error; OCR is intentionally out of scope. Chunks use
 deterministic page/paragraph-aware character limits and retain page, character, and
 SHA-256 metadata. No vector index or semantic retrieval is involved.
 
-Live calls are disabled unless `VERAPOLITICA_LLM_PROVIDER=openai`, a model, and an
+Citizen explanations of published pledges («Spiegami questa promessa») reuse the
+same provider settings and fall back to published evidence when AI is off. See
+[docs/ai_explain_pledge.md](docs/ai_explain_pledge.md).
+
+Live extraction is disabled unless `VERAPOLITICA_LLM_PROVIDER=openai`, a model, and an
 API key are explicitly configured. The model and all size/request limits are
 environment-configurable; API keys are never persisted. Tests and the demo use the
 deterministic fake provider and never require network access or paid calls.

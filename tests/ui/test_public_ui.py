@@ -65,6 +65,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderScorecard" in script.text
     assert "renderCompositionBar" in script.text
     assert "renderVerdictLegend" in script.text
+    assert "Spiegami questa promessa" in script.text
+    assert "/explanation" in script.text
+    assert "explainPledge" in script.text
+    assert ".explain-pledge" in styles.text
     assert "/scorecard" in script.text
     assert "Commitment record" in script.text
     assert "Mantenuta parzialmente" in script.text

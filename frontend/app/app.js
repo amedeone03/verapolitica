@@ -555,6 +555,8 @@ export function renderPledgeItem(pledge) {
       <p class="evidence-text">${escapeHtml(assessment.quoted_excerpt)}</p>
       <div class="evidence-foot"><span>${escapeHtml(assessment.rationale)}</span>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Official source ↗</a>` : ""}</div>
     </div>` : `<p class="empty-note">No evidence-backed assessment has been published yet.</p>`}
+    <button type="button" class="explain-pledge" data-pledge-id="${encodeURIComponent(pledge.proposal_id)}">Spiegami questa promessa</button>
+    <div class="pledge-explanation" hidden></div>
   </article>`;
 }
 
@@ -619,6 +621,50 @@ export function renderCardRecord(scorecard) {
   const entries = [...composition.entries()].map(([verdict, count]) => ({ verdict, count }));
   const closed = scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0);
   return `${renderCompositionBar(entries, { compact: true })}<p class="card-record-caption"><strong>${scorecard.tracked_pledges}</strong> ${scorecard.tracked_pledges === 1 ? "commitment" : "commitments"} · ${closed} closed</p>`;
+}
+
+function renderPledgeExplanation(payload) {
+  const sources = (payload.sources || []).map((source) => {
+    const url = safeExternalUrl(source.url);
+    const title = escapeHtml(source.title || "Fonte ufficiale");
+    return url
+      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ↗</a></li>`
+      : `<li>${title}</li>`;
+  }).join("");
+  const note = payload.generated_by_ai
+    ? "Spiegazione generata automaticamente su dati verificati da VeraPolitica. Non è una nuova valutazione."
+    : "Spiegazione basata sui dati pubblicati da VeraPolitica.";
+  return `<p class="explanation-text">${escapeHtml(payload.explanation)}</p>
+    ${sources ? `<ul class="explanation-sources">${sources}</ul>` : ""}
+    <p class="explanation-note">${note}</p>`;
+}
+
+function bindExplainPledges(root, api) {
+  for (const button of root.querySelectorAll(".explain-pledge")) {
+    button.addEventListener("click", async () => {
+      const panel = button.parentElement?.querySelector(".pledge-explanation");
+      if (!panel) return;
+      button.disabled = true;
+      panel.hidden = false;
+      panel.className = "pledge-explanation is-loading";
+      panel.innerHTML = `<p class="explanation-note">Preparazione della spiegazione…</p>`;
+      try {
+        const payload = await api.explainPledge(button.dataset.pledgeId);
+        panel.className = "pledge-explanation";
+        panel.innerHTML = renderPledgeExplanation(payload);
+      } catch (error) {
+        panel.className = "pledge-explanation is-error";
+        const missing = error.status === 404;
+        panel.innerHTML = `<p class="explanation-note">${
+          missing
+            ? "VeraPolitica non ha ancora pubblicato una valutazione per questa promessa."
+            : "La spiegazione non è al momento disponibile."
+        }</p>`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
 }
 
 function bindPledgeFilters(root) {
@@ -778,6 +824,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     listPoliticians: () => request("/politicians?offset=0&limit=50"),
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
+    explainPledge: (id) => request(`/proposals/${encodeURIComponent(id)}/explanation`),
     getPortraits: () => request("/portraits"),
     getScoringMethodology: () => request("/methodology/scoring"),
     listProposals: () => request("/proposals?offset=0&limit=50"),
@@ -876,6 +923,7 @@ async function showDetail(api, politicianId) {
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileTabs(detail);
     bindPledgeFilters(detail);
+    bindExplainPledges(detail, api);
     document.title = `${person.given_name} ${person.family_name} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;

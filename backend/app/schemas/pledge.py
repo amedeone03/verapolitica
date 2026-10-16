@@ -131,6 +131,25 @@ class PledgeAssessmentResponse(_Frozen):
     created_at: datetime
 
 
+class PledgeExplanationSource(_Frozen):
+    title: str
+    url: str
+    excerpt: str
+    effective_at: date | None = None
+
+
+class PledgeExplanationResponse(_Frozen):
+    pledge_id: int
+    verdict: FulfillmentVerdict
+    public_verdict_label: str
+    explanation: str
+    sources: tuple[PledgeExplanationSource, ...]
+    generated_by_ai: bool
+    model: str | None
+    fallback: bool
+    prompt_version: str
+
+
 class CompositionEntry(_Frozen):
     verdict: FulfillmentVerdict
     count: int
