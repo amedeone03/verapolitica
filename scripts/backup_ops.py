@@ -146,8 +146,9 @@ def libpq_env(database_url: str, base_env: Mapping[str, str] | None = None) -> d
     require_postgresql_url(database_url)
     url = make_url(database_url)
     env = dict(base_env if base_env is not None else os.environ)
-    if url.password is not None:
-        env["PGPASSWORD"] = url.password
+    password = url.password
+    if password is not None:
+        env["PGPASSWORD"] = password
     env.pop("PGDATABASE", None)
     return env
 
@@ -189,12 +190,62 @@ def pg_restore_argv(
     return argv
 
 
+_PLACEHOLDER_PASSWORDS = frozenset(
+    {"*", "***", "****", "[redacted]", "[redacted-db-url]"}
+)
+_PASSWORD_FLAGS = frozenset({"--password", "-W"})
+
+
+def raw_password(database_url: str) -> str:
+    """Decoded libpq password from a PostgreSQL URL. Empty if missing or placeholder."""
+
+    secret = make_url(database_url).password or ""
+    if not secret or secret.casefold() in _PLACEHOLDER_PASSWORDS:
+        return ""
+    if set(secret) <= {"*"}:
+        return ""
+    return secret
+
+
 def argv_contains_secret(argv: list[str], database_url: str) -> bool:
+    """True only when the raw password is passed as a credential, not as user/host/db."""
+
     url = make_url(database_url)
-    secret = url.password or ""
+    secret = raw_password(database_url)
     if not secret:
         return False
-    return secret in " ".join(argv)
+    allowed_identity = {
+        value
+        for value in (url.username, url.host, url.database, str(url.port or 5432))
+        if value
+    }
+    for index, token in enumerate(argv):
+        previous = argv[index - 1] if index else ""
+        if _token_exposes_password(token, previous, secret, allowed_identity):
+            return True
+    return False
+
+
+def _token_exposes_password(
+    token: str,
+    previous: str,
+    secret: str,
+    allowed_identity: set[str],
+) -> bool:
+    if "://" in token:
+        try:
+            return make_url(token).password == secret
+        except Exception:
+            return secret in token
+    if token.startswith("--password=") and token.split("=", 1)[1] == secret:
+        return True
+    if token.startswith("PGPASSWORD=") and token.split("=", 1)[1] == secret:
+        return True
+    if previous in _PASSWORD_FLAGS and token == secret:
+        return True
+    if token == secret:
+        return secret not in allowed_identity
+    return False
 
 
 def run_tool(argv: list[str], env: Mapping[str, str], *, label: str) -> None:

@@ -17,6 +17,7 @@ from scripts.backup_ops import (
     argv_contains_secret,
     build_manifest,
     extract_archive,
+    libpq_env,
     manifest_is_safe,
     manifest_name,
     pg_dump_argv,
@@ -69,9 +70,62 @@ def test_pg_dump_and_restore_argv_omit_password(pg_bins, tmp_path):
     assert "s3cret-pass" not in " ".join(dump_argv)
     assert "s3cret-pass" not in " ".join(restore_argv)
     assert argv_contains_secret(dump_argv, SECRET_URL) is False
+    assert argv_contains_secret(restore_argv, SECRET_URL) is False
     assert "--clean" in restore_argv
     assert "--if-exists" in restore_argv
     assert "--no-owner" in restore_argv
+
+
+def test_argv_secret_detection_uses_raw_password_only(pg_bins, tmp_path):
+    dump = tmp_path / "out.dump"
+    ci_url = "postgresql+psycopg://verapolitica:verapolitica@localhost:5432/verapolitica"
+    ci_dump = pg_dump_argv(ci_url, dump)
+    ci_restore = pg_restore_argv(ci_url, dump)
+    assert "verapolitica" in ci_dump
+    assert argv_contains_secret(ci_dump, ci_url) is False
+    assert argv_contains_secret(ci_restore, ci_url) is False
+    assert libpq_env(ci_url, base_env={})["PGPASSWORD"] == "verapolitica"
+
+    leaked = ["pg_dump", "-U", "vp", "s3cret-pass"]
+    assert argv_contains_secret(leaked, SECRET_URL) is True
+    assert argv_contains_secret(["pg_dump", "--password=s3cret-pass"], SECRET_URL) is True
+    assert argv_contains_secret(
+        ["pg_dump", SECRET_URL.replace("postgresql+psycopg://", "postgresql://")],
+        SECRET_URL,
+    ) is True
+
+    encoded = "postgresql+psycopg://vp:%40p%2Fss@localhost:5432/verapolitica"
+    encoded_argv = pg_dump_argv(encoded, dump)
+    encoded_restore = pg_restore_argv(encoded, dump)
+    assert "@p/ss" not in encoded_argv
+    assert "%40p%2Fss" not in encoded_argv
+    assert argv_contains_secret(encoded_argv, encoded) is False
+    assert argv_contains_secret(encoded_restore, encoded) is False
+    assert libpq_env(encoded, base_env={})["PGPASSWORD"] == "@p/ss"
+
+    overlapping = (
+        "postgresql+psycopg://s3cret-pass:real-db-pass@s3cret-pass.example:5432/s3cret-pass"
+    )
+    overlap_argv = pg_dump_argv(overlapping, dump)
+    assert "s3cret-pass" in overlap_argv
+    assert "real-db-pass" not in overlap_argv
+    assert argv_contains_secret(overlap_argv, overlapping) is False
+    assert argv_contains_secret(["pg_dump", "real-db-pass"], overlapping) is True
+    assert libpq_env(overlapping, base_env={})["PGPASSWORD"] == "real-db-pass"
+
+    no_password = "postgresql+psycopg://vp@localhost:5432/verapolitica"
+    assert argv_contains_secret(pg_dump_argv(no_password, dump), no_password) is False
+    assert "PGPASSWORD" not in libpq_env(no_password, base_env={})
+
+    plain = "postgresql://vp:s3cret-pass@localhost:5432/verapolitica"
+    plain_argv = pg_dump_argv(plain, dump)
+    assert "s3cret-pass" not in plain_argv
+    assert argv_contains_secret(plain_argv, plain) is False
+    assert argv_contains_secret(pg_restore_argv(plain, dump), plain) is False
+    assert libpq_env(plain, base_env={})["PGPASSWORD"] == "s3cret-pass"
+
+    redacted = "postgresql+psycopg://vp:***@localhost:5432/verapolitica"
+    assert argv_contains_secret(["pg_dump", "-U", "vp", "***"], redacted) is False
 
 
 def test_sqlite_and_demo_paths_are_rejected(tmp_path):

@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -89,6 +93,9 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install -r backend/requirements.txt
+
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Run Alembic against PostgreSQL
         run: |
