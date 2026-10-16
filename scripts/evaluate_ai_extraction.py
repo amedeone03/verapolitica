@@ -5,7 +5,7 @@ from pathlib import Path
 
 from backend.app.ai import OpenAIExtractionProvider
 from backend.app.core.config import Settings, get_settings
-from backend.app.db.base import Base
+from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.evaluation import (
     DatasetFakeExtractionProvider,
@@ -98,7 +98,7 @@ def run(
         )
     engine = create_db_engine(runtime.database_url)
     try:
-        Base.metadata.create_all(engine)
+        prepare_runtime_schema(engine, runtime)
         report = ExtractionEvaluationService(
             create_session_factory(engine),
             provider,

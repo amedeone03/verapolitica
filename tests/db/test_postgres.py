@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-import os
 
 import pytest
 from alembic import command
@@ -14,17 +13,10 @@ from backend.app.jobs.service import IngestionJobConflictError, IngestionJobServ
 from backend.app.models import IngestionJobRun, IngestionJobStatus, IngestionJobTrigger
 from backend.app.schemas.jobs import IngestionJobMetrics
 
-from tests.db.conftest import EXPECTED_TABLES
+from tests.db.conftest import EXPECTED_TABLES, postgres_url
 
 
 pytestmark = pytest.mark.postgres
-
-
-def postgres_url() -> str:
-    url = os.environ.get("VERAPOLITICA_POSTGRES_TEST_URL", "").strip()
-    if not url:
-        pytest.skip("VERAPOLITICA_POSTGRES_TEST_URL is not set")
-    return url
 
 
 def test_postgres_upgrade_and_job_run_roundtrip():

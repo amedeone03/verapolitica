@@ -21,7 +21,7 @@ required values raise `ProductionConfigError` at process start.
 | --- | --- | --- | --- |
 | `VERAPOLITICA_ENV` | `production` | `Settings`, demo-script guards, logging | Must be `production`. Other values skip production validation. |
 | `VERAPOLITICA_PUBLIC_BASE_URL` | `https://example.com` | production validator; public site origin | Absolute `http(s)` URL. Its origin must appear in CORS and its host in trusted hosts. Prefer HTTPS. |
-| `VERAPOLITICA_DATABASE_URL` | `postgresql+psycopg://USER:PASSWORD@HOST:5432/verapolitica` | SQLAlchemy, Alembic, jobs | PostgreSQL required. `postgres://` and `postgresql://` are rewritten to `postgresql+psycopg://`. SQLite is rejected. |
+| `VERAPOLITICA_DATABASE_URL` | `postgresql+psycopg://USER:PASSWORD@HOST:5432/verapolitica` | SQLAlchemy, Alembic, jobs | PostgreSQL required. `postgres://` and `postgresql://` are rewritten to `postgresql+psycopg://`. SQLite is rejected. Alembic owns schema: run `alembic upgrade head` on a fresh or existing database before web start; never rely on `create_all`. Backup first. |
 | `VERAPOLITICA_ADMIN_API_KEY` | long random string, 24+ characters | `/admin/*` Bearer auth | Required. Short, well-known, demo, CI, and documentation placeholder values are rejected. Never commit the real value. |
 | `VERAPOLITICA_CORS_ORIGINS` | `https://example.com` | FastAPI CORS middleware | Comma-separated allowlist. `*` is rejected. Must include the public base URL origin. |
 | `VERAPOLITICA_TRUSTED_HOSTS` | `example.com,www.example.com` | TrustedHost middleware | Comma-separated allowlist. `*` is rejected. Must include the public base URL host. |

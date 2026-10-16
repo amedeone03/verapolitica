@@ -1,4 +1,5 @@
 from alembic import command
+from alembic.script import ScriptDirectory
 from sqlalchemy import inspect
 
 from backend.app.db.base import Base
@@ -10,6 +11,26 @@ from backend.app.db.schema import (
 from backend.app.models import Source  # noqa: F401 — register metadata
 
 from tests.db.conftest import EXPECTED_TABLES, constraint_names, migrate_sqlite
+
+ALEMBIC_CHAIN = (
+    "1864a1eb302a",
+    "b7c4e2a91f10",
+    "c8d5f3b02a21",
+    "d1a7e5b94c30",
+    "e2b8f6c03d41",
+)
+
+
+def test_alembic_chain_is_linear_single_head():
+    script = ScriptDirectory.from_config(alembic_config())
+    assert script.get_heads() == [ALEMBIC_CHAIN[-1]]
+    assert script.get_base() == ALEMBIC_CHAIN[0]
+    walked = tuple(revision.revision for revision in script.walk_revisions())
+    assert walked == tuple(reversed(ALEMBIC_CHAIN))
+    for index, revision_id in enumerate(ALEMBIC_CHAIN):
+        revision = script.get_revision(revision_id)
+        expected_down = ALEMBIC_CHAIN[index - 1] if index else None
+        assert revision.down_revision == expected_down
 
 
 def test_alembic_upgrade_creates_current_schema(tmp_path):

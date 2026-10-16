@@ -55,16 +55,30 @@ Leave schedule cron variables blank until you are ready for live ingestion.
 
 ## Migrations
 
-The application never runs Alembic automatically.
+Production schema is PostgreSQL and is owned by Alembic. The application never
+runs `alembic upgrade head` or `metadata.create_all()` on PostgreSQL. Always
+take a backup before migrating. See
+[database-and-migrations.md](database-and-migrations.md).
+
+Fresh database:
 
 ```bash
-pg_dump "$DATABASE_URL" -Fc -f backup.dump   # see backup section
+createdb verapolitica
 python -m alembic upgrade head
 python -m alembic current
 ```
 
-If the schema is behind head, `/health/ready` returns 503. Start web only after
-`alembic current` matches head.
+Existing database:
+
+```bash
+pg_dump "$VERAPOLITICA_DATABASE_URL" -Fc -f backup.dump   # see backup section
+python -m alembic upgrade head
+python -m alembic current
+```
+
+If the schema is behind head, or PostgreSQL is unreachable, `/health/ready`
+returns 503. `/health/live` only means the process is up. Start web only after
+`alembic current` matches head (`e2b8f6c03d41`).
 
 ## Startup commands
 

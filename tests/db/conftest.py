@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import os
+import re
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+import pytest
 from alembic import command
-from sqlalchemy import Engine, inspect
+from sqlalchemy import Engine, create_engine, inspect, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.db.schema import alembic_config
 from backend.app.db.session import create_db_engine, create_session_factory
+
+_SAFE_DB_NAME = re.compile(r"^[a-z][a-z0-9_]{1,62}$")
 
 
 EXPECTED_TABLES = frozenset(
@@ -57,8 +66,52 @@ EXPECTED_TABLES = frozenset(
         "pledge_assessments",
         "pledge_audit_samples",
         "pledge_audit_codings",
+        "pledge_evidence_candidates",
     }
 )
+
+
+def postgres_url() -> str:
+    url = os.environ.get("VERAPOLITICA_POSTGRES_TEST_URL", "").strip()
+    if not url:
+        pytest.skip("VERAPOLITICA_POSTGRES_TEST_URL is not set")
+    return url
+
+
+@contextmanager
+def isolated_postgres_database(name: str) -> Iterator[str]:
+    """Create an empty PostgreSQL database and drop it when the test ends."""
+
+    if not _SAFE_DB_NAME.fullmatch(name):
+        raise ValueError(f"unsafe database name: {name}")
+    source = make_url(postgres_url())
+    admin = create_engine(
+        source.render_as_string(hide_password=False),
+        isolation_level="AUTOCOMMIT",
+        pool_pre_ping=True,
+    )
+
+    def _drop() -> None:
+        with admin.connect() as connection:
+            connection.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :name AND pid <> pg_backend_pid()"
+                ),
+                {"name": name},
+            )
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{name}"'))
+
+    try:
+        _drop()
+        with admin.connect() as connection:
+            connection.execute(text(f'CREATE DATABASE "{name}"'))
+        yield source.set(database=name).render_as_string(hide_password=False)
+    finally:
+        try:
+            _drop()
+        finally:
+            admin.dispose()
 
 
 def migrate_sqlite(tmp_path) -> tuple[str, Engine, sessionmaker[Session]]:

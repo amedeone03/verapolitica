@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.core.config import AppEnvironment, Settings
 from backend.app.db.base import Base
+from backend.app.db.schema import readiness_payload
 from backend.app.db.session import create_db_engine
 from backend.app.main import create_app
 from scripts.run_web import gunicorn_argv
@@ -39,6 +40,26 @@ def test_liveness_and_readiness(tmp_path):
     assert compat.status_code == 200
     assert "password" not in live.text.casefold()
     assert "database_url" not in ready.text.casefold()
+
+
+def test_readiness_fails_when_postgres_is_unreachable():
+    settings = Settings(
+        env=AppEnvironment.TEST,
+        database_url="postgresql+psycopg://verapolitica:x@127.0.0.1:1/verapolitica?connect_timeout=1",
+        raw_storage_path="./data/raw",
+        admin_api_key="test-admin-secret",
+        trusted_hosts="testserver",
+    )
+    engine = create_db_engine(settings.database_url, pool_timeout=1)
+    try:
+        ready, payload = readiness_payload(engine, settings)
+    finally:
+        engine.dispose()
+    assert ready is False
+    assert payload["ready"] is False
+    assert payload["database"] == "error"
+    assert payload["status"] == "not_ready"
+    assert payload["schema_current"] is False
 
 
 def test_readiness_fails_when_alembic_revision_behind(tmp_path):
