@@ -357,6 +357,25 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .explanation-note { margin: 0; color: var(--faint); font-size: .72rem; }
 
 /* Misc views -------------------------------------------------------------- */
+.ask-form { display: grid; gap: 12px; margin: 0 0 14px; }
+.ask-form textarea {
+  width: 100%; min-height: 92px; padding: 14px 16px; resize: vertical;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); font: inherit;
+}
+.ask-form button {
+  justify-self: start; padding: 10px 16px; color: var(--ink);
+  background: var(--accent); border: 0; border-radius: 999px;
+  font: inherit; font-weight: 800; cursor: pointer;
+}
+.ask-form button:disabled { opacity: .55; cursor: wait; }
+.ask-disclaimer { margin: 0 0 18px; color: var(--muted); font-size: .86rem; }
+.ask-result { display: grid; gap: 14px; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.ask-answer { margin: 0; color: var(--ink); font-size: 1rem; line-height: 1.5; }
+.ask-cards { display: grid; gap: 10px; }
+.ask-card { display: grid; gap: 8px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.ask-card h3 { margin: 0; font-size: 1.02rem; }
+.ask-card h3 a { color: inherit; text-decoration: none; }
 .search-grid { display: grid; gap: 14px; }
 .search-card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); }
 .search-card h3 { margin: 8px 0 6px; font-size: 1.24rem; line-height: 1.15; }

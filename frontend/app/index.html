@@ -44,6 +44,7 @@
           <a href="./?view=methodology">Methodology</a>
           <a href="./?view=regions">Regions</a>
           <a href="./?view=municipalities">Municipalities</a>
+          <a href="./?view=ask">Ask</a>
           <a href="./?view=search">Search</a>
         </nav>
       </div>
@@ -225,6 +226,32 @@
           <div><strong>Loading methodology…</strong><small>Retrieving the current scoring parameters.</small></div>
         </div>
         <article id="methodology-detail" hidden></article>
+      </section>
+
+      <section id="ask-view" aria-labelledby="ask-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Ask VeraPolitica</p>
+          <h1 id="ask-title">Chiedi a VeraPolitica</h1>
+          <p class="hero-copy">Domande in linguaggio naturale su politici pubblicati, promesse, stati di valutazione, temi ed evidenze ufficiali.</p>
+        </div>
+        <form id="ask-form" class="ask-form" action="./" method="get">
+          <input type="hidden" name="view" value="ask" />
+          <label class="visually-hidden" for="ask-question">Domanda</label>
+          <textarea
+            id="ask-question"
+            name="question"
+            rows="3"
+            maxlength="400"
+            placeholder="Es. Quali promesse di Giorgia Meloni sono ancora in corso?"
+            autocomplete="off"
+          ></textarea>
+          <button type="submit" id="ask-submit">Chiedi a VeraPolitica</button>
+        </form>
+        <p class="ask-disclaimer">Le risposte usano esclusivamente dati pubblicati e fonti verificate da VeraPolitica.</p>
+        <div id="ask-status" class="state-card" role="status">
+          <div><strong>Fai una domanda.</strong><small>Una domanda, una risposta. Nessuna cronologia di chat.</small></div>
+        </div>
+        <article id="ask-result" class="ask-result" hidden></article>
       </section>
 
       <section id="search-view" aria-labelledby="search-title" hidden>

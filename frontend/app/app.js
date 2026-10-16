@@ -806,15 +806,21 @@ export function renderPoliticianDetail(person, scorecard = null) {
 }
 
 export function createPublicApiClient(fetchImpl = fetch) {
-  async function request(path) {
+  async function request(path, { method = "GET", body } = {}) {
     let response;
+    const headers = { Accept: "application/json" };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     try {
-      response = await fetchImpl(path, { headers: { Accept: "application/json" } });
+      response = await fetchImpl(path, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
     } catch {
       throw new Error("api_unavailable");
     }
     if (!response.ok) {
-      const error = new Error(response.status === 404 ? "not_found" : "api_error");
+      const error = new Error(response.status === 404 ? "not_found" : response.status === 422 ? "invalid_question" : "api_error");
       error.status = response.status;
       throw error;
     }
@@ -825,6 +831,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
     explainPledge: (id) => request(`/proposals/${encodeURIComponent(id)}/explanation`),
+    ask: (question) => request("/ask", { method: "POST", body: { question } }),
     getPortraits: () => request("/portraits"),
     getScoringMethodology: () => request("/methodology/scoring"),
     listProposals: () => request("/proposals?offset=0&limit=50"),
@@ -1057,6 +1064,72 @@ function searchTypeLabel(value) {
     referendum: "Referendum",
     glossary_term: "Glossary",
   }[value] || titleCase(value);
+}
+
+function renderAskResult(payload) {
+  const results = (payload.results || []).map((item) => {
+    const href = item.url || (item.type === "politician" ? `./?politician=${encodeURIComponent(item.id)}` : `./?proposal=${encodeURIComponent(item.id)}`);
+    const chip = item.verdict ? renderVerdictChip(item.verdict) : "";
+    return `<article class="ask-card">
+      ${chip}
+      <h3><a href="${escapeHtml(href)}">${escapeHtml(item.title)}</a></h3>
+    </article>`;
+  }).join("");
+  const sources = (payload.sources || []).map((source) => {
+    const url = safeExternalUrl(source.url);
+    const title = escapeHtml(source.title || "Fonte ufficiale");
+    return url
+      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ↗</a></li>`
+      : `<li>${title}</li>`;
+  }).join("");
+  const note = payload.generated_by_ai
+    ? "Testo generato automaticamente su dati verificati."
+    : "Risposta generata dai dati pubblicati da VeraPolitica.";
+  return `<p class="ask-answer">${escapeHtml(payload.answer)}</p>
+    ${results ? `<div class="ask-cards">${results}</div>` : ""}
+    ${sources ? `<ul class="explanation-sources">${sources}</ul>` : ""}
+    <p class="explanation-note">${note}</p>`;
+}
+
+function showAsk(api) {
+  byId("archive-view").hidden = true;
+  byId("ask-view").hidden = false;
+  const form = byId("ask-form");
+  const field = byId("ask-question");
+  const button = byId("ask-submit");
+  const status = byId("ask-status");
+  const result = byId("ask-result");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const question = field.value.trim();
+    if (!question) {
+      result.hidden = true;
+      showState(status, "Scrivi una domanda.", "Il campo non può essere vuoto.");
+      return;
+    }
+    button.disabled = true;
+    result.hidden = true;
+    status.hidden = false;
+    status.className = "state-card loading-state";
+    status.innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Sto cercando nei dati pubblicati…</strong><small>Solo promesse, stati e fonti già verificati.</small></div>`;
+    try {
+      const payload = await api.ask(question);
+      status.hidden = true;
+      result.hidden = false;
+      result.innerHTML = renderAskResult(payload);
+    } catch (error) {
+      result.hidden = true;
+      const invalid = error.status === 422;
+      showState(
+        status,
+        invalid ? "La domanda non è valida." : "La risposta non è al momento disponibile.",
+        invalid ? "Usa una domanda breve su politici, promesse, stati, temi o fonti pubblicate." : "The public API is currently unavailable.",
+        true,
+      );
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 export function renderSearchCard(item, query) {
@@ -1352,6 +1425,8 @@ if (proposalId && /^\d+$/.test(proposalId)) {
   showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
 } else if (params.get("view") === "methodology") {
   showMethodology(api);
+} else if (params.get("view") === "ask") {
+  showAsk(api);
 } else if (params.get("view") === "search") {
   showSearch(api, params.get("q") || "", params.get("type") || "");
 } else {

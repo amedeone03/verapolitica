@@ -83,6 +83,14 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert ".pledge-item" in styles.text
     assert ".verdict-legend" in styles.text
     assert "view=methodology" in archive.text
+    assert "view=ask" in archive.text
+    assert "Chiedi a VeraPolitica" in archive.text
+    assert "Es. Quali promesse di Giorgia Meloni sono ancora in corso?" in archive.text
+    assert "dati pubblicati e fonti verificate" in archive.text
+    assert "ask:" in script.text
+    assert "/ask" in script.text
+    assert ".ask-form" in styles.text
+    assert ".ask-result" in styles.text
 
 
 def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):

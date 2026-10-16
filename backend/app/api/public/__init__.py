@@ -15,10 +15,12 @@ from backend.app.api.public.portraits import router as portraits_router
 from backend.app.api.public.proposals import router as proposals_router
 from backend.app.api.public.regions import router as regions_router
 from backend.app.api.public.scorecards import router as scorecards_router
+from backend.app.api.public.ask import router as ask_router
 from backend.app.api.public.search import router as search_router
 
 
 router = APIRouter()
+router.include_router(ask_router)
 router.include_router(search_router)
 router.include_router(portraits_router)
 router.include_router(politicians_router)

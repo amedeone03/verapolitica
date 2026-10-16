@@ -139,7 +139,9 @@ SHA-256 metadata. No vector index or semantic retrieval is involved.
 
 Citizen explanations of published pledges («Spiegami questa promessa») reuse the
 same provider settings and fall back to published evidence when AI is off. See
-[docs/ai_explain_pledge.md](docs/ai_explain_pledge.md).
+[docs/ai_explain_pledge.md](docs/ai_explain_pledge.md). «Chiedi a VeraPolitica»
+(`POST /ask`) answers a limited set of questions from the same published data;
+see [docs/ask_verapolitica.md](docs/ask_verapolitica.md).
 
 Live extraction is disabled unless `VERAPOLITICA_LLM_PROVIDER=openai`, a model, and an
 API key are explicitly configured. The model and all size/request limits are
