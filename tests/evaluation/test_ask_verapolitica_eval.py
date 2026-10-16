@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from backend.app.evaluation.ask_dataset import AskGoldCase, load_ask_gold_dataset
+from backend.app.evaluation.ask_dataset import (
+    AskGoldCase,
+    load_ask_gold_dataset,
+    resolve_ask_dataset_root,
+)
 from backend.app.evaluation.ask_fixture import AskEvalCatalog
 from backend.app.evaluation.ask_metrics import score_ask_case
 from backend.app.evaluation.ask_runner import run_ask_evaluation
@@ -231,6 +235,34 @@ def test_runner_known_good_cases_pass():
     report = run_ask_evaluation(case_id="ambig-rossi")
     assert report.passed == 1
     report = run_ask_evaluation(case_id="pol-meloni-in-corso")
+    assert report.passed == 1
+
+
+def test_score_zero_result_precision():
+    empty = AskGoldCase(
+        id="zero",
+        category="verdict",
+        question="Quali risultano Non mantenute?",
+        expected_pledge_keys=(),
+        expect_zero_results=True,
+    )
+    ok = score_ask_case(
+        empty,
+        _catalog(),
+        response=_response(results=(), sources=(), entities={"verdict": "broken"}),
+    )
+    assert ok.passed
+    assert ok.zero_result_ok is True
+    invented = score_ask_case(empty, _catalog(), response=_response())
+    assert not invented.passed
+    assert invented.zero_result_ok is False
+
+
+def test_dataset_selector_keeps_synthetic_default():
+    root = resolve_ask_dataset_root("synthetic-v1")
+    assert root == GOLD_ROOT
+    report = run_ask_evaluation(dataset_name="synthetic-v1", case_id="unsupported-miglior")
+    assert report.dataset_version == "ask-verapolitica-gold/v1"
     assert report.passed == 1
 
 

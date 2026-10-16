@@ -29,9 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--dataset",
-        type=Path,
-        default=None,
-        help="Gold dataset directory (default: evaluation/ask_verapolitica/v1)",
+        default="synthetic-v1",
+        help="synthetic-v1 (default), real-v1, or a gold directory path",
     )
     parser.add_argument("--category", help="Run only this gold category")
     parser.add_argument("--case-id", help="Run only this gold case id")
@@ -55,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     mode = "ai-fake" if args.ai == "fake" else "deterministic"
     try:
         report = run_ask_evaluation(
-            dataset_root=args.dataset,
+            dataset_name=args.dataset,
             category=args.category,
             case_id=args.case_id,
             completer=completer,

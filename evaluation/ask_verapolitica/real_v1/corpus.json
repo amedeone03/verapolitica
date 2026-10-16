@@ -1,0 +1,95 @@
+{
+  "corpus_name": "unified-demo",
+  "corpus_date": "2026-10-10",
+  "database_relpath": "data/unified_demo/verapolitica.db",
+  "published_fingerprint": "9e546cd7033954f59e79a3c12b1c1738b01b218595e4f0e3cfb9a65f6a135f91",
+  "counts": {
+    "published_politician_profiles": 22,
+    "published_explicit_promises": 9,
+    "classified_published_promises": 9,
+    "published_assessments": 1,
+    "politicians_with_published_promises": 1,
+    "unpublished_explicit_promises": 0
+  },
+  "verdict_distribution": {
+    "in_progress": 1,
+    "not_yet_rated": 8,
+    "kept": 0,
+    "partially_kept": 0,
+    "stalled": 0,
+    "broken": 0
+  },
+  "topic_distribution": {
+    "1": 1,
+    "9": 1,
+    "10": 2,
+    "12": 2,
+    "13": 1,
+    "20": 2
+  },
+  "source_hosts": ["www.gazzettaufficiale.it"],
+  "notes": "Ask-visible world is nine classified Meloni promises and one published autonomia assessment. No published surname collision exists, so this slice has no natural ambiguity case. IDs are documented as frozen_id only; the evaluator resolves keys by published title prefix.",
+  "politicians": {
+    "giorgia-meloni": {"given_name": "Giorgia", "family_name": "Meloni"},
+    "antonio-tajani": {"given_name": "Antonio", "family_name": "Tajani"},
+    "carlo-nordio": {"given_name": "Carlo", "family_name": "Nordio"}
+  },
+  "pledges": {
+    "infra-reti": {
+      "title_prefix": "Tutelare le infrastrutture strategiche nazionali",
+      "frozen_id": "101",
+      "topic_code": "10",
+      "verdict": "not_yet_rated"
+    },
+    "clausola-salvaguardia": {
+      "title_prefix": "Introdurre una clausola di salvaguardia",
+      "frozen_id": "102",
+      "topic_code": "10",
+      "verdict": "not_yet_rated"
+    },
+    "nazione-sicura": {
+      "title_prefix": "Lavoreremo per restituire ai cittadini la garanzia di vivere in una Nazione sicura",
+      "frozen_id": "103",
+      "topic_code": "12",
+      "verdict": "not_yet_rated"
+    },
+    "riforma-giudiziario": {
+      "title_prefix": "Rivedremo anche la riforma dell'ordinamento giudiziario",
+      "frozen_id": "104",
+      "topic_code": "12",
+      "verdict": "not_yet_rated"
+    },
+    "agenzia-entrate": {
+      "title_prefix": "Partire da una modifica dei criteri di valutazione dei risultati dell'Agenzia",
+      "frozen_id": "105",
+      "topic_code": "1",
+      "verdict": "not_yet_rated"
+    },
+    "autonomia": {
+      "title_prefix": "Dare seguito al processo virtuoso di autonomia differenziata",
+      "frozen_id": "106",
+      "topic_code": "20",
+      "verdict": "in_progress",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg",
+      "assessment_id": "1"
+    },
+    "sostegno-fragili": {
+      "title_prefix": "Mantenere e, laddove possibile, migliorare il doveroso sostegno economico",
+      "frozen_id": "107",
+      "topic_code": "13",
+      "verdict": "not_yet_rated"
+    },
+    "occupazione-femminile": {
+      "title_prefix": "Incentivare in ogni modo l'occupazione femminile",
+      "frozen_id": "108",
+      "topic_code": "20",
+      "verdict": "not_yet_rated"
+    },
+    "missione-sophia": {
+      "title_prefix": "Recuperare la proposta originaria della missione navale Sophia",
+      "frozen_id": "109",
+      "topic_code": "9",
+      "verdict": "not_yet_rated"
+    }
+  }
+}

@@ -62,6 +62,7 @@ class AskEvalCatalog:
     source_urls: dict[str, str]
     published_source_urls: tuple[str, ...]
     unpublished_titles: tuple[str, ...]
+    clarification_names: tuple[str, ...] = ()
 
 
 def _publish_politician(

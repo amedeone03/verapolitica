@@ -1,17 +1,69 @@
 # Ask VeraPolitica evaluation
 
 This is an engineering benchmark for **Ask VeraPolitica v1**. Metrics describe
-performance on the curated gold set only. They are **not** a universal accuracy
+performance on a named gold set only. They are **not** a universal accuracy
 claim for the product or for any language model.
 
-## Dataset
+There are two slices. They share the same runner, scorer, and CLI. They are not
+interchangeable.
 
-Versioned gold: `evaluation/ask_verapolitica/v1/cases.json`.
+## Synthetic gold v1
+
+Path: `evaluation/ask_verapolitica/v1/cases.json`
+Dataset id: `ask-verapolitica-gold/v1`
+CLI alias: `synthetic-v1` (default)
 
 The runner seeds a throwaway SQLite world (Meloni, Mario Rossi, Anna Rossi,
-unpublished Luca Bianchi) and maps stable keys such as `autonomia` or
-`giorgia-meloni` to local IDs. Cases never depend on production or demo
-databases.
+unpublished Luca Bianchi) and maps stable keys such as `autonomia` to local IDs.
+Cases never depend on production or demo databases. This slice is
+regression-oriented and controlled.
+
+Current deterministic baseline on this set: **54/54**. That figure is not a
+universal Ask accuracy claim.
+
+## Real-corpus gold v1
+
+Path: `evaluation/ask_verapolitica/real_v1/`
+Dataset id: `ask-verapolitica-gold/real-v1`
+CLI alias: `real-v1`
+
+This slice reads the **unified demo** published corpus at
+`data/unified_demo/verapolitica.db` in SQLite `query_only` mode. It does not
+seed a synthetic world and it does not fall back to synthetic-v1 if the corpus
+is missing.
+
+The published Ask-visible world frozen here (corpus date 2026-10-10):
+
+- 22 published politician profiles
+- 9 published classified explicit promises, all owned by Giorgia Meloni
+- 1 published assessment (`in_progress` on autonomia differenziata)
+- 8 published promises with no approved assessment
+- source host: `www.gazzettaufficiale.it`
+- no published surname collision, so this slice has **no natural ambiguity case**
+
+The set is messier and more representative than synthetic-v1, and it will change
+when the unified demo is rebuilt. A high score here is still not universal
+accuracy.
+
+### Versioning / fingerprint
+
+`evaluation/ask_verapolitica/real_v1/corpus.json` freezes:
+
+- corpus name/date and relative database path
+- SHA-256 of the published classified promises (title, statement, topic,
+  public verdict, source URL)
+- stable politician/pledge keys with `title_prefix` (not auto-increment IDs)
+- documented `frozen_id` values for that corpus only
+
+If the live unified demo no longer matches `published_fingerprint`, the
+evaluator fails instead of scoring the wrong world. Regenerate `real_v1` or
+restore that corpus; do not silently edit expectations to chase a new demo
+build.
+
+Keys are resolved by published name / title prefix. Numeric IDs in
+`frozen_id` are documentation.
+
+## Case fields
 
 Each case may include:
 
@@ -21,20 +73,15 @@ Each case may include:
 - `expected_pledge_keys`
 - `expected_verdict`, `expected_topic`
 - `expected_source_url` / `expected_source_host`
+- `expected_count`
 - `should_abstain`, `should_require_clarification`
-- `expect_unrated`, `expect_invalid`
+- `expect_unrated`, `expect_invalid`, `expect_zero_results`
 - `forbidden_claims`, `forbidden_verdicts`, `forbidden_titles`
 - `notes`
 
-The set covers politician + pledge queries, verdict filters, topics, pledge
-explanations, source/evidence questions, promises with no published assessment,
-unsupported political opinions, prompt-injection attempts, ambiguous surnames,
-limited natural variants, empty/malformed/oversized requests, and adversarial
-verdict contradictions.
+The scorer does **not** match free-form Italian sentences.
 
 ## What is measured
-
-The scorer does **not** match free-form Italian sentences. It checks:
 
 - intent accuracy
 - politician / entity accuracy
@@ -43,11 +90,13 @@ The scorer does **not** match free-form Italian sentences. It checks:
 - topic match accuracy (when the gold names a topic)
 - source / citation accuracy (URL or host)
 - abstention accuracy / unsupported-query accuracy
-- clarification accuracy (ambiguous identity)
+- clarification accuracy (ambiguous identity; synthetic-v1 only today)
 - forbidden-claim and unpublished-title leaks
 - invented-URL rate
+- **zero-result precision**: when the gold answer is empty, Ask must not invent
+  a pledge
 
-A case passes when none of its applicable checks fail.
+Count questions compare retrieved published rows to `expected_count`.
 
 ## What is not measured
 
@@ -55,45 +104,40 @@ A case passes when none of its applicable checks fail.
 - General political knowledge or live web search
 - Embedding / vector retrieval quality
 - Pledge scoring, Draft 2, evidence judging, or scheduler behaviour
-- Production data coverage (the world is synthetic and small)
+- Coverage of a future production corpus
 
 ## Deterministic vs AI-enabled evaluation
 
-Default run (`--ai off`) calls `AskVeraPoliticaService` with no completer. The
-deterministic path is fully evaluable and does not need Ollama or a live HTTP
-server.
+Default (`--ai off`) calls `AskVeraPoliticaService` with no completer. Ollama is
+not required.
 
-`--ai fake` uses `FakeTextCompleter`. Synthesis is still scored on retrieved
-context, published verdicts, forbidden claims, and URLs — not on sentence
-identity. A local provider is optional and is not part of the default CLI.
+`--ai fake` uses `FakeTextCompleter`. Synthesis is scored on retrieved context,
+published verdicts, forbidden claims, and URLs — not on sentence identity.
 
 ```bash
 python -m evaluation.eval_ask_verapolitica
-python -m evaluation.eval_ask_verapolitica --ai fake
+python -m evaluation.eval_ask_verapolitica --dataset synthetic-v1
+python -m evaluation.eval_ask_verapolitica --dataset real-v1
+python -m evaluation.eval_ask_verapolitica --dataset real-v1 --ai fake
 python -m evaluation.eval_ask_verapolitica --category unsupported
 python -m evaluation.eval_ask_verapolitica --case-id pol-meloni-in-corso
 python -m evaluation.eval_ask_verapolitica --json-output evaluation/reports/ask-v1.json
 ```
 
-JSON reports include an explicit disclaimer that the numbers apply only to this
-gold set.
+`real-v1` needs the local unified demo. It will not create or mutate that
+database.
 
 ## Limitations
 
-- The gold world is small and Italian. A high pass rate here does not mean Ask
-  VeraPolitica is generally accurate on the live corpus.
-- Variants are limited (Meloni / Giorgia Meloni, tasse / fiscalità, liste
-  d’attesa / sanità). This is not a fuzzy-search benchmark.
-- Optional AI evaluation with `FakeTextCompleter` does not measure a real model.
-- Building this set exposed three planner/retrieval bugs (plural “non sono
-  ancora valutate”, numeric CAP codes matching pledge text, named-pledge
-  status questions listing a different pledge). Those are product fixes, not
-  evaluation-only workarounds.
+- Both slices are Italian and small. Neither is a production-accuracy claim.
+- Real-v1 currently has one assessed pledge and one politician with promises.
+- Variants are limited. This is not a fuzzy-search benchmark.
+- `--ai fake` does not measure a real model.
+- Synthetic-v1 exposed planner bugs that were fixed narrowly. Real-v1 may
+  report honest misses without product changes.
 
 ## Why results are not universal model accuracy claims
 
-Ask VeraPolitica answers from **already published** pledges, verdicts, topics,
-and approved sources. The gold set encodes those retrieval and safety
-expectations. Reporting “98% accurate” without naming this curated set would
-overclaim: the figure is pass rate (or a named metric) **on
-`ask-verapolitica-gold/v1`**, nothing more.
+Ask answers from **already published** pledges, verdicts, topics, and approved
+sources. Reporting “98% accurate” without naming the slice
+(`ask-verapolitica-gold/v1` or `ask-verapolitica-gold/real-v1`) would overclaim.

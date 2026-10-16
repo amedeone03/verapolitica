@@ -26,10 +26,12 @@ class AskGoldCase(BaseModel):
     expected_topic: str | None = None
     expected_source_url: str | None = None
     expected_source_host: str | None = None
+    expected_count: int | None = Field(default=None, ge=0)
     should_abstain: bool = False
     should_require_clarification: bool = False
     expect_unrated: bool = False
     expect_invalid: bool = False
+    expect_zero_results: bool = False
     forbidden_claims: tuple[str, ...] = ()
     forbidden_verdicts: tuple[str, ...] = ()
     forbidden_titles: tuple[str, ...] = ()
@@ -63,6 +65,39 @@ class AskGoldDataset(BaseModel):
     cases: tuple[AskGoldCase, ...]
 
 
+SYNTHETIC_V1_ALIAS = "synthetic-v1"
+REAL_V1_ALIAS = "real-v1"
+DATASET_ALIASES = {
+    SYNTHETIC_V1_ALIAS: "v1",
+    "v1": "v1",
+    REAL_V1_ALIAS: "real_v1",
+    "real_v1": "real_v1",
+}
+
+
+def ask_evaluation_root() -> Path:
+    return Path(__file__).resolve().parents[3] / "evaluation" / "ask_verapolitica"
+
+
+def resolve_ask_dataset_root(spec: str | Path | None = None) -> Path:
+    if spec is None:
+        return default_ask_gold_root()
+    raw = Path(spec)
+    alias = DATASET_ALIASES.get(str(spec).strip())
+    if alias is not None:
+        return ask_evaluation_root() / alias
+    if raw.exists():
+        return raw.expanduser().resolve()
+    raise EvaluationDatasetError(
+        f"unknown Ask dataset {spec!r}; use {SYNTHETIC_V1_ALIAS}, {REAL_V1_ALIAS}, "
+        "or a gold directory path"
+    )
+
+
+def is_real_ask_dataset(dataset: AskGoldDataset) -> bool:
+    return "real" in dataset.dataset_version.casefold()
+
+
 def load_ask_gold_dataset(root: Path | None = None) -> AskGoldDataset:
     dataset_root = (root or default_ask_gold_root()).expanduser().resolve()
     path = dataset_root / "cases.json"
@@ -78,7 +113,11 @@ def load_ask_gold_dataset(root: Path | None = None) -> AskGoldDataset:
 
 
 def default_ask_gold_root() -> Path:
-    return Path(__file__).resolve().parents[3] / "evaluation" / "ask_verapolitica" / "v1"
+    return ask_evaluation_root() / "v1"
+
+
+def default_real_ask_gold_root() -> Path:
+    return ask_evaluation_root() / "real_v1"
 
 
 def oversized_question() -> str:

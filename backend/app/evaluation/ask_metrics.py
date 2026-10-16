@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from backend.app.evaluation.ask_dataset import AskGoldCase
@@ -31,6 +31,7 @@ class AskCaseScore:
     source_ok: bool | None = None
     abstention_ok: bool | None = None
     clarification_ok: bool | None = None
+    zero_result_ok: bool | None = None
     pledge_tp: int = 0
     pledge_fp: int = 0
     pledge_fn: int = 0
@@ -103,6 +104,7 @@ def score_ask_case(
     source_ok: bool | None = None
     abstention_ok: bool | None = None
     clarification_ok: bool | None = None
+    zero_result_ok: bool | None = None
     tp = fp = fn = 0
 
     if case.expect_invalid:
@@ -141,16 +143,20 @@ def score_ask_case(
 
     if case.should_require_clarification:
         titles = {item.title for item in response.results}
-        expected_names = {
-            catalog.politician_names["mario-rossi"],
-            catalog.politician_names["anna-rossi"],
-        }
+        expected_names = set(catalog.clarification_names)
+        if not expected_names:
+            expected_names = {
+                catalog.politician_names[key]
+                for key in ("mario-rossi", "anna-rossi")
+                if key in catalog.politician_names
+            }
         clarification_ok = (
             "precisa" in lowered
-            and response.results
+            and bool(response.results)
             and all(item.type == "politician" for item in response.results)
-            and expected_names <= titles
         )
+        if expected_names:
+            clarification_ok = bool(clarification_ok and expected_names <= titles)
         if not clarification_ok:
             reasons.append("expected identity clarification, not a guessed politician")
 
@@ -171,20 +177,41 @@ def score_ask_case(
                 f"topic {response.entities.get('topic')!r} != {case.expected_topic!r}"
             )
 
+    retrieved = _pledge_result_ids(response)
+    expects_empty = case.expect_zero_results or (
+        case.expected_pledge_keys is not None and len(case.expected_pledge_keys) == 0
+    )
+    if expects_empty:
+        zero_result_ok = not retrieved
+        if not zero_result_ok:
+            reasons.append("expected zero pledge results")
+
     if case.expected_pledge_keys is not None:
-        expected_ids = {catalog.pledge_ids[key] for key in case.expected_pledge_keys}
-        retrieved = _pledge_result_ids(response)
-        tp = len(expected_ids & retrieved)
-        fp = len(retrieved - expected_ids)
-        fn = len(expected_ids - retrieved)
-        if fp or fn:
-            reasons.append(f"pledge retrieval tp={tp} fp={fp} fn={fn}")
+        missing = [key for key in case.expected_pledge_keys if key not in catalog.pledge_ids]
+        if missing:
+            reasons.append(f"unresolved pledge keys {missing!r}")
+        else:
+            expected_ids = {catalog.pledge_ids[key] for key in case.expected_pledge_keys}
+            tp = len(expected_ids & retrieved)
+            fp = len(retrieved - expected_ids)
+            fn = len(expected_ids - retrieved)
+            if fp or fn:
+                reasons.append(f"pledge retrieval tp={tp} fp={fp} fn={fn}")
+
+    if case.expected_count is not None and len(retrieved) != case.expected_count:
+        reasons.append(f"count {len(retrieved)} != {case.expected_count}")
 
     if case.expected_verdict is not None:
         result_verdicts = _result_verdicts(response)
         entity_verdict = response.entities.get("verdict")
-        if case.expected_pledge_keys:
-            ids = {catalog.pledge_ids[key] for key in case.expected_pledge_keys}
+        if expects_empty:
+            verdict_ok = not result_verdicts or result_verdicts <= {case.expected_verdict}
+        elif case.expected_pledge_keys:
+            ids = {
+                catalog.pledge_ids[key]
+                for key in case.expected_pledge_keys
+                if key in catalog.pledge_ids
+            }
             matched = [
                 item.verdict.value
                 for item in response.results
@@ -260,6 +287,7 @@ def score_ask_case(
         source_ok=source_ok,
         abstention_ok=abstention_ok,
         clarification_ok=clarification_ok,
+        zero_result_ok=zero_result_ok,
         pledge_tp=tp,
         pledge_fp=fp,
         pledge_fn=fn,
@@ -306,6 +334,7 @@ def aggregate_ask_scores(
         "abstention_accuracy": _flag_rate("abstention_ok"),
         "clarification_accuracy": _flag_rate("clarification_ok"),
         "unsupported_query_accuracy": _flag_rate("abstention_ok"),
+        "zero_result_precision": _flag_rate("zero_result_ok"),
         "forbidden_claim_rate": _ratio(forbidden, scored),
         "invented_url_rate": _ratio(invented, scored),
     }

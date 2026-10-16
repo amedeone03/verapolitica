@@ -11,13 +11,24 @@ from backend.app.ai.text_completion import FakeTextCompleter, TextCompleter
 from backend.app.core.config import AppEnvironment, Settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
-from backend.app.evaluation.ask_dataset import AskGoldCase, AskGoldDataset, load_ask_gold_dataset
+from backend.app.evaluation.ask_dataset import (
+    AskGoldCase,
+    AskGoldDataset,
+    is_real_ask_dataset,
+    load_ask_gold_dataset,
+    resolve_ask_dataset_root,
+)
 from backend.app.evaluation.ask_fixture import AskEvalCatalog, build_ask_eval_world
 from backend.app.evaluation.ask_metrics import (
     AskCaseScore,
     AskEvalReport,
     aggregate_ask_scores,
     score_ask_case,
+)
+from backend.app.evaluation.ask_real_corpus import (
+    build_real_ask_catalog,
+    load_real_corpus_spec,
+    open_real_ask_session_factory,
 )
 from backend.app.evaluation.dataset import EvaluationDatasetError
 from backend.app.schemas.ask import AskRequest
@@ -58,12 +69,17 @@ def run_ask_evaluation(
     *,
     dataset: AskGoldDataset | None = None,
     dataset_root: Path | None = None,
+    dataset_name: str | Path | None = None,
     category: str | None = None,
     case_id: str | None = None,
     completer: TextCompleter | None | object = None,
     mode: str = "deterministic",
+    workspace_root: Path | None = None,
 ) -> AskEvalReport:
-    gold = dataset or load_ask_gold_dataset(dataset_root)
+    root = dataset_root
+    if root is None and dataset is None:
+        root = resolve_ask_dataset_root(dataset_name)
+    gold = dataset or load_ask_gold_dataset(root)
     selected = [
         case
         for case in gold.cases
@@ -73,6 +89,24 @@ def run_ask_evaluation(
     if not selected:
         raise EvaluationDatasetError("no gold cases matched the filters")
     clear_ask_cache()
+    if is_real_ask_dataset(gold):
+        spec_root = root or resolve_ask_dataset_root("real-v1")
+        scores = _run_real_corpus(
+            selected,
+            spec_root=spec_root,
+            completer=completer,
+            workspace_root=workspace_root,
+        )
+    else:
+        scores = _run_synthetic(selected, completer=completer)
+    return aggregate_ask_scores(gold.dataset_version, scores, mode=mode)
+
+
+def _run_synthetic(
+    selected: list[AskGoldCase],
+    *,
+    completer: TextCompleter | None | object,
+) -> tuple[AskCaseScore, ...]:
     with tempfile.TemporaryDirectory(prefix="ask-eval-") as tmp:
         root = Path(tmp)
         url = f"sqlite:///{root / 'ask-eval.db'}"
@@ -83,13 +117,30 @@ def run_ask_evaluation(
             catalog = build_ask_eval_world(factory)
             settings = _settings(url, root / "raw")
             service = AskVeraPoliticaService(factory, settings, completer=completer)
-            scores = tuple(
-                _run_case(case, catalog, service) for case in selected
-            )
+            return tuple(_run_case(case, catalog, service) for case in selected)
         finally:
             engine.dispose()
             clear_ask_cache()
-    return aggregate_ask_scores(gold.dataset_version, scores, mode=mode)
+
+
+def _run_real_corpus(
+    selected: list[AskGoldCase],
+    *,
+    spec_root: Path,
+    completer: TextCompleter | None | object,
+    workspace_root: Path | None,
+) -> tuple[AskCaseScore, ...]:
+    spec = load_real_corpus_spec(spec_root)
+    engine, factory, database = open_real_ask_session_factory(workspace_root=workspace_root)
+    try:
+        with factory() as session:
+            catalog = build_real_ask_catalog(session, spec)
+        settings = _settings(f"sqlite:///{database}", database.parent / "raw")
+        service = AskVeraPoliticaService(factory, settings, completer=completer)
+        return tuple(_run_case(case, catalog, service) for case in selected)
+    finally:
+        engine.dispose()
+        clear_ask_cache()
 
 
 def _run_case(
