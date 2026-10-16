@@ -53,7 +53,8 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderRegionCard" in script.text
     assert "renderMunicipalityCard" in script.text
     assert "renderTerritorialOffices" in script.text
-    assert "Incarichi territoriali" in script.text
+    assert "renderCareerTimeline" in script.text
+    assert "territorial_offices" in script.text
     assert "/regions?offset=0&limit=50" in script.text
     assert "/municipalities?" in script.text
     assert "renderSearchCard" in script.text
@@ -76,7 +77,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "/scorecard" in script.text
     assert "Scheda delle promesse" in script.text
     assert "Tasso di mantenimento" in script.text
-    assert "Informazioni personali" in script.text
+    assert "Chi è" in script.text
+    assert "Data di nascita" in script.text
+    assert "In carica dal" in script.text
+    assert "Cosa ha fatto" in script.text
     assert 'DateTimeFormat("it-IT"' in script.text
     assert "Nessun risultato trovato" in script.text
     assert "Caricamento delle promesse" in script.text

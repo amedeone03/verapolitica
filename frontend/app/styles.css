@@ -188,6 +188,52 @@ h3 { font-weight: 700; letter-spacing: -.02em; }
 .profile-tab.is-active { color: #140a03; background: var(--accent); box-shadow: 0 8px 22px rgba(255, 107, 26, .3); }
 .profile-tab.is-active small { color: #140a03; background: rgba(0, 0, 0, .14); }
 
+.profile-section-nav {
+  position: sticky; top: 74px; z-index: 5; display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 22px 0 0; padding: 8px; max-width: 100%;
+  background: rgba(21, 21, 23, .85); backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 18px;
+}
+.profile-section-nav a {
+  flex: 0 1 auto; display: inline-flex; align-items: center; padding: 9px 14px;
+  color: var(--muted); border-radius: 999px; font-size: .82rem; font-weight: 700;
+  text-decoration: none; white-space: nowrap; max-width: 100%;
+}
+.profile-office { margin: 0 0 4px; color: var(--ink); font-size: 1.12rem; font-weight: 650; }
+.profile-party { margin: 0; color: var(--muted); font-size: .95rem; font-weight: 600; }
+.header-facts { margin-top: 18px; }
+.header-facts .fact { grid-template-columns: auto 1fr; gap: 8px 16px; padding: 8px 0; }
+.who-copy { max-width: 42rem; color: var(--ink); font-size: 1.02rem; }
+.source-card-list { display: grid; gap: 10px; margin-top: 16px; }
+.career-timeline { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.career-timeline li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 18px; padding: 16px 0; border-top: 1px solid var(--line); }
+.career-timeline li:first-child { border-top: 0; padding-top: 0; }
+.career-timeline time { color: var(--faint); font-size: .82rem; font-weight: 800; }
+.career-timeline strong { display: block; font-size: 1.04rem; }
+.career-timeline p { margin: 5px 0 10px; color: var(--muted); font-size: .84rem; }
+.career-subhead { margin: 28px 0 10px; font-size: 1.05rem; color: var(--muted); }
+.profile-ask { display: grid; gap: 10px; margin-top: 20px; justify-items: start; }
+.profile-ask-cta {
+  display: inline-flex; align-items: center; padding: 9px 14px; color: #140a03;
+  background: var(--accent); border-radius: 999px; font-size: .8rem; font-weight: 800; text-decoration: none;
+}
+.ask-suggestions { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; }
+.ask-suggestion {
+  display: inline-flex; max-width: 100%; padding: 8px 12px; color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px;
+  font-size: .76rem; font-weight: 650; text-decoration: none; overflow-wrap: anywhere; white-space: normal;
+}
+.source-card {
+  display: grid; gap: 6px; justify-items: start; padding: 16px 17px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.source-card-kind { margin: 0; color: var(--accent-strong); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.source-card h3 { margin: 0; font-size: 1.02rem; overflow-wrap: anywhere; }
+.source-card-title, .source-card-date, .source-card-count { margin: 0; color: var(--muted); font-size: .8rem; }
+.pledge-origin { margin: 0; color: var(--faint); font-size: .74rem; font-weight: 650; }
+.evidence-quote { margin: 0; color: var(--muted); font-size: .82rem; }
+.profile-trust p { max-width: 42rem; color: var(--muted); }
+
 .detail-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 18px; margin-top: 18px; }
 .detail-card { margin-top: 18px; padding: clamp(22px, 3vw, 30px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .detail-grid .detail-card { margin-top: 0; }
@@ -430,6 +476,7 @@ button, .profile-tab, .filter-pill, .public-nav a, .back-link, .source-link, .pr
   .profile-link:hover { color: var(--accent); }
   .back-link:hover { border-color: var(--accent-line); }
   .profile-tab:not(.is-active):hover { color: var(--ink); }
+  .profile-section-nav a:hover, .ask-suggestion:hover { color: var(--ink); background: var(--surface-3); }
   .filter-pill:not(.is-active):hover { color: var(--ink); border-color: var(--line-strong); }
   .source-link:hover { color: #140a03; background: var(--accent); }
   .linked-proposals h3 a:hover, .pledge-item h4 a:hover, .search-card h3 a:hover { color: var(--accent-strong); }
@@ -453,6 +500,7 @@ footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
   scroll-snap-type: x proximity;
 }
 .filter-pill, .profile-tab { scroll-snap-align: start; }
+.profile-section-nav { overscroll-behavior-x: contain; }
 @media (max-width: 640px) {
   .filter-pills {
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
@@ -505,7 +553,7 @@ footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
   --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 -1px 0 rgba(0, 0, 0, 0.35) inset, 0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
-.glass, .stat-tile, .profile-tabs, .card-record, .politician-card, .photo-credit, .hero-back {
+.glass, .stat-tile, .profile-tabs, .profile-section-nav, .card-record, .politician-card, .photo-credit, .hero-back {
   background: var(--glass-fill);
   border: 1px solid var(--glass-edge);
   border-top-color: var(--glass-edge-top);
@@ -575,12 +623,12 @@ footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .glass, .stat-tile, .profile-tabs, .card-record, .politician-card, .photo-credit, .hero-back {
+  .glass, .stat-tile, .profile-tabs, .profile-section-nav, .card-record, .politician-card, .photo-credit, .hero-back {
     -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface-2);
   }
 }
 @media (prefers-contrast: more) {
-  .glass, .stat-tile, .profile-tabs, .card-record, .politician-card { border-color: rgba(255, 255, 255, 0.5); }
+  .glass, .stat-tile, .profile-tabs, .profile-section-nav, .card-record, .politician-card { border-color: rgba(255, 255, 255, 0.5); }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -607,7 +655,10 @@ footer { padding-bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
   .archive-heading, .sources-heading, .method-note { align-items: flex-start; flex-direction: column; }
   .politician-grid { grid-template-columns: 1fr; }
   .profile-hero { grid-template-columns: 1fr; border-radius: var(--radius-lg); }
-  .profile-tabs { position: static; }
+  .profile-tabs, .profile-section-nav { position: static; }
+  .profile-section-nav { gap: 4px; }
+  .career-timeline li { grid-template-columns: 1fr; gap: 6px; }
+  .header-facts .fact { grid-template-columns: 1fr; }
   .stat-row { gap: 8px; }
   .stat-tile { padding: 12px; }
   .stat-tile strong { font-size: 1.3rem; }

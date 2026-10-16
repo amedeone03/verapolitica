@@ -30,6 +30,28 @@ function formatDate(value) {
     : new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
+function formatYear(value) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.valueOf()) ? "" : String(date.getUTCFullYear());
+}
+
+function formatYearRange(start, end) {
+  const from = formatYear(start);
+  if (!from) return "Date non indicate";
+  if (!end) return `${from}–oggi`;
+  const to = formatYear(end);
+  return to && to !== from ? `${from}–${to}` : from;
+}
+
+function formatPublishedAt(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? ""
+    : new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
 const PROPOSAL_TYPE_LABELS = {
   proposal: "Proposta",
   legislative_proposal: "Proposta di legge",
@@ -150,35 +172,66 @@ export function renderPhotoCredit(person) {
     : `<span class="photo-credit">${escapeHtml(label)}</span>`;
 }
 
+function officeDisplayLabel(office, gender) {
+  const key = String(office ?? "").trim().toLocaleLowerCase("it");
+  const feminine = gender === "female";
+  const mapped = {
+    senator: feminine ? "Senatrice" : "Senatore",
+    senatore: feminine ? "Senatrice" : "Senatore",
+    deputy: feminine ? "Deputata" : "Deputato",
+    deputato: feminine ? "Deputata" : "Deputato",
+    "presidente del consiglio": "Presidente del Consiglio dei ministri",
+    "vice presidente del consiglio": "Vicepresidente del Consiglio dei ministri",
+    ministro: "Ministro",
+    "ministro senza portafoglio": "Ministro senza portafoglio",
+    mayor: "Sindaco",
+    regional_president: "Presidente di regione",
+  };
+  return mapped[key] || titleCase(office);
+}
+
+function currentMandate(person) {
+  const mandates = [...(person.profile?.mandates || [])];
+  const open = mandates.filter((item) => !item.end_date);
+  const pool = open.length ? open : mandates;
+  pool.sort((left, right) => String(right.start_date || "").localeCompare(String(left.start_date || "")));
+  return pool[0] ?? null;
+}
+
+function currentParty(person) {
+  return (person.political_parties || []).find((item) => !item.end_date) || null;
+}
+
 function primaryMandate(person) {
-  return person.profile?.mandates?.[0] ?? null;
+  return currentMandate(person);
 }
 
 function isLegislatureNumber(value) {
   return /^\d+$/.test(String(value ?? "").trim());
 }
 
-function mandateRole(mandate) {
+function mandateRole(mandate, gender) {
   // Government roles carry their full title ("Ministro della Cultura dal 06/09/2024").
   const title = String(mandate.mandate_type ?? "").replace(/\s+dal\s+\d{1,2}\/\d{1,2}\/\d{4}\s*$/i, "").trim();
-  return title && !isLegislatureNumber(mandate.legislature) ? title : titleCase(mandate.office);
+  return title && !isLegislatureNumber(mandate.legislature) ? title : officeDisplayLabel(mandate.office, gender);
 }
 
-function mandateTitle(mandate) {
+function mandateTitle(mandate, gender) {
   if (!mandate) return "Incarico non indicato";
   return isLegislatureNumber(mandate.legislature)
-    ? `${titleCase(mandate.office)} — Legislatura ${mandate.legislature}`
-    : `${mandateRole(mandate)} · ${mandate.legislature}`;
+    ? `${officeDisplayLabel(mandate.office, gender)} — Legislatura ${mandate.legislature}`
+    : `${mandateRole(mandate, gender)} · ${mandate.legislature}`;
 }
 
 export function renderPoliticianCard(person) {
   const mandate = primaryMandate(person);
+  const gender = person.profile?.gender;
   return `<article class="politician-card">
     ${portrait(person)}
     <div class="card-content">
       <span class="verified-badge">Verificato su fonti ufficiali</span>
       <h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>
-      <p class="mandate">${escapeHtml(mandateTitle(mandate))}</p>
+      <p class="mandate">${escapeHtml(mandateTitle(mandate, gender))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "Istituzione nazionale")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
       <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Caricamento delle promesse…</p></div>
       <p class="source-count">${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</p>
@@ -236,16 +289,211 @@ export function groupCitations(citations) {
   }));
 }
 
-function renderMandate(mandate) {
+function renderMandate(mandate, gender) {
   const dates = `${formatDate(mandate.start_date)}${mandate.end_date ? ` – ${formatDate(mandate.end_date)}` : " – in carica"}`;
   const context = isLegislatureNumber(mandate.legislature)
     ? `${mandate.institution} · Legislatura ${mandate.legislature}`
     : `${mandate.institution} · ${mandate.legislature}`;
   return `<div class="mandate-block">
-    <strong>${escapeHtml(mandateRole(mandate))}</strong>
+    <strong>${escapeHtml(mandateRole(mandate, gender))}</strong>
     <p>${escapeHtml(context)}</p>
     <p>${escapeHtml(mandate.election_area || (isLegislatureNumber(mandate.legislature) ? "Circoscrizione non indicata" : "Incarico di governo"))} · ${escapeHtml(dates)}</p>
   </div>`;
+}
+
+function sourceHostLabel(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "").toLocaleLowerCase("it");
+    if (host === "dati.senato.it" || host === "senato.it") return "Senato della Repubblica";
+    if (host === "dati.camera.it" || host === "camera.it") return "Camera dei Deputati";
+    if (host === "gazzettaufficiale.it") return "Gazzetta Ufficiale";
+    if (host === "governo.it") return "Presidenza del Consiglio dei ministri";
+    if (host === "interno.gov.it" || host === "dait.interno.gov.it") return "Ministero dell'Interno";
+    if (host === "istat.it") return "ISTAT";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function renderSourceCard({
+  name = "",
+  url = "",
+  title = "",
+  date = "",
+  kind = "Fonte ufficiale",
+  extra = "",
+} = {}) {
+  const href = safeExternalUrl(url);
+  const displayName = name || (href ? sourceHostLabel(href) : "") || "";
+  if (!displayName && !href && !title) return "";
+  return `<article class="source-card">
+    <p class="source-card-kind">${escapeHtml(kind)}</p>
+    ${displayName ? `<h3>${escapeHtml(displayName)}</h3>` : ""}
+    ${title ? `<p class="source-card-title">${escapeHtml(title)}</p>` : ""}
+    ${date ? `<p class="source-card-date">${escapeHtml(date)}</p>` : ""}
+    ${extra}
+    ${href ? `<a class="source-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Apri la fonte <span aria-hidden="true">→</span></a>` : ""}
+  </article>`;
+}
+
+export function careerEntries(person) {
+  const gender = person.profile?.gender;
+  const entries = [];
+  (person.profile?.mandates || []).forEach((mandate, index) => {
+    const citation = (person.citations || []).find((item) => item.field_path.startsWith(`mandates[${index}]`));
+    entries.push({
+      start: mandate.start_date,
+      end: mandate.end_date,
+      role: mandateRole(mandate, gender),
+      institution: mandate.institution,
+      extra: mandate.election_area || (isLegislatureNumber(mandate.legislature) ? `Legislatura ${mandate.legislature}` : mandate.legislature),
+      source: citation
+        ? { name: citation.source_name, url: citation.source_url }
+        : null,
+    });
+  });
+  for (const office of person.territorial_offices || []) {
+    const territory = office.municipality
+      ? `Comune di ${office.municipality}`
+      : office.region || "Territorio non indicato";
+    entries.push({
+      start: office.start_date,
+      end: office.end_date,
+      role: officeLabel(office.office),
+      institution: territory,
+      extra: office.municipality && office.region ? office.region : "",
+      source: office.source || null,
+    });
+  }
+  entries.sort((left, right) => {
+    const byStart = String(left.start || "").localeCompare(String(right.start || ""));
+    if (byStart) return byStart;
+    return String(left.role || "").localeCompare(String(right.role || ""), "it");
+  });
+  return entries;
+}
+
+export function renderCareerTimeline(person) {
+  const entries = careerEntries(person);
+  if (!entries.length) {
+    return `<p class="empty-note">Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo.</p>`;
+  }
+  return `<ol class="career-timeline">${entries.map((entry) => `<li>
+    <time>${escapeHtml(formatYearRange(entry.start, entry.end))}</time>
+    <div>
+      <strong>${escapeHtml(entry.role)}</strong>
+      <p>${escapeHtml(entry.institution)}${entry.extra ? ` · ${escapeHtml(entry.extra)}` : ""}</p>
+      ${entry.source ? renderSourceCard({
+        name: entry.source.name,
+        url: entry.source.url,
+        kind: "Fonte ufficiale",
+      }) : ""}
+    </div>
+  </li>`).join("")}</ol>`;
+}
+
+export function renderWhoIs(person) {
+  const profile = person.profile || {};
+  const name = `${person.given_name} ${person.family_name}`;
+  const mandate = currentMandate(person);
+  const party = currentParty(person);
+  const place = birthPlace(profile);
+  const sentences = [];
+  if (mandate) {
+    sentences.push(`${name} è ${mandateRole(mandate, profile.gender)} presso ${mandate.institution}.`);
+  }
+  const bornVerb = profile.gender === "male" ? "Nato" : profile.gender === "female" ? "Nata" : "Nato/a";
+  if (person.birth_date && place !== "Non indicato") {
+    sentences.push(`${bornVerb} il ${formatDate(person.birth_date)} a ${place}.`);
+  } else if (person.birth_date) {
+    sentences.push(`${bornVerb} il ${formatDate(person.birth_date)}.`);
+  } else if (place !== "Non indicato") {
+    sentences.push(`Luogo di nascita: ${place}.`);
+  }
+  if (profile.profession) {
+    sentences.push(`Professione dichiarata nelle fonti ufficiali: ${profile.profession}.`);
+  }
+  if (party) {
+    sentences.push(`Affiliazione di partito pubblicata: ${party.name}.`);
+  }
+  if (!sentences.length) return "";
+  const homepage = safeExternalUrl(profile.official_homepage_url);
+  const partySource = party?.source;
+  const sources = [
+    homepage ? renderSourceCard({ kind: "Sito ufficiale", name: "Pagina istituzionale", url: homepage }) : "",
+    partySource ? renderSourceCard({ kind: "Fonte ufficiale", name: partySource.name, url: partySource.url }) : "",
+  ].filter(Boolean);
+  return `<section class="detail-card profile-who" id="profilo">
+    <p class="eyebrow">Profilo</p>
+    <h2>Chi è</h2>
+    ${sentences.map((sentence) => `<p class="who-copy">${escapeHtml(sentence)}</p>`).join("")}
+    ${sources.length ? `<div class="source-card-list">${sources.join("")}</div>` : ""}
+  </section>`;
+}
+
+export function renderKeyPositions() {
+  return `<section class="detail-card profile-positions" id="posizioni">
+    <p class="eyebrow">Posizioni</p>
+    <h2>Posizioni su temi chiave</h2>
+    <p class="empty-note">Non sono ancora disponibili posizioni verificate per questo profilo.</p>
+  </section>`;
+}
+
+export function renderProceedings() {
+  return `<section class="detail-card profile-proceedings" id="procedimenti">
+    <p class="eyebrow">Procedimenti</p>
+    <h2>Procedimenti e controversie</h2>
+    <p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>
+  </section>`;
+}
+
+export function suggestedAskQuestions(person, scorecard = null) {
+  const name = `${person.given_name} ${person.family_name}`.trim();
+  if (!name) return [];
+  const questions = [`Quali promesse di ${name} sono ancora in corso?`];
+  const pledges = scorecard?.pledges || [];
+  if (pledges.some((item) => item.verdict === "not_yet_rated") || !pledges.length) {
+    questions.push(`Quali promesse di ${name} non sono ancora valutate?`);
+  }
+  if (pledges.some((item) => item.latest_assessment)) {
+    questions.push(`Quali sono le fonti delle valutazioni pubblicate su ${name}?`);
+  }
+  const topic = (scorecard?.strata || []).flatMap((stratum) => stratum.topics || [])[0];
+  const topicName = topic ? topicLabel(topic.cap_topic_code) : "";
+  const askTopics = new Set(["Economia", "Sanità", "Lavoro", "Istruzione", "Immigrazione", "Giustizia e criminalità", "Welfare", "Governo e istituzioni"]);
+  if (topicName && askTopics.has(topicName)) {
+    const phrase = topicName === "Giustizia e criminalità" ? "la giustizia" : topicName === "Governo e istituzioni" ? "le istituzioni" : topicName.toLocaleLowerCase("it");
+    questions.push(`Quali promesse di ${name} riguardano ${phrase}?`);
+  }
+  return questions.slice(0, 3);
+}
+
+export function renderAskSuggestions(person, scorecard = null) {
+  const questions = suggestedAskQuestions(person, scorecard);
+  if (!questions.length) return "";
+  const name = `${person.given_name} ${person.family_name}`;
+  return `<section class="profile-ask" aria-label="Chiedi a VeraPolitica">
+    <a class="profile-ask-cta" href="./?view=ask&amp;question=${encodeURIComponent(questions[0])}">Chiedi a VeraPolitica su ${escapeHtml(name)}</a>
+    <div class="ask-suggestions">${questions.map((question) => `<a class="ask-suggestion" href="./?view=ask&amp;question=${encodeURIComponent(question)}">${escapeHtml(question)}</a>`).join("")}</div>
+  </section>`;
+}
+
+export function renderTrustBlock() {
+  return `<section class="detail-card profile-trust" id="metodologia-profilo">
+    <p class="eyebrow">Metodo</p>
+    <h2>Come vengono verificati questi dati?</h2>
+    <p>VeraPolitica utilizza fonti pubbliche e documenti verificabili. Le valutazioni delle promesse vengono pubblicate solo dopo revisione.</p>
+    <a class="profile-link" href="./?view=methodology">Metodologia <span aria-hidden="true">→</span></a>
+  </section>`;
+}
+
+function renderProfileSectionNav(sections) {
+  const links = sections.filter((item) => item.href && item.label);
+  if (!links.length) return "";
+  return `<nav class="profile-section-nav" aria-label="Sezioni del profilo">${
+    links.map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("")
+  }</nav>`;
 }
 
 function romanLegislature(value) {
@@ -279,7 +527,7 @@ function renderGroupMembership(membership) {
       <p>${escapeHtml(membership.institution)} · legislatura ${escapeHtml(romanLegislature(membership.legislature))}</p>
       <small>${escapeHtml(dates)}</small>
     </div>
-    ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}
+    ${sourceUrl ? renderSourceCard({ name: membership.source?.name, url: sourceUrl }) : ""}
   </article>`;
 }
 
@@ -309,7 +557,7 @@ function renderPartyAffiliation(affiliation) {
       <strong>${websiteUrl ? `<a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(affiliation.name)}</a>` : escapeHtml(affiliation.name)}</strong>${affiliationType}
       <p>${escapeHtml(dates)}</p>
     </div>
-    ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}
+    ${sourceUrl ? renderSourceCard({ name: affiliation.source?.name, url: sourceUrl }) : ""}
   </article>`;
 }
 
@@ -473,24 +721,27 @@ function fact(label, value, { href = null } = {}) {
 
 function birthPlace(profile) {
   if (!profile.birth_place) return "Non indicato";
-  return [profile.birth_place.city, profile.birth_place.subdivision, profile.birth_place.country].filter(Boolean).join(", ") || "Non indicato";
+  const parts = [];
+  for (const part of [profile.birth_place.city, profile.birth_place.subdivision, profile.birth_place.country]) {
+    const value = String(part || "").trim();
+    if (!value) continue;
+    if (parts.some((item) => item.toLocaleLowerCase("it") === value.toLocaleLowerCase("it"))) continue;
+    parts.push(value);
+  }
+  return parts.join(", ") || "Non indicato";
 }
 
 export function renderSources(citations) {
   const groups = groupCitations(citations);
-  if (!groups.length) {
-    return `<div class="state-card"><div><strong>Nessun riferimento a fonti ufficiali è disponibile per questo profilo.</strong></div></div>`;
-  }
+  if (!groups.length) return "";
   return groups.map((group) => {
-    const sourceUrl = safeExternalUrl(group.sourceUrl);
-    return `<article class="source-block">
-      <div class="source-top">
-        <div><h3>${escapeHtml(group.sourceName)}</h3><small>${group.referenceCount} ${group.referenceCount === 1 ? "riferimento verificato" : "riferimenti verificati"}</small></div>
-        ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Apri fonte ufficiale ↗</a>` : ""}
-      </div>
-      <p class="supports-label">Sostiene</p>
-      <ul class="supports">${group.fields.map((label) => `<li>${escapeHtml(label)}</li>`).join("")}</ul>
-    </article>`;
+    const chips = `<ul class="supports">${group.fields.map((label) => `<li>${escapeHtml(label)}</li>`).join("")}</ul>`;
+    return renderSourceCard({
+      kind: "Fonte ufficiale",
+      name: group.sourceName,
+      url: group.sourceUrl,
+      extra: `<p class="supports-label">Sostiene</p>${chips}<small class="source-card-count">${group.referenceCount} ${group.referenceCount === 1 ? "riferimento verificato" : "riferimenti verificati"}</small>`,
+    });
   }).join("");
 }
 
@@ -616,20 +867,27 @@ function renderStratum(stratum, scorecard) {
 
 export function renderPledgeItem(pledge) {
   const assessment = pledge.latest_assessment;
-  const sourceUrl = assessment ? safeExternalUrl(assessment.source_url) : null;
   const meta = verdictMeta(pledge.verdict);
+  const origin = assessment?.effective_at ? formatDate(assessment.effective_at) : "";
   return `<article class="pledge-item" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
     <div class="pledge-top">
       ${renderVerdictChip(pledge.verdict)}
       <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Troppo vaga da valutare</span>`}</span>
     </div>
     <h4><a href="./?proposal=${encodeURIComponent(pledge.proposal_id)}">${escapeHtml(pledge.title)}</a></h4>
+    ${origin ? `<p class="pledge-origin">${escapeHtml(origin)}</p>` : ""}
     ${pledge.exact_statement ? `<blockquote class="pledge-quote">“${escapeHtml(pledge.exact_statement)}”</blockquote>` : ""}
     ${assessment ? `<div class="pledge-evidence tone-${meta.tone}">
-      <p class="evidence-label">Elementi di verifica${assessment.effective_at ? ` · ${escapeHtml(formatDate(assessment.effective_at))}` : ""}</p>
-      <p class="evidence-text">${escapeHtml(assessment.quoted_excerpt)}</p>
-      <div class="evidence-foot"><span>${escapeHtml(assessment.rationale)}</span>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}</div>
-    </div>` : `<p class="empty-note">Nessuna valutazione pubblicata.</p>`}
+      <p class="evidence-label">Perché questo stato</p>
+      <p class="evidence-text">${escapeHtml(assessment.rationale)}</p>
+      ${assessment.quoted_excerpt ? `<p class="evidence-quote">“${escapeHtml(assessment.quoted_excerpt)}”</p>` : ""}
+      ${renderSourceCard({
+        kind: "Fonte ufficiale",
+        name: sourceHostLabel(assessment.source_url) || "",
+        url: assessment.source_url,
+        date: origin,
+      })}
+    </div>` : `<p class="empty-note">Non ancora valutata</p>`}
     <button type="button" class="explain-pledge" data-pledge-id="${encodeURIComponent(pledge.proposal_id)}">Spiegami questa promessa</button>
     <div class="pledge-explanation" hidden></div>
   </article>`;
@@ -760,26 +1018,31 @@ function bindPledgeFilters(root) {
   }
 }
 
-function bindProfileTabs(root) {
-  const tabs = [...root.querySelectorAll(".profile-tab")];
-  const panels = [...root.querySelectorAll(".tab-panel")];
-  function activate(name) {
-    for (const tab of tabs) {
-      const active = tab.dataset.tab === name;
-      tab.classList.toggle("is-active", active);
-      tab.setAttribute("aria-selected", String(active));
-      tab.tabIndex = active ? 0 : -1;
-    }
-    for (const panel of panels) panel.hidden = panel.dataset.panel !== name;
-  }
-  for (const tab of tabs) {
-    tab.addEventListener("click", () => {
-      activate(tab.dataset.tab);
-      history.replaceState(null, "", `#${tab.dataset.tab}`);
+function bindProfileSectionNav(root) {
+  const offset = () => {
+    const header = document.querySelector(".site-header");
+    const nav = root.querySelector(".profile-section-nav");
+    return (header?.offsetHeight || 0) + (nav?.offsetHeight || 0) + 12;
+  };
+  for (const link of root.querySelectorAll(".profile-section-nav a[href^='#']")) {
+    link.addEventListener("click", (event) => {
+      const id = link.getAttribute("href")?.slice(1);
+      const target = id ? root.querySelector(`#${CSS.escape(id)}`) : null;
+      if (!target) return;
+      event.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - offset();
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      history.replaceState(null, "", `#${id}`);
     });
   }
   const initial = window.location.hash.slice(1);
-  if (tabs.some((tab) => tab.dataset.tab === initial)) activate(initial);
+  const target = initial ? root.querySelector(`#${CSS.escape(initial)}`) : null;
+  if (target) {
+    requestAnimationFrame(() => {
+      const top = target.getBoundingClientRect().top + window.scrollY - offset();
+      window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+    });
+  }
 }
 
 export function renderMethodology(method) {
@@ -802,11 +1065,32 @@ export function renderMethodology(method) {
 
 export function renderPoliticianDetail(person, scorecard = null) {
   const profile = person.profile;
-  const homepage = safeExternalUrl(profile.official_homepage_url);
-  const citationGroups = groupCitations(person.citations);
-  const publishedDate = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(new Date(person.published_at));
-  const mandate = primaryMandate(person);
-  const topics = (scorecard?.strata || []).flatMap((stratum) => stratum.topics).slice(0, 6);
+  const gender = profile?.gender;
+  const publishedDate = formatPublishedAt(person.published_at);
+  const mandate = currentMandate(person);
+  const party = currentParty(person);
+  const place = birthPlace(profile);
+  const who = renderWhoIs(person);
+  const careerItems = careerEntries(person);
+  const hasGroups = Boolean((person.parliamentary_groups || []).length);
+  const hasParties = Boolean((person.political_parties || []).length);
+  const hasProposals = Boolean((person.proposals || []).length);
+  const hasCareer = Boolean(careerItems.length || hasGroups || hasParties);
+  const citationGroups = groupCitations(person.citations || []);
+  const sourcesMarkup = renderSources(person.citations);
+  const headerFacts = [
+    person.birth_date ? fact("Data di nascita", formatDate(person.birth_date)) : "",
+    place !== "Non indicato" ? fact("Luogo di nascita", place) : "",
+    mandate?.start_date ? fact("In carica dal", formatDate(mandate.start_date)) : "",
+  ].filter(Boolean).join("");
+  const nav = renderProfileSectionNav([
+    who ? { href: "#profilo", label: "Profilo" } : null,
+    hasCareer ? { href: "#carriera", label: "Carriera" } : null,
+    { href: "#posizioni", label: "Posizioni" },
+    { href: "#promesse", label: "Promesse" },
+    { href: "#procedimenti", label: "Procedimenti e controversie" },
+    sourcesMarkup ? { href: "#fonti", label: "Fonti" } : null,
+  ].filter(Boolean));
   return `<section class="profile-hero">
       <div class="hero-media">
         ${portrait(person, { size: "hero" })}
@@ -815,69 +1099,39 @@ export function renderPoliticianDetail(person, scorecard = null) {
       <div class="profile-intro">
         <span class="verified-badge">Verificato su fonti ufficiali</span>
         <h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>
-        <p class="lead">${escapeHtml(mandateTitle(mandate))}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
+        <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
+        ${party ? `<p class="profile-party">${escapeHtml(party.name)}</p>` : ""}
+        ${headerFacts ? `<dl class="facts header-facts">${headerFacts}</dl>` : ""}
         ${renderProfileStats(scorecard)}
-        ${topics.length ? `<div class="topic-chips">${topics.map((topic) => `<span class="topic-chip">${escapeHtml(topicLabel(topic.cap_topic_code))}</span>`).join("")}</div>` : ""}
-        <p class="publication-meta">Profilo pubblicato · Versione ${person.current_version_number} · Pubblicato il ${escapeHtml(publishedDate)}</p>
+        <p class="publication-meta">${publishedDate ? `Ultimo aggiornamento ${escapeHtml(publishedDate)}` : "Ultimo aggiornamento non indicato"}</p>
+        ${renderAskSuggestions(person, scorecard)}
       </div>
     </section>
-    <div class="profile-tabs" role="tablist" aria-label="Sezioni del profilo">
-      <button type="button" class="profile-tab is-active" role="tab" data-tab="overview" aria-selected="true">Scheda</button>
-      <button type="button" class="profile-tab" role="tab" data-tab="commitments" aria-selected="false" tabindex="-1">Promesse${scorecard?.tracked_pledges ? ` <small>${scorecard.tracked_pledges}</small>` : ""}</button>
-      <button type="button" class="profile-tab" role="tab" data-tab="sources" aria-selected="false" tabindex="-1">Fonti <small>${person.citation_count}</small></button>
-    </div>
-    <div class="tab-panel" data-panel="overview" role="tabpanel">
-      <div class="detail-grid">
-        <section class="detail-card">
-          <p class="eyebrow">Profilo</p><h2>Informazioni personali</h2>
-          <dl class="facts">
-            ${fact("Data di nascita", formatDate(person.birth_date))}
-            ${fact("Luogo di nascita", birthPlace(profile))}
-            ${fact("Professione", profile.profession || "Non indicata")}
-            ${homepage ? fact("Sito ufficiale", "Apri la pagina ufficiale ↗", { href: homepage }) : fact("Sito ufficiale", "Non indicato")}
-          </dl>
-        </section>
-        <section class="detail-card">
-          <p class="eyebrow">Incarico pubblico</p><h2>Mandati</h2>
-          ${profile.mandates.length ? profile.mandates.map(renderMandate).join("") : "<p>Nessuna informazione di mandato disponibile.</p>"}
-        </section>
+    ${nav}
+    ${who}
+    ${hasCareer ? `<section class="detail-card profile-career" id="carriera">
+      <p class="eyebrow">Carriera</p>
+      <h2>Cosa ha fatto</h2>
+      ${renderCareerTimeline(person)}
+      ${hasGroups ? `<h3 class="career-subhead">Gruppi parlamentari</h3><p class="group-disclaimer">I gruppi parlamentari sono organi istituzionali di ciascuna Camera e non coincidono con i partiti politici.</p>${renderParliamentaryGroups(person.parliamentary_groups || [])}` : ""}
+      ${hasParties ? `<h3 class="career-subhead">Partito politico</h3><p class="party-disclaimer">I partiti politici e i gruppi parlamentari sono concetti istituzionali distinti.</p>${renderPoliticalParties(person.political_parties || [])}` : ""}
+      ${hasProposals ? `<h3 class="career-subhead">Proposte e promesse</h3>${renderPoliticianProposals(person.proposals || [])}` : ""}
+    </section>` : ""}
+    ${renderKeyPositions()}
+    <section class="detail-card commitments-card" id="promesse">
+      <p class="eyebrow">Detto e fatto</p>
+      <h2>Scheda delle promesse</h2>
+      ${renderScorecard(scorecard)}
+    </section>
+    ${renderProceedings()}
+    ${sourcesMarkup ? `<section class="detail-card sources-card" id="fonti">
+      <div class="sources-heading">
+        <div><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2></div>
+        <div class="sources-summary"><strong>${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</strong><br />${citationGroups.length} ${citationGroups.length === 1 ? "fonte ufficiale" : "fonti ufficiali"}</div>
       </div>
-      <section class="detail-card groups-card">
-        <p class="eyebrow">Affiliazione istituzionale</p><h2>Gruppi parlamentari</h2>
-        <p class="group-disclaimer">I gruppi parlamentari sono organi istituzionali di ciascuna Camera e non coincidono con i partiti politici.</p>
-        ${renderParliamentaryGroups(person.parliamentary_groups || [])}
-      </section>
-      <section class="detail-card parties-card">
-        <p class="eyebrow">Affiliazione politica</p><h2>Partito politico</h2>
-        <p class="party-disclaimer">I partiti politici e i gruppi parlamentari sono concetti istituzionali distinti.</p>
-        ${renderPoliticalParties(person.political_parties || [])}
-      </section>
-      <section class="detail-card territorial-card">
-        <p class="eyebrow">Incarico locale</p><h2>Incarichi territoriali</h2>
-        <p class="territorial-disclaimer">Gli incarichi regionali e comunali sono distinti dai mandati parlamentari nazionali.</p>
-        ${renderTerritorialOffices(person.territorial_offices || [])}
-      </section>
-      <section class="detail-card proposals-card">
-        <p class="eyebrow">Record pubblico</p><h2>Proposte e promesse</h2>
-        <p class="proposal-disclaimer">Il ruolo indicato precisa se la persona è proponente, cofirmataria o titolare della promessa.</p>
-        ${renderPoliticianProposals(person.proposals || [])}
-      </section>
-    </div>
-    <div class="tab-panel" data-panel="commitments" role="tabpanel" hidden>
-      <section class="detail-card commitments-card">
-        <p class="eyebrow">Detto e fatto</p><h2>Scheda delle promesse</h2>
-        ${renderScorecard(scorecard)}
-      </section>
-    </div>
-    <div class="tab-panel" data-panel="sources" role="tabpanel" hidden>
-      <section class="detail-card sources-card">
-        <div class="sources-heading">
-          <div><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2></div>
-          <div class="sources-summary"><strong>${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</strong><br />${citationGroups.length} ${citationGroups.length === 1 ? "fonte ufficiale" : "fonti ufficiali"}</div>
-        </div>
-        <div class="source-list">${renderSources(person.citations)}</div>
-      </section>
-    </div>`;
+      <div class="source-list">${sourcesMarkup}</div>
+    </section>` : ""}
+    ${renderTrustBlock()}`;
 }
 
 export function createPublicApiClient(fetchImpl = fetch) {
@@ -1003,7 +1257,7 @@ async function showDetail(api, politicianId) {
     byId("detail-status").hidden = true;
     detail.hidden = false;
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
-    bindProfileTabs(detail);
+    bindProfileSectionNav(detail);
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
     document.title = `${person.given_name} ${person.family_name} — VeraPolitica`;
@@ -1174,6 +1428,8 @@ function showAsk(api) {
   const button = byId("ask-submit");
   const status = byId("ask-status");
   const result = byId("ask-result");
+  const preset = new URLSearchParams(window.location.search).get("question");
+  if (preset && !field.value) field.value = preset;
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const question = field.value.trim();
@@ -1205,6 +1461,7 @@ function showAsk(api) {
       button.disabled = false;
     }
   });
+  if (preset) form.requestSubmit();
 }
 
 export function renderSearchCard(item, query) {
