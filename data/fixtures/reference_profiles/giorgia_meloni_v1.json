@@ -1,6 +1,6 @@
 {
   "fixture_id": "giorgia_meloni_v1",
-  "disclaimer": "derived from CEO reference PDF; requires editorial verification",
+  "disclaimer": "derived from CEO reference PDF; requires editorial verification. PdC day date: collected Governo/Gazzetta appointment is 2022-10-21 and remains the public mandate; PDF/curriculum 2022-10-22 is not duplicated as a career row; biography uses month precision.",
   "source_pdf": "Giorgia_Meloni.pdf",
   "created_by": "reference-profile-operator",
   "politician": {
@@ -10,7 +10,7 @@
   },
   "biography": {
     "identity_key": "primary",
-    "body": "Giorgia Meloni, diplomata in lingue e giornalista professionista, inizia l’attività politica nel 1992 nel Fronte della Gioventù, organizzazione giovanile del Movimento Sociale Italiano. Nel 1998 viene eletta consigliera provinciale a Roma e nel 2006 deputata. Ministra della Gioventù dal 2008 al 2011, nel 2012 fonda Fratelli d’Italia insieme a Ignazio La Russa e Guido Crosetto. Presidente del partito dal 2014, guida il governo italiano dal 22 ottobre 2022.",
+    "body": "Giorgia Meloni, diplomata in lingue e giornalista professionista, inizia l’attività politica nel 1992 nel Fronte della Gioventù, organizzazione giovanile del Movimento Sociale Italiano. Nel 1998 viene eletta consigliera provinciale a Roma e nel 2006 deputata. Ministra della Gioventù dal 2008 al 2011, nel 2012 fonda Fratelli d’Italia insieme a Ignazio La Russa e Guido Crosetto. Presidente del partito dal 2014, guida il governo italiano dall’ottobre 2022.",
     "sources": [
       {
         "name": "Presidenza del Consiglio — Curriculum ufficiale",
@@ -204,22 +204,6 @@
           "name": "Partito dei Conservatori e Riformisti Europei",
           "kind": "party_politician",
           "url": "https://ecrparty.eu/2025/01/14/election-of-the-new-presidency-of-the-european-conservatives-and-reformists-party-ecr-brussels-january-14-2025/"
-        }
-      ]
-    },
-    {
-      "identity_key": "presidente-consiglio-2022",
-      "start_date": "2022-10-22",
-      "end_date": null,
-      "start_precision": "day",
-      "is_current": true,
-      "role": "Presidente del Consiglio dei Ministri della Repubblica Italiana",
-      "institution": "Presidenza del Consiglio dei Ministri",
-      "sources": [
-        {
-          "name": "Presidenza del Consiglio — Curriculum ufficiale",
-          "kind": "official",
-          "url": "https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf"
         }
       ]
     }

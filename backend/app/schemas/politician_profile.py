@@ -35,6 +35,10 @@ class ProceedingNature(StrEnum):
     MIXED_JUDICIAL_AND_CONTROVERSY = "mixed_judicial_and_controversy"
 
 
+class AttachProfileSourceRequest(ImmutableSchema):
+    url: AnyHttpUrl
+
+
 class ProfileSourceInput(ImmutableSchema):
     title: str | None = Field(default=None, max_length=500)
     name: str = Field(min_length=1, max_length=300)
@@ -164,6 +168,7 @@ class AdminProfileContentItem(ImmutableSchema):
     title: str
     proposed_text: str
     sources: tuple[PublicProfileSource, ...] = ()
+    source_ids: tuple[int, ...] = ()
     source_names: tuple[str, ...] = ()
     source_urls: tuple[str, ...] = ()
     source_kinds: tuple[ProfileSourceKind, ...] = ()

@@ -184,6 +184,43 @@ def test_editorial_preview_is_bearer_protected_and_does_not_publish(
         assert "editorial-preview" not in public_app.text
 
 
+def test_attach_source_url_is_admin_only_and_does_not_publish(session_factory, tmp_path):
+    ids, _assessment_id = _prepare(session_factory)
+    settings = _client(tmp_path)
+    politician_id = ids["politician_id"]
+    with TestClient(create_app(settings)) as client:
+        pending = client.get(
+            f"/admin/profile-content?status=pending&politician_id={politician_id}&kind=proceeding",
+            headers=ADMIN,
+        ).json()["items"]
+        proceeding = next(
+            item for item in pending if item["identity_key"] == "caso-almasri-2025"
+        )
+        source_id = proceeding["source_ids"][0]
+        denied = client.post(
+            f"/admin/profile-content/proceeding/{proceeding['id']}/sources/{source_id}",
+            json={"url": "https://www.ansa.it/sito/notizie/example.html"},
+        )
+        assert denied.status_code == 401
+        invalid = client.post(
+            f"/admin/profile-content/proceeding/{proceeding['id']}/sources/{source_id}",
+            headers=ADMIN,
+            json={"url": "not-a-url"},
+        )
+        assert invalid.status_code == 422
+        attached = client.post(
+            f"/admin/profile-content/proceeding/{proceeding['id']}/sources/{source_id}",
+            headers=ADMIN,
+            json={"url": "https://www.ansa.it/sito/notizie/example.html"},
+        )
+        assert attached.status_code == 200, attached.text
+        payload = attached.json()
+        assert payload["status"] == ProfileContentStatus.PENDING.value
+        assert any(item.get("url") for item in payload["sources"])
+        public = client.get(f"/politicians/{politician_id}").json()
+        assert public["proceedings"] == []
+
+
 def test_pending_pledge_drafts_are_not_public_and_ask_is_unchanged(
     session_factory, tmp_path
 ):

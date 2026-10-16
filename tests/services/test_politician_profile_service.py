@@ -19,6 +19,7 @@ from backend.app.scoring.types import DUAL_APPROVAL_VERDICTS, FulfillmentVerdict
 from backend.app.services import (
     PoliticianProfileConflictError,
     PoliticianProfileService,
+    PoliticianProfileValidationError,
     normalize_person_name,
 )
 
@@ -153,6 +154,106 @@ def test_reject_keeps_record_off_the_public_surface(session_factory):
     with session_factory() as session:
         assert PoliticianProfileService.published_biography(session, politician_id) is None
         assert session.get(PoliticianBiography, content_id).status is ProfileContentStatus.REJECTED
+
+
+def test_published_biography_is_replaced_by_a_new_pending_draft(session_factory):
+    politician_id = _politician(session_factory)
+    service = PoliticianProfileService(session_factory)
+    first_id, _ = service.upsert_biography(
+        politician_id,
+        BiographyDraftInput(
+            identity_key="primary",
+            body="guida il governo italiano dal 22 ottobre 2022.",
+            sources=(
+                ProfileSourceInput(
+                    name="Presidenza del Consiglio",
+                    kind=ProfileSourceKind.OFFICIAL,
+                    url="https://presidenza.governo.it/curriculum.pdf",
+                ),
+            ),
+            created_by="editor",
+        ),
+    )
+    service.approve(ProfileContentKind.BIOGRAPHY, first_id, reviewer="desk")
+    second_id, created = service.upsert_biography(
+        politician_id,
+        BiographyDraftInput(
+            identity_key="primary",
+            body="guida il governo italiano dall’ottobre 2022.",
+            sources=(
+                ProfileSourceInput(
+                    name="Presidenza del Consiglio",
+                    kind=ProfileSourceKind.OFFICIAL,
+                    url="https://presidenza.governo.it/curriculum.pdf",
+                ),
+            ),
+            created_by="editor",
+        ),
+    )
+    assert created == "created"
+    assert second_id != first_id
+    service.approve(ProfileContentKind.BIOGRAPHY, second_id, reviewer="desk")
+    with session_factory() as session:
+        previous = session.get(PoliticianBiography, first_id)
+        current = PoliticianProfileService.published_biography(session, politician_id)
+        assert previous.status is ProfileContentStatus.SUPERSEDED
+        assert "dall’ottobre 2022" in current.body
+        assert "22 ottobre 2022" not in current.body
+
+
+def test_attach_source_url_validates_and_does_not_publish(session_factory):
+    politician_id = _politician(session_factory)
+    service = PoliticianProfileService(session_factory)
+    proceeding_id, _ = service.upsert_proceeding(
+        politician_id,
+        ProceedingDraftInput(
+            identity_key="caso-almasri-2025",
+            title="Caso Almasri (2025)",
+            proceeding_types=(ProceedingType.JUDICIAL_PROCEEDING,),
+            outcome="archived",
+            summary="Iscrizione nel registro degli indagati, poi archiviazione.",
+            sources=(ProfileSourceInput(name="ANSA", kind=ProfileSourceKind.NEWS),),
+            created_by="editor",
+        ),
+    )
+    detail = service.get_admin(ProfileContentKind.PROCEEDING, proceeding_id)
+    source_id = detail.source_ids[0]
+    try:
+        service.attach_source_url(
+            ProfileContentKind.PROCEEDING,
+            proceeding_id,
+            source_id,
+            "not-a-url",
+            reviewer="desk",
+        )
+    except PoliticianProfileValidationError:
+        pass
+    else:
+        raise AssertionError("expected invalid URL to fail")
+    updated = service.attach_source_url(
+        ProfileContentKind.PROCEEDING,
+        proceeding_id,
+        source_id,
+        "https://www.ansa.it/sito/notizie/example.html",
+        reviewer="desk",
+    )
+    assert updated.status is ProfileContentStatus.PENDING
+    assert updated.sources_incomplete is False
+    with session_factory() as session:
+        assert PoliticianProfileService.published_proceedings(session, politician_id) == ()
+    service.approve(ProfileContentKind.PROCEEDING, proceeding_id, reviewer="desk")
+    try:
+        service.attach_source_url(
+            ProfileContentKind.PROCEEDING,
+            proceeding_id,
+            source_id,
+            "https://www.ansa.it/sito/notizie/other.html",
+            reviewer="desk",
+        )
+    except PoliticianProfileConflictError:
+        pass
+    else:
+        raise AssertionError("expected published attach to fail")
 
 
 def test_cannot_approve_twice(session_factory):

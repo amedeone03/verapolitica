@@ -14,6 +14,7 @@ from backend.app.schemas import AdminPrincipal, ReviewNoteRequest
 from backend.app.schemas.politician_profile import (
     AdminProfileContentDetail,
     AdminProfileContentList,
+    AttachProfileSourceRequest,
     EditorialPreviewResponse,
     SourceCompleteness,
 )
@@ -107,6 +108,28 @@ def reject_profile_content(
     with _errors():
         return service.reject(
             kind, content_id, reviewer=principal.reviewer_identity, note=payload.note
+        )
+
+
+@router.post(
+    "/{kind}/{content_id}/sources/{source_id}",
+    response_model=AdminProfileContentDetail,
+)
+def attach_profile_source_url(
+    kind: ProfileContentKind,
+    content_id: Annotated[int, Path(gt=0)],
+    source_id: Annotated[int, Path(gt=0)],
+    service: Service,
+    principal: Principal,
+    payload: AttachProfileSourceRequest,
+) -> AdminProfileContentDetail:
+    with _errors():
+        return service.attach_source_url(
+            kind,
+            content_id,
+            source_id,
+            str(payload.url),
+            reviewer=principal.reviewer_identity,
         )
 
 

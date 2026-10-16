@@ -64,8 +64,6 @@ CONTENT_MODELS = {
     ProfileContentKind.PROCEEDING: PoliticianProceeding,
 }
 
-_ACTIVE = (ProfileContentStatus.PENDING, ProfileContentStatus.PUBLISHED)
-
 
 class PoliticianProfileServiceError(RuntimeError):
     pass
@@ -230,6 +228,54 @@ class PoliticianProfileService:
             row.review_note = _blank_to_none(note)
             session.flush()
             return PoliticianProfileService._admin_detail(session, kind, row)
+
+    def attach_source_url(
+        self,
+        kind: ProfileContentKind,
+        content_id: int,
+        source_id: int,
+        url: str,
+        *,
+        reviewer: str,
+    ) -> AdminProfileContentDetail:
+        reviewer = reviewer.strip()
+        if not reviewer:
+            raise PoliticianProfileValidationError("reviewer is required")
+        cleaned = url.strip()
+        if not is_complete_source_url(cleaned):
+            raise PoliticianProfileValidationError("url must be an absolute http(s) URL")
+        with self.session_factory.begin() as session:
+            row = self._load(session, kind, content_id)
+            if row.status is not ProfileContentStatus.PENDING:
+                raise PoliticianProfileConflictError(
+                    "only pending records can receive source URL updates"
+                )
+            source = session.get(PoliticianProfileSource, source_id)
+            if (
+                source is None
+                or source.content_kind is not kind
+                or source.content_id != content_id
+            ):
+                raise PoliticianProfileNotFoundError("profile source not found")
+            source.url = cleaned
+            source.incomplete = False
+            session.flush()
+            return PoliticianProfileService._admin_detail(session, kind, row)
+
+    @staticmethod
+    def source_inputs(
+        session: Session, kind: ProfileContentKind, content_id: int
+    ) -> tuple[ProfileSourceInput, ...]:
+        return tuple(
+            ProfileSourceInput(
+                title=item.title,
+                name=item.name,
+                url=item.url,
+                kind=item.kind,
+                excerpt=item.excerpt,
+            )
+            for item in PoliticianProfileService._sources(session, kind, content_id)
+        )
 
     def list_admin(
         self,
@@ -464,7 +510,7 @@ class PoliticianProfileService:
                 select(model).where(
                     model.politician_id == politician_id,
                     model.identity_key == identity_key,
-                    model.status.in_(_ACTIVE),
+                    model.status == ProfileContentStatus.PENDING,
                 )
             )
             if existing is not None:
@@ -658,6 +704,7 @@ class PoliticianProfileService:
             title=title,
             proposed_text=proposed,
             sources=public_sources,
+            source_ids=tuple(item.id for item in source_rows),
             source_names=tuple(item.name for item in source_rows),
             source_urls=tuple(item.url for item in source_rows if item.url),
             source_kinds=tuple(item.kind for item in source_rows),

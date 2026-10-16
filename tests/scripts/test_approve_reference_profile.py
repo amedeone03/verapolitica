@@ -113,12 +113,12 @@ def test_apply_publishes_only_review_ready_profile_content(session_factory, tmp_
     assert len([item for item in first["approved"] if item["kind"] == "career_entry"]) == 10
     assert len([item for item in first["approved"] if item["kind"] == "position"]) == 5
     blocked_keys = {item["identity_key"] for item in first["blocked"]}
-    assert "presidente-consiglio-2022" in blocked_keys
-    assert {item["kind"] for item in first["blocked"]} >= {"career_entry", "proceeding"}
-    assert all(item["kind"] != "proceeding" or item["action"] == "blocked" for item in first["blocked"])
+    assert "presidente-consiglio-2022" not in blocked_keys
+    assert {item["kind"] for item in first["blocked"]} == {"proceeding"}
+    assert all(item["action"] == "blocked" for item in first["blocked"])
     counts = first["counts"]
     assert counts["biography"] == {"published": 1, "pending": 0}
-    assert counts["career"] == {"published": 10, "pending": 1}
+    assert counts["career"] == {"published": 10, "pending": 0}
     assert counts["positions"] == {"published": 5, "pending": 0}
     assert counts["proceedings"] == {"published": 0, "pending": 4}
 
@@ -129,8 +129,7 @@ def test_apply_publishes_only_review_ready_profile_content(session_factory, tmp_
                 PoliticianCareerEntry.identity_key == "presidente-consiglio-2022",
             )
         )
-        assert pdc.status is ProfileContentStatus.PENDING
-        assert pdc.start_date.isoformat() == "2022-10-22"
+        assert pdc is None
         drafts = list(session.scalars(select(ProposalDraft)))
         assert drafts and all(row.status is ProposalDraftStatus.PENDING for row in drafts)
         assessment = session.get(PledgeAssessment, assessment_id)
