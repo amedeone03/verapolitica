@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 import os
 
 import pytest
@@ -204,7 +205,8 @@ def test_postgres_production_like_http_surface():
         admin_api_key="a-sufficiently-long-admin-token",
         cors_origins="https://verapolitica.it",
         trusted_hosts="testserver,verapolitica.it",
-        raw_storage_path="./.ci/raw",
+        public_base_url="https://verapolitica.it",
+        raw_storage_path=Path("./.ci/raw").resolve(),
         log_format="json",
         enable_demo_ui=False,
         enable_api_docs=False,

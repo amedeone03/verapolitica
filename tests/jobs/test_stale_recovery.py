@@ -11,69 +11,57 @@ from backend.app.models import IngestionJobRun, IngestionJobStatus, IngestionJob
 from backend.app.schemas.jobs import IngestionJobMetrics
 
 
+_PRODUCTION = {
+    "env": AppEnvironment.PRODUCTION,
+    "database_url": "postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
+    "admin_api_key": "a-sufficiently-long-admin-token",
+    "cors_origins": "https://verapolitica.it",
+    "trusted_hosts": "verapolitica.it",
+    "public_base_url": "https://verapolitica.it",
+    "raw_storage_path": "/var/lib/verapolitica/raw",
+}
+
+
 def test_production_requires_postgresql():
     with pytest.raises((ProductionConfigError, ValidationError), match="PostgreSQL"):
         Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="sqlite:///./data/verapolitica.db",
-            admin_api_key="a-sufficiently-long-admin-token",
-            cors_origins="https://verapolitica.it",
-            trusted_hosts="verapolitica.it",
+            **{
+                **_PRODUCTION,
+                "database_url": "sqlite:///./data/verapolitica.db",
+            }
         )
 
 
 def test_production_requires_strong_admin_key():
     with pytest.raises((ProductionConfigError, ValidationError), match="ADMIN_API_KEY"):
-        Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-            admin_api_key="short",
-            cors_origins="https://verapolitica.it",
-            trusted_hosts="verapolitica.it",
-        )
+        Settings(**{**_PRODUCTION, "admin_api_key": "short"})
 
 
 def test_production_rejects_wildcard_cors_and_hosts():
     with pytest.raises((ProductionConfigError, ValidationError), match="CORS"):
-        Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-            admin_api_key="a-sufficiently-long-admin-token",
-            cors_origins="*",
-            trusted_hosts="verapolitica.it",
-        )
+        Settings(**{**_PRODUCTION, "cors_origins": "*"})
     with pytest.raises((ProductionConfigError, ValidationError), match="TRUSTED_HOSTS"):
-        Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-            admin_api_key="a-sufficiently-long-admin-token",
-            cors_origins="https://verapolitica.it",
-            trusted_hosts="*",
-        )
+        Settings(**{**_PRODUCTION, "trusted_hosts": "*"})
 
 
 def test_production_ai_requires_secret_when_provider_set():
     with pytest.raises((ProductionConfigError, ValidationError), match="LLM_API_KEY"):
         Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-            admin_api_key="a-sufficiently-long-admin-token",
-            cors_origins="https://verapolitica.it",
-            trusted_hosts="verapolitica.it",
-            llm_provider="openai",
-            llm_model="gpt-4.1-mini",
+            **{
+                **_PRODUCTION,
+                "llm_provider": "openai",
+                "llm_model": "gpt-4.1-mini",
+            }
         )
 
 
 def test_production_ollama_does_not_require_api_key():
     settings = Settings(
-        env=AppEnvironment.PRODUCTION,
-        database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-        admin_api_key="a-sufficiently-long-admin-token",
-        cors_origins="https://verapolitica.it",
-        trusted_hosts="verapolitica.it",
-        llm_provider="ollama",
-        llm_model="qwen2.5:7b",
+        **{
+            **_PRODUCTION,
+            "llm_provider": "ollama",
+            "llm_model": "qwen2.5:7b",
+        }
     )
     assert settings.ai_extraction_enabled is True
     assert settings.llm_api_key is None
@@ -81,22 +69,20 @@ def test_production_ollama_does_not_require_api_key():
 
 def test_production_requires_admin_key():
     with pytest.raises((ProductionConfigError, ValidationError), match="ADMIN_API_KEY"):
-        Settings(
-            env=AppEnvironment.PRODUCTION,
-            database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-            admin_api_key=None,
-            cors_origins="https://verapolitica.it",
-            trusted_hosts="verapolitica.it",
-        )
+        Settings(**{**_PRODUCTION, "admin_api_key": None})
 
 
 def test_render_internal_database_url_uses_psycopg():
     settings = Settings(
-        env=AppEnvironment.PRODUCTION,
-        database_url="postgres://verapolitica:secret@dpg-internal:5432/verapolitica_staging_db",
-        admin_api_key="a-sufficiently-long-admin-token",
-        cors_origins="https://verapolitica-staging.onrender.com",
-        trusted_hosts="verapolitica-staging.onrender.com",
+        **{
+            **_PRODUCTION,
+            "database_url": (
+                "postgres://verapolitica:secret@dpg-internal:5432/verapolitica_staging_db"
+            ),
+            "cors_origins": "https://verapolitica-staging.onrender.com",
+            "trusted_hosts": "verapolitica-staging.onrender.com",
+            "public_base_url": "https://verapolitica-staging.onrender.com",
+        }
     )
     assert settings.database_url == (
         "postgresql+psycopg://verapolitica:secret@dpg-internal:5432/verapolitica_staging_db"
@@ -112,13 +98,11 @@ def test_plain_postgresql_url_uses_psycopg():
 
 def test_production_accepts_explicit_safe_settings():
     settings = Settings(
-        env=AppEnvironment.PRODUCTION,
-        database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
-        admin_api_key="a-sufficiently-long-admin-token",
-        cors_origins="https://verapolitica.it",
-        trusted_hosts="verapolitica.it,www.verapolitica.it",
-        raw_storage_path="./data/raw",
-        log_format="json",
+        **{
+            **_PRODUCTION,
+            "trusted_hosts": "verapolitica.it,www.verapolitica.it",
+            "log_format": "json",
+        }
     )
     assert settings.is_production
     assert settings.demo_ui_enabled is False

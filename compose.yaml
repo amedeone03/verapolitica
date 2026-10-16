@@ -20,6 +20,7 @@ services:
     command: python -m alembic upgrade head
     environment:
       VERAPOLITICA_ENV: production
+      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
       VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
       VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
       VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
@@ -38,6 +39,7 @@ services:
     build: .
     environment:
       VERAPOLITICA_ENV: production
+      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
       VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
       VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
       VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
@@ -61,6 +63,7 @@ services:
     command: python -m scripts.run_scheduler
     environment:
       VERAPOLITICA_ENV: production
+      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
       VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
       VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
       VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod

@@ -1,6 +1,7 @@
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,12 +27,30 @@ _WEAK_ADMIN_KEYS = frozenset(
         "test-admin-secret",
         "verapolitica-demo-admin",
         "ci-test-key-not-a-secret",
+        "replace-with-a-long-random-secret",
     }
 )
+
+_DEMO_STORAGE_MARKERS = ("/ceo_demo/", "/unified_demo/", "/data/demo/")
 
 
 def _csv(value: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _is_demo_storage_path(path: Path) -> bool:
+    normalized = f"/{path.as_posix().casefold().strip('/')}/"
+    return any(marker in normalized for marker in _DEMO_STORAGE_MARKERS)
+
+
+def _public_origin(url: str) -> tuple[str, str] | None:
+    parsed = urlparse(url.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    host = (parsed.hostname or "").casefold()
+    if not host:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}", host
 
 
 class Settings(BaseSettings):
@@ -44,7 +63,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
     forwarded_allow_ips: str = ""
-    log_format: str = "text"
+    log_format: str = ""
     log_level: str = "INFO"
     enable_demo_ui: bool | None = None
     enable_api_docs: bool | None = None
@@ -207,8 +226,17 @@ class Settings(BaseSettings):
             errors.append(
                 "production requires VERAPOLITICA_ADMIN_API_KEY of at least 24 characters"
             )
-        if not str(self.raw_storage_path).strip():
+        storage = Path(self.raw_storage_path)
+        if not str(storage).strip():
             errors.append("production requires VERAPOLITICA_RAW_STORAGE_PATH")
+        elif not storage.is_absolute():
+            errors.append(
+                "production requires VERAPOLITICA_RAW_STORAGE_PATH to be an absolute path"
+            )
+        elif _is_demo_storage_path(storage):
+            errors.append(
+                "production VERAPOLITICA_RAW_STORAGE_PATH must not use a demo/local data path"
+            )
         origins = self.cors_origin_list
         if not origins or "*" in origins:
             errors.append(
@@ -219,6 +247,30 @@ class Settings(BaseSettings):
             errors.append(
                 "production requires an explicit VERAPOLITICA_TRUSTED_HOSTS allowlist"
             )
+        public = _public_origin(self.public_base_url)
+        if public is None:
+            errors.append(
+                "production requires VERAPOLITICA_PUBLIC_BASE_URL as an absolute http(s) URL"
+            )
+        else:
+            origin, host = public
+            if "*" not in origins and origin not in origins:
+                errors.append(
+                    "production VERAPOLITICA_PUBLIC_BASE_URL origin must be listed in "
+                    "VERAPOLITICA_CORS_ORIGINS"
+                )
+            hosts_folded = {item.casefold() for item in hosts}
+            if "*" not in hosts and host not in hosts_folded:
+                errors.append(
+                    "production VERAPOLITICA_PUBLIC_BASE_URL host must be listed in "
+                    "VERAPOLITICA_TRUSTED_HOSTS"
+                )
+        if "*" in self.forwarded_allow_ip_list:
+            errors.append(
+                "production must not set VERAPOLITICA_FORWARDED_ALLOW_IPS to *"
+            )
+        if self.enable_demo_ui is True:
+            errors.append("production must not enable VERAPOLITICA_ENABLE_DEMO_UI")
         provider = (self.llm_provider or "").strip().casefold()
         if provider:
             if not (self.llm_model or "").strip():

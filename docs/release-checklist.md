@@ -10,14 +10,16 @@ Use this before promoting a VeraPolitica V1 build to staging or production.
 - [ ] `git diff --check` is clean
 - [ ] Docker image builds (`docker build -t verapolitica:release .`)
 - [ ] Alembic revisions reviewed; `alembic upgrade head` is the deploy step
-- [ ] No real secrets in git (`.env` ignored, examples are placeholders)
+- [ ] No real secrets in git (`.env` ignored, example templates are placeholders)
 
 ## Configuration
 
+- [ ] Filled from `.env.production.example`, not `.env.example`
 - [ ] `VERAPOLITICA_ENV=production`
+- [ ] `VERAPOLITICA_PUBLIC_BASE_URL` is the public HTTPS origin
 - [ ] PostgreSQL `VERAPOLITICA_DATABASE_URL`
 - [ ] `VERAPOLITICA_ADMIN_API_KEY` is long, random, and not a demo/test value
-- [ ] `VERAPOLITICA_CORS_ORIGINS` is an HTTPS allowlist (not `*`)
+- [ ] `VERAPOLITICA_CORS_ORIGINS` is an HTTPS allowlist (not `*`) and includes the public origin
 - [ ] `VERAPOLITICA_TRUSTED_HOSTS` lists the public hostnames
 - [ ] `VERAPOLITICA_FORWARDED_ALLOW_IPS` set only if a trusted proxy exists
 - [ ] `VERAPOLITICA_RAW_STORAGE_PATH` is a persistent volume

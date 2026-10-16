@@ -26,7 +26,9 @@ Do not run Kubernetes, Redis, Celery, or a second scheduler replica.
 - Explicit CORS and trusted-host allowlists
 - Provider TLS, DNS, and proxy rate limiting
 
-Copy `.env.example` and fill production values. Never commit `.env`.
+Copy `.env.production.example` and fill production values. Never commit
+`.env` or `.env.production`. Variable meanings are in
+[production_configuration.md](production_configuration.md).
 
 Example production configuration (placeholders only):
 

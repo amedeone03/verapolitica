@@ -31,7 +31,8 @@ stay disabled in production.
 
 ## Secret handling
 
-- `.env` is gitignored. `.env.example` has placeholders only.
+- `.env` and `.env.*` are gitignored except `.env.example` and
+  `.env.production.example`, which have placeholders only.
 - `admin_api_key` and `llm_api_key` are `SecretStr` values.
 - Health, error, and release-check payloads omit DSNs, passwords, and keys.
 - Logs redact bearer tokens, `VERAPOLITICA_*KEY` assignments, and PostgreSQL

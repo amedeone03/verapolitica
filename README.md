@@ -35,8 +35,9 @@ source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
-Configuration defaults are shown in `.env.example`. Copy them into `.env` only when
-you need to override the defaults.
+Local configuration defaults are shown in `.env.example`. Copy them into `.env`
+only when you need to override the defaults. Production uses
+`.env.production.example` and [docs/production_configuration.md](docs/production_configuration.md).
 
 SQLite is the default local/test/demo database. PostgreSQL is the
 production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
@@ -47,6 +48,8 @@ and partisan-skew checks are documented in
 [docs/scoring-methodology.md](docs/scoring-methodology.md).
 Civic referendums, voting guides, glossary, and reminders are documented in
 [docs/civic-features.md](docs/civic-features.md).
+Production configuration is documented in
+[docs/production_configuration.md](docs/production_configuration.md).
 Production hardening is documented in
 [docs/production-runbook.md](docs/production-runbook.md),
 [docs/security.md](docs/security.md), and
