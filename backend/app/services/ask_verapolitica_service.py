@@ -306,13 +306,8 @@ class AskVeraPoliticaService:
     ) -> AskIntent:
         if matched_pledge is not None and (plan.wants_sources or plan.wants_explanation):
             return AskIntent.PLEDGE_SOURCES if plan.wants_sources and not plan.wants_explanation else AskIntent.PLEDGE_EXPLANATION
-        if matched_pledge is not None and plan.asks_specific_status and plan.entity_query:
-            title_norm = normalize_search_text(matched_pledge.title)
-            query_norm = normalize_search_text(plan.entity_query)
-            if title_norm in query_norm or query_norm in title_norm or self._tokens_fit_pledge(
-                plan.entity_query, matched_pledge, politician
-            ):
-                return AskIntent.PLEDGE_EXPLANATION
+        if matched_pledge is not None and plan.asks_specific_status:
+            return AskIntent.PLEDGE_EXPLANATION
         if plan.intent is AskIntent.PLEDGE_EXPLANATION:
             return AskIntent.PLEDGE_EXPLANATION
         if plan.intent is AskIntent.PLEDGE_SOURCES:
@@ -487,7 +482,7 @@ class AskVeraPoliticaService:
 
     def _topic_text_match(self, row: _PledgeRow, topic_code: str, topic_label: str | None) -> bool:
         blob = normalize_search_text(f"{row.title} {row.statement or ''}")
-        needles = [topic_code]
+        needles: list[str] = []
         if topic_label:
             needles.append(normalize_search_text(topic_label))
         needles.extend(TOPIC_KEYWORDS.get(topic_code, ()))

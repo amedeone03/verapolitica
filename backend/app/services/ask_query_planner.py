@@ -179,11 +179,19 @@ _RANKING_CUES = (
     "migliore",
     "peggior",
     "peggiore",
+    "meglio",
+    "peggio",
+    "affidabile",
+    "affidabili",
     "classifica",
     "ranking",
 )
 
 _VERDICT_PHRASES: tuple[tuple[str, FulfillmentVerdict], ...] = (
+    ("non sono ancora valutate", FulfillmentVerdict.NOT_YET_RATED),
+    ("non sono ancora valutati", FulfillmentVerdict.NOT_YET_RATED),
+    ("non e ancora valutata", FulfillmentVerdict.NOT_YET_RATED),
+    ("non e ancora valutato", FulfillmentVerdict.NOT_YET_RATED),
     ("non ancora valutata", FulfillmentVerdict.NOT_YET_RATED),
     ("non ancora valutate", FulfillmentVerdict.NOT_YET_RATED),
     ("non ancora valutati", FulfillmentVerdict.NOT_YET_RATED),

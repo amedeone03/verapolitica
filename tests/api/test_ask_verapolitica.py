@@ -152,8 +152,13 @@ def test_planner_detects_supported_families():
         "Qual è il peggior politico?",
         "Chi è il politico migliore?",
         "Quale partito è migliore?",
+        "Chi ha governato meglio?",
+        "Chi è più affidabile?",
     ):
         assert plan_ask_question(question).intent is AskIntent.UNSUPPORTED
+    unrated = plan_ask_question("Quali promesse di Meloni non sono ancora valutate?")
+    assert unrated.verdict is FulfillmentVerdict.NOT_YET_RATED
+    assert unrated.entity_query == "meloni"
     autonomia = plan_ask_question("Perché la promessa sull'autonomia è in corso?")
     assert autonomia.intent is AskIntent.PLEDGE_EXPLANATION
     assert autonomia.topic_code == "20"
