@@ -34,7 +34,7 @@ row.
 ## Stack
 
 - [ ] `db` healthy
-- [ ] `migrate` succeeded (`alembic current` = `e2b8f6c03d41`)
+- [ ] `migrate` succeeded (`alembic current` = `f3c9a7d14e52`)
 - [ ] `web` running; **no** scheduler container
 - [ ] `curl` `/health/live` → 200 (use `Host: YOUR_DOMAIN` on localhost)
 - [ ] `curl` `/health/ready` → 200, `schema_current: true`
@@ -51,7 +51,7 @@ python -m scripts.smoke_test --base-url http://127.0.0.1:8000 --production \
 
 ## Public HTTPS (when ready; skip until the VPS should be public)
 
-- [ ] Reverse proxy to `127.0.0.1:8000`
+- [ ] Caddy reverse proxy to `127.0.0.1:8000` (see production_deployment.md §7)
 - [ ] `FORWARDED_ALLOW_IPS` set only to the proxy
 - [ ] A/AAAA records point at the VPS
 - [ ] TLS certificate issued
@@ -64,4 +64,5 @@ python -m scripts.smoke_test --base-url http://127.0.0.1:8000 --production \
 - [ ] Official ingest via `run_territorial_ingestion` / `run_ingestion` (not `prepare_demo`)
 - [ ] Bootstrap politicians only after a dry-run
 - [ ] Editorial review/publish for anything public
-- [ ] First backup (db dump from `db` container + raw archive) copied off-VPS
+- [ ] First backup (db dump from `db` container + raw archive) copied **off-VPS**
+- [ ] Off-VPS copy verified (checksums); a VPS-local backup is not enough

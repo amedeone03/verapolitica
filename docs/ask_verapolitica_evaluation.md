@@ -32,12 +32,12 @@ This slice reads the **unified demo** published corpus at
 seed a synthetic world and it does not fall back to synthetic-v1 if the corpus
 is missing.
 
-The published Ask-visible world frozen here (corpus date 2026-10-10):
+The published Ask-visible world frozen here (corpus date 2026-10-16):
 
 - 22 published politician profiles
-- 9 published classified explicit promises, all owned by Giorgia Meloni
+- 21 published classified explicit promises, all owned by Giorgia Meloni
 - 1 published assessment (`in_progress` on autonomia differenziata)
-- 8 published promises with no approved assessment
+- 20 published promises with no approved assessment
 - source host: `www.gazzettaufficiale.it`
 - no published surname collision, so this slice has **no natural ambiguity case**
 

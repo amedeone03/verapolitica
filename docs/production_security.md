@@ -169,5 +169,5 @@ default (`env=development`). Leave them off on the VPS.
 - Per-editor accounts, MFA, session expiry, audit of *who* published
 - Split roles (reviewer vs ingestion operator)
 - Distributed rate limiting / WAF
-- DNS, TLS certificates, nginx/Caddy config
+- DNS, TLS certificates, Caddy (see [production_deployment.md](production_deployment.md) §7)
 - Enabling the scheduler only after those controls exist

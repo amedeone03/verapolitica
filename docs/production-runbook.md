@@ -85,7 +85,7 @@ On compose, dump via the `db` container; see [production_deployment.md](producti
 
 If the schema is behind head, or PostgreSQL is unreachable, `/health/ready`
 returns 503. `/health/live` only means the process is up. Start web only after
-`alembic current` matches head (`e2b8f6c03d41`).
+`alembic current` matches head (`f3c9a7d14e52`).
 
 ## Startup commands
 

@@ -13,7 +13,7 @@ application never calls `metadata.create_all()` as a substitute for migrations
 when `VERAPOLITICA_DATABASE_URL` is PostgreSQL. Do not remove SQLite support
 for local/demo work. Do not auto-migrate PostgreSQL on application start.
 
-Current Alembic head: `e2b8f6c03d41` (linear chain from `1864a1eb302a`).
+Current Alembic head: `f3c9a7d14e52` (linear chain from `1864a1eb302a`).
 
 ## SQLite
 
@@ -30,6 +30,12 @@ fast.
 
 Alembic migrations also run against empty SQLite databases. That path is used by
 migration tests; it is not required for the demo.
+
+The local unified-demo SQLite file may carry a stale `alembic_version` while
+tables exist via `prepare_sqlite_schema`. That is a **demo-only** caveat:
+`/health/ready` can return 503 on unified-demo even though the public app
+works. Do **not** stamp that SQLite file to make readiness green, and do not
+weaken production readiness (PostgreSQL must be at Alembic head).
 
 ## PostgreSQL
 
@@ -57,7 +63,7 @@ See [backup_and_restore.md](backup_and_restore.md). Restore with `pg_restore`
 into an empty database **before** running `alembic upgrade head`, unless the
 restored schema is behind the new code.
 
-`alembic current` must match `alembic heads` (`e2b8f6c03d41`) before starting
+`alembic current` must match `alembic heads` (`f3c9a7d14e52`) before starting
 web processes. `/health/ready` returns 503 until that is true, including when
 PostgreSQL is unreachable.
 
@@ -83,8 +89,9 @@ python -m alembic history
 ```
 
 The initial revision (`1864a1eb302a`) creates the base schema. Later additive
-revisions add search columns, civic tables, pledge scoring tables, and
-unpublished pledge evidence candidates.
+revisions add search columns, civic tables, pledge scoring tables,
+unpublished pledge evidence candidates, and politician profile narrative
+tables (`f3c9a7d14e52`).
 
 PostgreSQL/dev startup **warns** when the database revision is behind head. It
 never runs `alembic upgrade head` automatically. `/health/ready` fails until the

@@ -45,6 +45,12 @@ set +a
 
 Or `./scripts/run_unified_demo.sh`.
 
+`GET /health/live` should be 200. `GET /health/ready` may return 503 on this
+SQLite file if `alembic_version` is behind code head while tables were created
+with `prepare_sqlite_schema`. That is demo-only. Do not stamp the demo
+database to force readiness green, and do not change production PostgreSQL
+readiness checks.
+
 After an AI walkthrough, restore the published baseline without dropping
 Senate / Government / pledges / portraits:
 

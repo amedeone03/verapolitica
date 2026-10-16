@@ -12,8 +12,13 @@ Live checkbox list: [first_deploy_checklist.md](first_deploy_checklist.md).
 This document does **not** configure a real VPS, DNS, or TLS by itself. It
 tells the operator exactly what to do when those exist.
 
-Current Alembic head: `e2b8f6c03d41`. GitHub **Backend CI** (Python tests,
+Current Alembic head: `f3c9a7d14e52`. GitHub **Backend CI** (Python tests,
 PostgreSQL migrations, Docker image) must be green on the commit you deploy.
+
+**Release freeze (PRE-VPS RELEASE CANDIDATE):** until the first VPS is live,
+change only blocker fixes, documentation, security, and deployment material.
+Do not add product features, AI architecture, data models, visual redesigns,
+or new political scoring logic.
 
 ---
 
@@ -235,7 +240,7 @@ Verify schema:
   python -m alembic heads
 ```
 
-`alembic current` must equal `alembic heads` (`e2b8f6c03d41`). If migrate
+`alembic current` must equal `alembic heads` (`f3c9a7d14e52`). If migrate
 failed, `web` will not start (`depends_on: service_completed_successfully`).
 
 Useful compose commands (always via the helper so `.env.production` is used):
@@ -265,31 +270,67 @@ curl -sS -H "Host: YOUR_DOMAIN" http://127.0.0.1:8000/health/ready
 Do not skip this before pointing DNS at the VPS. The app speaks **HTTP** on
 `127.0.0.1:8000` and does not terminate TLS.
 
-Implementation-neutral (nginx, Caddy, or the provider’s load balancer). The
-proxy must:
+**Recommended first-VPS proxy: Caddy.** Automatic HTTPS is the simplest match
+for this stack. Do not also install nginx unless you are replacing Caddy.
+
+Download Caddy from the official download page with the `rate_limit` extra
+module enabled (`github.com/mholt/caddy-ratelimit`). Stock Caddy does not
+include that module.
+
+The proxy must:
 
 | Responsibility | Notes |
 | --- | --- |
 | Terminate HTTPS | Certificates for `YOUR_DOMAIN` (and `www` if used) |
 | Proxy to `http://127.0.0.1:8000` | Preserve the URI path |
 | Forward `Host`, `X-Forwarded-For`, `X-Forwarded-Proto` | Then set `VERAPOLITICA_FORWARDED_ALLOW_IPS` to the proxy only |
-| `client_max_body_size` ~ 1m | Matches `VERAPOLITICA_MAX_REQUEST_BODY_BYTES` |
+| Request body ~ 1m | Matches `VERAPOLITICA_MAX_REQUEST_BODY_BYTES` |
 | Rate-limit public GET and `/admin` | Process-local limits are not cluster-wide |
 | Security headers | App already sets CSP / `X-Frame-Options` / nosniff; proxy may add HSTS |
 | HSTS | **Only after** HTTPS is confirmed |
 | Client IP | Trust forwarding headers only from the proxy |
 
-Placeholders:
+Example `/etc/caddy/Caddyfile` (replace `YOUR_DOMAIN`; keep HSTS commented
+until HTTPS has been stable):
 
-```text
-domain:            YOUR_DOMAIN
-certificate:       /etc/ssl/YOUR_DOMAIN/fullchain.pem
-private key:       /etc/ssl/YOUR_DOMAIN/privkey.pem
-upstream:          http://127.0.0.1:8000
-forwarded_allow:   PROXY_IP_OR_CIDR
+```caddy
+YOUR_DOMAIN {
+	encode gzip
+	request_body {
+		max_size 1MB
+	}
+	header {
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	rate_limit {
+		zone public {
+			key {remote_host}
+			events 60
+			window 1m
+		}
+		zone admin {
+			match {
+				path /admin*
+			}
+			key {remote_host}
+			events 20
+			window 1m
+		}
+	}
+
+	reverse_proxy 127.0.0.1:8000
+}
 ```
 
-Details: [production_security.md](production_security.md).
+After Caddy is up:
+
+```text
+VERAPOLITICA_FORWARDED_ALLOW_IPS=127.0.0.1
+```
+
+Use the Caddy host’s address if the proxy is not on localhost. Details:
+[production_security.md](production_security.md).
 
 ---
 

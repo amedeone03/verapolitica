@@ -27,7 +27,7 @@ Use before promoting a VeraPolitica V1 build. First VPS bring-up follows
 
 ## Runtime
 
-- [ ] `migrate` succeeded; `alembic current` equals `alembic heads` (`e2b8f6c03d41`)
+- [ ] `migrate` succeeded; `alembic current` equals `alembic heads` (`f3c9a7d14e52`)
 - [ ] `web` up; **scheduler container not running**
 - [ ] `GET /health/live` → 200
 - [ ] `GET /health/ready` → 200 with `schema_current: true`

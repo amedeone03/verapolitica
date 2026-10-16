@@ -232,11 +232,12 @@ against the restored database.
 No cron or systemd timer is installed in this milestone. Suggested production
 policy when you add host scheduling later:
 
-- Take a backup **daily**
+- Take a backup **daily** on the VPS
+- Copy that backup **off the VPS** on the same day (rsync/scp to another
+  disk or machine). A VPS-local copy is not a disaster-recovery backup.
 - Retain **7 daily** dumps + matching raw archives + manifests
 - Retain **4 weekly** copies (for example Sunday dumps)
-- Keep **at least one copy off the VPS** (other disk, other server, or later
-  S3-compatible storage)
+- Rehearse restore **monthly** onto an isolated PostgreSQL database
 - After a production schema migration, keep the pre-migrate dump until the
   next verified backup
 
