@@ -12,9 +12,16 @@ from backend.app.main import create_app
 from backend.app.models import (
     PledgeAssessment,
     PledgeAssessmentDraft,
+    PoliticalParty,
     Politician,
     PoliticianVersion,
+    Proposal,
+    ProposalActor,
+    ProposalActorRole,
+    ProposalActorType,
+    ProposalType,
 )
+from backend.app.pipeline.prompts import load_ask_verapolitica_prompt
 from backend.app.schemas.ask import MAX_ASK_QUESTION_LENGTH
 from backend.app.scoring import EvidenceLabel, FulfillmentVerdict, VERDICT_VALUE
 from backend.app.scoring.scorecard import METHODOLOGY_VERSION
@@ -141,11 +148,22 @@ def test_planner_detects_supported_families():
     assert unsupported.intent is AskIntent.UNSUPPORTED
     ranking = plan_ask_question("Chi è il miglior politico italiano?")
     assert ranking.intent is AskIntent.UNSUPPORTED
+    for question in (
+        "Qual è il peggior politico?",
+        "Chi è il politico migliore?",
+        "Quale partito è migliore?",
+    ):
+        assert plan_ask_question(question).intent is AskIntent.UNSUPPORTED
     autonomia = plan_ask_question("Perché la promessa sull'autonomia è in corso?")
     assert autonomia.intent is AskIntent.PLEDGE_EXPLANATION
     assert autonomia.topic_code == "20"
     assert autonomia.entity_query is None
     assert "sull" not in (autonomia.entity_query or "")
+    fonte = plan_ask_question("Qual è la fonte della valutazione sull'autonomia?")
+    assert fonte.intent is AskIntent.PLEDGE_SOURCES
+    assert fonte.topic_code == "20"
+    assert fonte.entity_query is None
+    assert "sull" not in (fonte.entity_query or "")
 
 
 def test_politician_and_verdict_query(tmp_path):
@@ -263,11 +281,84 @@ def test_unsupported_question(tmp_path):
     _classify_public(factory, data)
     with client:
         response = _ask(client, "Chi vincerà le elezioni il prossimo anno?")
+        ranking = [
+            _ask(client, question).json()
+            for question in (
+                "Chi è il miglior politico italiano?",
+                "Qual è il peggior politico?",
+                "Chi è il politico migliore?",
+                "Quale partito è migliore?",
+            )
+        ]
     body = response.json()
     assert body["intent"] == "unsupported"
     assert body["answer"] == UNSUPPORTED_ANSWER
     assert body["results"] == []
     assert body["generated_by_ai"] is False
+    for item in ranking:
+        assert item["intent"] == "unsupported"
+        assert item["answer"] == UNSUPPORTED_ANSWER
+        assert item["results"] == []
+        assert item["generated_by_ai"] is False
+
+
+def test_autonomia_questions_resolve_to_unique_published_pledge(tmp_path):
+    client, data, factory = _client(tmp_path)
+    _classify_public(factory, data)
+    _publish(factory, data)
+    with factory() as session:
+        politician = session.get(Politician, data.politician_id)
+        party = session.get(PoliticalParty, data.party_id)
+        proposal = Proposal(
+            canonical_title="Autonomia differenziata",
+            exact_statement="Approveremo la legge sull'autonomia differenziata.",
+            proposal_type=ProposalType.EXPLICIT_PROMISE,
+            published_at=datetime(2026, 10, 7, 9, tzinfo=timezone.utc),
+        )
+        session.add(proposal)
+        session.flush()
+        autonomia_id = proposal.id
+        session.add_all(
+            [
+                ProposalActor(
+                    proposal_id=proposal.id,
+                    actor_type=ProposalActorType.POLITICIAN,
+                    role=ProposalActorRole.COMMITMENT_OWNER,
+                    politician_id=politician.id,
+                    display_name="Mario Rossi",
+                    identity_key=f"pol-{proposal.id}",
+                ),
+                ProposalActor(
+                    proposal_id=proposal.id,
+                    actor_type=ProposalActorType.POLITICAL_PARTY,
+                    role=ProposalActorRole.COMMITMENT_OWNER,
+                    political_party_id=party.id,
+                    display_name="Partito Esempio",
+                    identity_key=f"party-{proposal.id}",
+                ),
+            ]
+        )
+        session.commit()
+    service = PledgeService(factory)
+    service.classify(autonomia_id, classification(cap_topic_code="20"), classified_by="ed")
+    draft, _ = editor_draft(
+        service, data, autonomia_id, FulfillmentVerdict.IN_PROGRESS, EvidenceLabel.SUPPORTS
+    )
+    service.approve(draft.id, reviewer="rev")
+    with client:
+        explained = _ask(client, "Perché la promessa sull'autonomia è in corso?").json()
+        source = _ask(client, "Qual è la fonte della valutazione sull'autonomia?").json()
+    assert explained["intent"] == "pledge_explanation"
+    assert explained["results"][0]["id"] == autonomia_id
+    assert explained["results"][0]["verdict"] == "in_progress"
+    assert explained["results"][0]["public_verdict_label"] == "In corso"
+    assert data.unpublished_id not in [item["id"] for item in explained["results"]]
+    assert data.pledge_id not in [item["id"] for item in explained["results"]]
+    assert "in_progress" not in explained["answer"]
+    assert source["intent"] == "pledge_sources"
+    assert source["results"][0]["id"] == autonomia_id
+    assert source["sources"][0]["url"] == "https://www.senato.it/legge/1"
+    assert all("unpublished" not in source["url"] for source in source["sources"])
 
 
 def test_ai_disabled_uses_deterministic_fallback(tmp_path):
@@ -306,7 +397,22 @@ def test_fake_provider_synthesis(tmp_path, monkeypatch):
     assert fake.requests
     assert "USER_QUESTION:" in fake.requests[0][1]
     assert "VERIFIED_CONTEXT:" in fake.requests[0][1]
-    assert "do not use outside knowledge" in fake.requests[0][0].casefold()
+    prompt = fake.requests[0][0].casefold()
+    assert "do not use outside knowledge" in prompt
+    assert "neutral italian" in prompt
+    assert "markdown" in prompt
+    assert "in_progress" in fake.requests[0][0]
+    assert "not_yet_rated" in fake.requests[0][0]
+
+
+def test_ask_prompt_requests_italian_without_enum_tokens():
+    prompt = load_ask_verapolitica_prompt()
+    lowered = prompt.casefold()
+    assert "neutral italian" in lowered
+    assert "markdown" in lowered
+    assert "do not invent" in lowered or "do not invent counts" in lowered
+    assert "in_progress" in prompt
+    assert "not_yet_rated" in prompt
 
 
 def test_provider_failure_falls_back(tmp_path, monkeypatch):
@@ -345,6 +451,32 @@ def test_invented_url_is_rejected(tmp_path, monkeypatch):
     assert body["fallback"] is True
     assert "evil.example" not in body["answer"]
     assert all("evil.example" not in source["url"] for source in body["sources"])
+    assert body["sources"][0]["url"] == "https://www.senato.it/legge/1"
+
+
+def test_ai_prose_scrubs_enum_tokens_and_url_wrappers(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.ask_verapolitica_service.completer_from_settings",
+        lambda settings: FakeTextCompleter(
+            "VeraPolitica registra la promessa pubblicata di Mario Rossi e la "
+            "classifica come `in_progress`, non not_yet_rated, secondo i dati già "
+            "verificati. Fonte: [URL: https://evil.example/x] "
+            "[Gazzetta](https://evil.example/md)."
+        ),
+    )
+    client, data, factory = _client(tmp_path)
+    _classify_public(factory, data)
+    _publish(factory, data)
+    with client:
+        body = _ask(client, "Quali promesse di Mario Rossi sono ancora in corso?").json()
+    assert "in_progress" not in body["answer"]
+    assert "not_yet_rated" not in body["answer"]
+    assert "`" not in body["answer"]
+    assert "evil.example" not in body["answer"]
+    assert all("evil.example" not in source["url"] for source in body["sources"])
+    assert body["sources"][0]["url"] == "https://www.senato.it/legge/1"
+    assert body["results"][0]["verdict"] == "in_progress"
+    assert body["results"][0]["public_verdict_label"] == "In corso"
 
 
 def test_contradictory_verdict_is_rejected(tmp_path, monkeypatch):

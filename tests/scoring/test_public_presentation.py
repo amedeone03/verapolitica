@@ -106,7 +106,17 @@ def test_scrub_public_ai_text_hides_internal_tokens_and_markdown():
     assert "**" not in cleaned
     assert "[" not in cleaned
     assert "In corso" in cleaned
-    assert "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg" in cleaned
+    assert "Gazzetta" in cleaned
+    assert "https://www.gazzettaufficiale.it" not in cleaned
+
+    wrapped = scrub_public_ai_text(
+        "Stato `not_yet_rated`. Fonte: [URL: https://evil.example/secret]."
+    )
+    assert "not_yet_rated" not in wrapped
+    assert "Non ancora valutata" in wrapped
+    assert "`" not in wrapped
+    assert "evil.example" not in wrapped
+    assert "[" not in wrapped
 
 
 def test_autonomia_gold_still_treats_follow_through_as_in_progress():

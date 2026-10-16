@@ -14,6 +14,7 @@ from html import escape
 from backend.app.scoring.types import CLOSED_VERDICTS, FulfillmentVerdict, OPEN_VERDICTS
 
 _MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+_URL_WRAPPER_RE = re.compile(r"\[(?:URL|url|Url):\s*(https?://[^\]\s]+)\]")
 _INTERNAL_VERDICT_RE = re.compile(
     r"\b("
     + "|".join(
@@ -91,8 +92,9 @@ def public_verdict_chip_html(value: str | FulfillmentVerdict) -> str:
 
 def scrub_public_ai_text(text: str) -> str:
     """Strip model markup and replace internal enum tokens with public labels."""
-    cleaned = text.replace("**", "").replace("__", "")
-    cleaned = _MARKDOWN_LINK_RE.sub(r"\2", cleaned)
+    cleaned = text.replace("**", "").replace("__", "").replace("`", "")
+    cleaned = _MARKDOWN_LINK_RE.sub(r"\1", cleaned)
+    cleaned = _URL_WRAPPER_RE.sub("", cleaned)
     cleaned = re.sub(r"(?<!\w)\*+|\*+(?!\w)", "", cleaned)
 
     def _replace(match: re.Match[str]) -> str:

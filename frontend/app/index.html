@@ -1,51 +1,51 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0b0b0c" />
-    <meta name="description" content="Verified profiles of Italian public representatives, backed by official sources." />
-    <title>VeraPolitica — Verified public profiles</title>
+    <meta name="description" content="Profili verificati dei rappresentanti pubblici italiani, con fonti ufficiali." />
+    <title>VeraPolitica — Profili pubblici verificati</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="./" aria-label="VeraPolitica archive">
+        <a class="brand" href="./" aria-label="Archivio VeraPolitica">
           <span class="brand-mark" aria-hidden="true">VP</span>
           <span>
             <strong>VeraPolitica</strong>
-            <small>Public information, with sources</small>
+            <small>Informazione pubblica, con fonti</small>
           </span>
         </a>
         <form class="site-search" action="./" method="get" role="search">
           <input type="hidden" name="view" value="search" />
-          <label class="visually-hidden" for="site-search-q">Search the public archive</label>
+          <label class="visually-hidden" for="site-search-q">Cerca nell'archivio pubblico</label>
           <input
             id="site-search-q"
             name="q"
             type="search"
             maxlength="200"
-            placeholder="Search people, places, proposals"
+            placeholder="Cerca persone, luoghi, proposte"
             autocomplete="off"
             autocorrect="off"
             enterkeyhint="search"
           />
-          <button type="submit">Search</button>
+          <button type="submit">Cerca</button>
         </form>
-        <nav class="public-nav" aria-label="Public archive sections">
-          <a href="./">Politicians</a>
-          <a href="./?view=proposals">Proposals</a>
-          <a href="./?view=referendums">Referendums</a>
-          <a href="./?view=voting-guide">How to vote</a>
-          <a href="./?view=glossary">Glossary</a>
-          <a href="./?view=methodology">Methodology</a>
-          <a href="./?view=regions">Regions</a>
-          <a href="./?view=municipalities">Municipalities</a>
-          <a href="./?view=ask">Ask</a>
-          <a href="./?view=search">Search</a>
+        <nav class="public-nav" aria-label="Sezioni dell'archivio pubblico">
+          <a href="./">Politici</a>
+          <a href="./?view=proposals">Proposte</a>
+          <a href="./?view=referendums">Referendum</a>
+          <a href="./?view=voting-guide">Guide al voto</a>
+          <a href="./?view=glossary">Glossario</a>
+          <a href="./?view=methodology">Metodologia</a>
+          <a href="./?view=regions">Regioni</a>
+          <a href="./?view=municipalities">Comuni</a>
+          <a href="./?view=ask">Ask VeraPolitica</a>
+          <a href="./?view=search">Ricerca</a>
         </nav>
       </div>
     </header>
@@ -53,81 +53,81 @@
     <main>
       <section id="archive-view" aria-labelledby="archive-title">
         <div class="hero">
-          <p class="eyebrow">Public archive</p>
-          <h1 id="archive-title">Know who represents you.<br /><em>Verify every detail.</em></h1>
+          <p class="eyebrow">Archivio pubblico</p>
+          <h1 id="archive-title">Sai chi ti rappresenta.<br /><em>Verifica ogni dettaglio.</em></h1>
           <p class="hero-copy">
-            Published profiles built from official institutional data and checked
-            through a human editorial process. Every fact points back to its source.
+            Profili pubblicati a partire da dati istituzionali ufficiali e controllati
+            da un processo editoriale. Ogni fatto rimanda alla sua fonte.
           </p>
           <div class="trust-line">
             <span aria-hidden="true">✓</span>
-            <p><strong>Verified means source-checked.</strong> It does not imply endorsement or political judgment.</p>
+            <p><strong>Verificato significa controllato sulle fonti.</strong> Non implica un endorsement né un giudizio politico.</p>
           </div>
         </div>
 
         <div class="archive-heading">
           <div>
-            <p class="eyebrow">Representatives</p>
-            <h2>Verified politician profiles</h2>
+            <p class="eyebrow">Rappresentanti</p>
+            <h2>Profili politici verificati</h2>
           </div>
-          <span id="archive-count" class="count-pill" aria-live="polite">Loading</span>
+          <span id="archive-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
 
         <div id="archive-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading verified profiles…</strong><small>Contacting the public archive.</small></div>
+          <div><strong>Caricamento dei profili verificati…</strong><small>Collegamento all'archivio pubblico.</small></div>
         </div>
         <div id="politician-list" class="politician-grid" hidden></div>
       </section>
 
       <section id="detail-view" aria-labelledby="profile-name" hidden>
-        <a class="back-link" href="./"><span aria-hidden="true">←</span> All verified profiles</a>
+        <a class="back-link" href="./"><span aria-hidden="true">←</span> Tutti i profili verificati</a>
         <div id="detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading verified profile…</strong><small>Retrieving the current published record.</small></div>
+          <div><strong>Caricamento del profilo verificato…</strong><small>Recupero della scheda pubblicata.</small></div>
         </div>
         <article id="profile-detail" hidden></article>
       </section>
 
       <section id="proposals-view" aria-labelledby="proposals-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Evidence-backed tracker</p>
-          <h1 id="proposals-title">Proposals and explicit commitments</h1>
-          <p class="hero-copy">Institutional proposals and explicit promises remain distinct. Only records checked through editorial review appear here.</p>
+          <p class="eyebrow">Archivio delle proposte</p>
+          <h1 id="proposals-title">Proposte e promesse esplicite</h1>
+          <p class="hero-copy">Le proposte istituzionali e le promesse esplicite restano distinte. Qui compaiono solo i record verificati in sede editoriale.</p>
         </div>
         <div class="archive-heading">
-          <div><p class="eyebrow">Published records</p><h2>Proposal tracker</h2></div>
-          <span id="proposal-count" class="count-pill" aria-live="polite">Loading</span>
+          <div><p class="eyebrow">Record pubblicati</p><h2>Elenco proposte</h2></div>
+          <span id="proposal-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
         <div id="proposals-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading published proposals…</strong><small>Contacting the public archive.</small></div>
+          <div><strong>Caricamento delle proposte pubblicate…</strong><small>Collegamento all'archivio pubblico.</small></div>
         </div>
         <div id="proposal-list" class="proposal-grid" hidden></div>
       </section>
 
       <section id="referendums-view" aria-labelledby="referendums-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Civic calendar</p>
-          <h1 id="referendums-title">Referendums and voting events</h1>
-          <p class="hero-copy">Published official questions, dates, and voting rules. This is not voting advice and it does not list campaign arguments.</p>
+          <p class="eyebrow">Calendario civico</p>
+          <h1 id="referendums-title">Referendum e consultazioni</h1>
+          <p class="hero-copy">Quesiti ufficiali, date e regole di voto pubblicati. Non è un consiglio di voto e non elenca argomenti di campagna.</p>
         </div>
         <div class="archive-heading">
-          <div><p class="eyebrow">Published records</p><h2>Upcoming and recorded votes</h2></div>
-          <span id="referendum-count" class="count-pill" aria-live="polite">Loading</span>
+          <div><p class="eyebrow">Record pubblicati</p><h2>Consultazioni in programma e già svolte</h2></div>
+          <span id="referendum-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
         <div id="referendums-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading referendums…</strong><small>Contacting the public archive.</small></div>
+          <div><strong>Caricamento dei referendum…</strong><small>Collegamento all'archivio pubblico.</small></div>
         </div>
         <div id="referendum-list" class="proposal-grid" hidden></div>
       </section>
 
       <section id="referendum-detail-view" aria-labelledby="referendum-detail-title" hidden>
-        <a class="back-link" href="./?view=referendums"><span aria-hidden="true">←</span> All referendums</a>
+        <a class="back-link" href="./?view=referendums"><span aria-hidden="true">←</span> Tutti i referendum</a>
         <div id="referendum-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading referendum…</strong><small>Retrieving the published civic record.</small></div>
+          <div><strong>Caricamento del referendum…</strong><small>Recupero del record civico pubblicato.</small></div>
         </div>
         <article id="referendum-detail" hidden></article>
       </section>
@@ -135,81 +135,81 @@
       <section id="voting-guide-view" aria-labelledby="voting-guide-title" hidden>
         <div class="hero compact-hero">
           <p class="eyebrow">Come si vota</p>
-          <h1 id="voting-guide-title">How to vote</h1>
-          <p class="hero-copy">Factual voting procedure from official sources. VeraPolitica does not tell anyone who or what to vote for.</p>
+          <h1 id="voting-guide-title">Guide al voto</h1>
+          <p class="hero-copy">Procedure di voto da fonti ufficiali. VeraPolitica non indica per chi o per che cosa votare.</p>
         </div>
         <div id="voting-guide-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading voting guidance…</strong><small>Retrieving published civic instructions.</small></div>
+          <div><strong>Caricamento della guida al voto…</strong><small>Recupero delle istruzioni civiche pubblicate.</small></div>
         </div>
         <article id="voting-guide-detail" hidden></article>
       </section>
 
       <section id="glossary-view" aria-labelledby="glossary-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Civic glossary</p>
-          <h1 id="glossary-title">Key terms</h1>
-          <p class="hero-copy">Neutral definitions backed by official legal or institutional sources.</p>
+          <p class="eyebrow">Glossario civico</p>
+          <h1 id="glossary-title">Termini chiave</h1>
+          <p class="hero-copy">Definizioni neutre basate su fonti ufficiali, giuridiche o istituzionali.</p>
         </div>
         <div class="archive-heading">
-          <div><p class="eyebrow">Alphabetical</p><h2>Published terms</h2></div>
-          <span id="glossary-count" class="count-pill" aria-live="polite">Loading</span>
+          <div><p class="eyebrow">Ordine alfabetico</p><h2>Termini pubblicati</h2></div>
+          <span id="glossary-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
         <div id="glossary-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading glossary…</strong><small>Retrieving published civic terms.</small></div>
+          <div><strong>Caricamento del glossario…</strong><small>Recupero dei termini civici pubblicati.</small></div>
         </div>
         <div id="glossary-list" class="glossary-list" hidden></div>
       </section>
 
       <section id="proposal-detail-view" aria-labelledby="proposal-detail-title" hidden>
-        <a class="back-link" href="./?view=proposals"><span aria-hidden="true">←</span> All published proposals</a>
+        <a class="back-link" href="./?view=proposals"><span aria-hidden="true">←</span> Tutte le proposte pubblicate</a>
         <div id="proposal-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading proposal…</strong><small>Retrieving its reviewed status history.</small></div>
+          <div><strong>Caricamento della proposta…</strong><small>Recupero della cronologia di stato verificata.</small></div>
         </div>
         <article id="proposal-detail" hidden></article>
       </section>
 
       <section id="regions-view" aria-labelledby="regions-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Territorial archive</p>
-          <h1 id="regions-title">Italian regions</h1>
-          <p class="hero-copy">Official ISTAT regions. Current regional presidents appear only when an official structured source has linked them.</p>
+          <p class="eyebrow">Archivio territoriale</p>
+          <h1 id="regions-title">Regioni italiane</h1>
+          <p class="hero-copy">Regioni ISTAT ufficiali. I presidenti in carica compaiono solo quando una fonte strutturata ufficiale li ha collegati.</p>
         </div>
         <div class="archive-heading">
-          <div><p class="eyebrow">Reference data</p><h2>Regions</h2></div>
-          <span id="region-count" class="count-pill" aria-live="polite">Loading</span>
+          <div><p class="eyebrow">Dati di riferimento</p><h2>Regioni</h2></div>
+          <span id="region-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
         <div id="regions-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading regions…</strong><small>Contacting the public archive.</small></div>
+          <div><strong>Caricamento delle regioni…</strong><small>Collegamento all'archivio pubblico.</small></div>
         </div>
         <div id="region-list" class="proposal-grid" hidden></div>
       </section>
 
       <section id="region-detail-view" aria-labelledby="region-detail-title" hidden>
-        <a class="back-link" href="./?view=regions"><span aria-hidden="true">←</span> All regions</a>
+        <a class="back-link" href="./?view=regions"><span aria-hidden="true">←</span> Tutte le regioni</a>
         <div id="region-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading region…</strong><small>Retrieving official territorial data.</small></div>
+          <div><strong>Caricamento della regione…</strong><small>Recupero dei dati territoriali ufficiali.</small></div>
         </div>
         <article id="region-detail" hidden></article>
       </section>
 
       <section id="municipalities-view" aria-labelledby="municipalities-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Territorial archive</p>
-          <h1 id="municipalities-title">Municipalities</h1>
-          <p class="hero-copy">Official ISTAT comuni, shown a page at a time. Current mayors appear only when identity can be linked conservatively.</p>
+          <p class="eyebrow">Archivio territoriale</p>
+          <h1 id="municipalities-title">Comuni</h1>
+          <p class="hero-copy">Comuni ISTAT ufficiali, una pagina alla volta. I sindaci in carica compaiono solo quando l'identità può essere collegata in modo conservativo.</p>
         </div>
         <div class="archive-heading">
-          <div><p class="eyebrow">Reference data</p><h2>Comuni</h2></div>
-          <span id="municipality-count" class="count-pill" aria-live="polite">Loading</span>
+          <div><p class="eyebrow">Dati di riferimento</p><h2>Comuni</h2></div>
+          <span id="municipality-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>
         <div id="municipalities-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading municipalities…</strong><small>Contacting the public archive.</small></div>
+          <div><strong>Caricamento dei comuni…</strong><small>Collegamento all'archivio pubblico.</small></div>
         </div>
         <div id="municipality-list" class="proposal-grid" hidden></div>
         <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
@@ -217,13 +217,13 @@
 
       <section id="methodology-view" aria-labelledby="methodology-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Said and done</p>
-          <h1 id="methodology-title">How commitments are scored</h1>
-          <p class="hero-copy">The method is public and applied in the same way to everyone. A score is a summary of evidence, not a political judgment.</p>
+          <p class="eyebrow">Detto e fatto</p>
+          <h1 id="methodology-title">Come si valutano le promesse</h1>
+          <p class="hero-copy">Il metodo è pubblico e si applica allo stesso modo a tutti. Un punteggio è una sintesi delle evidenze, non un giudizio politico.</p>
         </div>
         <div id="methodology-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading methodology…</strong><small>Retrieving the current scoring parameters.</small></div>
+          <div><strong>Caricamento della metodologia…</strong><small>Recupero dei parametri di valutazione in vigore.</small></div>
         </div>
         <article id="methodology-detail" hidden></article>
       </section>
@@ -256,52 +256,52 @@
 
       <section id="search-view" aria-labelledby="search-title" hidden>
         <div class="hero compact-hero">
-          <p class="eyebrow">Public search</p>
-          <h1 id="search-title">Search the archive</h1>
-          <p class="hero-copy">Find published politicians, proposals, territories, parliamentary groups, and political parties. Unpublished editorial records stay hidden.</p>
+          <p class="eyebrow">Ricerca pubblica</p>
+          <h1 id="search-title">Cerca nell'archivio</h1>
+          <p class="hero-copy">Trova politici, proposte, territori, gruppi parlamentari e partiti politici pubblicati. I record editoriali non pubblicati restano nascosti.</p>
         </div>
         <form class="search-panel" action="./" method="get">
           <input type="hidden" name="view" value="search" />
-          <label class="visually-hidden" for="search-page-q">Search query</label>
-          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Try Anna, Milano, Lombardia" autocomplete="off" autocorrect="off" enterkeyhint="search" />
-          <label class="visually-hidden" for="search-type">Entity type</label>
+          <label class="visually-hidden" for="search-page-q">Testo di ricerca</label>
+          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Prova Anna, Milano, Lombardia" autocomplete="off" autocorrect="off" enterkeyhint="search" />
+          <label class="visually-hidden" for="search-type">Tipo di record</label>
           <select id="search-type" name="type">
-            <option value="">All types</option>
-            <option value="politician">Politicians</option>
-            <option value="proposal">Proposals</option>
-            <option value="referendum">Referendums</option>
-            <option value="municipality">Municipalities</option>
-            <option value="region">Regions</option>
-            <option value="parliamentary_group">Parliamentary groups</option>
-            <option value="political_party">Political parties</option>
-            <option value="glossary_term">Glossary</option>
+            <option value="">Tutti i tipi</option>
+            <option value="politician">Politici</option>
+            <option value="proposal">Proposte</option>
+            <option value="referendum">Referendum</option>
+            <option value="municipality">Comuni</option>
+            <option value="region">Regioni</option>
+            <option value="parliamentary_group">Gruppi parlamentari</option>
+            <option value="political_party">Partiti politici</option>
+            <option value="glossary_term">Glossario</option>
           </select>
-          <button type="submit">Search</button>
+          <button type="submit">Cerca</button>
         </form>
         <div class="archive-heading">
-          <div><p class="eyebrow">Results</p><h2 id="search-heading">Matching public records</h2></div>
-          <span id="search-count" class="count-pill" aria-live="polite">Ready</span>
+          <div><p class="eyebrow">Risultati</p><h2 id="search-heading">Record pubblici corrispondenti</h2></div>
+          <span id="search-count" class="count-pill" aria-live="polite">Pronto</span>
         </div>
         <div id="search-status" class="state-card" role="status">
-          <div><strong>Enter a search term.</strong><small>Use the form above to search the public archive.</small></div>
+          <div><strong>Inserisci un termine di ricerca.</strong><small>Usa il modulo qui sopra per cercare nell'archivio pubblico.</small></div>
         </div>
         <div id="search-list" class="search-grid" hidden></div>
       </section>
 
       <section id="organization-detail-view" aria-labelledby="organization-detail-title" hidden>
-        <a class="back-link" href="./?view=search"><span aria-hidden="true">←</span> Back to search</a>
+        <a class="back-link" href="./?view=search"><span aria-hidden="true">←</span> Torna alla ricerca</a>
         <div id="organization-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading…</strong><small>Retrieving the public record.</small></div>
+          <div><strong>Caricamento…</strong><small>Recupero del record pubblico.</small></div>
         </div>
         <article id="organization-detail" hidden></article>
       </section>
 
       <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>
-        <a class="back-link" href="./?view=municipalities"><span aria-hidden="true">←</span> All municipalities</a>
+        <a class="back-link" href="./?view=municipalities"><span aria-hidden="true">←</span> Tutti i comuni</a>
         <div id="municipality-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Loading municipality…</strong><small>Retrieving official territorial data.</small></div>
+          <div><strong>Caricamento del comune…</strong><small>Recupero dei dati territoriali ufficiali.</small></div>
         </div>
         <article id="municipality-detail" hidden></article>
       </section>
@@ -310,9 +310,9 @@
     <footer>
       <div>
         <strong>VeraPolitica</strong>
-        <p>Public profiles derived from official sources and published after editorial verification.</p>
+        <p>Profili pubblici ricavati da fonti ufficiali e pubblicati dopo verifica editoriale.</p>
       </div>
-      <span>National, regional, and municipal archive</span>
+      <span>Archivio nazionale, regionale e comunale</span>
     </footer>
 
     <script type="module" src="./app.js"></script>

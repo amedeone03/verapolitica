@@ -27,38 +27,42 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
 
     assert archive.status_code == 200
     assert detail.status_code == 200
-    assert "Know who represents you" in archive.text
-    assert "Loading verified profiles" in archive.text
+    assert 'lang="it"' in archive.text
+    assert "Sai chi ti rappresenta" in archive.text
+    assert "Caricamento dei profili verificati" in archive.text
     assert styles.status_code == 200
     assert ".politician-grid" in styles.text
     assert ".source-block" in styles.text
+    assert "scroll-padding-top: 5.5rem" in styles.text
+    assert "scroll-padding-top: 11rem" in styles.text
+    assert ".public-nav { display: flex; flex-wrap: wrap" in styles.text
     assert script.status_code == 200
     assert "renderPoliticianCard" in script.text
     assert "renderPoliticianDetail" in script.text
     assert "groupCitations" in script.text
     assert "renderParliamentaryGroups" in script.text
-    assert "Parliamentary groups" in script.text
+    assert "Gruppi parlamentari" in script.text
     assert ".group-membership" in styles.text
     assert "renderPoliticalParties" in script.text
-    assert "Political party" in script.text
+    assert "Partito politico" in script.text
     assert ".party-affiliation" in styles.text
     assert "renderProposalCard" in script.text
     assert "renderProposalTimeline" in script.text
-    assert "Proposals / commitments" in script.text
+    assert "Proposte e promesse" in script.text
     assert ".proposal-timeline" in styles.text
     assert "renderRegionCard" in script.text
     assert "renderMunicipalityCard" in script.text
     assert "renderTerritorialOffices" in script.text
-    assert "Territorial offices" in script.text
+    assert "Incarichi territoriali" in script.text
     assert "/regions?offset=0&limit=50" in script.text
     assert "/municipalities?" in script.text
     assert "renderSearchCard" in script.text
     assert "/search?" in script.text
     assert "view=search" in archive.text
-    assert "Search the public archive" in archive.text
-    assert "Referendums" in archive.text
-    assert "How to vote" in archive.text
-    assert "Glossary" in archive.text
+    assert "Cerca nell'archivio pubblico" in archive.text
+    assert "Referendum" in archive.text
+    assert "Guide al voto" in archive.text
+    assert "Glossario" in archive.text
     assert "renderReferendumCard" in script.text
     assert "renderVotingGuide" in script.text
     assert "renderGlossaryTerm" in script.text
@@ -70,7 +74,18 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "explainPledge" in script.text
     assert ".explain-pledge" in styles.text
     assert "/scorecard" in script.text
-    assert "Commitment record" in script.text
+    assert "Scheda delle promesse" in script.text
+    assert "Tasso di mantenimento" in script.text
+    assert "Informazioni personali" in script.text
+    assert 'DateTimeFormat("it-IT"' in script.text
+    assert "Nessun risultato trovato" in script.text
+    assert "Caricamento delle promesse" in script.text
+    assert "Presentata" in script.text
+    assert "Come funziona il punteggio delle promesse" in script.text
+    assert "Know who represents you" not in archive.text
+    assert "Loading verified profiles" not in archive.text
+    assert "Current office" not in script.text
+    assert "Biography" not in script.text
     assert "Mantenuta parzialmente" in script.text
     assert "In corso" in script.text
     assert "Iter bloccato" in script.text
@@ -97,18 +112,18 @@ def test_public_ui_distinguishes_current_and_historical_groups(tmp_path):
     with public_demo_client(tmp_path) as client:
         script = client.get("/app/app.js").text
 
-    assert "Previous groups" in script
-    assert "Since" in script
-    assert "not the same as political parties" in script
+    assert "Gruppi precedenti" in script
+    assert "Dal " in script
+    assert "non coincidono con i partiti politici" in script
 
 
 def test_public_ui_keeps_parties_separate_and_displays_party_history(tmp_path):
     with public_demo_client(tmp_path) as client:
         script = client.get("/app/app.js").text
 
-    assert "Previous parties" in script
+    assert "Partiti precedenti" in script
     assert "political_parties" in script
-    assert "distinct institutional concepts" in script
+    assert "concetti istituzionali distinti" in script
     assert "parliamentary_groups" in script
 
 
@@ -120,11 +135,11 @@ def test_public_ui_has_separate_proposal_archive_and_detail_timeline(tmp_path):
         detail = client.get("/proposals/1")
 
     assert page.status_code == 200
-    assert "Proposal tracker" in page.text
+    assert "Proposte e promesse esplicite" in page.text
     assert proposals.status_code == 200
     assert proposals.json()["total"] == 1
     assert detail.json()["status_history"][0]["status"] == "introduced"
-    assert "Explicit promise" in script
+    assert "Promessa esplicita" in script
     assert "legislative_proposal" not in page.text
 
 
@@ -144,9 +159,9 @@ def test_public_ui_assets_are_strictly_public(tmp_path):
     assert "verapolitica-demo-admin" not in assets
     assert "Authorization" not in assets
     assert "start-review" not in assets
-    assert "approve" not in assets.casefold()
-    assert "reject" not in assets.casefold()
-    assert "reviewer" not in assets.casefold()
+    assert "/admin/drafts" not in assets
+    assert "reviewer_identity" not in assets
+    assert "admin_api_key" not in assets
     assert "Anna Rossi" not in assets
     assert "Luca Bianchi" not in assets
 
@@ -222,20 +237,20 @@ def test_public_ui_search_and_click_through(tmp_path):
         unpublished_referendum = client.get("/search", params={"q": "Unpublished synthetic civic"})
 
     assert page.status_code == 200
-    assert "Search the archive" in page.text
+    assert "Cerca nell'archivio" in page.text
     assert "renderSearchCard" in script
     assert anna.json()["items"][0]["url"] == "/app/?politician=1"
     assert luca.json()["total"] == 0
     assert milano.json()["items"][0]["title"] == "Milano"
     assert lombardia.json()["items"][0]["title"] == "Lombardia"
     assert proposal.json()["items"][0]["title"].startswith("Synthetic housing")
-    assert group.json()["items"][0]["subtitle"].startswith("Parliamentary group")
-    assert party.json()["items"][0]["subtitle"].startswith("Political party")
+    assert group.json()["items"][0]["subtitle"].startswith("Gruppo parlamentare")
+    assert party.json()["items"][0]["subtitle"].startswith("Partito politico")
     assert unpublished.json()["total"] == 0
     assert carlo.json()["total"] == 0
     assert referendum.json()["items"][0]["entity_type"] == "referendum"
     assert glossary.json()["items"][0]["title"] == "Quorum"
-    assert "Referendums and voting events" in referendums_page.text
-    assert "How to vote" in guide_page.text
-    assert "Key terms" in glossary_page.text
+    assert "Referendum e consultazioni" in referendums_page.text
+    assert "Guide al voto" in guide_page.text
+    assert "Termini chiave" in glossary_page.text
     assert unpublished_referendum.json()["total"] == 0

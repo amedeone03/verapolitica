@@ -235,8 +235,8 @@ def test_party_group_distinction_and_type_filter(session_factory):
         mixed = service.search("italia")
         group = service.search("Fratelli", entity_type=SearchEntityType.PARLIAMENTARY_GROUP)
         party = service.search("Demo Civic Alliance", entity_type=SearchEntityType.POLITICAL_PARTY)
-        assert group.items[0].subtitle.startswith("Parliamentary group")
-        assert party.items[0].subtitle.startswith("Political party")
+        assert group.items[0].subtitle.startswith("Gruppo parlamentare")
+        assert party.items[0].subtitle.startswith("Partito politico")
         types = {item.entity_type for item in mixed.items}
         assert SearchEntityType.PARLIAMENTARY_GROUP in types
         assert all(item.entity_type is SearchEntityType.POLITICAL_PARTY for item in party.items)

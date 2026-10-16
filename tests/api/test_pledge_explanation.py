@@ -12,6 +12,7 @@ from backend.app.main import create_app
 from backend.app.models import PledgeAssessment, PledgeAssessmentDraft
 from backend.app.scoring import EvidenceLabel, FulfillmentVerdict, VERDICT_VALUE
 from backend.app.scoring.scorecard import METHODOLOGY_VERSION
+from backend.app.pipeline.prompts import load_pledge_explanation_prompt
 from backend.app.services.pledge_explanation_service import (
     UNRATED_MESSAGE,
     clear_explanation_cache,
@@ -157,7 +158,22 @@ def test_fake_provider_returns_ai_explanation(tmp_path, monkeypatch):
     assert body["explanation"] == text
     assert fake.requests
     assert "PUBLISHED_VERDICT: in_progress" in fake.requests[0][1]
-    assert "do not alter the verdict" in fake.requests[0][0].casefold() or "immutable" in fake.requests[0][0].casefold()
+    prompt = fake.requests[0][0].casefold()
+    assert "do not alter the verdict" in prompt or "immutable" in prompt
+    assert "neutral italian" in prompt
+    assert "markdown" in prompt
+    assert "in_progress" in fake.requests[0][0]
+    assert "not_yet_rated" in fake.requests[0][0]
+
+
+def test_explanation_prompt_requests_italian_without_enum_tokens():
+    prompt = load_pledge_explanation_prompt()
+    lowered = prompt.casefold()
+    assert "neutral italian" in lowered
+    assert "markdown" in lowered
+    assert "in_progress" in prompt
+    assert "not_yet_rated" in prompt
+    assert "do not add external facts" in lowered
 
 
 def test_ai_markdown_and_internal_tokens_are_scrubbed(tmp_path, monkeypatch):
@@ -165,8 +181,9 @@ def test_ai_markdown_and_internal_tokens_are_scrubbed(tmp_path, monkeypatch):
         "backend.app.services.pledge_explanation_service.completer_from_settings",
         lambda settings: FakeTextCompleter(
             "Questa promessa riguarda le pensioni minime. VeraPolitica la classifica "
-            "come **In corso** (in_progress) perché è stato avviato un atto ufficiale. "
-            "La valutazione si basa sull'estratto pubblicato e non è conclusa."
+            "come **In corso** (`in_progress`) perché è stato avviato un atto ufficiale. "
+            "La valutazione si basa sull'estratto pubblicato e non è conclusa. "
+            "Fonte: [URL: https://evil.example/x]."
         ),
     )
     client, data, factory = _client(tmp_path)
@@ -175,8 +192,13 @@ def test_ai_markdown_and_internal_tokens_are_scrubbed(tmp_path, monkeypatch):
         body = client.get(f"/proposals/{data.pledge_id}/explanation").json()
     assert body["generated_by_ai"] is True
     assert "in_progress" not in body["explanation"]
+    assert "not_yet_rated" not in body["explanation"]
     assert "**" not in body["explanation"]
+    assert "`" not in body["explanation"]
+    assert "evil.example" not in body["explanation"]
     assert "In corso" in body["explanation"]
+    assert body["verdict"] == "in_progress"
+    assert body["sources"][0]["url"] == "https://www.senato.it/legge/1"
 
 
 def test_provider_failure_falls_back(tmp_path, monkeypatch):

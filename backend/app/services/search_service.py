@@ -23,6 +23,11 @@ from backend.app.models import (
     GlossaryTerm,
     Referendum,
 )
+from backend.app.public_labels import (
+    public_proposal_status_label,
+    public_proposal_type_label,
+    public_referendum_type_label,
+)
 from backend.app.schemas.search import (
     PublicSearchResult,
     PublicSearchResultList,
@@ -172,7 +177,7 @@ class SearchService:
             office = str(mandate.get("office") or "").replace("_", " ")
             institution = str(mandate.get("institution") or "")
             area = str(mandate.get("election_area") or "")
-            subtitle = " · ".join(part for part in (office.title() if office else "", institution, area) if part) or "Published representative"
+            subtitle = " · ".join(part for part in (office.title() if office else "", institution, area) if part) or "Rappresentante pubblicato"
             family = normalize_search_text(politician.canonical_family_name)
             given = normalize_search_text(politician.canonical_given_name)
             primary = politician.normalized_name
@@ -335,7 +340,7 @@ class SearchService:
             )
             subtitle = f"{region.canonical_name} · {municipality.province_abbreviation}"
             if mayor_name:
-                subtitle = f"{subtitle} · Mayor {mayor_name}"
+                subtitle = f"{subtitle} · Sindaco {mayor_name}"
             hits.append(
                 _Hit(
                     self._tier(
@@ -387,9 +392,9 @@ class SearchService:
                 if president
                 else None
             )
-            subtitle = "Italian region"
+            subtitle = "Regione"
             if president_name:
-                subtitle = f"Italian region · President {president_name}"
+                subtitle = f"Regione · Presidente {president_name}"
             hits.append(
                 _Hit(
                     self._tier(normalized, region.search_primary, region.search_document),
@@ -434,8 +439,8 @@ class SearchService:
                     entity_type=SearchEntityType.PARLIAMENTARY_GROUP,
                     title=group.canonical_name,
                     subtitle=(
-                        f"Parliamentary group · {group.institution} · "
-                        f"{group.legislature} legislature"
+                        f"Gruppo parlamentare · {group.institution} · "
+                        f"legislatura {group.legislature}"
                     ),
                     url=f"/app/?parliamentary_group={group.id}",
                     metadata={
@@ -476,7 +481,7 @@ class SearchService:
                     entity_type=SearchEntityType.REFERENDUM,
                     title=item.title,
                     subtitle=(
-                        f"Referendum · {item.referendum_type.value.replace('_', ' ')} · "
+                        f"Referendum · {public_referendum_type_label(item.referendum_type)} · "
                         f"{item.vote_date.isoformat()}"
                     ),
                     url=f"/app/?referendum={item.id}",
@@ -515,7 +520,7 @@ class SearchService:
                 PublicSearchResult(
                     entity_type=SearchEntityType.GLOSSARY_TERM,
                     title=term.term,
-                    subtitle="Civic glossary",
+                    subtitle="Glossario civico",
                     url=f"/app/?glossary={term.slug}",
                     snippet=self._snippet(term.short_definition),
                     metadata={"slug": term.slug},
@@ -547,7 +552,7 @@ class SearchService:
                 PublicSearchResult(
                     entity_type=SearchEntityType.POLITICAL_PARTY,
                     title=party.canonical_name,
-                    subtitle="Political party"
+                    subtitle="Partito politico"
                     + (f" · {party.abbreviation}" if party.abbreviation else ""),
                     url=f"/app/?political_party={party.id}",
                     metadata={
@@ -619,11 +624,7 @@ class SearchService:
 
     @staticmethod
     def _proposal_subtitle(proposal: Proposal, actors: list[str]) -> str:
-        kind = proposal.proposal_type.value.replace("_", " ")
-        status = (
-            proposal.current_status.value.replace("_", " ")
-            if proposal.current_status
-            else "published"
-        )
-        actor_summary = ", ".join(actors[:3]) if actors else "No public actors"
+        kind = public_proposal_type_label(proposal.proposal_type)
+        status = public_proposal_status_label(proposal.current_status)
+        actor_summary = ", ".join(actors[:3]) if actors else "Nessun attore pubblicato"
         return f"{kind} · {status} · {actor_summary}"
