@@ -528,6 +528,7 @@ def _page(
             <a href="/demo/video">Recording guide</a>
             <a href="/demo/ai-upload">AI demo</a>
             <a href="/demo/pledge-review">Pledge review</a>
+            <a href="/demo/profile-review">Profile review</a>
           </nav>
           <span class="mode-pill">{escape(mode_label)}</span>
         </div>

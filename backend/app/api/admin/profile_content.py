@@ -14,6 +14,8 @@ from backend.app.schemas import AdminPrincipal, ReviewNoteRequest
 from backend.app.schemas.politician_profile import (
     AdminProfileContentDetail,
     AdminProfileContentList,
+    EditorialPreviewResponse,
+    SourceCompleteness,
 )
 from backend.app.services.politician_profile_service import (
     PoliticianProfileConflictError,
@@ -56,6 +58,7 @@ def list_profile_content(
         ProfileContentStatus | None, Query(alias="status")
     ] = None,
     politician_id: Annotated[int | None, Query(gt=0)] = None,
+    source_completeness: SourceCompleteness | None = None,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> AdminProfileContentList:
@@ -63,6 +66,7 @@ def list_profile_content(
         kind=kind,
         status=content_status,
         politician_id=politician_id,
+        source_completeness=source_completeness,
         offset=offset,
         limit=limit,
     )
@@ -104,3 +108,27 @@ def reject_profile_content(
         return service.reject(
             kind, content_id, reviewer=principal.reviewer_identity, note=payload.note
         )
+
+
+politicians_router = APIRouter(prefix="/politicians", tags=["admin-profile-preview"])
+
+
+@politicians_router.get(
+    "/{politician_id}/editorial-preview",
+    response_model=EditorialPreviewResponse,
+)
+def editorial_preview(
+    politician_id: Annotated[int, Path(gt=0)],
+    service: Service,
+) -> EditorialPreviewResponse:
+    with _errors():
+        return service.editorial_preview(politician_id)
+
+
+@politicians_router.get("/{politician_id}/reference-readiness")
+def reference_readiness(
+    politician_id: Annotated[int, Path(gt=0)],
+    service: Service,
+) -> dict:
+    with _errors():
+        return service.reference_readiness(politician_id)

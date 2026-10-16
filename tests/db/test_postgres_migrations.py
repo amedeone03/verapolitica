@@ -85,6 +85,12 @@ def test_fresh_empty_postgres_migrates_to_head(tmp_path):
             assert ready.json()["ready"] is True
             assert ready.json()["schema_current"] is True
             assert ready.json()["schema_revision"] == HEAD
+            assert ready.json()["schema_revision"] == "f3c9a7d14e52"
+            assert "politician_biographies" in tables
+            assert "politician_career_entries" in tables
+            assert "politician_positions" in tables
+            assert "politician_proceedings" in tables
+            assert "politician_profile_sources" in tables
             assert politicians.status_code == 200
         finally:
             engine.dispose()
@@ -132,18 +138,30 @@ def test_postgres_upgrade_from_prior_revision_preserves_data(tmp_path):
             engine.dispose()
 
 
-def test_postgres_upgrade_from_previous_head_adds_evidence_candidates():
+def test_postgres_upgrade_from_previous_head_adds_profile_narratives():
     with isolated_postgres_database("verapolitica_upgrade_head") as url:
         engine = create_db_engine(url)
         cfg = alembic_config(url)
         try:
             command.upgrade(cfg, PRIOR)
             assert current_revision(engine) == PRIOR
-            assert "pledge_assessments" in inspect(engine).get_table_names()
-            assert "pledge_evidence_candidates" not in inspect(engine).get_table_names()
+            tables = inspect(engine).get_table_names()
+            assert "pledge_assessments" in tables
+            assert "pledge_evidence_candidates" in tables
+            assert "politician_biographies" not in tables
+            assert "politician_career_entries" not in tables
+            assert "politician_positions" not in tables
+            assert "politician_proceedings" not in tables
+            assert "politician_profile_sources" not in tables
             command.upgrade(cfg, "head")
             assert current_revision(engine) == HEAD
-            assert "pledge_evidence_candidates" in inspect(engine).get_table_names()
+            assert current_revision(engine) == "f3c9a7d14e52"
+            tables = inspect(engine).get_table_names()
+            assert "politician_biographies" in tables
+            assert "politician_career_entries" in tables
+            assert "politician_positions" in tables
+            assert "politician_proceedings" in tables
+            assert "politician_profile_sources" in tables
         finally:
             engine.dispose()
 

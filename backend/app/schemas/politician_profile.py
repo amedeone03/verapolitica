@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from enum import StrEnum
 
 from pydantic import AnyHttpUrl, Field, field_validator
 
@@ -11,6 +12,27 @@ from backend.app.models.politician_profile import (
     ProfileSourceKind,
 )
 from backend.app.schemas.candidate_profile import ImmutableSchema
+
+
+class SourceCompleteness(StrEnum):
+    READY_FOR_EDITORIAL_REVIEW = "READY_FOR_EDITORIAL_REVIEW"
+    MISSING_SOURCE_URL = "MISSING_SOURCE_URL"
+    MISSING_SOURCE_METADATA = "MISSING_SOURCE_METADATA"
+    NEEDS_FACT_CHECK = "NEEDS_FACT_CHECK"
+    OTHER_BLOCKER = "OTHER_BLOCKER"
+
+
+class PledgeEvidenceReadiness(StrEnum):
+    PLEDGE_READY_FOR_REVIEW = "PLEDGE_READY_FOR_REVIEW"
+    PLEDGE_NEEDS_CLASSIFICATION = "PLEDGE_NEEDS_CLASSIFICATION"
+    ASSESSMENT_NEEDS_OFFICIAL_EVIDENCE = "ASSESSMENT_NEEDS_OFFICIAL_EVIDENCE"
+    ASSESSMENT_EVIDENCE_AVAILABLE = "ASSESSMENT_EVIDENCE_AVAILABLE"
+
+
+class ProceedingNature(StrEnum):
+    PERSONAL_JUDICIAL_PROCEEDING = "personal_judicial_proceeding"
+    POLITICAL_LEGAL_MEDIA_CONTROVERSY = "political_legal_media_controversy"
+    MIXED_JUDICIAL_AND_CONTROVERSY = "mixed_judicial_and_controversy"
 
 
 class ProfileSourceInput(ImmutableSchema):
@@ -135,15 +157,42 @@ class PublicProceeding(ImmutableSchema):
 class AdminProfileContentItem(ImmutableSchema):
     id: int
     politician_id: int
+    politician_name: str
     kind: ProfileContentKind
     identity_key: str
     status: ProfileContentStatus
     title: str
+    proposed_text: str
+    sources: tuple[PublicProfileSource, ...] = ()
+    source_names: tuple[str, ...] = ()
+    source_urls: tuple[str, ...] = ()
+    source_kinds: tuple[ProfileSourceKind, ...] = ()
     sources_incomplete: bool
+    source_completeness: SourceCompleteness
+    completeness_blockers: tuple[str, ...] = ()
+    incomplete_secondary_sources: tuple[str, ...] = ()
     created_by: str
+    reference_origin: bool
+    ceo_reference_warning: str | None = None
     reviewed_by: str | None
     published_at: datetime | None
     created_at: datetime
+    start_date: date | None = None
+    end_date: date | None = None
+    is_current: bool | None = None
+    role: str | None = None
+    institution: str | None = None
+    organization: str | None = None
+    party_or_group: str | None = None
+    topic: str | None = None
+    position_statement: str | None = None
+    verifiable_statement: str | None = None
+    statement_date: date | None = None
+    proceeding_types: tuple[ProceedingType, ...] | None = None
+    proceeding_nature: ProceedingNature | None = None
+    outcome: ProceedingOutcome | None = None
+    outcome_summary: str | None = None
+    event_date: date | None = None
 
 
 class AdminProfileContentList(ImmutableSchema):
@@ -153,24 +202,55 @@ class AdminProfileContentList(ImmutableSchema):
     limit: int = Field(ge=1, le=100)
 
 
-class AdminProfileContentDetail(ImmutableSchema):
-    id: int
-    politician_id: int
-    kind: ProfileContentKind
-    identity_key: str
-    status: ProfileContentStatus
-    created_by: str
-    reviewed_by: str | None
-    reviewed_at: datetime | None
-    published_at: datetime | None
-    review_note: str | None
-    sources: tuple[PublicProfileSource, ...]
-    sources_incomplete: bool
+class AdminProfileContentDetail(AdminProfileContentItem):
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
     body: str | None = None
-    topic: str | None = None
-    title: str | None = None
     summary: str | None = None
-    role: str | None = None
-    institution: str | None = None
-    proceeding_types: tuple[ProceedingType, ...] | None = None
-    outcome: ProceedingOutcome | None = None
+
+
+class EditorialPreviewBanner(ImmutableSchema):
+    editorial_preview: bool = True
+    banner: str
+    publication_unchanged: bool = True
+
+
+class EditorialPreviewBiography(ImmutableSchema):
+    body: str
+    sources: tuple[PublicProfileSource, ...] = ()
+    status: ProfileContentStatus
+    identity_key: str
+    source_completeness: SourceCompleteness
+    ceo_reference_warning: str | None = None
+
+
+class EditorialPreviewCareerEntry(PublicCareerEntry):
+    status: ProfileContentStatus
+    identity_key: str
+    source_completeness: SourceCompleteness
+    ceo_reference_warning: str | None = None
+
+
+class EditorialPreviewPosition(PublicPosition):
+    status: ProfileContentStatus
+    identity_key: str
+    source_completeness: SourceCompleteness
+    ceo_reference_warning: str | None = None
+
+
+class EditorialPreviewProceeding(PublicProceeding):
+    status: ProfileContentStatus
+    identity_key: str
+    source_completeness: SourceCompleteness
+    proceeding_nature: ProceedingNature | None = None
+    ceo_reference_warning: str | None = None
+
+
+class EditorialPreviewResponse(EditorialPreviewBanner):
+    politician_id: int
+    politician_name: str
+    biography: EditorialPreviewBiography | None = None
+    career_entries: tuple[EditorialPreviewCareerEntry, ...] = ()
+    positions: tuple[EditorialPreviewPosition, ...] = ()
+    proceedings: tuple[EditorialPreviewProceeding, ...] = ()
+    pending_counts: dict[str, int] = Field(default_factory=dict)

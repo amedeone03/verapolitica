@@ -6,7 +6,10 @@ from backend.app.api.admin.identity_resolution import (
 )
 from backend.app.api.admin.jobs import router as jobs_router
 from backend.app.api.admin.pledges import router as pledges_router
-from backend.app.api.admin.profile_content import router as profile_content_router
+from backend.app.api.admin.profile_content import (
+    politicians_router as profile_preview_router,
+    router as profile_content_router,
+)
 from backend.app.api.admin.proposals import router as proposals_router
 from backend.app.api.admin.referendums import router as referendums_router
 from backend.app.api.deps import require_admin
@@ -23,5 +26,6 @@ router.include_router(referendums_router)
 router.include_router(jobs_router)
 router.include_router(pledges_router)
 router.include_router(profile_content_router)
+router.include_router(profile_preview_router)
 
 __all__ = ["router"]
