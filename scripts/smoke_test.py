@@ -10,6 +10,7 @@ import httpx
 READ_ONLY_PATHS = (
     "/health/live",
     "/health/ready",
+    "/politicians?offset=0&limit=1",
     "/regions?offset=0&limit=1",
     "/glossary?offset=0&limit=1",
     "/search?q=test&limit=1",

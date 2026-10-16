@@ -20,8 +20,8 @@ COPY backend /app/backend
 COPY scripts /app/scripts
 COPY frontend /app/frontend
 
-RUN mkdir -p /app/data/raw \
-    && chown -R verapolitica:verapolitica /app
+RUN mkdir -p /app/data/raw /var/lib/verapolitica/raw \
+    && chown -R verapolitica:verapolitica /app /var/lib/verapolitica
 
 USER verapolitica
 

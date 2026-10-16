@@ -195,17 +195,22 @@ There is no S3 adapter in this milestone.
 
 ## Docker
 
+Local production-like compose is documented in
+[production_containers.md](production_containers.md). Copy
+`.env.production.example` to `.env.production` first.
+
 ```bash
-docker build -t verapolitica:local .
-docker compose up --build
+./scripts/run_production_compose.sh up --build
 ```
 
-`compose.yaml` is for local production-like testing only. Its passwords are not
-production secrets. Run `alembic upgrade head` via the `migrate` service before
-web/scheduler start.
+`compose.yaml` is for local production-like testing. Its `POSTGRES_*` defaults
+are development-only. `migrate` runs `alembic upgrade head` before `web`
+starts. The scheduler service is opt-in (`--profile scheduler`) and still does
+nothing until cron variables are set.
 
 Container HEALTHCHECK uses `/health/live`, not readiness, so a brief database
-blip does not restart the web container in a loop.
+blip does not restart the web container in a loop. Smoke tests and a later
+reverse proxy should use `/health/ready`.
 
 ## Provider notes
 

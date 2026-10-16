@@ -9,6 +9,7 @@ Use this before promoting a VeraPolitica V1 build to staging or production.
 - [ ] `python -m compileall -q backend scripts tests`
 - [ ] `git diff --check` is clean
 - [ ] Docker image builds (`docker build -t verapolitica:release .`)
+- [ ] Local production-like compose documented in `docs/production_containers.md`
 - [ ] Alembic revisions reviewed; `alembic upgrade head` is the deploy step
 - [ ] No real secrets in git (`.env` ignored, example templates are placeholders)
 

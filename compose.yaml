@@ -1,81 +1,73 @@
+# Local production-like stack for VeraPolitica.
+# Development-only credentials live in `.env.production.example` and the
+# POSTGRES_* defaults below. Never use them on a public VPS.
+#
+# Required: copy `.env.production.example` to `.env.production` (gitignored).
+#   docker compose --env-file .env.production up --build
+#   ./scripts/run_production_compose.sh up --build
+#
+# Scheduler is opt-in and stays disabled unless you pass --profile scheduler.
+
+name: verapolitica
+
+x-app-env: &app-env
+  env_file:
+    - .env.production
+  environment:
+    # Compose DNS name `db` must win over any VPS hostname in the env file.
+    VERAPOLITICA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-verapolitica}:${POSTGRES_PASSWORD:-verapolitica}@db:5432/${POSTGRES_DB:-verapolitica}
+    VERAPOLITICA_RAW_STORAGE_PATH: /var/lib/verapolitica/raw
+    VERAPOLITICA_WEB_HOST: 0.0.0.0
+
 services:
-  postgres:
+  db:
     image: postgres:16
     environment:
-      POSTGRES_USER: verapolitica
-      POSTGRES_PASSWORD: verapolitica
-      POSTGRES_DB: verapolitica
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-verapolitica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-verapolitica}
+      POSTGRES_DB: ${POSTGRES_DB:-verapolitica}
     volumes:
       - verapolitica_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U verapolitica -d verapolitica"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-verapolitica} -d ${POSTGRES_DB:-verapolitica}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   migrate:
+    <<: *app-env
     build: .
     command: python -m alembic upgrade head
-    environment:
-      VERAPOLITICA_ENV: production
-      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
-      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
-      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
-      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
-      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
-      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
-      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
-      VERAPOLITICA_LOG_FORMAT: json
-      VERAPOLITICA_ENABLE_DEMO_UI: "false"
-      VERAPOLITICA_ENABLE_API_DOCS: "false"
-      VERAPOLITICA_WEB_WORKERS: "2"
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
   web:
+    <<: *app-env
     build: .
-    environment:
-      VERAPOLITICA_ENV: production
-      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
-      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
-      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
-      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
-      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
-      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
-      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
-      VERAPOLITICA_LOG_FORMAT: json
-      VERAPOLITICA_ENABLE_DEMO_UI: "false"
-      VERAPOLITICA_ENABLE_API_DOCS: "false"
-      VERAPOLITICA_WEB_WORKERS: "2"
+    command: python -m scripts.run_web
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
-      - verapolitica_raw:/app/data/raw
+      - verapolitica_raw:/var/lib/verapolitica/raw
     depends_on:
+      db:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    restart: unless-stopped
 
   scheduler:
+    <<: *app-env
+    profiles: ["scheduler"]
     build: .
     command: python -m scripts.run_scheduler
-    environment:
-      VERAPOLITICA_ENV: production
-      VERAPOLITICA_PUBLIC_BASE_URL: http://127.0.0.1:8000
-      VERAPOLITICA_DATABASE_URL: postgresql+psycopg://verapolitica:verapolitica@postgres:5432/verapolitica
-      VERAPOLITICA_RAW_STORAGE_PATH: /app/data/raw
-      VERAPOLITICA_ADMIN_API_KEY: local-compose-admin-key-not-for-prod
-      VERAPOLITICA_ADMIN_REVIEWER_IDENTITY: local-compose-editor
-      VERAPOLITICA_CORS_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
-      VERAPOLITICA_TRUSTED_HOSTS: localhost,127.0.0.1,web,testserver
-      VERAPOLITICA_LOG_FORMAT: json
-      VERAPOLITICA_ENABLE_DEMO_UI: "false"
-      VERAPOLITICA_ENABLE_API_DOCS: "false"
     volumes:
-      - verapolitica_raw:/app/data/raw
+      - verapolitica_raw:/var/lib/verapolitica/raw
     depends_on:
+      db:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 

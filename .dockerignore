@@ -17,11 +17,12 @@ __pycache__
 .coverage
 htmlcov
 .ci
-data/demo
-data/smoke
-data/raw
-data/verapolitica.db
-evaluation/reports
+tests
+data
+evaluation
+frontend/demo
+frontend/node_modules
+compose.yaml
 *.md
 !README.md
 .DS_Store

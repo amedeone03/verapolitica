@@ -32,7 +32,10 @@ stay disabled in production.
 ## Secret handling
 
 - `.env` and `.env.*` are gitignored except `.env.example` and
-  `.env.production.example`, which have placeholders only.
+  `.env.production.example`, which have placeholders only. Compose reads
+  `.env.production`; that filled file stays gitignored.
+- The production image runs as user `verapolitica` (uid 10001), not root.
+  `.dockerignore` excludes `.env*`, tests, demo UI, and local data trees.
 - `admin_api_key` and `llm_api_key` are `SecretStr` values.
 - Health, error, and release-check payloads omit DSNs, passwords, and keys.
 - Logs redact bearer tokens, `VERAPOLITICA_*KEY` assignments, and PostgreSQL

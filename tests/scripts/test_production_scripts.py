@@ -43,6 +43,8 @@ def test_smoke_test_is_read_only():
     assert all(path.startswith("/") for path in READ_ONLY_PATHS)
     assert all("/admin" not in path for path in READ_ONLY_PATHS)
     assert "/health/live" in READ_ONLY_PATHS
+    assert "/health/ready" in READ_ONLY_PATHS
+    assert any(path.startswith("/politicians") for path in READ_ONLY_PATHS)
 
 
 def test_gunicorn_command_is_production_safe():
