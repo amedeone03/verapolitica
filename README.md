@@ -1,33 +1,105 @@
 # VeraPolitica
 
-VeraPolitica ingests official national political data from Senato della Repubblica,
-Camera dei Deputati, and Governo Italiano. Each source-specific collector, parser,
-and mapper feeds the same source-independent pipeline. Raw responses are preserved and
-meaningful changes are detected with canonical normalized hashes. Changed records
-are mapped deterministically into transient CandidateProfile objects. The domain includes
-stable Politician identities, generic official-source identifiers, immutable
-PoliticianVersion snapshots, a read-only deterministic MatchingService, and an
-explicit bootstrap command for initial identity creation. Unsafe or ambiguous
-identity results are persisted as human-reviewable IdentityResolutionCases. Matched candidates can
-now be compared with their current version and persisted as reviewable ProfileDrafts
-with field-level Evidence. Explicit human decisions can reject a draft or atomically
-publish it as a new immutable PoliticianVersion.
+An evidence-first civic-tech platform for structured, verifiable, and accessible political information.
 
-VeraPolitica also supports an internal, evidence-grounded AI extraction path for
-operator-approved official HTML and text-based PDF documents. AI output is schema
-validated, checked against deterministic document chunks, and can create only
-reviewable ProposalDrafts. AI never publishes directly. Citizen authentication,
-OCR, RAG, embeddings, and arbitrary web crawling are not implemented.
-CandidateProfiles remain transient and normal ingestion never creates Politicians,
-and matching and diffing never mutate the database. A separate transactional
-identity service may attach a newly discovered official identifier after one safe
-deterministic match or an explicit human identity decision. Publication is only available
-through an explicit review action. The read-only public API exposes only the
-immutable version selected by a Politician's current-version pointer.
+VeraPolitica collects official and public sources, keeps raw evidence, and publishes only reviewed records. Politicians do not edit their own public profiles. Automation can prepare drafts; it does not become public truth by itself. Optional AI can help extract or explain published data, but it is not the source of political assessments.
 
-## Setup
+<!-- Screenshot placeholder: add a public citizen-archive image here (for example docs/images/public-profile.png) once a cleared screenshot of /app/ is available. Do not use admin or editorial UI. -->
 
-Create and activate a virtual environment, then install the pinned dependencies:
+## At a glance
+
+| | Current, verified figure | Source |
+| --- | --- | --- |
+| Territorial reference | 20 regions, 7,894 current municipalities | ISTAT workbook documented in [territorial-sources.md](docs/territorial-sources.md) (state through 21 February 2026) |
+| Ask VeraPolitica evaluation | 54 synthetic cases (deterministic baseline 54/54); 45 real-corpus cases | [ask_verapolitica_evaluation.md](docs/ask_verapolitica_evaluation.md) |
+| Release | PRE-VPS release candidate — backend is production-oriented; first VPS is not live | [production_deployment.md](docs/production_deployment.md) |
+
+These numbers describe documented reference data, an engineering benchmark, and release status. They are not a claim about live production coverage or model accuracy.
+
+## Key features
+
+- **Political profiles** — Published identity, career, positions, and citations from official sources.
+- **Official-source ingestion** — Senato, Camera, Governo, ISTAT, and DAIT collectors feed one source-independent pipeline.
+- **Promise tracking** — Explicit pledges are stored separately from legislative proposals and shown with a public status.
+- **Evidence-backed assessments** — Published verdicts cite official excerpts; they are not LLM-authored public truth.
+- **Ask VeraPolitica** — Retrieval-first answers over published data, with a deterministic fallback.
+- **Spiegami questa promessa** — Read-only explanation of an already published pledge assessment.
+- **Human editorial review** — Drafts, identity uncertainty, and publications require an explicit human decision.
+- **Municipal and regional data** — ISTAT territories and current office-holder feeds, without inventing politicians from names.
+- **Public search** — One read-only search across published politicians, proposals, territories, and civic records.
+- **Production infrastructure** — PostgreSQL, Docker Compose, Alembic migrations, Caddy/HTTPS target, and backups.
+
+## How it works
+
+Deterministic processing is the main path. AI is optional and sits beside it.
+
+```mermaid
+flowchart TD
+  A[Official / public sources] --> B[Collectors / ingestion]
+  B --> C[Normalization and validation]
+  C --> D[Draft / editorial layer]
+  D --> E[Human review]
+  E --> F[Published structured data]
+  F --> G[Public API / web app]
+```
+
+Where optional AI may assist:
+
+- extraction of unstructured official documents into **reviewable drafts only**
+- synthesis of Ask / Spiegami answers from **already published** facts
+- never auto-publication of politician profiles, pledges, or assessments
+
+Raw responses are stored. Meaningful changes are detected with canonical hashes. Unsafe identity matches become review cases instead of guessed links. Details: [architecture.md](docs/architecture.md), [data-model.md](docs/data-model.md).
+
+## Data integrity and editorial model
+
+- **Raw sources are preserved.** Ingested payloads stay on disk with hashes; the public site does not replace the source.
+- **Published records carry evidence.** Visible facts point back to official citations, not to reviewer notes.
+- **Draft and published are separate.** Pending, rejected, and unpublished material never appear on the public API or `/app/`.
+- **Humans approve publication.** Ingestion, matching, and AI extraction can create drafts. Only an explicit review action publishes.
+- **Identity is not guessed.** Automatic matching uses an exact official identifier or name plus exact birth date. Ambiguous cases go to editorial review.
+- **Politicians do not self-edit** the public archive.
+- **Verdicts are not autonomously published by an LLM.** Scoring and assessment publication stay in the editorial/scoring pipeline. See [scoring-methodology.md](docs/scoring-methodology.md).
+
+## AI in VeraPolitica
+
+VeraPolitica is not an autonomous AI political fact-checker. Production can run with the LLM provider disabled.
+
+**Ask VeraPolitica** (`POST /ask`) is retrieval-first over published politicians, pledges, statuses, topics, and sources. Intent parsing is deterministic. Optional LLM synthesis rewrites retrieved facts. If the provider is off, invalid, or contradictory, a deterministic answer is used. [ask_verapolitica.md](docs/ask_verapolitica.md)
+
+**Spiegami questa promessa** explains a published pledge state and its stored evidence. It is read-only and does not score or publish. It has a deterministic fallback. [ai_explain_pledge.md](docs/ai_explain_pledge.md)
+
+**Document extraction** is an optional operator path for official HTML or text-based PDF. Output becomes reviewable drafts only. OCR, embeddings, RAG, and web crawling are not implemented. Extraction is not required for production. [ai-evaluation.md](docs/ai-evaluation.md)
+
+## Tech stack
+
+| Area | Current stack |
+| --- | --- |
+| Backend | Python, FastAPI, SQLAlchemy, Pydantic, Alembic |
+| Database | SQLite for tests and local demos; PostgreSQL for production |
+| Frontend | Vanilla HTML, CSS, and JavaScript (`frontend/app/`) |
+| Infrastructure | Docker, Docker Compose, GitHub Actions, Caddy as the first-VPS HTTPS proxy |
+| Testing | pytest; optional PostgreSQL integration tests (`pytest -m postgres`) |
+| Optional AI | Configurable LLM provider (off by default); tests use a fake provider |
+
+Redis, vector indexes, frontend frameworks, and a live public cloud staging environment are not part of the current stack.
+
+## Project structure
+
+```text
+backend/     FastAPI app, domain services, collectors, scoring
+frontend/     Public citizen UI and local editorial demo UI
+scripts/      Ingestion, demo, review, backup, and operator CLIs
+tests/        pytest suite (API, pipeline, scoring, UI, e2e)
+docs/         Architecture, API, scoring, security, and deploy docs
+evaluation/   Versioned gold sets for Ask and extraction
+alembic/      Production PostgreSQL migrations
+data/         Local/demo databases, fixtures, and raw storage (not production)
+```
+
+## Local development
+
+Recommended path: the **unified demo**. It is the fullest local presentation (profiles, pledges, Ask, Spiegami) and does not touch production data.
 
 ```bash
 python -m venv .venv
@@ -35,556 +107,73 @@ source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
-Local configuration defaults are shown in `.env.example`. Copy them into `.env`
-only when you need to override the defaults. Production uses
-`.env.production.example` and [docs/production_configuration.md](docs/production_configuration.md).
-
-SQLite is the default local/test/demo database. PostgreSQL is the
-production-like engine. See [docs/database-and-migrations.md](docs/database-and-migrations.md)
-and [docs/scheduled-jobs.md](docs/scheduled-jobs.md).
-Public search is documented in [docs/search.md](docs/search.md).
-Pledge classification, fulfilment verdicts, the public scorecard, blind audits
-and partisan-skew checks are documented in
-[docs/scoring-methodology.md](docs/scoring-methodology.md).
-Civic referendums, voting guides, glossary, and reminders are documented in
-[docs/civic-features.md](docs/civic-features.md).
-Production configuration is documented in
-[docs/production_configuration.md](docs/production_configuration.md).
-The local production-like container stack is documented in
-[docs/production_containers.md](docs/production_containers.md).
-Backup and disaster recovery are documented in
-[docs/backup_and_restore.md](docs/backup_and_restore.md).
-First VPS deploy is documented in
-[docs/production_deployment.md](docs/production_deployment.md)
-([first_deploy_checklist.md](docs/first_deploy_checklist.md)).
-Day-2 operations are in
-[docs/production-runbook.md](docs/production-runbook.md).
-Hardening is documented in
-[docs/security.md](docs/security.md),
-[docs/production_security.md](docs/production_security.md), and
-[docs/release-checklist.md](docs/release-checklist.md).
-
-## Database
-
-Tests and `python -m scripts.prepare_demo` keep using SQLite with
-`metadata.create_all`. Persistent PostgreSQL databases must be migrated
-explicitly:
+If the unified database is not built yet:
 
 ```bash
-createdb verapolitica
-export VERAPOLITICA_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/verapolitica
-alembic upgrade head
-alembic current
+python -m scripts.prepare_unified_demo --seed-from-ceo
 ```
 
-The application never runs `alembic upgrade head` on startup. If a PostgreSQL
-schema is behind head, `/health/ready` fails and the process logs a warning.
-
-## Production
-
-First deploy on a VPS uses the compose stack (`db` → `migrate` → `web`) behind
-a reverse proxy. Do **not** start the scheduler on first boot.
+Then start it:
 
 ```bash
-./scripts/run_production_compose.sh up -d --build
-python -m scripts.smoke_test --base-url http://127.0.0.1:8000 --production \
-  --host-header YOUR_DOMAIN
+./scripts/run_unified_demo.sh
 ```
 
-Full order: [docs/production_deployment.md](docs/production_deployment.md).
-Do not use `uvicorn --reload`. `python -m scripts.prepare_demo` refuses
-`VERAPOLITICA_ENV=production`. The current public HTTP paths are the V1 API
-contract.
+- Public app: http://127.0.0.1:8000/app/
+- Example profile: http://127.0.0.1:8000/app/?politician=206
+- Health: http://127.0.0.1:8000/health/live
 
-## Scheduled ingestion jobs
+A smaller synthetic demo (`./scripts/run_demo.sh`) is enough for the editorial publication boundary (Anna Rossi published, Luca Bianchi pending). Presenter notes: [demo.md](docs/demo.md).
 
-Existing operator commands still work. The job CLI records run history:
+Local defaults live in `.env.example`. Do not copy production secrets into the README or into git. Admin routes require a bearer token; see [api-contract.md](docs/api-contract.md).
 
-```bash
-python -m scripts.run_jobs senato
-python -m scripts.run_jobs camera
-python -m scripts.run_jobs governo
-python -m scripts.run_jobs proposals
-python -m scripts.run_jobs territories
-python -m scripts.run_jobs territorial-offices
-python -m scripts.run_jobs civic-reminders
-python -m scripts.run_jobs list
-```
-
-Schedules stay disabled unless you set a cron variable, then start a separate
-process:
-
-```bash
-export VERAPOLITICA_SCHEDULE_SENATO_CRON="0 3 * * *"
-python -m scripts.run_scheduler
-```
-
-Inspect runs through `/admin/jobs` with the existing admin bearer token. There is
-no public job API.
-
-## Evidence-grounded AI extraction
-
-The focused extraction path is:
-
-```text
-official document -> RawDocument -> deterministic text -> DocumentChunk
-  -> structured provider -> schema validation -> evidence validation
-  -> ProposalObservation -> ProposalDraft -> human review -> publication
-```
-
-Supported inputs are UTF-8 HTML and text-based PDF. A PDF with no extractable text
-fails with an OCR-required error; OCR is intentionally out of scope. Chunks use
-deterministic page/paragraph-aware character limits and retain page, character, and
-SHA-256 metadata. No vector index or semantic retrieval is involved.
-
-Citizen explanations of published pledges («Spiegami questa promessa») reuse the
-same provider settings and fall back to published evidence when AI is off. See
-[docs/ai_explain_pledge.md](docs/ai_explain_pledge.md). «Chiedi a VeraPolitica»
-(`POST /ask`) answers a limited set of questions from the same published data;
-see [docs/ask_verapolitica.md](docs/ask_verapolitica.md).
-
-Live extraction is disabled unless `VERAPOLITICA_LLM_PROVIDER=openai`, a model, and an
-API key are explicitly configured. The model and all size/request limits are
-environment-configurable; API keys are never persisted. Tests and the demo use the
-deterministic fake provider and never require network access or paid calls.
-
-Run an internal extraction with:
-
-```bash
-python -m scripts.run_ai_extraction \
-  --file path/to/official-programme.pdf \
-  --source-url https://official.example/programme.pdf
-```
-
-For an offline deterministic run, add
-`--fake-response data/fixtures/ai/synthetic_fake_response.json`. The command prints
-the extraction run and draft IDs and never approves or publishes them.
-
-An optional live smoke test may use the Piano Nazionale di Ripresa e Resilienza PDF
-published under `https://www.governo.it/sites/governo.it/files/PNRR.pdf`. It is an
-official institutional source because it is hosted on the Governo Italiano domain.
-Download and inspect it manually before supplying the local file and that URL to the
-command. VeraPolitica does not crawl it, and no paid call is run automatically.
-
-## AI extraction evaluation
-
-The versioned synthetic gold set under `evaluation/gold/v1/` measures claim
-detection, proposal/promise classification, evidence, actors, topics, exact
-date/numeric fields, abstention, and hallucination rate without an LLM judge.
-Evaluation runs only in-memory document extraction and the provider boundary; it
-never creates proposals or drafts.
-
-```bash
-python -m scripts.evaluate_ai_extraction \
-  --dataset evaluation/gold/v1 \
-  --provider fake \
-  --profile perfect \
-  --output-dir evaluation/reports/perfect
-```
-
-Profiles `noisy`, `wrong_evidence`, `wrong_type`, and `abstention` demonstrate metric
-regressions deterministically. Compare report JSON files with `--compare RUN_A
-RUN_B`. Optional real-model evaluation requires both an explicit OpenAI model and
-`VERAPOLITICA_LLM_API_KEY`; no paid evaluation runs automatically. See
-`docs/ai-evaluation.md` for frozen definitions and dataset format.
-
-## Run one ingestion
-
-From the repository root:
-
-```bash
-# Backward-compatible default: Senato
-python -m scripts.run_ingestion
-
-# Explicit source selection
-python -m scripts.run_ingestion --source senato
-python -m scripts.run_ingestion --source camera
-python -m scripts.run_ingestion --source governo
-```
-
-Territorial reference data and current mayors are a separate operator command.
-Tests and local work should use fixtures. Live downloads are explicit:
-
-```bash
-python -m scripts.run_territorial_ingestion territories --fixture data/fixtures/territorial/istat.xlsx
-python -m scripts.run_territorial_ingestion offices --fixture data/fixtures/territorial/dait_mayors.csv
-
-# explicit live downloads, isolated storage recommended
-python -m scripts.run_territorial_ingestion territories --live \
-  --database-url sqlite:///./data/smoke/territorial.db \
-  --raw-storage-path ./data/smoke/raw
-python -m scripts.run_territorial_ingestion offices --live \
-  --database-url sqlite:///./data/smoke/territorial.db \
-  --raw-storage-path ./data/smoke/raw
-```
-
-Office ingestion requires territories first. The DAIT feed is not a complete census
-of Italian mayors and never creates politicians from names. See
-`docs/territorial-sources.md`.
-
-By default this creates `data/verapolitica.db` and stores immutable raw payloads
-under `data/raw/`. The command prints the RawDocument ID, both hashes, change result,
-storage key, and collector/parser versions.
-The output also reports how many CandidateProfiles and identity-resolution cases
-were produced. Unchanged source data produces zero candidates and no new cases.
-
-Camera ingestion uses the official Camera open-data SPARQL endpoint and maps current
-XIX-legislature deputies. Camera-specific RDF bindings remain inside its collector,
-parser, mapper, and provenance; the CandidateProfile and every downstream service
-remain source-independent.
-
-Senato and Camera ingestion also collect their official structured parliamentary-
-group membership data. Each raw document is a versioned bundle containing the exact
-people and group SPARQL response bodies. Group observations are normalized into
-institution- and legislature-scoped `ParliamentaryGroup` rows and time-bounded
-`ParliamentaryGroupMembership` rows only after the politician is resolved through
-an existing exact source identifier. Unresolved people are reported and skipped;
-the group pipeline never creates a Politician. Repeated runs are idempotent, while
-new official end dates update the existing interval and group transfers append a
-new interval without deleting history.
-
-`ParliamentaryGroup` is an institutional chamber concept. It is deliberately not a
-`PoliticalParty`, and no party affiliation is inferred from a group membership.
-
-Political parties and time-bounded affiliations have their own domain models and
-transactional persistence service. An affiliation may be stored only from an
-explicit official assertion for an already-resolved Politician; neither a
-parliamentary group nor an electoral list can create one. No production affiliation
-collector is enabled yet: Camera and Senato publish groups and election lists,
-Governo's current profile pages do not publish a consistent party-membership field,
-and the official national party register identifies parties but not their members.
-The public API therefore returns an empty `political_parties` collection until a
-supported explicit source is available.
-
-`PoliticalParty`, `ParliamentaryGroup`, `ElectoralList`, and `Coalition` are distinct
-concepts. VeraPolitica currently models only the first two and performs no automatic
-conversion between them.
-
-## Proposal and explicit-promise tracker
-
-The first deterministic proposal source is the official Senato linked-data DDL
-feed. It supplies stable DDL URIs, titles, presentation dates, initiative records,
-Senator URIs, official status labels, and status dates. The adapter uses a separate
-`senato-ddl` Source stream, so legislative changes cannot alter the normal Senato
-politician change detector.
-
-```bash
-python -m scripts.run_proposal_ingestion
-```
-
-The default window is the latest 100 DDL resources; configure it with
-`VERAPOLITICA_SENATO_PROPOSAL_RECORD_LIMIT`. Raw SPARQL JSON is preserved, canonical
-records drive normalized change detection, and changed records become transient
-`ProposalObservation` objects. Sync creates only internal `Proposal` identities and
-evidence-backed `ProposalDraft` rows. It never publishes them.
-
-`Proposal != Promise`. A legislative DDL remains a `legislative_proposal`, including
-when its initiative is governmental. `explicit_promise` is supported by the domain
-and deterministic synthetic fixtures only; it requires exact commitment text, a
-commitment owner, and official evidence. There is no campaign-programme extraction
-or classification of vague language.
-
-Every public proposal and later status transition requires human approval. Approval
-atomically appends an immutable `ProposalStatusEvent`, publishes safely resolved
-actors, updates current status, creates the final `ProposalReview`, and closes the
-draft. Rejection creates no public event. Original Senato labels remain alongside
-normalized statuses; an unknown label fails mapping rather than being guessed.
-
-Actors resolve only through exact existing official identifiers. Unresolved
-presenter metadata remains in the editorial draft and is never linked by name. A
-governmental initiative is represented as the institution `Governo Italiano`, not
-as inferred ownership by a person or party. The live feed exposes current DDL phase
-metadata; reviewed history accumulates over successive observations and does not
-claim to backfill every within-phase event.
-
-Governo ingestion uses the official current office-holder index and its linked
-official profile pages. Because Governo does not expose an equivalent structured
-people endpoint, the collector preserves the index and all discovered profile HTML
-inside one deterministic raw bundle. The parser uses semantic HTML metadata and
-official links rather than page positions. Its stable identifier is the official
-Drupal node shortlink when present, falling back to the canonical profile URL.
-
-The Governo adapter maps offices, institutions, appointment dates, official image
-and profile URLs, and birth data only when the biography states it explicitly. It
-does not infer professions from prose. Most current profiles do not publish a birth
-date, so those candidates cannot safely use name-plus-birth-date fallback matching.
-Routine candidate processing creates or reuses a human identity-resolution case;
-bootstrap still reports them as invalid rather than creating possible duplicate people.
-Exact official identifiers continue to match normally. The adapter also groups
-multiple official pages with the same displayed name into one candidate and retains
-all of their identifiers and mandates; exact-name grouping and simple displayed-name
-splitting are known MVP limitations.
-
-## Resolve incomplete or ambiguous identities
-
-Automatic identity resolution remains limited to an exact official source identifier
-or normalized full name plus exact birth date. It never links on name alone.
-
-An `uncertain` result, or a candidate without the birth date required for fallback,
-creates one durable `IdentityResolutionCase`. The deduplication key is the Source row
-plus the candidate's lexically first official identifier for that source. Repeated
-processing reuses the same case and preserves its original CandidateProfile snapshot.
-A complete candidate with no match remains in the existing explicit bootstrap path.
-
-Authenticated editors can inspect conservative same-name suggestions and then:
-
-- link the case to an existing Politician;
-- explicitly authorize creation of a new Politician;
-- mark the case ignored without attaching an identifier.
-
-Linking and creation attach every identifier from the stored candidate through the
-same PoliticianIdentityService validation used by automatic linking. Identifier
-attachment and the terminal case decision share one transaction. Terminal cases
-cannot be decided again, and identity-resolution data is never exposed publicly.
-
-## Bootstrap politician identities
-
-Bootstrap is a separate, explicit operator action. It rebuilds transient
-CandidateProfiles from a successfully parsed RawDocument, classifies every record,
-and emits a detailed JSON report. Start with a dry-run against the latest parsed
-Senato document:
-
-```bash
-python -m scripts.bootstrap_politicians --dry-run
-```
-
-For the latest parsed Camera document, select its generic Source key:
-
-```bash
-python -m scripts.bootstrap_politicians \
-  --dry-run \
-  --source-key camera-deputati
-```
-
-The equivalent Governo Source key is `governo-italiano`.
-
-To select a specific stored snapshot:
-
-```bash
-python -m scripts.bootstrap_politicians --dry-run --raw-document-id 12
-```
-
-If the report has no uncertain or invalid records, create only the candidates
-classified as new:
-
-```bash
-python -m scripts.bootstrap_politicians --apply --raw-document-id 12
-```
-
-Apply creates each new Politician and its source identifiers in one database
-transaction. Matched candidates are skipped. Any uncertain or invalid candidate
-blocks all writes. Repeating the command is idempotent because existing identifiers
-match their Politicians and the database also enforces identifier uniqueness.
-
-## Create one profile draft
-
-Draft creation is another explicit operator action. Select one record from a stored,
-successfully parsed RawDocument:
-
-```bash
-python -m scripts.create_profile_draft \
-  --raw-document-id 12 \
-  --candidate-index 0
-```
-
-The command rebuilds that transient CandidateProfile, requires one deterministic
-Politician match, and explicitly links any new identifier from that candidate's
-official source before computing the diff. It then creates a pending ProfileDraft
-plus Evidence in one transaction. If the candidate equals the current version it
-returns `no_changes` and writes nothing. A changed field without source provenance,
-including a removal without explicit absence evidence, blocks creation.
-
-Identifier linking is separate from MatchingService. It is idempotent, preserves
-multiple legitimate identifiers from one source, and refuses an identifier already
-owned by another Politician. `new` and `uncertain` matches never trigger linking.
-
-Creating a meaningful new draft supersedes existing `pending` and `in_review`
-drafts only after the new diff and all evidence have been validated. This command
-does not approve, publish, or create PoliticianVersions.
-
-## Review and publish one draft
-
-Approve a reviewable draft and atomically create its next immutable version:
-
-```bash
-python -m scripts.review_profile_draft \
-  --draft-id 1 \
-  --approve \
-  --reviewer "demo-editor"
-```
-
-Reject a draft without creating a version:
-
-```bash
-python -m scripts.review_profile_draft \
-  --draft-id 2 \
-  --reject \
-  --reviewer "demo-editor" \
-  --note "Evidence requires clarification"
-```
-
-Only `pending` and `in_review` drafts can receive a final decision. Approval verifies
-that the draft baseline is still current, then creates the Review, version, current
-pointer, and approved status in one transaction. Rejection creates only the final
-Review and rejected status. Repeating either final action is blocked.
-
-## Run the Admin API
-
-Set a local admin secret and reviewer identity, then start Uvicorn:
-
-```bash
-export VERAPOLITICA_ADMIN_API_KEY="replace-with-a-long-random-secret"
-export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="local-editor"
-uvicorn backend.app.main:app --reload
-```
-
-The health endpoint is public. Every `/admin/*` endpoint requires the bearer token:
-
-```bash
-curl http://127.0.0.1:8000/health
-
-curl \
-  -H "Authorization: Bearer $VERAPOLITICA_ADMIN_API_KEY" \
-  http://127.0.0.1:8000/admin/drafts
-
-curl \
-  -H "Authorization: Bearer $VERAPOLITICA_ADMIN_API_KEY" \
-  http://127.0.0.1:8000/admin/identity-resolution
-```
-
-The API exposes draft review plus identity-resolution listing, detail, link-existing,
-create-new, and ignore actions. Reviewer identity always comes from authenticated
-server context. Route handlers delegate transactions to the corresponding services.
-
-## Read the Public API
-
-The public routes require no bearer token:
-
-```bash
-curl "http://127.0.0.1:8000/politicians?offset=0&limit=50"
-curl http://127.0.0.1:8000/politicians/1
-curl "http://127.0.0.1:8000/proposals?offset=0&limit=50"
-curl http://127.0.0.1:8000/proposals/1
-curl "http://127.0.0.1:8000/search?q=Anna"
-curl "http://127.0.0.1:8000/search?q=Milano&type=municipality"
-curl "http://127.0.0.1:8000/referendums?upcoming=true"
-curl http://127.0.0.1:8000/voting-guides
-curl http://127.0.0.1:8000/glossary
-```
-
-Only Politicians whose `current_version_id` references a published immutable
-PoliticianVersion are visible. The API never falls back to the highest version
-number and does not expose drafts, Reviews, Evidence, hashes, or raw storage data.
-Politician detail responses include a curated citation snapshot copied from the
-approved draft's Evidence during publication. List items expose only
-`citation_count` to stay compact. Versions published before citation snapshots were
-introduced remain readable with an empty citation list.
-Detail responses also include current and historical parliamentary-group
-memberships, ordered current first, with chamber, legislature, official dates,
-optional role, and an official source link. Internal group IDs and RDF identifiers
-are not exposed.
-Political-party affiliations, when supported by an explicit official assertion, are
-returned separately in `political_parties`, current first and then historical. They
-are never inferred from `parliamentary_groups`.
-On an update, citations for unchanged fields are inherited from the baseline version,
-while citations for changed fields come from the newly approved Evidence. A version
-can therefore cite Senato and Camera independently without collapsing their identity.
-Interactive OpenAPI documentation is available at
-`http://127.0.0.1:8000/docs` while Uvicorn is running.
-
-Proposal routes expose only approved records. Detail includes accurate actor roles,
-the current normalized status, original official labels, an ordered approved
-timeline, and official links. Politician detail includes linked published records
-under `proposals`; co-sponsorship is displayed as co-sponsorship, not authorship.
-The citizen UI has a separate `/app/?view=proposals` archive.
-
-## Run tests
-
-```bash
-python -m pytest
-```
-
-Tests use temporary SQLite databases, mocked HTTP, deterministic fixtures, and
-temporary raw storage. They do not call live Senato, Camera, or Governo endpoints.
-Alembic upgrades a throwaway SQLite database in `tests/db`. Optional PostgreSQL
-checks need a server and:
-
-```bash
-pytest -m postgres
-```
-
-## Continuous integration
-
-GitHub Actions runs the SQLite backend suite, Alembic upgrade/downgrade checks, and
-an optional PostgreSQL service job for pushes to `main` and pull requests targeting
-`main`. Run the same default command locally from the repository root:
+## Testing and quality
 
 ```bash
 python -m pytest -q
 ```
 
-## End-to-end regression coverage
+GitHub Actions (Backend CI) runs that suite, `compileall`, Alembic upgrade checks, a PostgreSQL job, and a Docker image build on `main` and pull requests.
 
-The E2E suite exercises the MVP across its real application boundaries with a
-mocked official Senato response and temporary SQLite database:
-
-```text
-source data -> ingestion -> bootstrap/matching -> draft + Evidence
--> review -> publication + citation snapshot -> public API
-```
-
-It also verifies that rejected, stale, unpublished, duplicate-approval, and failed
-publication paths cannot expose unapproved content. Run only these scenarios with:
+Optional local PostgreSQL tests:
 
 ```bash
-python -m pytest -q tests/e2e
+pytest -q -m postgres
 ```
 
-## Demo setup
+The suite uses temporary SQLite databases, mocked HTTP, and fixtures. It does not call live Senato, Camera, or Governo endpoints. Publication-boundary, admin-auth, and e2e review tests are included. See [security.md](docs/security.md).
 
-Prepare—or reset—the deterministic, network-free presentation database:
+## Production status
 
-```bash
-python -m scripts.prepare_demo
-```
+The repository is a **PRE-VPS release candidate**. The backend is built for a containerized VPS (PostgreSQL, compose `db` → `migrate` → `web`, Caddy/HTTPS, backups). The first VPS is not treated as live in this documentation.
 
-For the shortest presentation setup, run the safe demo-only launcher instead:
+- PostgreSQL is the production database; the app does not auto-migrate on startup.
+- Scheduler and LLM provider stay off unless explicitly configured.
+- `python -m scripts.prepare_demo` refuses `VERAPOLITICA_ENV=production`.
 
-```bash
-./scripts/run_demo.sh
-```
+Do not follow README snippets as the deploy procedure. Use:
 
-It recreates only `data/demo/`, applies the documented demo environment, and starts
-the application on `127.0.0.1:8000`. It never touches the normal development
-database.
+- [production_deployment.md](docs/production_deployment.md) — first VPS
+- [first_deploy_checklist.md](docs/first_deploy_checklist.md)
+- [production-runbook.md](docs/production-runbook.md) — day-2 operations
+- [production_containers.md](docs/production_containers.md)
+- [backup_and_restore.md](docs/backup_and_restore.md)
+- [release-checklist.md](docs/release-checklist.md)
 
-The command touches only `data/demo/verapolitica_demo.db` and `data/demo/raw/`.
-It always recreates these stable IDs:
+## Further documentation
 
-- Published profile: Politician 1, Anna Rossi, version 1, 14 citations.
-- Pending review: Draft 2 for Politician 2, Luca Bianchi, 14 Evidence rows.
-- Pending identity resolution: Case 1 for the Governo fixture's Carlo Verdi.
+| Topic | Document |
+| --- | --- |
+| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Data model | [docs/data-model.md](docs/data-model.md) |
+| Public / admin API | [docs/api-contract.md](docs/api-contract.md) |
+| Search | [docs/search.md](docs/search.md) |
+| Scoring and pledges | [docs/scoring-methodology.md](docs/scoring-methodology.md) |
+| Civic records | [docs/civic-features.md](docs/civic-features.md) |
+| Territorial sources | [docs/territorial-sources.md](docs/territorial-sources.md) |
+| Scheduled jobs | [docs/scheduled-jobs.md](docs/scheduled-jobs.md) |
+| Database and migrations | [docs/database-and-migrations.md](docs/database-and-migrations.md) |
+| Configuration | [docs/production_configuration.md](docs/production_configuration.md) |
+| Security | [docs/security.md](docs/security.md), [docs/production_security.md](docs/production_security.md) |
 
-Start FastAPI against the demo state:
-
-```bash
-export VERAPOLITICA_DATABASE_URL="sqlite:///./data/demo/verapolitica_demo.db"
-export VERAPOLITICA_RAW_STORAGE_PATH="./data/demo/raw"
-export VERAPOLITICA_ADMIN_API_KEY="verapolitica-demo-admin"
-export VERAPOLITICA_ADMIN_REVIEWER_IDENTITY="demo-presenter"
-uvicorn backend.app.main:app --reload
-```
-
-Open the two complementary interfaces:
-
-- Citizen archive: `http://127.0.0.1:8000/app/`
-- Editorial demo: `http://127.0.0.1:8000/demo/`
-
-The citizen archive uses only the public API. Initially it shows Anna Rossi while
-Luca Bianchi is absent. In the editorial demo, inspect Draft 2 and approve it using
-the real review workflow. Refresh the citizen archive: Luca now appears, and
-`http://127.0.0.1:8000/app/?politician=2` shows his approved profile and grouped
-official citations. After a rehearsal, stop the API and rerun
-`python -m scripts.prepare_demo` to restore the original pending state. Swagger
-remains available at `/docs`. See [docs/demo.md](docs/demo.md) for the presenter
-runbook.
+Operator CLIs for ingestion, bootstrap, drafts, and review remain in `scripts/` and the documents above. They are not required to understand or run the public demo.
