@@ -105,11 +105,10 @@ def test_completeness_audit_is_read_only_and_covers_pdf_sections():
     assert len(blocked) == 2
     assert any("#10" in row.item and row.action == BLOCKED_SOURCE for row in blocked)
     assert any("#16" in row.item and row.action == NEEDS_MANUAL_REVIEW for row in blocked)
-    assert all(row.status == PENDING and row.action == BLOCKED_SOURCE for row in first.proceedings)
     assert len(first.proceedings) == 4
-    assert not any(row.status == PUBLISHED for row in first.proceedings)
+    assert all(row.status == PUBLISHED for row in first.proceedings)
     assert len(proceedings) == 4
-    assert {row.status for row in proceedings} == {ProfileContentStatus.PENDING}
+    assert {row.status for row in proceedings} == {ProfileContentStatus.PUBLISHED}
     assert all(row.summary and row.title for row in proceedings)
     assert any("favoreggiamento" in (row.summary or "") for row in proceedings)
     assert any("94 vittime" in (row.summary or "") for row in proceedings)
@@ -117,7 +116,7 @@ def test_completeness_audit_is_read_only_and_covers_pdf_sections():
     assert any("Fanpage" in (row.summary or "") for row in proceedings)
     assert all(proceeding_sources[row.id] for row in proceedings)
     assert all(
-        source.url is None or source.incomplete
+        source.url and not source.incomplete
         for sources in proceeding_sources.values()
         for source in sources
     )

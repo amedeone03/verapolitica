@@ -532,7 +532,9 @@ def audit_completeness(
     for item in fixture.get("proceedings") or []:
         row = _latest(session, PoliticianProceeding, politician.id, item["identity_key"])
         sources = _sources(session, ProfileContentKind.PROCEEDING, row.id) if row else []
-        has_text = bool(row and row.summary and item["title"][:20] in (row.title or ""))
+        complete = [item for item in sources if is_complete_source_url(item.url)]
+        published = bool(row and row.status is ProfileContentStatus.PUBLISHED)
+        pending = bool(row and row.status is ProfileContentStatus.PENDING)
         report.proceedings.append(
             InventoryRow(
                 "proceedings",
@@ -540,26 +542,27 @@ def audit_completeness(
                 f"proceeding:{row.id}" if row else "missing",
                 row.status.value if row else "missing",
                 _source_state(sources),
-                PENDING if row and row.status is ProfileContentStatus.PENDING else (
-                    PUBLISHED if row and row.status is ProfileContentStatus.PUBLISHED else MISSING
+                PUBLISHED if published else PENDING if pending else MISSING,
+                MATCHES_PUBLISHED if published and complete else (
+                    BLOCKED_SOURCE if pending else CREATE_PENDING
                 ),
-                BLOCKED_SOURCE if row else CREATE_PENDING,
-                "Full PDF narrative is stored. Exact source URLs are missing, so the row stays unpublished."
-                if has_text
-                else "Structured record missing or incomplete.",
+                (
+                    f"{len(complete)} verified source URL(s) attached."
+                    if complete
+                    else "Exact source URLs are missing, so the row stays unpublished."
+                ),
             )
         )
-        for source in item.get("sources") or []:
+        for source in sources:
             report.sources.append(
                 InventoryRow(
                     "sources",
-                    f"proceeding / {item['identity_key']} / {source.get('name')}",
-                    source.get("url") or "",
+                    f"proceeding / {item['identity_key']} / {source.name}",
+                    source.url or "",
                     row.status.value if row else "missing",
-                    "incomplete",
-                    BLOCKED,
-                    BLOCKED_SOURCE,
-                    "PDF names the outlet but does not give a verified exact URL.",
+                    "verified" if is_complete_source_url(source.url) else "incomplete",
+                    PUBLISHED if published and is_complete_source_url(source.url) else BLOCKED,
+                    MATCHES_PUBLISHED if is_complete_source_url(source.url) else BLOCKED_SOURCE,
                 )
             )
 

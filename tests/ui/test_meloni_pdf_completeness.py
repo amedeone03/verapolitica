@@ -120,11 +120,22 @@ def test_public_meloni_profile_exposes_published_pdf_fields_only():
         assert item["sources"]
         assert all(source.get("url") for source in item["sources"])
 
-    assert person["proceedings"] == []
+    titles = {item["title"] for item in person["proceedings"]}
+    assert titles == set(PROCEEDING_TITLES)
+    assert len(person["proceedings"]) == 4
+    for item in person["proceedings"]:
+        assert item["summary"]
+        assert item["sources"]
+        assert all(source.get("url") for source in item["sources"])
     public_blob = str(person) + str(scorecard)
-    for title in PROCEEDING_TITLES + BLOCKED_TITLES:
+    for title in BLOCKED_TITLES:
         assert title not in public_blob
-    assert "favoreggiamento" not in public_blob.casefold()
+    by_title = {item["title"]: item for item in person["proceedings"]}
+    assert "judicial_proceeding" not in by_title["Naufragio di Cutro (2023)"]["proceeding_types"]
+    assert (
+        "judicial_proceeding"
+        not in by_title["Accordo Italia–Albania sui migranti (2023–2026)"]["proceeding_types"]
+    )
     assert "suggested_verdict" not in public_blob
     assert "reference-profile-operator" not in public_blob
 
