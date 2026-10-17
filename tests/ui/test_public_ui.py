@@ -33,8 +33,8 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert styles.status_code == 200
     assert ".politician-grid" in styles.text
     assert ".source-block" in styles.text
-    assert "scroll-padding-top: 5.5rem" in styles.text
-    assert "scroll-padding-top: 11rem" in styles.text
+    assert "scroll-padding-top: var(--profile-scroll-pad, 5.5rem)" in styles.text
+    assert "scroll-padding-top: var(--profile-scroll-pad, 11rem)" in styles.text
     assert ".public-nav { display: flex; flex-wrap: wrap" in styles.text
     assert script.status_code == 200
     assert "renderPoliticianCard" in script.text

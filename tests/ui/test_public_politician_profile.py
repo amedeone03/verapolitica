@@ -81,8 +81,14 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert ".career-timeline" in styles
     assert ".source-card" in styles
     assert ".ask-suggestions" in styles
-    assert "scroll-padding-top: 5.5rem" in styles
-    assert "scroll-padding-top: 11rem" in styles
+    assert "scroll-padding-top: var(--profile-scroll-pad, 5.5rem)" in styles
+    assert "scroll-padding-top: var(--profile-scroll-pad, 11rem)" in styles
+    assert ".career-entry" in styles
+    assert ".career-marker" in styles
+    assert ".will-reveal" in styles
+    assert ".pledge-details" in styles
+    assert "--profile-nav-top" in styles
+    assert "prefers-reduced-motion: reduce" in styles
 
     assert scorecard["methodology_version"] == "pledge-score/v1"
     assert "Tasso di mantenimento" in script
@@ -94,14 +100,29 @@ def test_profile_section_nav_omits_missing_optional_blocks(tmp_path):
     with public_demo_client(tmp_path) as client:
         script = client.get("/app/app.js").text
 
-    assert 'who ? { href: "#profilo", label: "Profilo" }' in script
-    assert 'hasCareer ? { href: "#carriera", label: "Carriera" }' in script
+    assert 'who ? { href: "#profilo", label: "Chi è" }' in script
+    assert 'hasCareer ? { href: "#carriera", label: "Cosa ha fatto" }' in script
     assert 'sourcesMarkup ? { href: "#fonti", label: "Fonti" }' in script
     assert 'href: "#posizioni"' in script
     assert 'href: "#promesse"' in script
     assert 'href: "#procedimenti"' in script
+    assert '{ href: "#procedimenti", label: "Procedimenti e controversie" }' in script
     assert "bindProfileSectionNav" in script
+    assert "IntersectionObserver" in script
+    assert "bindProfileMotion" in script
     assert "bindProfileTabs" not in script
+    assert 'aria-current="location"' in script
+    assert 'class="career-entry' in script
+    assert "career-marker" in script
+    assert "Dettagli e fonti" in script
+    assert 'class="pledge-details"' in script
+    assert "data-count-to" in script
+    assert "will-reveal" in script
+    assert "prefersReducedMotion" in script
+    assert "form.requestSubmit()" in script
+    assert 'href="./?view=ask&amp;prefill=' in script
+    assert 'class="profile-ask-cta" href="./?view=ask&amp;question=' not in script
+    assert 'class="ask-suggestion" href="./?view=ask&amp;question=' in script
 
 
 def test_suggested_questions_are_deterministic_and_ask_v1_safe(tmp_path):
@@ -130,3 +151,34 @@ def test_public_profile_payload_has_career_inputs_not_positions_or_proceedings(t
     assert "reviewer_identity" not in payload
     assert "review_note" not in payload
     assert "status" not in payload
+
+
+def test_career_in_carica_requires_explicit_is_current(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        script = client.get("/app/app.js").text
+
+    career = script.split("export function careerEntries")[1].split("export function renderCareerTimeline")[0]
+    assert "function explicitlyCurrent(item)" in script
+    assert "return item?.is_current === true;" in script
+    assert "current: explicitlyCurrent(item)" in career
+    assert "current: explicitlyCurrent(mandate)" in career
+    assert "current: explicitlyCurrent(office)" in career
+    assert "current: !mandate.end_date" not in career
+    assert "current: !office.end_date" not in career
+    assert "current: !item.end_date" not in career
+    assert 'entry.current ? `<span class="career-current">In carica</span>`' in script
+
+
+def test_ask_question_autosubmits_and_prefill_does_not(tmp_path):
+    with public_demo_client(tmp_path) as client:
+        script = client.get("/app/app.js").text
+
+    show_ask = script.split("function showAsk")[1].split("export function renderSearchCard")[0]
+    assert 'params.get("question")' in show_ask
+    assert 'params.get("prefill")' in show_ask
+    assert "if (preset) form.requestSubmit();" in show_ask
+    assert "if (prefill) form.requestSubmit();" not in show_ask
+    assert "if (preset && !field.value) field.value = preset;" in show_ask
+    assert "else if (prefill && !field.value) field.value = prefill;" in show_ask
+    assert 'class="profile-ask-cta" href="./?view=ask&amp;prefill=' in script
+    assert 'class="ask-suggestion" href="./?view=ask&amp;question=' in script

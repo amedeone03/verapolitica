@@ -210,6 +210,10 @@ function isLegislatureNumber(value) {
   return /^\d+$/.test(String(value ?? "").trim());
 }
 
+function explicitlyCurrent(item) {
+  return item?.is_current === true;
+}
+
 function mandateRole(mandate, gender) {
   // Government roles carry their full title ("Ministro della Cultura dal 06/09/2024").
   const title = String(mandate.mandate_type ?? "").replace(/\s+dal\s+\d{1,2}\/\d{1,2}\/\d{4}\s*$/i, "").trim();
@@ -384,6 +388,7 @@ export function careerEntries(person) {
       extra: [item.organization, item.party_or_group].filter(Boolean).join(" · "),
       source: (item.sources || [])[0] || null,
       editorial: true,
+      current: explicitlyCurrent(item),
     });
   }
   (person.profile?.mandates || []).forEach((mandate, index) => {
@@ -397,6 +402,7 @@ export function careerEntries(person) {
       source: citation
         ? { name: citation.source_name, url: citation.source_url }
         : null,
+      current: explicitlyCurrent(mandate),
     });
   });
   for (const office of person.territorial_offices || []) {
@@ -410,6 +416,7 @@ export function careerEntries(person) {
       institution: territory,
       extra: office.municipality && office.region ? office.region : "",
       source: office.source || null,
+      current: explicitlyCurrent(office),
     });
   }
   const seen = new Set();
@@ -433,9 +440,11 @@ export function renderCareerTimeline(person) {
   if (!entries.length) {
     return `<p class="empty-note">Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo.</p>`;
   }
-  return `<ol class="career-timeline">${entries.map((entry) => `<li>
-    <time>${escapeHtml(formatYearRange(entry.start, entry.end))}</time>
-    <div>
+  return `<ol class="career-timeline">${entries.map((entry) => `<li class="career-entry${entry.current ? " is-current" : ""}">
+    <span class="career-marker" aria-hidden="true"></span>
+    <time${entry.start ? ` datetime="${escapeHtml(String(entry.start).slice(0, 10))}"` : ""}>${escapeHtml(formatYearRange(entry.start, entry.end))}</time>
+    <div class="career-body">
+      ${entry.current ? `<span class="career-current">In carica</span>` : ""}
       <strong>${escapeHtml(entry.role)}</strong>
       <p>${escapeHtml(entry.institution)}${entry.extra ? ` · ${escapeHtml(entry.extra)}` : ""}</p>
       ${entry.source ? renderSourceCard({
@@ -461,7 +470,7 @@ export function renderWhoIs(person) {
       title: source.title,
       kind: source.kind,
     })).filter(Boolean);
-    return `<section class="detail-card profile-who" id="profilo">
+    return `<section class="detail-card profile-block profile-who" id="profilo">
     <p class="eyebrow">Profilo</p>
     <h2>Chi è</h2>
     ${biography.split(/\n+/).map((paragraph) => `<p class="who-copy">${escapeHtml(paragraph)}</p>`).join("")}
@@ -493,7 +502,7 @@ export function renderWhoIs(person) {
     homepage ? renderSourceCard({ kind: "Sito ufficiale", name: "Pagina istituzionale", url: homepage }) : "",
     partySource ? renderSourceCard({ kind: "Fonte ufficiale", name: partySource.name, url: partySource.url }) : "",
   ].filter(Boolean);
-  return `<section class="detail-card profile-who" id="profilo">
+  return `<section class="detail-card profile-block profile-who" id="profilo">
     <p class="eyebrow">Profilo</p>
     <h2>Chi è</h2>
     ${sentences.map((sentence) => `<p class="who-copy">${escapeHtml(sentence)}</p>`).join("")}
@@ -540,7 +549,7 @@ export function renderKeyPositions(person = {}) {
         })).join("")}</div>
       </article>`).join("")}</div>`
     : `<p class="empty-note">Non sono ancora disponibili posizioni verificate per questo profilo.</p>`;
-  return `<section class="detail-card profile-positions" id="posizioni">
+  return `<section class="detail-card profile-block profile-positions" id="posizioni">
     <p class="eyebrow">Posizioni</p>
     <h2>Posizioni su temi chiave</h2>
     ${body}
@@ -563,7 +572,7 @@ export function renderProceedings(person = {}) {
         })).join("")}</div>
       </article>`).join("")}</div>`
     : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`;
-  return `<section class="detail-card profile-proceedings" id="procedimenti">
+  return `<section class="detail-card profile-block profile-proceedings" id="procedimenti">
     <p class="eyebrow">Procedimenti</p>
     <h2>Procedimenti e controversie</h2>
     ${body}
@@ -596,13 +605,13 @@ export function renderAskSuggestions(person, scorecard = null) {
   if (!questions.length) return "";
   const name = `${person.given_name} ${person.family_name}`;
   return `<section class="profile-ask" aria-label="Chiedi a VeraPolitica">
-    <a class="profile-ask-cta" href="./?view=ask&amp;question=${encodeURIComponent(questions[0])}">Chiedi a VeraPolitica su ${escapeHtml(name)}</a>
+    <a class="profile-ask-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(questions[0])}">Chiedi a VeraPolitica su ${escapeHtml(name)}</a>
     <div class="ask-suggestions">${questions.map((question) => `<a class="ask-suggestion" href="./?view=ask&amp;question=${encodeURIComponent(question)}">${escapeHtml(question)}</a>`).join("")}</div>
   </section>`;
 }
 
 export function renderTrustBlock() {
-  return `<section class="detail-card profile-trust" id="metodologia-profilo">
+  return `<section class="detail-card profile-block profile-trust" id="metodologia-profilo">
     <p class="eyebrow">Metodo</p>
     <h2>Come vengono verificati questi dati?</h2>
     <p>VeraPolitica utilizza fonti pubbliche e documenti verificabili. Le valutazioni delle promesse vengono pubblicate solo dopo revisione.</p>
@@ -614,7 +623,7 @@ function renderProfileSectionNav(sections) {
   const links = sections.filter((item) => item.href && item.label);
   if (!links.length) return "";
   return `<nav class="profile-section-nav" aria-label="Sezioni del profilo">${
-    links.map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("")
+    links.map((item, index) => `<a href="${escapeHtml(item.href)}"${index === 0 ? ' aria-current="location"' : ""}>${escapeHtml(item.label)}</a>`).join("")
   }</nav>`;
 }
 
@@ -993,23 +1002,14 @@ export function renderPledgeItem(pledge) {
   const declared = pledge.introduced_at ? formatDate(pledge.introduced_at) : "";
   const assessed = assessment?.effective_at ? formatDate(assessment.effective_at) : "";
   const declarationUrl = pledge.declaration_source_url || "";
-  return `<article class="pledge-item tone-${meta.tone}" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
-    <div class="pledge-top">
-      ${renderVerdictChip(pledge.verdict)}
-      <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Troppo vaga da valutare</span>`}</span>
-    </div>
-    <h4><a href="./?proposal=${encodeURIComponent(pledge.proposal_id)}">${escapeHtml(pledge.title)}</a></h4>
-    ${declared ? `<p class="pledge-origin">Dichiarata il ${escapeHtml(declared)}</p>` : ""}
-    ${pledge.exact_statement ? `<blockquote class="pledge-quote">“${escapeHtml(pledge.exact_statement)}”</blockquote>` : ""}
-    ${declarationUrl || pledge.declaration_source_name ? renderSourceCard({
-      kind: sourceKindFromUrl(declarationUrl),
-      name: pledge.declaration_source_name || sourceHostLabel(declarationUrl) || "",
-      url: declarationUrl,
-      title: "Fonte della dichiarazione",
-    }) : ""}
-    ${assessment ? `<div class="pledge-evidence tone-${meta.tone}">
+  const declarationSource = declarationUrl || pledge.declaration_source_name ? renderSourceCard({
+    kind: sourceKindFromUrl(declarationUrl),
+    name: pledge.declaration_source_name || sourceHostLabel(declarationUrl) || "",
+    url: declarationUrl,
+    title: "Fonte della dichiarazione",
+  }) : "";
+  const evidence = assessment ? `<div class="pledge-evidence tone-${meta.tone}">
       <p class="evidence-label">Perché questo stato</p>
-      <p class="evidence-text">${escapeHtml(assessment.rationale)}</p>
       ${assessment.quoted_excerpt ? `<p class="evidence-quote">“${escapeHtml(assessment.quoted_excerpt)}”</p>` : ""}
       ${renderSourceCard({
         kind: "official",
@@ -1018,7 +1018,21 @@ export function renderPledgeItem(pledge) {
         title: "Fonte della valutazione",
         date: assessed,
       })}
-    </div>` : `<p class="empty-note">Non ancora valutata</p>`}
+    </div>` : "";
+  const details = [
+    declared ? `<p class="pledge-origin">Dichiarata il ${escapeHtml(declared)}</p>` : "",
+    pledge.exact_statement ? `<blockquote class="pledge-quote">“${escapeHtml(pledge.exact_statement)}”</blockquote>` : "",
+    declarationSource,
+    evidence,
+  ].filter(Boolean).join("");
+  return `<article class="pledge-item tone-${meta.tone}" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
+    <div class="pledge-top">
+      ${renderVerdictChip(pledge.verdict)}
+      <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Troppo vaga da valutare</span>`}</span>
+    </div>
+    <h4><a href="./?proposal=${encodeURIComponent(pledge.proposal_id)}">${escapeHtml(pledge.title)}</a></h4>
+    ${assessment ? `<p class="evidence-text">${escapeHtml(assessment.rationale)}</p>` : `<p class="empty-note">Non ancora valutata</p>`}
+    ${details ? `<details class="pledge-details"><summary>Dettagli e fonti</summary>${details}</details>` : ""}
     <button type="button" class="explain-pledge" data-pledge-id="${encodeURIComponent(pledge.proposal_id)}">Spiegami questa promessa</button>
     <div class="pledge-explanation" hidden></div>
   </article>`;
@@ -1059,12 +1073,12 @@ export function renderPledgeStatusSummary(counts, total) {
     const count = counts[value] || 0;
     return `<li class="pledge-summary-item tone-${meta.tone}${count === 0 ? " is-zero" : ""}">
       <span class="pledge-summary-swatch" aria-hidden="true"></span>
-      <strong class="pledge-summary-count">${count}</strong>
+      <strong class="pledge-summary-count" data-count-to="${count}">${count}</strong>
       <span class="pledge-summary-label">${escapeHtml(meta.label)}</span>
     </li>`;
   }).join("");
   return `<div class="pledge-status-summary">
-    <p class="pledge-summary-total"><strong>${total}</strong> ${noun}</p>
+    <p class="pledge-summary-total"><strong data-count-to="${total}">${total}</strong> ${noun}</p>
     <ul class="pledge-summary-grid" aria-label="Riepilogo degli stati pubblicati">${items}</ul>
   </div>`;
 }
@@ -1223,31 +1237,162 @@ function bindPledgeFilters(root) {
   }
 }
 
+let profileNavResizeBound = false;
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+}
+
+function navOffset() {
+  const header = document.querySelector(".site-header");
+  const nav = document.querySelector(".profile-section-nav");
+  return (header?.offsetHeight || 0) + (nav?.offsetHeight || 0) + 12;
+}
+
+function syncScrollPadding() {
+  const header = document.querySelector(".site-header");
+  const nav = document.querySelector(".profile-section-nav");
+  const headerHeight = header?.offsetHeight || 74;
+  const pad = headerHeight + (nav?.offsetHeight || 0) + 12;
+  document.documentElement.style.setProperty("--profile-nav-top", `${headerHeight}px`);
+  document.documentElement.style.setProperty("--profile-scroll-pad", `${pad}px`);
+}
+
+function setActiveSectionLink(nav, id) {
+  if (!nav || !id) return;
+  for (const link of nav.querySelectorAll("a[href^='#']")) {
+    const active = link.getAttribute("href") === `#${id}`;
+    link.classList.toggle("is-active", active);
+    if (active) {
+      link.setAttribute("aria-current", "location");
+      const left = link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2);
+      nav.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  }
+}
+
 function bindProfileSectionNav(root) {
-  const offset = () => {
-    const header = document.querySelector(".site-header");
-    const nav = root.querySelector(".profile-section-nav");
-    return (header?.offsetHeight || 0) + (nav?.offsetHeight || 0) + 12;
-  };
-  for (const link of root.querySelectorAll(".profile-section-nav a[href^='#']")) {
+  const nav = root.querySelector(".profile-section-nav");
+  if (!nav) return;
+  syncScrollPadding();
+  if (!profileNavResizeBound) {
+    window.addEventListener("resize", syncScrollPadding, { passive: true });
+    profileNavResizeBound = true;
+  }
+  const links = [...nav.querySelectorAll("a[href^='#']")];
+  const sections = links
+    .map((link) => root.querySelector(link.getAttribute("href")))
+    .filter(Boolean);
+  let lockUntil = 0;
+  let applyBest = () => {};
+  for (const link of links) {
     link.addEventListener("click", (event) => {
       const id = link.getAttribute("href")?.slice(1);
       const target = id ? root.querySelector(`#${CSS.escape(id)}`) : null;
       if (!target) return;
       event.preventDefault();
-      const top = target.getBoundingClientRect().top + window.scrollY - offset();
-      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      lockUntil = Date.now() + 800;
+      setActiveSectionLink(nav, id);
+      const top = target.getBoundingClientRect().top + window.scrollY - navOffset();
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
       history.replaceState(null, "", `#${id}`);
+      const refresh = () => applyBest();
+      window.setTimeout(refresh, 820);
+      window.addEventListener("scrollend", refresh, { once: true });
     });
+  }
+  if ("IntersectionObserver" in window && sections.length) {
+    const ratios = new Map();
+    applyBest = () => {
+      if (Date.now() < lockUntil) return;
+      let bestId = "";
+      let bestRatio = 0;
+      for (const section of sections) {
+        const ratio = ratios.get(section.id) || 0;
+        if (ratio > bestRatio) {
+          bestRatio = ratio;
+          bestId = section.id;
+        }
+      }
+      if (bestId) setActiveSectionLink(nav, bestId);
+    };
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+      }
+      applyBest();
+    }, {
+      rootMargin: "-28% 0px -55% 0px",
+      threshold: [0, 0.2, 0.4, 0.6, 1],
+    });
+    for (const section of sections) observer.observe(section);
   }
   const initial = window.location.hash.slice(1);
   const target = initial ? root.querySelector(`#${CSS.escape(initial)}`) : null;
   if (target) {
     requestAnimationFrame(() => {
-      const top = target.getBoundingClientRect().top + window.scrollY - offset();
+      const top = target.getBoundingClientRect().top + window.scrollY - navOffset();
       window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+      setActiveSectionLink(nav, target.id);
     });
+  } else if (sections[0]) {
+    setActiveSectionLink(nav, sections[0].id);
   }
+}
+
+function animateCount(node) {
+  const target = Number(node.dataset.countTo);
+  if (!Number.isFinite(target) || node.dataset.countAnimated === "1") return;
+  node.dataset.countAnimated = "1";
+  const finish = () => { node.textContent = String(target); };
+  if (prefersReducedMotion() || target === 0) {
+    finish();
+    return;
+  }
+  node.textContent = "0";
+  const start = performance.now();
+  const duration = 700;
+  const tick = (now) => {
+    const progress = Math.min(1, (now - start) / duration);
+    const eased = 1 - (1 - progress) ** 3;
+    node.textContent = String(Math.round(target * eased));
+    if (progress < 1) requestAnimationFrame(tick);
+    else finish();
+  };
+  requestAnimationFrame(tick);
+}
+
+function bindProfileMotion(root) {
+  const counters = [...root.querySelectorAll("[data-count-to]")];
+  if (prefersReducedMotion() || !("IntersectionObserver" in window)) {
+    for (const node of counters) node.textContent = String(node.dataset.countTo);
+    return;
+  }
+  const reveals = [...root.querySelectorAll(".profile-block, .career-entry, .pledge-summary-item")];
+  const observer = new IntersectionObserver((entries, observed) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add("is-revealed");
+      if (entry.target.hasAttribute("data-count-to")) animateCount(entry.target);
+      for (const counter of entry.target.querySelectorAll(":scope [data-count-to]")) {
+        animateCount(counter);
+      }
+      observed.unobserve(entry.target);
+    }
+  }, { threshold: 0.16, rootMargin: "0px 0px -8% 0px" });
+  reveals.forEach((node, index) => {
+    node.classList.add("will-reveal");
+    if (node.classList.contains("career-entry") || node.classList.contains("pledge-summary-item")) {
+      node.style.setProperty("--reveal-delay", `${Math.min(index % 8, 6) * 40}ms`);
+    }
+    observer.observe(node);
+    window.setTimeout(() => node.classList.add("is-revealed"), 1200);
+  });
 }
 
 export function renderMethodology(method) {
@@ -1289,8 +1434,8 @@ export function renderPoliticianDetail(person, scorecard = null) {
     mandate?.start_date ? fact("In carica dal", formatDate(mandate.start_date)) : "",
   ].filter(Boolean).join("");
   const nav = renderProfileSectionNav([
-    who ? { href: "#profilo", label: "Profilo" } : null,
-    hasCareer ? { href: "#carriera", label: "Carriera" } : null,
+    who ? { href: "#profilo", label: "Chi è" } : null,
+    hasCareer ? { href: "#carriera", label: "Cosa ha fatto" } : null,
     { href: "#posizioni", label: "Posizioni" },
     { href: "#promesse", label: "Promesse" },
     { href: "#procedimenti", label: "Procedimenti e controversie" },
@@ -1314,7 +1459,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
     </section>
     ${nav}
     ${who}
-    ${hasCareer ? `<section class="detail-card profile-career" id="carriera">
+    ${hasCareer ? `<section class="detail-card profile-block profile-career" id="carriera">
       <p class="eyebrow">Carriera</p>
       <h2>Cosa ha fatto</h2>
       ${renderCareerTimeline(person)}
@@ -1323,13 +1468,13 @@ export function renderPoliticianDetail(person, scorecard = null) {
       ${hasProposals ? `<h3 class="career-subhead">Proposte e promesse</h3>${renderPoliticianProposals(person.proposals || [])}` : ""}
     </section>` : ""}
     ${renderKeyPositions(person)}
-    <section class="detail-card commitments-card" id="promesse">
+    <section class="detail-card profile-block commitments-card" id="promesse">
       <p class="eyebrow">Detto e fatto</p>
       <h2>Scheda delle promesse</h2>
       ${renderScorecard(scorecard)}
     </section>
     ${renderProceedings(person)}
-    ${sourcesMarkup ? `<section class="detail-card sources-card" id="fonti">
+    ${sourcesMarkup ? `<section class="detail-card profile-block sources-card" id="fonti">
       <div class="sources-heading">
         <div><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2></div>
         <div class="sources-summary"><strong>${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</strong><br />${citationGroups.length} ${citationGroups.length === 1 ? "fonte ufficiale" : "fonti ufficiali"}</div>
@@ -1463,6 +1608,7 @@ async function showDetail(api, politicianId) {
     detail.hidden = false;
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileSectionNav(detail);
+    bindProfileMotion(detail);
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
     document.title = `${person.given_name} ${person.family_name} — VeraPolitica`;
@@ -1633,8 +1779,11 @@ function showAsk(api) {
   const button = byId("ask-submit");
   const status = byId("ask-status");
   const result = byId("ask-result");
-  const preset = new URLSearchParams(window.location.search).get("question");
+  const params = new URLSearchParams(window.location.search);
+  const preset = params.get("question");
+  const prefill = params.get("prefill");
   if (preset && !field.value) field.value = preset;
+  else if (prefill && !field.value) field.value = prefill;
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const question = field.value.trim();
