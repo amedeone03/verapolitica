@@ -198,8 +198,14 @@ function currentMandate(person) {
   return pool[0] ?? null;
 }
 
-function currentParty(person) {
-  return (person.political_parties || []).find((item) => !item.end_date) || null;
+export function currentParty(person) {
+  const affiliation = (person.political_parties || []).find((item) => !item.end_date) || null;
+  if (affiliation) return affiliation;
+  const career = (person.career_entries || []).find(
+    (item) => explicitlyCurrent(item) && item.party_or_group,
+  );
+  if (!career) return null;
+  return { name: career.party_or_group, end_date: null };
 }
 
 function primaryMandate(person) {
