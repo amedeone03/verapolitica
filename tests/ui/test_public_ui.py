@@ -70,6 +70,14 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderScorecard" in script.text
     assert "renderCompositionBar" in script.text
     assert "renderVerdictLegend" in script.text
+    assert "countPledgeVerdicts" in script.text
+    assert "renderPledgeStatusSummary" in script.text
+    assert "renderPledgeDistribution" in script.text
+    assert "promesse monitorate" in script.text
+    assert "Nessuna promessa pubblicata con questo stato." in script.text
+    assert "Distribuzione degli stati pubblicati" in script.text
+    assert 'kept: "Mantenute"' in script.text
+    assert 'not_yet_rated: "Non ancora valutate"' in script.text
     assert "Spiegami questa promessa" in script.text
     assert "/explanation" in script.text
     assert "explainPledge" in script.text
@@ -101,6 +109,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert ".composition-bar" in styles.text
     assert ".pledge-item" in styles.text
     assert ".verdict-legend" in styles.text
+    assert ".pledge-status-summary" in styles.text
+    assert ".pledge-summary-grid" in styles.text
+    assert ".pledge-distribution" in styles.text
+    assert ".pledge-item .verdict-chip" in styles.text
     assert "view=methodology" in archive.text
     assert "view=ask" in archive.text
     assert "Chiedi a VeraPolitica" in archive.text

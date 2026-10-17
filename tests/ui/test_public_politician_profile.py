@@ -43,6 +43,9 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "Posizioni su temi chiave" in script
     assert "Procedimenti e controversie" in script
     assert "Scheda delle promesse" in script
+    assert "countPledgeVerdicts" in script
+    assert "renderPledgeStatusSummary" in script
+    assert "Nessuna promessa pubblicata con questo stato." in script
     assert "Ultimo aggiornamento" in script
     assert "In carica dal" in script
     assert "Data di nascita" in script

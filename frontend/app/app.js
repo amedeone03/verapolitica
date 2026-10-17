@@ -993,7 +993,7 @@ export function renderPledgeItem(pledge) {
   const declared = pledge.introduced_at ? formatDate(pledge.introduced_at) : "";
   const assessed = assessment?.effective_at ? formatDate(assessment.effective_at) : "";
   const declarationUrl = pledge.declaration_source_url || "";
-  return `<article class="pledge-item" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
+  return `<article class="pledge-item tone-${meta.tone}" data-verdict="${escapeHtml(pledge.verdict)}" data-scored="${pledge.included_in_score ? "yes" : "no"}">
     <div class="pledge-top">
       ${renderVerdictChip(pledge.verdict)}
       <span class="pledge-tags">${pledge.cap_topic_code ? `<span class="topic-chip is-small">${escapeHtml(topicLabel(pledge.cap_topic_code))}</span>` : ""}${pledge.included_in_score ? "" : `<span class="topic-chip is-small is-muted">Troppo vaga da valutare</span>`}</span>
@@ -1024,20 +1024,82 @@ export function renderPledgeItem(pledge) {
   </article>`;
 }
 
+const PLEDGE_FILTER_LABELS = {
+  kept: "Mantenute",
+  partially_kept: "Mantenute parzialmente",
+  in_progress: "In corso",
+  stalled: "Iter bloccato",
+  broken: "Non mantenute",
+  not_yet_rated: "Non ancora valutate",
+};
+
 const PLEDGE_FILTERS = [
   ["all", "Tutte"],
-  ...VERDICT_LEGEND_ORDER.map((value) => [value, VERDICTS[value].label]),
+  ...VERDICT_LEGEND_ORDER.map((value) => [value, PLEDGE_FILTER_LABELS[value]]),
 ];
+
+export function countPledgeVerdicts(pledges = []) {
+  const counts = { all: pledges.length };
+  for (const value of VERDICT_LEGEND_ORDER) {
+    counts[value] = 0;
+  }
+  for (const pledge of pledges) {
+    if (pledge.verdict in VERDICTS) {
+      counts[pledge.verdict] += 1;
+    }
+  }
+  counts.all = pledges.length;
+  return counts;
+}
+
+export function renderPledgeStatusSummary(counts, total) {
+  const noun = total === 1 ? "promessa monitorata" : "promesse monitorate";
+  const items = VERDICT_LEGEND_ORDER.map((value) => {
+    const meta = verdictMeta(value);
+    const count = counts[value] || 0;
+    return `<li class="pledge-summary-item tone-${meta.tone}${count === 0 ? " is-zero" : ""}">
+      <span class="pledge-summary-swatch" aria-hidden="true"></span>
+      <strong class="pledge-summary-count">${count}</strong>
+      <span class="pledge-summary-label">${escapeHtml(meta.label)}</span>
+    </li>`;
+  }).join("");
+  return `<div class="pledge-status-summary">
+    <p class="pledge-summary-total"><strong>${total}</strong> ${noun}</p>
+    <ul class="pledge-summary-grid" aria-label="Riepilogo degli stati pubblicati">${items}</ul>
+  </div>`;
+}
+
+export function renderPledgeDistribution(counts, total) {
+  if (!total) {
+    return `<p class="empty-note">Nessuna promessa pubblicata da mostrare.</p>`;
+  }
+  const composition = VERDICT_LEGEND_ORDER.map((verdict) => ({
+    verdict,
+    count: counts[verdict] || 0,
+  }));
+  return `<div class="pledge-distribution">
+    <p class="pledge-distribution-caption">Distribuzione degli stati pubblicati. Non è un punteggio di performance.</p>
+    ${renderCompositionBar(composition, { compact: true })}
+  </div>`;
+}
+
+function renderPledgeFilters(counts) {
+  return `<div class="filter-pills" role="group" aria-label="Filtra le promesse per stato">${
+    PLEDGE_FILTERS.map(([key, label], index) => {
+      const count = counts[key] || 0;
+      const zero = key !== "all" && count === 0;
+      return `<button type="button" class="filter-pill${index === 0 ? " is-active" : ""}${zero ? " is-zero" : ""}" data-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(label)} (${count})</button>`;
+    }).join("")
+  }</div>`;
+}
 
 export function renderScorecard(scorecard) {
   if (!scorecard || !scorecard.tracked_pledges) {
     return `<div class="state-card"><div><strong>Nessuna promessa è ancora tracciata per questa persona.</strong><small>Le promesse esplicite pubblicate compaiono qui dopo la classificazione.</small></div></div>`;
   }
   const progress = scorecard.mandate_progress;
-  const counts = { all: scorecard.pledges.length };
-  for (const pledge of scorecard.pledges) {
-    counts[pledge.verdict] = (counts[pledge.verdict] || 0) + 1;
-  }
+  const pledges = scorecard.pledges || [];
+  const counts = countPledgeVerdicts(pledges);
   return `<div class="scorecard">
     <div class="method-note">
       <p>Il punteggio conta solo le promesse concluse e si calcola separatamente per ciascun ruolo istituzionale, perché governo e opposizione hanno poteri molto diversi. Ogni valutazione cita un documento ufficiale.</p>
@@ -1046,11 +1108,16 @@ export function renderScorecard(scorecard) {
     ${renderVerdictLegend()}
     ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
     <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
-    <div class="pledge-list-head">
-      <h3>Promesse</h3>
-      <div class="filter-pills" role="tablist" aria-label="Filtra le promesse">${PLEDGE_FILTERS.map(([key, label], index) => `<button type="button" class="filter-pill${index === 0 ? " is-active" : ""}" data-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(label)} <small>${counts[key] || 0}</small></button>`).join("")}</div>
+    <div class="pledge-board">
+      <div class="pledge-list-head">
+        <h3>Promesse</h3>
+      </div>
+      ${renderPledgeStatusSummary(counts, counts.all)}
+      ${renderPledgeDistribution(counts, counts.all)}
+      ${renderPledgeFilters(counts)}
+      <div class="pledge-list">${pledges.map(renderPledgeItem).join("")}</div>
+      <p class="pledge-filter-empty empty-note" hidden aria-live="polite">Nessuna promessa pubblicata con questo stato.</p>
     </div>
-    <div class="pledge-list">${scorecard.pledges.map(renderPledgeItem).join("")}</div>
     ${scorecard.excluded_vague_pledges ? `<p class="empty-note">${scorecard.excluded_vague_pledges === 1 ? "1 promessa è troppo vaga da verificare ed è esclusa da ogni punteggio." : `${scorecard.excluded_vague_pledges} promesse sono troppo vaghe da verificare e sono escluse da ogni punteggio.`}</p>` : ""}
     <p class="publication-meta">Metodologia ${escapeHtml(scorecard.methodology_version)} · Dati al ${escapeHtml(formatDate(scorecard.as_of))}</p>
   </div>`;
@@ -1134,6 +1201,16 @@ function bindExplainPledges(root, api) {
 function bindPledgeFilters(root) {
   const buttons = [...root.querySelectorAll(".filter-pill")];
   const items = [...root.querySelectorAll(".pledge-item")];
+  const empty = root.querySelector(".pledge-filter-empty");
+  const apply = (filter) => {
+    let visible = 0;
+    for (const item of items) {
+      const match = filter === "all" || item.dataset.verdict === filter;
+      item.hidden = !match;
+      if (match) visible += 1;
+    }
+    if (empty) empty.hidden = visible > 0;
+  };
   for (const button of buttons) {
     button.addEventListener("click", () => {
       const filter = button.dataset.filter;
@@ -1141,10 +1218,7 @@ function bindPledgeFilters(root) {
         other.classList.toggle("is-active", other === button);
         other.setAttribute("aria-pressed", String(other === button));
       }
-      for (const item of items) {
-        const verdict = item.dataset.verdict;
-        item.hidden = !(filter === "all" || verdict === filter);
-      }
+      apply(filter);
     });
   }
 }
