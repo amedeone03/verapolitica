@@ -90,20 +90,27 @@ def test_meloni_summary_counts_match_published_scorecard_only():
         bollo = client.get("/proposals/124")
 
     assert scorecard["methodology_version"] == "pledge-score/v1"
-    assert scorecard["tracked_pledges"] == 21
-    assert len(scorecard["pledges"]) == 21
+    assert scorecard["tracked_pledges"] == 14
+    assert len(scorecard["pledges"]) == 14
     verdicts = Counter(item["verdict"] for item in scorecard["pledges"])
-    assert verdicts == Counter({"not_yet_rated": 20, "in_progress": 1})
+    assert verdicts == Counter(
+        {
+            "kept": 4,
+            "partially_kept": 3,
+            "in_progress": 2,
+            "stalled": 1,
+            "broken": 4,
+        }
+    )
     assert set(verdicts) <= set(PUBLIC_VERDICTS)
     blob = str(scorecard)
     for title in BLOCKED_DRAFT_TITLES:
         assert title not in blob
+    assert "autonomia differenziata" not in blob.casefold()
     assert accise.status_code == 404
     assert bollo.status_code == 404
     assert "countPledgeVerdicts(pledges)" in script
     assert "scorecard.pledges" in script
     assert "pending" not in {item.get("verdict") for item in scorecard["pledges"]}
-    assert all(item.get("latest_assessment") or item["verdict"] == "not_yet_rated" for item in scorecard["pledges"])
-    assessed = [item for item in scorecard["pledges"] if item["verdict"] == "in_progress"]
-    assert len(assessed) == 1
-    assert assessed[0]["latest_assessment"]["verdict"] == "in_progress"
+    assert all(item.get("latest_assessment") for item in scorecard["pledges"])
+    assert verdicts.get("not_yet_rated", 0) == 0

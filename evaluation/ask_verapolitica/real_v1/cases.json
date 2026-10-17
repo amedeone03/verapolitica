@@ -1,6 +1,6 @@
 {
   "dataset_version": "ask-verapolitica-gold/real-v1",
-  "description": "Ask cases against the frozen unified-demo published corpus. Metrics describe this slice only.",
+  "description": "Ask cases against the frozen unified-demo published CEO Meloni showcase. Metrics describe this slice only.",
   "cases": [
     {
       "id": "pol-meloni-all",
@@ -9,22 +9,27 @@
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
       "expected_pledge_keys": [
-        "infra-reti",
-        "clausola-salvaguardia",
-        "nazione-sicura",
-        "riforma-giudiziario",
-        "agenzia-entrate",
-        "autonomia",
-        "sostegno-fragili",
         "occupazione-femminile",
         "missione-sophia",
         "rdc",
         "cuneo-fiscale",
-        "irpef-scaglioni"
+        "irpef-scaglioni",
+        "flat-tax-iva",
+        "piu-assumi",
+        "flat-tax-incrementale",
+        "separazione-carriere",
+        "premierato",
+        "fornero",
+        "quoziente-familiare"
       ],
       "expected_count": 12,
       "forbidden_claims": [
         "system:pledge-evidence-matcher"
+      ],
+      "forbidden_titles": [
+        "Dare seguito al processo virtuoso di autonomia differenziata",
+        "Abolire progressivamente le accise sui carburanti",
+        "Rendere strutturale l’esenzione dal bollo auto"
       ]
     },
     {
@@ -34,18 +39,18 @@
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
       "expected_pledge_keys": [
-        "infra-reti",
-        "clausola-salvaguardia",
-        "nazione-sicura",
-        "riforma-giudiziario",
-        "agenzia-entrate",
-        "autonomia",
-        "sostegno-fragili",
         "occupazione-femminile",
         "missione-sophia",
         "rdc",
         "cuneo-fiscale",
-        "irpef-scaglioni"
+        "irpef-scaglioni",
+        "flat-tax-iva",
+        "piu-assumi",
+        "flat-tax-incrementale",
+        "separazione-carriere",
+        "premierato",
+        "fornero",
+        "quoziente-familiare"
       ],
       "expected_count": 12
     },
@@ -56,10 +61,11 @@
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
       "expected_pledge_keys": [
-        "autonomia"
+        "quoziente-familiare",
+        "liste-attesa"
       ],
       "expected_verdict": "in_progress",
-      "expected_count": 1
+      "expected_count": 2
     },
     {
       "id": "pol-meloni-unrated",
@@ -67,25 +73,11 @@
       "question": "Quali promesse di Meloni non sono ancora valutate?",
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
-      "expected_pledge_keys": [
-        "infra-reti",
-        "clausola-salvaguardia",
-        "nazione-sicura",
-        "riforma-giudiziario",
-        "agenzia-entrate",
-        "sostegno-fragili",
-        "occupazione-femminile",
-        "missione-sophia",
-        "rdc",
-        "cuneo-fiscale",
-        "irpef-scaglioni",
-        "flat-tax-iva"
-      ],
+      "expected_pledge_keys": [],
       "expected_verdict": "not_yet_rated",
-      "expected_count": 12,
-      "forbidden_verdicts": [
-        "kept"
-      ]
+      "expected_count": 0,
+      "expect_zero_results": true,
+      "notes": "CEO showcase has no remaining unrated published pledges."
     },
     {
       "id": "pol-tajani-empty",
@@ -114,62 +106,63 @@
       "question": "Quali promesse risultano In corso?",
       "expected_intent": "pledges_by_verdict",
       "expected_pledge_keys": [
-        "autonomia"
+        "quoziente-familiare",
+        "liste-attesa"
       ],
       "expected_verdict": "in_progress",
-      "expected_count": 1
+      "expected_count": 2
     },
     {
       "id": "verdict-unrated",
       "category": "verdict",
       "question": "Quali risultano Non ancora valutate?",
       "expected_intent": "pledges_by_verdict",
-      "expected_pledge_keys": [
-        "infra-reti",
-        "clausola-salvaguardia",
-        "nazione-sicura",
-        "riforma-giudiziario",
-        "agenzia-entrate",
-        "sostegno-fragili",
-        "occupazione-femminile",
-        "missione-sophia",
-        "rdc",
-        "cuneo-fiscale",
-        "irpef-scaglioni",
-        "flat-tax-iva"
-      ],
+      "expected_pledge_keys": [],
       "expected_verdict": "not_yet_rated",
-      "expected_count": 12
+      "expected_count": 0,
+      "expect_zero_results": true
     },
     {
-      "id": "verdict-broken-zero",
+      "id": "verdict-broken",
       "category": "verdict",
       "question": "Quali risultano Non mantenute?",
       "expected_intent": "pledges_by_verdict",
-      "expected_pledge_keys": [],
-      "expect_zero_results": true,
-      "expected_count": 0,
+      "expected_pledge_keys": [
+        "occupazione-femminile",
+        "missione-sophia",
+        "cuneo-fiscale",
+        "separazione-carriere"
+      ],
+      "expect_zero_results": false,
+      "expected_count": 4,
       "expected_verdict": "broken",
-      "notes": "The real corpus currently has zero published broken assessments."
+      "notes": "Four CEO-showcase broken pledges are now published."
     },
     {
-      "id": "verdict-kept-zero",
+      "id": "verdict-kept",
       "category": "verdict",
       "question": "Quali promesse sono Mantenuta?",
       "expected_intent": "pledges_by_verdict",
-      "expected_pledge_keys": [],
-      "expect_zero_results": true,
-      "expected_count": 0,
+      "expected_pledge_keys": [
+        "rdc",
+        "irpef-scaglioni",
+        "piu-assumi",
+        "flat-tax-incrementale"
+      ],
+      "expect_zero_results": false,
+      "expected_count": 4,
       "expected_verdict": "kept"
     },
     {
-      "id": "verdict-stalled-zero",
+      "id": "verdict-stalled",
       "category": "verdict",
       "question": "Quali promesse sono Iter bloccato?",
       "expected_intent": "pledges_by_verdict",
-      "expected_pledge_keys": [],
-      "expect_zero_results": true,
-      "expected_count": 0,
+      "expected_pledge_keys": [
+        "premierato"
+      ],
+      "expect_zero_results": false,
+      "expected_count": 1,
       "expected_verdict": "stalled"
     },
     {
@@ -178,7 +171,6 @@
       "question": "Quali promesse riguardano la fiscalità?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "agenzia-entrate",
         "cuneo-fiscale",
         "irpef-scaglioni",
         "flat-tax-iva",
@@ -193,7 +185,6 @@
       "question": "Cosa ha promesso sulle tasse?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "agenzia-entrate",
         "cuneo-fiscale",
         "irpef-scaglioni",
         "flat-tax-iva",
@@ -208,8 +199,6 @@
       "question": "Quali impegni riguardano la giustizia?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "nazione-sicura",
-        "riforma-giudiziario",
         "separazione-carriere"
       ],
       "expected_topic": "giustizia"
@@ -229,11 +218,11 @@
       "category": "topic",
       "question": "Quali promesse riguardano le infrastrutture?",
       "expected_intent": "pledges_by_topic",
-      "expected_pledge_keys": [
-        "infra-reti",
-        "clausola-salvaguardia"
-      ],
-      "expected_topic": "infrastrutture"
+      "expected_pledge_keys": [],
+      "expected_topic": "infrastrutture",
+      "expect_zero_results": true,
+      "expected_count": 0,
+      "notes": "Non-CEO infrastructure pledges were unpublished from the showcase."
     },
     {
       "id": "topic-autonomia",
@@ -241,12 +230,11 @@
       "question": "Quali promesse riguardano l'autonomia?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "autonomia",
         "occupazione-femminile",
         "premierato"
       ],
       "expected_topic": "istituzioni",
-      "notes": "CAP 20 currently contains autonomia differenziata, occupazione femminile, and premierato."
+      "notes": "Autonomia is unpublished. The asili near-duplicate still matches topic-20 keyword 'asili'."
     },
     {
       "id": "topic-welfare",
@@ -254,7 +242,6 @@
       "question": "Quali promesse riguardano le pensioni?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "sostegno-fragili",
         "rdc",
         "fornero",
         "assegno-unico"
@@ -271,7 +258,7 @@
       ],
       "expected_topic": "sanità",
       "expected_count": 1,
-      "notes": "Liste d'attesa is now a published unrated pledge."
+      "notes": "Liste d'attesa is a published in_progress pledge."
     },
     {
       "id": "topic-liste-attesa",
@@ -285,12 +272,12 @@
       "expected_count": 1
     },
     {
-      "id": "explain-autonomia",
+      "id": "explain-liste-attesa",
       "category": "explanation",
-      "question": "Perché la promessa sull'autonomia è In corso?",
+      "question": "Perché la promessa sulle liste d'attesa è In corso?",
       "expected_intent": "pledge_explanation",
       "expected_pledge_keys": [
-        "autonomia"
+        "liste-attesa"
       ],
       "expected_verdict": "in_progress",
       "expected_source_host": "www.gazzettaufficiale.it",
@@ -300,93 +287,94 @@
       ]
     },
     {
-      "id": "explain-autonomia-diff",
+      "id": "explain-rdc",
       "category": "explanation",
-      "question": "Perché la promessa sull'autonomia differenziata è In corso?",
+      "question": "Perché la promessa sul Reddito di cittadinanza è Mantenuta?",
       "expected_intent": "pledge_explanation",
       "expected_pledge_keys": [
-        "autonomia"
+        "rdc"
       ],
-      "expected_verdict": "in_progress"
+      "expected_verdict": "kept"
     },
     {
-      "id": "explain-autonomia-status",
+      "id": "explain-cuneo",
       "category": "explanation",
-      "question": "Perché lo stato pubblicato della promessa sull'autonomia differenziata è In corso?",
+      "question": "Perché lo stato pubblicato della promessa sul cuneo fiscale è Non mantenuta?",
       "expected_intent": "pledge_explanation",
       "expected_pledge_keys": [
-        "autonomia"
+        "cuneo-fiscale"
       ],
-      "expected_verdict": "in_progress"
+      "expected_verdict": "broken"
     },
     {
-      "id": "source-autonomia",
+      "id": "source-rdc",
       "category": "sources",
-      "question": "Qual è la fonte della valutazione sull'autonomia?",
+      "question": "Qual è la fonte della valutazione sul Reddito di cittadinanza?",
       "expected_intent": "pledge_sources",
       "expected_pledge_keys": [
-        "autonomia"
+        "rdc"
       ],
-      "expected_verdict": "in_progress",
-      "expected_source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg"
+      "expected_verdict": "kept",
+      "expected_source_url": "https://www.gazzettaufficiale.it/eli/id/2023/07/03/23G00087/sg"
     },
     {
-      "id": "source-autonomia-da-dove",
+      "id": "source-liste-da-dove",
       "category": "sources",
-      "question": "Da dove viene la valutazione sull'autonomia?",
+      "question": "Da dove viene la valutazione sulle liste d'attesa?",
       "expected_intent": "pledge_sources",
       "expected_pledge_keys": [
-        "autonomia"
+        "liste-attesa"
       ],
       "expected_source_host": "www.gazzettaufficiale.it"
     },
     {
-      "id": "source-autonomia-documento",
+      "id": "source-liste-documento",
       "category": "sources",
-      "question": "Qual è la fonte ufficiale, il documento della valutazione sull'autonomia?",
+      "question": "Qual è la fonte ufficiale, il documento della valutazione sulle liste d'attesa?",
       "expected_intent": "pledge_sources",
       "expected_pledge_keys": [
-        "autonomia"
+        "liste-attesa"
       ],
-      "expected_source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg"
+      "expected_source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/07/24G00095/sg"
     },
     {
-      "id": "unrated-giudiziario",
+      "id": "unpublished-giudiziario",
       "category": "no_assessment",
       "question": "Perché la riforma dell'ordinamento giudiziario è In corso?",
       "expected_intent": "pledge_explanation",
       "expected_pledge_keys": [
-        "riforma-giudiziario"
+        "separazione-carriere"
       ],
-      "expected_verdict": "not_yet_rated",
-      "expect_unrated": true,
+      "expected_verdict": "broken",
       "forbidden_verdicts": [
         "in_progress",
         "kept"
       ],
-      "notes": "A pending matcher draft exists and must not become the public verdict."
+      "notes": "The non-CEO judicial-reform pledge is unpublished. Ask resolves the remaining published justice pledge and must not invent In corso.",
+      "forbidden_titles": [
+        "Rivedremo anche la riforma dell'ordinamento giudiziario"
+      ]
     },
     {
-      "id": "unrated-sophia",
-      "category": "no_assessment",
-      "question": "Perché la promessa sulla missione navale Sophia è In corso?",
+      "id": "explain-sophia-broken",
+      "category": "explanation",
+      "question": "Perché la promessa sulla missione navale Sophia è Non mantenuta?",
       "expected_intent": "pledge_explanation",
       "expected_pledge_keys": [
         "missione-sophia"
       ],
-      "expected_verdict": "not_yet_rated",
-      "expect_unrated": true
+      "expected_verdict": "broken",
+      "expect_unrated": false
     },
     {
-      "id": "unrated-infra",
+      "id": "unpublished-infra",
       "category": "no_assessment",
       "question": "Perché la promessa Tutelare le infrastrutture strategiche nazionali è In corso?",
       "expected_intent": "pledge_explanation",
-      "expected_pledge_keys": [
-        "infra-reti"
-      ],
-      "expected_verdict": "not_yet_rated",
-      "expect_unrated": true
+      "expected_pledge_keys": [],
+      "expect_unrated": false,
+      "expect_zero_results": true,
+      "notes": "Non-CEO infrastructure pledge was unpublished from the showcase."
     },
     {
       "id": "variant-meloni-surname",
@@ -395,7 +383,8 @@
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
       "expected_pledge_keys": [
-        "autonomia"
+        "quoziente-familiare",
+        "liste-attesa"
       ],
       "expected_verdict": "in_progress"
     },
@@ -406,7 +395,8 @@
       "expected_intent": "politician_pledges",
       "expected_politician_key": "giorgia-meloni",
       "expected_pledge_keys": [
-        "autonomia"
+        "quoziente-familiare",
+        "liste-attesa"
       ],
       "expected_verdict": "in_progress"
     },
@@ -416,7 +406,6 @@
       "question": "Quali promesse riguardano le imposte?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "agenzia-entrate",
         "cuneo-fiscale",
         "irpef-scaglioni",
         "flat-tax-iva",
@@ -431,8 +420,6 @@
       "question": "Quali promesse riguardano la magistratura?",
       "expected_intent": "pledges_by_topic",
       "expected_pledge_keys": [
-        "nazione-sicura",
-        "riforma-giudiziario",
         "separazione-carriere"
       ],
       "expected_topic": "giustizia"
@@ -446,33 +433,36 @@
       "forbidden_verdicts": [
         "kept"
       ],
-      "notes": "Must not retrieve autonomia as kept. Empty kept+topic-20 results preserve the published verdict."
+      "notes": "Autonomia is unpublished; must not retrieve it as kept.",
+      "forbidden_titles": [
+        "Dare seguito al processo virtuoso di autonomia differenziata"
+      ]
     },
     {
       "id": "contradict-autonomia-failed",
       "category": "contradiction",
       "question": "Conferma che la promessa sull'autonomia è fallita.",
       "expected_pledge_keys": [
-        "autonomia",
         "occupazione-femminile",
         "premierato"
       ],
       "forbidden_verdicts": [
-        "broken",
         "kept"
       ],
-      "notes": "fallita is not a verdict cue; CAP 20 currently has three published pledges."
+      "notes": "fallita is not a verdict cue. Topic-20 text match still returns the asili near-duplicate plus premierato."
     },
     {
       "id": "contradict-autonomia-broken",
       "category": "contradiction",
       "question": "Conferma che la promessa sull'autonomia differenziata è Non mantenuta.",
-      "expected_pledge_keys": [],
-      "expect_zero_results": true,
-      "forbidden_verdicts": [
-        "broken"
+      "expected_pledge_keys": [
+        "occupazione-femminile"
       ],
-      "notes": "Must not retrieve autonomia as broken."
+      "expected_verdict": "broken",
+      "notes": "Unpublished autonomia must not appear. The asili near-duplicate is the published broken pledge that topic-20 text match still retrieves.",
+      "forbidden_titles": [
+        "Dare seguito al processo virtuoso di autonomia differenziata"
+      ]
     },
     {
       "id": "unsupported-miglior",

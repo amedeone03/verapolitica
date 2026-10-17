@@ -1,38 +1,41 @@
 {
   "corpus_name": "unified-demo",
-  "corpus_date": "2026-10-16",
+  "corpus_date": "2026-10-17",
   "database_relpath": "data/unified_demo/verapolitica.db",
-  "published_fingerprint": "e971220f6613e751da1bd9085dd366c25c7c4d987ccfb9e67702af5c8ce87054",
+  "published_fingerprint": "0e73e0b1a0bd2cd96761a71070c5291af9c1d7a947f17b57a59de4be46e485a7",
   "counts": {
     "published_politician_profiles": 22,
-    "published_explicit_promises": 21,
-    "classified_published_promises": 21,
-    "published_assessments": 1,
+    "published_explicit_promises": 14,
+    "classified_published_promises": 14,
+    "published_assessments": 15,
     "politicians_with_published_promises": 1,
-    "unpublished_explicit_promises": 2
+    "unpublished_explicit_promises": 9
   },
   "verdict_distribution": {
-    "in_progress": 1,
-    "not_yet_rated": 20,
-    "kept": 0,
-    "partially_kept": 0,
-    "stalled": 0,
-    "broken": 0
+    "kept": 4,
+    "partially_kept": 3,
+    "in_progress": 2,
+    "stalled": 1,
+    "broken": 4,
+    "not_yet_rated": 0
   },
   "topic_distribution": {
-    "1": 6,
+    "1": 5,
     "3": 1,
     "5": 1,
+    "6": 1,
     "9": 1,
-    "10": 2,
-    "12": 3,
-    "13": 4,
-    "20": 3
+    "12": 1,
+    "13": 3,
+    "20": 1
   },
   "source_hosts": [
-    "www.gazzettaufficiale.it"
+    "www.gazzettaufficiale.it",
+    "www.governo.it",
+    "www.normattiva.it",
+    "www.senato.it"
   ],
-  "notes": "Ask-visible world is 21 classified Meloni promises and one published autonomia assessment. Twelve newly approved reference pledges remain not_yet_rated. Two reference drafts stay unpublished (accise source issue; bollo auto unverified date). No published surname collision exists, so this slice has no natural ambiguity case. Listing queries are capped at Ask MAX_RESULTS=12. IDs are documented as frozen_id only; the evaluator resolves keys by published title prefix.",
+  "notes": "Ask-visible world is 14 classified Meloni CEO-showcase promises, all assessed. Seven non-CEO published pledges were unpublished (history preserved), including autonomia. Accise stays blocked on a fact-check URL; bollo auto stays pending because the declaration date is unverified. Listing queries are capped at Ask MAX_RESULTS=12. IDs are documented as frozen_id only; the evaluator resolves keys by published title prefix.",
   "politicians": {
     "giorgia-meloni": {
       "given_name": "Giorgia",
@@ -48,133 +51,103 @@
     }
   },
   "pledges": {
-    "infra-reti": {
-      "title_prefix": "Tutelare le infrastrutture strategiche nazionali",
-      "frozen_id": "101",
-      "topic_code": "10",
-      "verdict": "not_yet_rated"
-    },
-    "clausola-salvaguardia": {
-      "title_prefix": "Introdurre una clausola di salvaguardia",
-      "frozen_id": "102",
-      "topic_code": "10",
-      "verdict": "not_yet_rated"
-    },
-    "nazione-sicura": {
-      "title_prefix": "Lavoreremo per restituire ai cittadini la garanzia di vivere in una Nazione sicura",
-      "frozen_id": "103",
-      "topic_code": "12",
-      "verdict": "not_yet_rated"
-    },
-    "riforma-giudiziario": {
-      "title_prefix": "Rivedremo anche la riforma dell'ordinamento giudiziario",
-      "frozen_id": "104",
-      "topic_code": "12",
-      "verdict": "not_yet_rated"
-    },
-    "agenzia-entrate": {
-      "title_prefix": "Partire da una modifica dei criteri di valutazione dei risultati dell'Agenzia",
-      "frozen_id": "105",
-      "topic_code": "1",
-      "verdict": "not_yet_rated"
-    },
-    "autonomia": {
-      "title_prefix": "Dare seguito al processo virtuoso di autonomia differenziata",
-      "frozen_id": "106",
-      "topic_code": "20",
-      "verdict": "in_progress",
-      "source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/28/24G00105/sg",
-      "assessment_id": "1"
-    },
-    "sostegno-fragili": {
-      "title_prefix": "Mantenere e, laddove possibile, migliorare il doveroso sostegno economico",
-      "frozen_id": "107",
-      "topic_code": "13",
-      "verdict": "not_yet_rated"
-    },
     "occupazione-femminile": {
       "title_prefix": "Incentivare in ogni modo l'occupazione femminile",
       "frozen_id": "108",
-      "topic_code": "20",
-      "verdict": "not_yet_rated"
+      "topic_code": "6",
+      "verdict": "broken",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg"
     },
     "missione-sophia": {
       "title_prefix": "Recuperare la proposta originaria della missione navale Sophia",
       "frozen_id": "109",
       "topic_code": "9",
-      "verdict": "not_yet_rated"
+      "verdict": "broken",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2023/07/15/23G00102/sg"
     },
     "rdc": {
       "title_prefix": "Abolire e sostituire il Reddito di cittadinanza",
       "frozen_id": "111",
       "topic_code": "13",
-      "verdict": "not_yet_rated"
+      "verdict": "kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2023/07/03/23G00087/sg"
     },
     "cuneo-fiscale": {
       "title_prefix": "Ridurre il cuneo fiscale di almeno cinque punti",
       "frozen_id": "112",
       "topic_code": "1",
-      "verdict": "not_yet_rated"
+      "verdict": "broken",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2023/12/30/23G00223/sg"
     },
     "irpef-scaglioni": {
       "title_prefix": "Ridurre gli scaglioni IRPEF da quattro a tre",
       "frozen_id": "113",
       "topic_code": "1",
-      "verdict": "not_yet_rated"
+      "verdict": "kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2023/12/30/23G00223/sg"
     },
     "flat-tax-iva": {
       "title_prefix": "Estendere la flat tax alle partite IVA",
       "frozen_id": "114",
       "topic_code": "1",
-      "verdict": "not_yet_rated"
+      "verdict": "partially_kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg"
     },
     "piu-assumi": {
       "title_prefix": "Introdurre il principio",
       "frozen_id": "115",
       "topic_code": "5",
-      "verdict": "not_yet_rated"
+      "verdict": "kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2023/12/30/23G00223/sg"
     },
     "flat-tax-incrementale": {
       "title_prefix": "Introdurre una flat tax incrementale",
       "frozen_id": "116",
       "topic_code": "1",
-      "verdict": "not_yet_rated"
+      "verdict": "kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg"
     },
     "separazione-carriere": {
       "title_prefix": "Separare le carriere dei magistrati",
       "frozen_id": "117",
       "topic_code": "12",
-      "verdict": "not_yet_rated"
+      "verdict": "broken",
+      "source_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2024-08-09;114"
     },
     "premierato": {
       "title_prefix": "elezione diretta del Presidente del Consiglio",
       "frozen_id": "118",
       "topic_code": "20",
-      "verdict": "not_yet_rated"
+      "verdict": "stalled",
+      "source_url": "https://www.senato.it/leggi-e-documenti/disegni-di-legge/scheda-ddl?did=60485"
     },
     "fornero": {
       "title_prefix": "Rivedere la legge Fornero",
       "frozen_id": "120",
       "topic_code": "13",
-      "verdict": "not_yet_rated"
+      "verdict": "partially_kept",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg"
     },
     "quoziente-familiare": {
       "title_prefix": "Introdurre progressivamente il quoziente familiare",
       "frozen_id": "121",
       "topic_code": "1",
-      "verdict": "not_yet_rated"
+      "verdict": "in_progress",
+      "source_url": "https://www.governo.it/it/articolo/le-dichiarazioni-programmatiche-del-governo-meloni/20770"
     },
     "assegno-unico": {
       "title_prefix": "Aumentare del 50%",
       "frozen_id": "122",
       "topic_code": "13",
-      "verdict": "not_yet_rated"
+      "verdict": "partially_kept",
+      "source_url": "https://www.governo.it/it/articolo/le-dichiarazioni-programmatiche-del-governo-meloni/20770"
     },
     "liste-attesa": {
       "title_prefix": "Abbattere le liste",
       "frozen_id": "123",
       "topic_code": "3",
-      "verdict": "not_yet_rated"
+      "verdict": "in_progress",
+      "source_url": "https://www.gazzettaufficiale.it/eli/id/2024/06/07/24G00095/sg"
     }
   }
 }

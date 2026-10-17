@@ -42,7 +42,7 @@ def test_real_dataset_loads():
     assert dataset.dataset_version == "ask-verapolitica-gold/real-v1"
     assert 30 <= len(dataset.cases) <= 50
     assert spec.published_fingerprint
-    assert "autonomia" in spec.pledges
+    assert "rdc" in spec.pledges
     assert any(case.expect_zero_results for case in dataset.cases)
     assert not any(case.should_require_clarification for case in dataset.cases)
     assert resolve_ask_dataset_root("real-v1") == REAL_ROOT
