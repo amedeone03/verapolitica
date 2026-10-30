@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.api.deps import get_api_settings, get_db_session, get_session_factory
 from backend.app.core.config import Settings
-from backend.app.models import ProposalStatus, ProposalType
+from backend.app.models import CAP_MAJOR_TOPICS, DOSSIERS, ProposalStatus, ProposalType
 from backend.app.schemas import PublicProposal, PublicProposalList
 from backend.app.schemas.pledge import PledgeExplanationResponse
 from backend.app.services import PublicProposalQueryService
@@ -23,6 +24,10 @@ def list_proposals(
     proposal_type: ProposalType | None = None,
     politician: Annotated[int | None, Query(gt=0)] = None,
     source: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+    topic: Annotated[str | None, Query(pattern=r"^\d{1,2}$")] = None,
+    dossier: Annotated[str | None, Query(pattern=r"^[a-z_]{1,64}$")] = None,
+    introduced_from: date | None = None,
+    introduced_to: date | None = None,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> PublicProposalList:
@@ -33,7 +38,21 @@ def list_proposals(
         proposal_type=proposal_type,
         politician_id=politician,
         source_key=source,
+        topic=topic,
+        dossier=dossier,
+        introduced_from=introduced_from,
+        introduced_to=introduced_to,
     )
+
+
+@router.get("/tags")
+def list_proposal_tags() -> dict:
+    """The controlled vocabularies: CAP major topics and editorial dossiers."""
+
+    return {
+        "topics": [{"value": key, "label": label} for key, label in CAP_MAJOR_TOPICS.items()],
+        "dossiers": [{"value": key, "label": label} for key, label in DOSSIERS.items()],
+    }
 
 
 @router.get("/{proposal_id}", response_model=PublicProposal)

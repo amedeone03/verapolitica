@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import Settings
 from backend.app.jobs.runners import (
+    run_camera_history_ingestion,
     run_civic_reminders,
     run_pledge_evidence_matching,
     run_politician_ingestion,
@@ -82,6 +83,12 @@ JOB_CATALOG: dict[str, JobSpec] = {
         "pledge-evidence",
         run_pledge_evidence_matching,
         "schedule_pledge_evidence_cron",
+    ),
+    "camera-history": JobSpec(
+        "camera-history",
+        "camera-storico",
+        run_camera_history_ingestion,
+        "schedule_camera_history_cron",
     ),
 }
 

@@ -60,6 +60,11 @@ def prepare_sqlite_schema(engine: Engine) -> None:
     """Create missing tables for lightweight SQLite test/demo/local use."""
 
     Base.metadata.create_all(engine)
+    # Migrations seed the legislature reference table; create_all does not.
+    from backend.app.services.archive_service import ArchiveService
+    from sqlalchemy.orm import sessionmaker
+
+    ArchiveService(sessionmaker(engine, expire_on_commit=False)).load_legislature_fixture()
 
 
 def prepare_runtime_schema(engine: Engine, settings: Settings) -> None:

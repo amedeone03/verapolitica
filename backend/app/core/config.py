@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     camera_sparql_endpoint: str = "https://dati.camera.it/sparql"
     camera_legislature: int = Field(default=19, gt=0)
     camera_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    camera_history_legislatures: str = Field(default="1-19", pattern=r"^\d+(-\d+)?(,\d+(-\d+)?)*$")
     governo_index_url: str = "https://www.governo.it/it/ministri-e-sottosegretari"
     governo_request_timeout_seconds: float = Field(default=30.0, gt=0)
     istat_municipalities_xlsx_url: str = (
@@ -126,6 +127,7 @@ class Settings(BaseSettings):
     schedule_territorial_offices_cron: str = ""
     schedule_civic_reminders_cron: str = ""
     schedule_pledge_evidence_cron: str = ""
+    schedule_camera_history_cron: str = ""
     job_max_retries: int = Field(default=1, ge=0, le=5)
     job_retry_backoff_seconds: float = Field(default=2.0, gt=0, le=60)
     job_stale_after_minutes: int = Field(default=60, ge=5, le=1440)
@@ -154,6 +156,14 @@ class Settings(BaseSettings):
         raise ValueError("ollama_structured_format must be json_schema or json")
 
     @property
+    def camera_history_legislature_numbers(self) -> tuple[int, ...]:
+        numbers: set[int] = set()
+        for part in self.camera_history_legislatures.split(","):
+            low, _, high = part.partition("-")
+            numbers.update(range(int(low), int(high or low) + 1))
+        return tuple(sorted(number for number in numbers if number >= 1))
+
+    @property
     def is_production(self) -> bool:
         return self.env is AppEnvironment.PRODUCTION
 
@@ -170,6 +180,7 @@ class Settings(BaseSettings):
                 self.schedule_territorial_offices_cron,
                 self.schedule_civic_reminders_cron,
                 self.schedule_pledge_evidence_cron,
+                self.schedule_camera_history_cron,
             )
         )
 

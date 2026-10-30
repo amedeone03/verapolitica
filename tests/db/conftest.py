@@ -72,6 +72,10 @@ EXPECTED_TABLES = frozenset(
         "politician_positions",
         "politician_proceedings",
         "politician_profile_sources",
+        "proposal_tags",
+        "editorial_posts",
+        "legislatures",
+        "historical_parliament_mandates",
     }
 )
 

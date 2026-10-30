@@ -24,6 +24,8 @@ and uniqueness rules.
 | `territories` | `istat-territories` | ISTAT territorial reference ingestion |
 | `territorial-offices` | `dait-current-mayors` | DAIT current-mayor office ingestion |
 | `civic-reminders` | `civic-reminders` | Internal reminder-candidate generation for published referendums |
+| `pledge-evidence` | `pledge-evidence` | Evidence matching for open action pledges |
+| `camera-history` | `camera-storico` | Historical Camera roster and legislature dates (`VERAPOLITICA_CAMERA_HISTORY_LEGISLATURES`, default `1-19`) |
 
 There is no party-ingestion job because no live official affiliation source exists.
 `civic-reminders` does not scrape referendum pages and does not send email, SMS, or push.

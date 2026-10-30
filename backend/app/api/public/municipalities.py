@@ -15,6 +15,7 @@ router = APIRouter(prefix="/municipalities", tags=["municipalities"])
 def list_municipalities(
     session: Annotated[Session, Depends(get_db_session)],
     region: Annotated[int | None, Query(gt=0)] = None,
+    province: Annotated[str | None, Query(pattern=r"^[A-Z]{2}$")] = None,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> PublicMunicipalityList:
@@ -22,6 +23,7 @@ def list_municipalities(
         offset=offset,
         limit=limit,
         region_id=region,
+        province=province,
     )
 
 

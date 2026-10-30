@@ -72,6 +72,7 @@ from backend.app.scoring import (
     MandateProgress,
     PledgeOutcome,
     PledgeSpecificity,
+    Scorecard,
     ScoringMethodology,
     VERDICT_VALUE,
     compute_scorecard,
@@ -493,82 +494,132 @@ class PledgeService:
             )
         )
 
+    def _scored_items(
+        self, session: Session, pledges: list[Proposal], as_of: date
+    ) -> tuple[
+        list[PledgeOutcome],
+        list[PublicScorecardPledge],
+        dict[int, PledgeClassification],
+        MandateProgress | None,
+    ]:
+        """Turn published pledges into scorer inputs plus their public rows."""
+
+        ids = [pledge.id for pledge in pledges]
+        classifications = {
+            row.proposal_id: row
+            for row in session.scalars(
+                select(PledgeClassification).where(PledgeClassification.proposal_id.in_(ids))
+            )
+        } if ids else {}
+        latest = self._latest_assessments(session, ids)
+        declaration_sources: dict[int, tuple[str, str]] = {}
+        if ids:
+            for identifier, source in session.execute(
+                select(ProposalSourceIdentifier, Source)
+                .join(Source, Source.id == ProposalSourceIdentifier.source_id)
+                .where(ProposalSourceIdentifier.proposal_id.in_(ids))
+                .order_by(ProposalSourceIdentifier.id)
+            ):
+                declaration_sources.setdefault(
+                    identifier.proposal_id,
+                    (source.name, identifier.source_url),
+                )
+
+        outcomes: list[PledgeOutcome] = []
+        items: list[PublicScorecardPledge] = []
+        for pledge in pledges:
+            classification = classifications.get(pledge.id)
+            if classification is None:
+                continue
+            assessment = latest.get(pledge.id)
+            verdict = assessment.verdict if assessment else FulfillmentVerdict.NOT_YET_RATED
+            outcomes.append(
+                PledgeOutcome(
+                    pledge_id=pledge.id,
+                    verdict=verdict,
+                    role=classification.holder_role,
+                    specificity=classification.specificity,
+                    commitment_type=classification.commitment_type,
+                    topic_code=classification.cap_topic_code,
+                )
+            )
+            declaration = declaration_sources.get(pledge.id)
+            items.append(
+                PublicScorecardPledge(
+                    proposal_id=pledge.id,
+                    title=pledge.canonical_title,
+                    exact_statement=pledge.exact_statement,
+                    verdict=verdict,
+                    role=classification.holder_role,
+                    specificity=classification.specificity,
+                    commitment_type=classification.commitment_type,
+                    cap_topic_code=classification.cap_topic_code,
+                    included_in_score=classification.specificity
+                    is not PledgeSpecificity.VAGUE,
+                    latest_assessment=(
+                        self.assessment_response(assessment) if assessment else None
+                    ),
+                    introduced_at=pledge.introduced_at,
+                    declaration_source_name=declaration[0] if declaration else None,
+                    declaration_source_url=declaration[1] if declaration else None,
+                )
+            )
+
+        windows = [
+            row
+            for row in classifications.values()
+            if row.mandate_start is not None and row.mandate_end is not None
+        ]
+        progress = None
+        if windows:
+            current = max(windows, key=lambda row: (row.mandate_start, row.mandate_end))
+            progress = MandateProgress(current.mandate_start, current.mandate_end, as_of)
+        return outcomes, items, classifications, progress
+
+    @staticmethod
+    def progress_response(progress: MandateProgress | None) -> MandateProgressResponse | None:
+        if progress is None:
+            return None
+        return MandateProgressResponse(
+            start=progress.start,
+            end=progress.end,
+            as_of=progress.as_of,
+            elapsed_fraction=progress.elapsed_fraction,
+        )
+
+    @staticmethod
+    def stratum_responses(scorecard: Scorecard) -> tuple[ScorecardStratumResponse, ...]:
+        return tuple(
+            ScorecardStratumResponse(
+                role=stratum.role,
+                composition=tuple(
+                    CompositionEntry(verdict=verdict, count=count)
+                    for verdict, count in stratum.composition
+                ),
+                scored_pledges=stratum.scored_pledges,
+                closed_pledges=stratum.closed_pledges,
+                open_pledges=stratum.open_pledges,
+                kept_equivalent=stratum.kept_equivalent,
+                rate=stratum.rate,
+                credible_interval=stratum.credible_interval,
+                rate_withheld_reason=stratum.rate_withheld_reason,
+                topics=tuple(
+                    TopicEntry(cap_topic_code=code, count=count)
+                    for code, count in stratum.topics
+                ),
+            )
+            for stratum in scorecard.strata
+        )
+
     def scorecard_for_politician(
         self, politician_id: int, *, as_of: date | None = None
     ) -> PublicScorecard:
         as_of = as_of or self.clock().date()
         with self.session_factory() as session:
             pledges = self._politician_pledges(session, politician_id)
-            ids = [pledge.id for pledge in pledges]
-            classifications = {
-                row.proposal_id: row
-                for row in session.scalars(
-                    select(PledgeClassification).where(PledgeClassification.proposal_id.in_(ids))
-                )
-            } if ids else {}
-            latest = self._latest_assessments(session, ids)
-            declaration_sources: dict[int, tuple[str, str]] = {}
-            if ids:
-                for identifier, source in session.execute(
-                    select(ProposalSourceIdentifier, Source)
-                    .join(Source, Source.id == ProposalSourceIdentifier.source_id)
-                    .where(ProposalSourceIdentifier.proposal_id.in_(ids))
-                    .order_by(ProposalSourceIdentifier.id)
-                ):
-                    declaration_sources.setdefault(
-                        identifier.proposal_id,
-                        (source.name, identifier.source_url),
-                    )
-
-            outcomes: list[PledgeOutcome] = []
-            items: list[PublicScorecardPledge] = []
-            for pledge in pledges:
-                classification = classifications.get(pledge.id)
-                if classification is None:
-                    continue
-                assessment = latest.get(pledge.id)
-                verdict = assessment.verdict if assessment else FulfillmentVerdict.NOT_YET_RATED
-                outcomes.append(
-                    PledgeOutcome(
-                        pledge_id=pledge.id,
-                        verdict=verdict,
-                        role=classification.holder_role,
-                        specificity=classification.specificity,
-                        commitment_type=classification.commitment_type,
-                        topic_code=classification.cap_topic_code,
-                    )
-                )
-                declaration = declaration_sources.get(pledge.id)
-                items.append(
-                    PublicScorecardPledge(
-                        proposal_id=pledge.id,
-                        title=pledge.canonical_title,
-                        exact_statement=pledge.exact_statement,
-                        verdict=verdict,
-                        role=classification.holder_role,
-                        specificity=classification.specificity,
-                        commitment_type=classification.commitment_type,
-                        cap_topic_code=classification.cap_topic_code,
-                        included_in_score=classification.specificity
-                        is not PledgeSpecificity.VAGUE,
-                        latest_assessment=(
-                            self.assessment_response(assessment) if assessment else None
-                        ),
-                        introduced_at=pledge.introduced_at,
-                        declaration_source_name=declaration[0] if declaration else None,
-                        declaration_source_url=declaration[1] if declaration else None,
-                    )
-                )
-
-            windows = [
-                row
-                for row in classifications.values()
-                if row.mandate_start is not None and row.mandate_end is not None
-            ]
-            progress = None
-            if windows:
-                current = max(windows, key=lambda row: (row.mandate_start, row.mandate_end))
-                progress = MandateProgress(current.mandate_start, current.mandate_end, as_of)
+            outcomes, items, _classifications, progress = self._scored_items(
+                session, pledges, as_of
+            )
 
         scorecard = compute_scorecard(
             outcomes, methodology=self.methodology, mandate_progress=progress
@@ -584,37 +635,8 @@ class PledgeService:
             excluded_vague_pledges=scorecard.excluded_vague_pledges,
             credible_level=scorecard.credible_level,
             min_closed_for_rate=scorecard.min_closed_for_rate,
-            mandate_progress=(
-                MandateProgressResponse(
-                    start=progress.start,
-                    end=progress.end,
-                    as_of=progress.as_of,
-                    elapsed_fraction=progress.elapsed_fraction,
-                )
-                if progress
-                else None
-            ),
-            strata=tuple(
-                ScorecardStratumResponse(
-                    role=stratum.role,
-                    composition=tuple(
-                        CompositionEntry(verdict=verdict, count=count)
-                        for verdict, count in stratum.composition
-                    ),
-                    scored_pledges=stratum.scored_pledges,
-                    closed_pledges=stratum.closed_pledges,
-                    open_pledges=stratum.open_pledges,
-                    kept_equivalent=stratum.kept_equivalent,
-                    rate=stratum.rate,
-                    credible_interval=stratum.credible_interval,
-                    rate_withheld_reason=stratum.rate_withheld_reason,
-                    topics=tuple(
-                        TopicEntry(cap_topic_code=code, count=count)
-                        for code, count in stratum.topics
-                    ),
-                )
-                for stratum in scorecard.strata
-            ),
+            mandate_progress=self.progress_response(progress),
+            strata=self.stratum_responses(scorecard),
         )
 
     # -------------------------------------------------------------------- audit

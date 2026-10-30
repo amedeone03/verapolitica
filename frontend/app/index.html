@@ -35,23 +35,182 @@
           />
           <button type="submit">Cerca</button>
         </form>
-        <nav class="public-nav" aria-label="Sezioni dell'archivio pubblico">
-          <a href="./">Politici</a>
-          <a href="./?view=proposals">Proposte</a>
-          <a href="./?view=referendums">Referendum</a>
-          <a href="./?view=voting-guide">Guide al voto</a>
-          <a href="./?view=glossary">Glossario</a>
-          <a href="./?view=methodology">Metodologia</a>
-          <a href="./?view=regions">Regioni</a>
-          <a href="./?view=municipalities">Comuni</a>
-          <a href="./?view=ask">Ask VeraPolitica</a>
-          <a href="./?view=search">Ricerca</a>
+        <nav class="public-nav section-tabs" aria-label="Sezioni principali">
+          <a href="./" data-section="home">Home</a>
+          <a href="./?view=politics" data-section="politics">Politica</a>
+          <a href="./?view=history" data-section="history">Archivio</a>
+          <a href="./?view=profile" data-section="profile">Profilo</a>
         </nav>
       </div>
     </header>
 
     <main>
-      <section id="archive-view" aria-labelledby="archive-title">
+      <section id="home-view" aria-labelledby="home-title" hidden>
+        <div class="hero compact-hero home-hero">
+          <p class="eyebrow">Home</p>
+          <h1 id="home-title">Cosa è successo, <em>con le fonti.</em></h1>
+          <p id="home-zone" class="hero-copy">Fatti verificati: leggi, promesse, referendum e aggiornamenti della redazione.</p>
+        </div>
+        <div class="shortcut-grid" aria-label="Accesso rapido">
+          <a class="shortcut-card" href="./?view=proposals&amp;legislature=current"><span class="eyebrow">In Parlamento</span><strong>Proposte di legge attuali</strong><small>Iter verificato, atto per atto</small></a>
+          <a class="shortcut-card" href="./?view=proposals&amp;dossier=legge_bilancio"><span class="eyebrow">Dossier</span><strong>Legge di bilancio</strong><small>Misure e passaggi con le fonti</small></a>
+          <a class="shortcut-card" href="./?view=referendums"><span class="eyebrow">Calendario</span><strong>Referendum</strong><small>Quesiti ufficiali e date</small></a>
+          <a class="shortcut-card" href="./?view=voting-guide"><span class="eyebrow">Come si vota</span><strong>Guide al voto</strong><small>Documenti, orari, regole</small></a>
+        </div>
+        <section id="home-favorites" class="home-favorites" aria-labelledby="home-favorites-title" hidden>
+          <div class="archive-heading"><div><p class="eyebrow">Dal tuo profilo</p><h2 id="home-favorites-title">I tuoi preferiti</h2></div></div>
+          <div id="home-favorites-list" class="favorite-chips"></div>
+        </section>
+        <div class="archive-heading feed-heading">
+          <div><p class="eyebrow">Fatti verificati</p><h2>Ultimi aggiornamenti</h2></div>
+          <div id="feed-filters" class="filter-pills" role="group" aria-label="Filtra per ambito"></div>
+        </div>
+        <div id="feed-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Caricamento degli aggiornamenti…</strong><small>Solo record già verificati.</small></div>
+        </div>
+        <div id="feed-list" class="feed-list" hidden></div>
+        <button id="feed-more" class="ghost-button" type="button" hidden>Carica altri</button>
+      </section>
+
+      <section id="post-view" aria-labelledby="post-title" hidden>
+        <a class="back-link" href="./"><span aria-hidden="true">←</span> Torna alla Home</a>
+        <div id="post-status" class="state-card loading-state" role="status">
+          <span class="loading-mark" aria-hidden="true"></span>
+          <div><strong>Caricamento dell'aggiornamento…</strong><small>Recupero del record pubblicato.</small></div>
+        </div>
+        <article id="post-detail" hidden></article>
+      </section>
+
+      <section id="politics-view" aria-labelledby="politics-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Politica</p>
+          <h1 id="politics-title">Partiti, politici, proposte.</h1>
+          <p class="hero-copy">Cosa hanno detto e cosa hanno fatto. Ogni punteggio è calcolato con un metodo pubblico e si confronta solo tra ruoli uguali.</p>
+        </div>
+        <div class="shortcut-grid">
+          <a class="shortcut-card" href="./?view=politicians"><span class="eyebrow">Profili</span><strong>Politici</strong><small>Schede verificate e promesse</small></a>
+          <a class="shortcut-card" href="./?view=proposals"><span class="eyebrow">Atti</span><strong>Proposte di legge</strong><small>Per tema e per stato</small></a>
+          <a class="shortcut-card" href="./?view=compare"><span class="eyebrow">Detto / fatto</span><strong>Confronto</strong><small>Solo nello stesso ruolo</small></a>
+          <a class="shortcut-card" href="./?view=methodology"><span class="eyebrow">Metodo</span><strong>Come si calcola</strong><small>Formula, intervalli, revisione</small></a>
+        </div>
+        <section class="detail-card" aria-labelledby="parties-title">
+          <div class="archive-heading"><div><p class="eyebrow">Partiti</p><h2 id="parties-title">Lista partiti</h2></div><span id="party-count" class="count-pill">Caricamento</span></div>
+          <div id="parties-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dei partiti…</strong><small>Solo partiti con almeno un profilo pubblicato.</small></div></div>
+          <div id="party-list" class="proposal-grid" hidden></div>
+        </section>
+        <section class="detail-card" aria-labelledby="topics-title">
+          <p class="eyebrow">Tag</p><h2 id="topics-title">Proposte per tema</h2>
+          <p class="empty-note">Temi del Comparative Agendas Project, gli stessi usati nella ricerca politologica.</p>
+          <div id="topic-list" class="topic-chips"></div>
+        </section>
+      </section>
+
+      <section id="compare-view" aria-labelledby="compare-title" hidden>
+        <a class="back-link" href="./?view=politics"><span aria-hidden="true">←</span> Politica</a>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Confronto</p>
+          <h1 id="compare-title">Detto e fatto, a parità di ruolo.</h1>
+          <p class="hero-copy">Governo e opposizione hanno poteri diversi: si confrontano solo persone nello stesso ruolo, con l'intervallo di incertezza accanto al numero.</p>
+        </div>
+        <form id="compare-form" class="compare-form" action="./" method="get">
+          <input type="hidden" name="view" value="compare" />
+          <label for="compare-role">Ruolo</label>
+          <select id="compare-role" name="role"></select>
+          <fieldset><legend>Politici (da 2 a 6)</legend><div id="compare-people" class="compare-people"></div></fieldset>
+          <button type="submit">Confronta</button>
+        </form>
+        <div id="compare-status" class="state-card" role="status"><div><strong>Scegli un ruolo e almeno due persone.</strong><small>Le persone senza promesse in quel ruolo compaiono senza punteggio.</small></div></div>
+        <div id="compare-result" hidden></div>
+      </section>
+
+      <section id="history-view" aria-labelledby="history-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Archivio storico</p>
+          <h1 id="history-title">Dal 1946 a oggi.</h1>
+          <p class="hero-copy">Legislature, parlamentari, referendum e territori. Prima e Seconda Repubblica sono convenzioni giornalistiche: qui servono solo a orientarsi.</p>
+        </div>
+        <form class="search-panel" action="./" method="get">
+          <input type="hidden" name="view" value="parliamentarians" />
+          <label class="visually-hidden" for="history-q">Cerca un parlamentare</label>
+          <input id="history-q" name="q" type="search" minlength="2" maxlength="100" placeholder="Cerca un parlamentare dal 1948" autocomplete="off" />
+          <button type="submit">Cerca</button>
+        </form>
+        <div id="history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dell'archivio…</strong><small>Legislature della Repubblica.</small></div></div>
+        <div id="era-list" hidden></div>
+        <section class="detail-card" aria-labelledby="territory-archive-title">
+          <p class="eyebrow">Territori</p><h2 id="territory-archive-title">Regioni e province</h2>
+          <div class="shortcut-grid">
+            <a class="shortcut-card" href="./?view=regions"><span class="eyebrow">Tutte le regioni</span><strong>Regionale</strong><small>Presidenti e consultazioni</small></a>
+            <a class="shortcut-card" href="./?view=provinces"><span class="eyebrow">Tutte le province</span><strong>Provinciale</strong><small>Sindaci e referendum locali</small></a>
+            <a class="shortcut-card" href="./?view=referendum-archive"><span class="eyebrow">Dal 1946</span><strong>Referendum</strong><small>Archivio per anno</small></a>
+            <a class="shortcut-card" href="./?view=proposals&amp;status=enacted"><span class="eyebrow">Concluse</span><strong>Proposte di legge storiche</strong><small>Leggi promulgate</small></a>
+          </div>
+        </section>
+      </section>
+
+      <section id="legislature-view" aria-labelledby="legislature-title" hidden>
+        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <div id="legislature-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della legislatura…</strong><small>Dati delle Camere.</small></div></div>
+        <article id="legislature-detail" hidden></article>
+      </section>
+
+      <section id="parliamentarians-view" aria-labelledby="parliamentarians-title" hidden>
+        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <div class="hero compact-hero"><p class="eyebrow">Archivio storico</p><h1 id="parliamentarians-title">Parlamentari dal 1948</h1><p class="hero-copy">Mandati ufficiali dai dati aperti delle Camere. Il collegamento a un profilo compare solo quando l'identità è stata verificata.</p></div>
+        <div id="parliamentarians-status" class="state-card" role="status"></div>
+        <div id="parliamentarians-list" class="roster-list" hidden></div>
+        <nav id="parliamentarians-pagination" class="territory-pagination" hidden></nav>
+      </section>
+
+      <section id="provinces-view" aria-labelledby="provinces-title" hidden>
+        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <div class="hero compact-hero"><p class="eyebrow">Archivio territoriale</p><h1 id="provinces-title">Province</h1><p class="hero-copy">Province e città metropolitane secondo i codici ISTAT dei comuni.</p></div>
+        <div id="provinces-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento delle province…</strong><small>Dati ISTAT di riferimento.</small></div></div>
+        <div id="province-list" class="province-groups" hidden></div>
+      </section>
+
+      <section id="territory-history-view" aria-labelledby="territory-history-title" hidden>
+        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <div id="territory-history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della storia del territorio…</strong><small>Record pubblicati con fonte.</small></div></div>
+        <article id="territory-history" hidden></article>
+      </section>
+
+      <section id="referendum-archive-view" aria-labelledby="referendum-archive-title" hidden>
+        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <div class="hero compact-hero"><p class="eyebrow">Archivio storico</p><h1 id="referendum-archive-title">Referendum per anno</h1><p class="hero-copy">Le consultazioni pubblicate da VeraPolitica, dalla più recente.</p></div>
+        <div id="referendum-archive-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dei referendum…</strong><small>Record civici pubblicati.</small></div></div>
+        <div id="referendum-archive" hidden></div>
+      </section>
+
+      <section id="profile-view" aria-labelledby="profile-title" hidden>
+        <div class="hero compact-hero">
+          <p class="eyebrow">Profilo</p>
+          <h1 id="profile-title">La tua zona e i tuoi preferiti.</h1>
+          <p class="hero-copy">Restano solo su questo dispositivo: nessun account, niente viene inviato a VeraPolitica.</p>
+        </div>
+        <section class="detail-card" aria-labelledby="zone-title">
+          <p class="eyebrow">Zona</p><h2 id="zone-title">Dove vivi</h2>
+          <form id="zone-form" class="zone-form">
+            <label for="zone-region">Regione</label><select id="zone-region"><option value="">Scegli una regione</option></select>
+            <label for="zone-province">Provincia</label><select id="zone-province" disabled><option value="">Scegli una provincia</option></select>
+            <label for="zone-municipality">Comune</label><select id="zone-municipality" disabled><option value="">Scegli un comune</option></select>
+            <div class="zone-actions"><button type="submit">Salva zona</button><button type="button" id="zone-clear" class="ghost-button">Rimuovi</button></div>
+          </form>
+          <p id="zone-saved" class="empty-note" role="status"></p>
+        </section>
+        <section class="detail-card" aria-labelledby="favorites-title">
+          <p class="eyebrow">Home</p><h2 id="favorites-title">Profili preferiti</h2>
+          <p class="empty-note">Aggiungili con la stella sulla scheda di un politico: compariranno in Home.</p>
+          <div id="profile-favorites" class="favorite-chips"></div>
+        </section>
+        <section class="detail-card" aria-labelledby="report-title">
+          <p class="eyebrow">Report</p><h2 id="report-title">Hai trovato un errore?</h2>
+          <p>Ogni scheda ha le sue fonti. Se un dato non corrisponde alla fonte ufficiale, scrivi alla redazione indicando la pagina e la fonte.</p>
+        </section>
+      </section>
+
+      <section id="archive-view" aria-labelledby="archive-title" hidden>
         <div class="hero">
           <p class="eyebrow">Archivio pubblico</p>
           <h1 id="archive-title">Sai chi ti rappresenta.<br /><em>Verifica ogni dettaglio.</em></h1>
@@ -81,7 +240,7 @@
       </section>
 
       <section id="detail-view" aria-labelledby="profile-name" hidden>
-        <a class="back-link" href="./"><span aria-hidden="true">←</span> Tutti i profili verificati</a>
+        <a class="back-link" href="./?view=politicians"><span aria-hidden="true">←</span> Tutti i profili verificati</a>
         <div id="detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del profilo verificato…</strong><small>Recupero della scheda pubblicata.</small></div>
@@ -312,8 +471,25 @@
         <strong>VeraPolitica</strong>
         <p>Profili pubblici ricavati da fonti ufficiali e pubblicati dopo verifica editoriale.</p>
       </div>
-      <span>Archivio nazionale, regionale e comunale</span>
+      <nav class="footer-nav" aria-label="Altre pagine">
+        <a href="./?view=politicians">Politici</a>
+        <a href="./?view=proposals">Proposte</a>
+        <a href="./?view=referendums">Referendum</a>
+        <a href="./?view=voting-guide">Guide al voto</a>
+        <a href="./?view=glossary">Glossario</a>
+        <a href="./?view=methodology">Metodologia</a>
+        <a href="./?view=regions">Regioni</a>
+        <a href="./?view=municipalities">Comuni</a>
+        <a href="./?view=ask">Ask VeraPolitica</a>
+        <a href="./?view=search">Ricerca</a>
+      </nav>
     </footer>
+    <nav class="tab-bar" aria-label="Sezioni principali">
+      <a href="./" data-section="home"><span class="tab-icon" aria-hidden="true">⌂</span>Home</a>
+      <a href="./?view=politics" data-section="politics"><span class="tab-icon" aria-hidden="true">◎</span>Politica</a>
+      <a href="./?view=history" data-section="history"><span class="tab-icon" aria-hidden="true">▤</span>Archivio</a>
+      <a href="./?view=profile" data-section="profile"><span class="tab-icon" aria-hidden="true">◉</span>Profilo</a>
+    </nav>
 
     <script type="module" src="./app.js"></script>
   </body>

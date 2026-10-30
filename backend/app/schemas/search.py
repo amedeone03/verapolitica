@@ -48,3 +48,25 @@ class PublicPoliticalParty(ImmutableSchema):
     id: int = Field(gt=0)
     name: str
     abbreviation: str | None = None
+
+
+class PublicPartyMember(ImmutableSchema):
+    politician_id: int = Field(gt=0)
+    name: str
+    start_date: str | None = None
+    end_date: str | None = None
+    source_url: str
+
+
+class PublicPoliticalPartyDetail(PublicPoliticalParty):
+    current_members: tuple[PublicPartyMember, ...] = ()
+    former_members: tuple[PublicPartyMember, ...] = ()
+
+
+class PublicPoliticalPartySummary(PublicPoliticalParty):
+    current_member_count: int = Field(ge=0)
+
+
+class PublicPoliticalPartyList(ImmutableSchema):
+    items: tuple[PublicPoliticalPartySummary, ...]
+    total: int = Field(ge=0)

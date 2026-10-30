@@ -83,6 +83,7 @@ class PublicTerritoryQueryService:
         offset: int,
         limit: int,
         region_id: int | None = None,
+        province: str | None = None,
     ) -> PublicMunicipalityList:
         query: Select[tuple[Municipality, Region]] = select(Municipality, Region).join(
             Region, Region.id == Municipality.region_id
@@ -91,6 +92,9 @@ class PublicTerritoryQueryService:
         if region_id is not None:
             query = query.where(Municipality.region_id == region_id)
             count_query = count_query.where(Municipality.region_id == region_id)
+        if province is not None:
+            query = query.where(Municipality.province_abbreviation == province)
+            count_query = count_query.where(Municipality.province_abbreviation == province)
         total = self.session.scalar(count_query) or 0
         rows = list(
             self.session.execute(

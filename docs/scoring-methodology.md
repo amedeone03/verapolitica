@@ -126,6 +126,31 @@ Presentation order (Naurin 2011, voters underestimate kept pledges): the API
 returns the list of pledges, then each stratum's composition, then the rate.
 The public scorecard links to `/methodology/scoring`.
 
+### 4.1 Party scorecard (`/political-parties/{id}/scorecard`)
+
+A party score is **not** an average of its members' rates. Averaging gives a
+member with two closed pledges the same weight as one with forty and hides how
+little evidence sits behind the number. Instead the party's pledges are pooled
+and the ordinary scorer above runs on the pooled counts, stratum by stratum, so
+the same intervals and the same 8-pledge minimum apply. Pooling is a weighted
+mean of member rates with weights equal to closed pledges.
+
+A pledge counts for a party when the party is a `commitment_owner`, or when a
+published politician is the `commitment_owner` and was affiliated with the
+party on the pledge date (`introduced_at`, else the classification's
+`mandate_start`). Member pledges without a usable date are not attributed and
+are reported as `unattributed_member_pledges`. Each pledge counts once.
+
+`window=current` keeps pledges whose mandate window contains `as_of` ("attuale");
+`window=all` keeps every pledge ("storica").
+
+### 4.2 Comparison (`/compare/politicians?ids=…&role=…`)
+
+Comparison requires one role and returns each person's stratum for that role
+only; there is no cross-role ranking. The response says whether the credible
+intervals overlap; when they do, the public page states that the difference is
+not distinguishable with the data available.
+
 ## 5. Validation
 
 **Agreement.** Krippendorff's alpha (nominal and ordinal over

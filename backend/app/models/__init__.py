@@ -10,7 +10,28 @@ from backend.app.models.ai_evaluation import (
     AIExtractionEvaluationRun,
     AIExtractionEvaluationRunStatus,
 )
+from backend.app.models.editorial_post import (
+    EditorialPost,
+    EditorialPostStatus,
+    FeedScope,
+    ImmutableEditorialPostError,
+)
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
+from backend.app.models.historical_archive import (
+    ERA_LABELS,
+    Chamber,
+    HistoricalEra,
+    HistoricalParliamentMandate,
+    Legislature,
+    era_for,
+)
+from backend.app.models.proposal_tag import (
+    CAP_MAJOR_TOPICS,
+    DOSSIERS,
+    ProposalTag,
+    ProposalTagKind,
+    tag_label,
+)
 from backend.app.models.identity_resolution_case import (
     IdentityResolutionCase,
     IdentityResolutionStatus,
@@ -128,6 +149,21 @@ from backend.app.models.pledge import (
 from backend.app.models import search_fields as _search_fields  # noqa: F401
 
 __all__ = [
+    "CAP_MAJOR_TOPICS",
+    "Chamber",
+    "DOSSIERS",
+    "ERA_LABELS",
+    "EditorialPost",
+    "EditorialPostStatus",
+    "FeedScope",
+    "HistoricalEra",
+    "HistoricalParliamentMandate",
+    "ImmutableEditorialPostError",
+    "Legislature",
+    "ProposalTag",
+    "ProposalTagKind",
+    "era_for",
+    "tag_label",
     "AIExtractionCandidate",
     "AIExtractionCandidateEvidence",
     "AIExtractionCandidateStatus",

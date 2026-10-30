@@ -240,7 +240,7 @@ export function renderPoliticianCard(person) {
     ${portrait(person)}
     <div class="card-content">
       <span class="verified-badge">Verificato su fonti ufficiali</span>
-      <h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>
+      <div class="card-title-row"><h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>${renderFavoriteToggle(person)}</div>
       <p class="mandate">${escapeHtml(mandateTitle(mandate, gender))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "Istituzione nazionale")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
       <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Caricamento delle promesse…</p></div>
@@ -727,11 +727,20 @@ function renderProposalActor(actor) {
   return `<span class="proposal-actor">${name}<small>${escapeHtml(actorRoleLabel(actor.role))}</small></span>`;
 }
 
+export function renderProposalTags(tags = []) {
+  if (!tags.length) return "";
+  return `<div class="topic-chips is-inline">${tags.map((tag) => {
+    const param = tag.kind === "dossier" ? "dossier" : "topic";
+    return `<a class="topic-chip is-small${tag.kind === "dossier" ? " is-dossier" : ""}" href="./?view=proposals&amp;${param}=${encodeURIComponent(tag.value)}">${escapeHtml(tag.label)}</a>`;
+  }).join("")}</div>`;
+}
+
 export function renderProposalCard(proposal) {
   const sourceUrl = safeExternalUrl(proposal.source?.url);
   return `<article class="proposal-card">
     <div class="proposal-card-top"><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><span class="status-chip">${escapeHtml(proposalStatusLabel(proposal.current_status))}</span></div>
     <h3>${escapeHtml(proposal.title)}</h3>
+    ${renderProposalTags(proposal.tags)}
     <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Nessun attore pubblicato</span>"}</div>
     <p>${escapeHtml(formatDate(proposal.introduced_at))}</p>
     <div class="proposal-card-links"><a class="profile-link" href="./?proposal=${encodeURIComponent(proposal.id)}">Vedi cronologia <span aria-hidden="true">→</span></a>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}</div>
@@ -749,6 +758,7 @@ export function renderProposalDetail(proposal) {
   return `<section class="proposal-detail-hero">
       <span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span>
       <h1 id="proposal-detail-title">${escapeHtml(proposal.title)}</h1>
+      ${renderProposalTags(proposal.tags)}
       <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Nessun attore pubblicato</span>"}</div>
       <p class="lead">Stato istituzionale attuale: <strong>${escapeHtml(proposalStatusLabel(proposal.current_status))}</strong></p>
       ${proposal.exact_statement ? `<blockquote>${escapeHtml(proposal.exact_statement)}</blockquote>` : proposal.summary ? `<p>${escapeHtml(proposal.summary)}</p>` : ""}
@@ -829,6 +839,7 @@ export function renderRegionDetail(region, municipalities = []) {
       <h1 id="region-detail-title">${escapeHtml(region.name)}</h1>
       <p>Presidente: ${holderLabel(region.current_president)}</p>
       <p>${region.municipality_count} ${region.municipality_count === 1 ? "comune" : "comuni"} nei dati ufficiali di riferimento.</p>
+      <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione <span aria-hidden="true">→</span></a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ↗</a></p>` : ""}
     </section>
     <section class="detail-card">
@@ -844,7 +855,7 @@ export function renderMunicipalityDetail(municipality) {
       <h1 id="municipality-detail-title">Comune di ${escapeHtml(municipality.name)}</h1>
       <p>Regione: <a href="./?region=${encodeURIComponent(municipality.region_id)}">${escapeHtml(municipality.region_name)}</a></p>
       <p>Sindaco: ${holderLabel(municipality.current_mayor)}</p>
-      <p>Provincia/UTS: ${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</p>
+      <p>Provincia/UTS: <a href="./?province=${encodeURIComponent(municipality.province_abbreviation)}">${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ↗</a></p>` : ""}
     </section>`;
 }
@@ -1454,7 +1465,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
       </div>
       <div class="profile-intro">
         <span class="verified-badge">Verificato su fonti ufficiali</span>
-        <h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>
+        <div class="profile-name-row"><h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>${renderFavoriteToggle(person)}</div>
         <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
         ${party ? `<p class="profile-party">${escapeHtml(party.name)}</p>` : ""}
         ${headerFacts ? `<dl class="facts header-facts">${headerFacts}</dl>` : ""}
@@ -1519,7 +1530,44 @@ export function createPublicApiClient(fetchImpl = fetch) {
     ask: (question) => request("/ask", { method: "POST", body: { question } }),
     getPortraits: () => request("/portraits"),
     getScoringMethodology: () => request("/methodology/scoring"),
-    listProposals: () => request("/proposals?offset=0&limit=50"),
+    listProposals: (filters = {}) => {
+      const params = new URLSearchParams({ offset: "0", limit: "50" });
+      for (const [key, value] of Object.entries(filters)) if (value) params.set(key, String(value));
+      return request(`/proposals?${params}`);
+    },
+    listProposalTags: () => request("/proposals/tags"),
+    getFeed: ({ scope = "all", zone = {}, offset = 0 } = {}) => {
+      const params = new URLSearchParams({ scope, offset: String(offset), limit: "20" });
+      if (zone.municipality_id) params.set("municipality", String(zone.municipality_id));
+      else if (zone.province) params.set("province", zone.province);
+      else if (zone.region_id) params.set("region", String(zone.region_id));
+      return request(`/feed?${params}`);
+    },
+    getPost: (id) => request(`/feed/posts/${encodeURIComponent(id)}`),
+    listParties: () => request("/political-parties"),
+    getPartyScorecard: (id, window = "all") => request(`/political-parties/${encodeURIComponent(id)}/scorecard?window=${encodeURIComponent(window)}`),
+    compare: (ids, role) => request(`/compare/politicians?ids=${encodeURIComponent(ids.join(","))}&role=${encodeURIComponent(role)}`),
+    listLegislatures: () => request("/archive/legislatures"),
+    getLegislature: (number) => request(`/archive/legislatures/${encodeURIComponent(number)}`),
+    listParliamentarians: ({ legislature = null, chamber = "", q = "", offset = 0 } = {}) => {
+      const params = new URLSearchParams({ offset: String(offset), limit: "50" });
+      if (legislature !== null && legislature !== "") params.set("legislature", String(legislature));
+      if (chamber) params.set("chamber", chamber);
+      if (q) params.set("q", q);
+      return request(`/archive/parliamentarians?${params}`);
+    },
+    listProvinces: (regionId = null) => request(`/archive/provinces${regionId ? `?region=${encodeURIComponent(regionId)}` : ""}`),
+    getProvinceHistory: (code) => request(`/archive/provinces/${encodeURIComponent(code)}`),
+    getRegionHistory: (id) => request(`/archive/regions/${encodeURIComponent(id)}`),
+    listMunicipalitiesInProvince: async (province) => {
+      const items = [];
+      for (let offset = 0; offset < 2000; offset += 100) {
+        const page = await request(`/municipalities?province=${encodeURIComponent(province)}&offset=${offset}&limit=100`);
+        items.push(...page.items);
+        if (items.length >= page.total || !page.items.length) break;
+      }
+      return items;
+    },
     getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
     listRegions: () => request("/regions?offset=0&limit=50"),
     getRegion: (id) => request(`/regions/${encodeURIComponent(id)}`),
@@ -1581,6 +1629,7 @@ async function loadPortraits(api) {
 }
 
 async function showArchive(api) {
+  byId("archive-view").hidden = false;
   try {
     const [payload] = await Promise.all([api.listPoliticians(), loadPortraits(api)]);
     payload.items.sort((left, right) => officeRank(left) - officeRank(right)
@@ -1629,14 +1678,57 @@ async function showDetail(api, politicianId) {
   }
 }
 
+async function proposalFilters(api, params) {
+  const filters = {};
+  const notes = [];
+  for (const key of ["status", "topic", "dossier"]) {
+    const value = params.get(key);
+    if (value) filters[key] = value;
+  }
+  let legislature = params.get("legislature");
+  if (legislature) {
+    try {
+      const eras = await api.listLegislatures();
+      const all = eras.eras.flatMap((era) => era.legislatures);
+      const match = legislature === "current" ? all.find((item) => !item.end_date) : all.find((item) => String(item.number) === legislature);
+      if (match) {
+        filters.introduced_from = match.start_date;
+        if (match.end_date) filters.introduced_to = match.end_date;
+        notes.push(match.label);
+      }
+    } catch {
+      legislature = null;
+    }
+  }
+  if (filters.status) notes.push(proposalStatusLabel(filters.status));
+  return { filters, notes };
+}
+
 async function showProposals(api) {
   byId("archive-view").hidden = true;
   byId("proposals-view").hidden = false;
+  const params = new URLSearchParams(window.location.search);
   try {
-    const payload = await api.listProposals();
-    byId("proposal-count").textContent = countLabel(payload.total, "record pubblicato", "record pubblicati");
+    const [{ filters, notes }, tags] = await Promise.all([proposalFilters(api, params), api.listProposalTags().catch(() => null)]);
+    const dossier = tags?.dossiers.find((item) => item.value === filters.dossier);
+    const topic = tags?.topics.find((item) => item.value === filters.topic);
+    if (dossier) {
+      byId("proposals-title").textContent = dossier.label;
+      document.title = `${dossier.label} — VeraPolitica`;
+    } else if (topic) {
+      byId("proposals-title").textContent = `Proposte: ${topic.label}`;
+    } else if (params.get("legislature") === "current") {
+      byId("proposals-title").textContent = "Proposte di legge attuali";
+    }
+    if (topic) notes.unshift(`Tema: ${topic.label}`);
+    const payload = await api.listProposals(filters);
+    byId("proposal-count").textContent = `${countLabel(payload.total, "record pubblicato", "record pubblicati")}${notes.length ? ` · ${notes.join(" · ")}` : ""}`;
     if (!payload.items.length) {
-      showState(byId("proposals-status"), "Nessuna proposta verificata è al momento disponibile.", "Le proposte pubblicate compariranno qui dopo la verifica editoriale.");
+      showState(
+        byId("proposals-status"),
+        dossier ? `Il dossier «${dossier.label}» non ha ancora atti pubblicati.` : "Nessuna proposta verificata corrisponde a questi filtri.",
+        "Le proposte compaiono qui dopo la verifica editoriale.",
+      );
       return;
     }
     byId("proposals-status").hidden = true;
@@ -2065,6 +2157,632 @@ async function showMethodology(api) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Reader profile: zone and favourites live only in this browser (no account).
+const PROFILE_KEY = "verapolitica.profile.v1";
+
+export function loadReaderProfile(storage = globalThis.localStorage) {
+  try {
+    const value = JSON.parse(storage?.getItem(PROFILE_KEY) || "{}");
+    return {
+      zone: value && typeof value.zone === "object" && value.zone ? value.zone : null,
+      favorites: Array.isArray(value?.favorites) ? value.favorites.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
+    };
+  } catch {
+    return { zone: null, favorites: [] };
+  }
+}
+
+export function saveReaderProfile(profile, storage = globalThis.localStorage) {
+  try {
+    storage?.setItem(PROFILE_KEY, JSON.stringify({ zone: profile.zone || null, favorites: profile.favorites || [] }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function toggleFavorite(profile, person) {
+  const id = String(person.id);
+  const exists = profile.favorites.some((item) => String(item.id) === id);
+  return {
+    ...profile,
+    favorites: exists
+      ? profile.favorites.filter((item) => String(item.id) !== id)
+      : [...profile.favorites, { id, name: person.name }].slice(-24),
+  };
+}
+
+function isFavorite(id) {
+  return loadReaderProfile().favorites.some((item) => String(item.id) === String(id));
+}
+
+export function renderFavoriteToggle(person) {
+  const name = `${person.given_name} ${person.family_name}`.trim();
+  const active = typeof localStorage !== "undefined" && isFavorite(person.id);
+  return `<button type="button" class="favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" aria-pressed="${active}" aria-label="${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${escapeHtml(name)}">${active ? "★" : "☆"}</button>`;
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target instanceof Element ? event.target.closest(".favorite-toggle") : null;
+  if (!button) return;
+  event.preventDefault();
+  const profile = toggleFavorite(loadReaderProfile(), { id: button.dataset.favoriteId, name: button.dataset.favoriteName });
+  saveReaderProfile(profile);
+  const active = isFavorite(button.dataset.favoriteId);
+  for (const twin of document.querySelectorAll(`.favorite-toggle[data-favorite-id="${CSS.escape(button.dataset.favoriteId)}"]`)) {
+    twin.classList.toggle("is-active", active);
+    twin.setAttribute("aria-pressed", String(active));
+    twin.setAttribute("aria-label", `${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${button.dataset.favoriteName}`);
+    twin.textContent = active ? "★" : "☆";
+  }
+});
+
+function renderFavoriteChips(favorites) {
+  return favorites.map((item) => `<a class="topic-chip" href="./?politician=${encodeURIComponent(item.id)}">★ ${escapeHtml(item.name)}</a>`).join("");
+}
+
+export function zoneLabel(zone) {
+  if (!zone) return "";
+  if (zone.municipality_name) return `${zone.municipality_name}${zone.province ? ` (${zone.province})` : ""} · ${zone.region_name || ""}`;
+  if (zone.province_name) return `Provincia di ${zone.province_name} · ${zone.region_name || ""}`;
+  return zone.region_name || "";
+}
+
+// ---------------------------------------------------------------------------
+// Section tabs: Home, Politica, Archivio, Profilo.
+const SECTION_BY_VIEW = {
+  politics: "politics", politicians: "politics", proposals: "politics", compare: "politics",
+  methodology: "politics", ask: "politics", search: "politics",
+  history: "history", parliamentarians: "history", provinces: "history", "referendum-archive": "history",
+  regions: "history", municipalities: "history",
+  profile: "profile",
+};
+
+export function sectionFor(params) {
+  const view = params.get("view");
+  if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
+  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")) return "politics";
+  if (params.get("legislature") || params.get("province") || params.get("region") || params.get("municipality") || params.get("history_region")) return "history";
+  return "home";
+}
+
+function markSection(section) {
+  for (const link of document.querySelectorAll("[data-section]")) {
+    if (link.dataset.section === section) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Home: verified feed.
+const FEED_FILTERS = [
+  ["all", "Tutti"], ["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"],
+];
+const FEED_KIND_LABELS = {
+  proposal_status: "Proposta di legge",
+  pledge_verdict: "Promessa",
+  referendum: "Referendum",
+  editorial: "Redazione",
+};
+
+function feedPlace(item) {
+  if (item.scope === "municipality") return item.municipality_name ? `Comune di ${item.municipality_name}` : "Comunale";
+  if (item.scope === "province") return item.province_abbreviation ? `Provincia ${item.province_abbreviation}` : "Provinciale";
+  if (item.scope === "region") return item.region_name || "Regionale";
+  return "Nazionale";
+}
+
+export function renderFeedItem(item) {
+  const sources = (item.sources || []).map((source) => {
+    const url = safeExternalUrl(source.url);
+    return url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a>` : "";
+  }).join("");
+  const chip = item.kind === "pledge_verdict" && item.label ? renderVerdictChip(item.label) : "";
+  const correction = item.label === "correction" ? `<span class="topic-chip is-small is-dossier">Rettifica</span>` : "";
+  const detail = item.kind === "editorial" && item.detail.length > 280 ? `${item.detail.slice(0, 277)}…` : item.detail;
+  return `<article class="feed-item kind-${escapeHtml(item.kind)}">
+    <div class="feed-meta"><span class="proposal-type">${escapeHtml(FEED_KIND_LABELS[item.kind] || item.kind)}</span><span>${escapeHtml(feedPlace(item))}</span><time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(formatDate(item.occurred_on))}</time></div>
+    <h3><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
+    ${chip}${correction}
+    <p>${escapeHtml(detail)}</p>
+    ${sources ? `<div class="feed-sources">${sources}</div>` : ""}
+  </article>`;
+}
+
+async function showHome(api) {
+  byId("home-view").hidden = false;
+  const profile = loadReaderProfile();
+  const zone = profile.zone;
+  byId("home-zone").innerHTML = zone
+    ? `La tua zona: <strong>${escapeHtml(zoneLabel(zone))}</strong>. Vedi i fatti nazionali e quelli del tuo territorio. <a href="./?view=profile">Cambia</a>`
+    : `Fatti verificati: leggi, promesse, referendum e aggiornamenti della redazione. <a href="./?view=profile">Imposta la tua zona</a> per vedere anche le notizie locali.`;
+  if (profile.favorites.length) {
+    byId("home-favorites").hidden = false;
+    byId("home-favorites-list").innerHTML = renderFavoriteChips(profile.favorites);
+  }
+  let scope = "all";
+  let offset = 0;
+  const filters = byId("feed-filters");
+  const list = byId("feed-list");
+  const more = byId("feed-more");
+  const render = () => {
+    filters.innerHTML = FEED_FILTERS.map(([key, label]) => `<button type="button" class="filter-pill${key === scope ? " is-active" : ""}" data-feed-scope="${key}" aria-pressed="${key === scope}">${label}</button>`).join("");
+  };
+  const load = async (append) => {
+    more.disabled = true;
+    try {
+      const page = await api.getFeed({ scope, zone: zone || {}, offset });
+      byId("feed-status").hidden = true;
+      if (!append) list.innerHTML = "";
+      if (!page.items.length && !append) {
+        list.hidden = true;
+        const local = scope !== "all" && scope !== "national";
+        showState(byId("feed-status"), "Nessun aggiornamento verificato per questo filtro.", local && !zone ? "Imposta la tua zona nel Profilo per vedere le notizie del territorio." : "I nuovi fatti compaiono qui dopo la verifica.");
+      } else {
+        list.hidden = false;
+        list.insertAdjacentHTML("beforeend", page.items.map(renderFeedItem).join(""));
+      }
+      more.hidden = !page.has_more;
+      offset += page.items.length;
+    } catch {
+      list.hidden = true;
+      more.hidden = true;
+      showState(byId("feed-status"), "Non è stato possibile caricare gli aggiornamenti.", PUBLIC_UNAVAILABLE, true);
+    } finally {
+      more.disabled = false;
+    }
+  };
+  filters.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-feed-scope]") : null;
+    if (!button || button.dataset.feedScope === scope) return;
+    scope = button.dataset.feedScope;
+    offset = 0;
+    render();
+    load(false);
+  });
+  more.addEventListener("click", () => load(true));
+  render();
+  await load(false);
+}
+
+async function showPost(api, postId) {
+  byId("post-view").hidden = false;
+  try {
+    const item = await api.getPost(postId);
+    byId("post-status").hidden = true;
+    byId("post-detail").hidden = false;
+    const sources = item.sources.map((source) => {
+      const url = safeExternalUrl(source.url);
+      return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a></li>` : "";
+    }).join("");
+    byId("post-detail").innerHTML = `<section class="proposal-detail-hero">
+      <p class="eyebrow">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
+      <h1>${escapeHtml(item.title)}</h1>
+      ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
+      <p class="post-body">${escapeHtml(item.detail)}</p>
+    </section>
+    <section class="detail-card"><p class="eyebrow">Fonti</p><h2>Da dove viene</h2><ul class="explanation-sources">${sources}</ul>
+    <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
+    document.title = `${item.title} — VeraPolitica`;
+  } catch (error) {
+    showState(byId("post-status"), error.status === 404 ? "Questo aggiornamento non è disponibile." : "Non è stato possibile caricare l'aggiornamento.", error.status === 404 ? "Potrebbe non essere ancora pubblicato." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Politica: parties, topics, party pages, comparison.
+export function renderPartyCard(party) {
+  return `<article class="proposal-card">
+    <span class="proposal-type">${party.abbreviation ? escapeHtml(party.abbreviation) : "Partito"}</span>
+    <h3>${escapeHtml(party.name)}</h3>
+    <p>${party.current_member_count} ${party.current_member_count === 1 ? "profilo pubblicato in carica" : "profili pubblicati in carica"}</p>
+    <a class="profile-link" href="./?political_party=${encodeURIComponent(party.id)}">Vedi partito e promesse <span aria-hidden="true">→</span></a>
+  </article>`;
+}
+
+async function showPolitics(api) {
+  byId("politics-view").hidden = false;
+  document.title = "Politica — VeraPolitica";
+  api.listProposalTags().then((tags) => {
+    byId("topic-list").innerHTML = tags.topics.map((topic) => `<a class="topic-chip" href="./?view=proposals&amp;topic=${encodeURIComponent(topic.value)}">${escapeHtml(topic.label)}</a>`).join("")
+      + tags.dossiers.map((item) => `<a class="topic-chip is-dossier" href="./?view=proposals&amp;dossier=${encodeURIComponent(item.value)}">${escapeHtml(item.label)}</a>`).join("");
+  }).catch(() => {
+    byId("topic-list").innerHTML = `<p class="empty-note">Temi non disponibili.</p>`;
+  });
+  try {
+    const parties = await api.listParties();
+    byId("party-count").textContent = countLabel(parties.total, "partito", "partiti");
+    if (!parties.items.length) {
+      showState(byId("parties-status"), "Nessun partito ha ancora profili pubblicati.", "I partiti compaiono quando almeno un loro esponente ha una scheda verificata.");
+      return;
+    }
+    byId("parties-status").hidden = true;
+    byId("party-list").hidden = false;
+    byId("party-list").innerHTML = parties.items.map(renderPartyCard).join("");
+  } catch {
+    byId("party-count").textContent = "Non disponibile";
+    showState(byId("parties-status"), "Non è stato possibile caricare i partiti.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+function renderMemberList(members, emptyText) {
+  if (!members.length) return `<p class="empty-note">${escapeHtml(emptyText)}</p>`;
+  return `<div class="favorite-chips">${members.map((member) => `<a class="topic-chip" href="./?politician=${encodeURIComponent(member.politician_id)}">${escapeHtml(member.name)}${member.end_date ? `<small>fino al ${escapeHtml(formatYear(member.end_date))}</small>` : ""}</a>`).join("")}</div>`;
+}
+
+export function renderPartyScorecard(card) {
+  const contributors = card.contributors.length
+    ? `<p class="empty-note">Promesse dei membri incluse: ${card.contributors.map((item) => `<a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(item.name)}</a> (${item.pledges})`).join(", ")}.</p>`
+    : "";
+  return `<div class="method-note party-method">
+      <p>Il punteggio del partito <strong>non è una media dei punteggi dei suoi esponenti</strong>: somma le promesse del partito e quelle dei membri iscritti alla data della promessa, poi applica lo stesso metodo, ruolo per ruolo.</p>
+    </div>
+    ${renderScorecard(card)}
+    ${contributors}
+    ${card.unattributed_member_pledges ? `<p class="empty-note">${card.unattributed_member_pledges} promesse di membri non hanno una data utilizzabile e non sono attribuite.</p>` : ""}`;
+}
+
+async function showParty(api, partyId) {
+  byId("organization-detail-view").hidden = false;
+  const back = byId("organization-detail-view").querySelector(".back-link");
+  if (back) {
+    back.href = "./?view=politics";
+    back.innerHTML = `<span aria-hidden="true">←</span> Politica`;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const windowName = params.get("window") === "current" ? "current" : "all";
+  try {
+    const [party, card] = await Promise.all([api.getPoliticalParty(partyId), api.getPartyScorecard(partyId, windowName).catch(() => null)]);
+    byId("organization-detail-status").hidden = true;
+    const detail = byId("organization-detail");
+    detail.hidden = false;
+    const toggle = [["current", "Attuale"], ["all", "Storica"]].map(([key, label]) => `<a class="filter-pill${key === windowName ? " is-active" : ""}" href="./?political_party=${encodeURIComponent(partyId)}&amp;window=${key}" aria-current="${key === windowName ? "true" : "false"}">${label}</a>`).join("");
+    detail.innerHTML = `<article class="proposal-detail-hero">
+      <p class="eyebrow">Partito politico</p>
+      <h1 id="organization-detail-title">${escapeHtml(party.name)}</h1>
+      <p class="hero-copy">${party.abbreviation ? `${escapeHtml(party.abbreviation)} · ` : ""}${party.current_members?.length || 0} profili pubblicati in carica</p>
+    </article>
+    <section class="detail-card"><p class="eyebrow">Persone</p><h2>Esponenti con scheda verificata</h2>
+      ${renderMemberList(party.current_members || [], "Nessun esponente in carica ha ancora una scheda pubblicata.")}
+      ${(party.former_members || []).length ? `<h3 class="career-subhead">In passato</h3>${renderMemberList(party.former_members, "")}` : ""}
+    </section>
+    <section class="detail-card commitments-card"><p class="eyebrow">Detto e fatto</p><h2>Promesse del partito</h2>
+      <div class="filter-pills" role="group" aria-label="Periodo">${toggle}</div>
+      <p class="empty-note">${windowName === "current" ? "Attuale: solo le promesse il cui mandato è in corso oggi." : "Storica: tutte le promesse pubblicate, di ogni mandato."}</p>
+      ${card ? renderPartyScorecard(card) : `<p class="empty-note">Promesse non disponibili.</p>`}
+    </section>`;
+    bindPledgeFilters(detail);
+    bindExplainPledges(detail, api);
+    document.title = `${party.name} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("organization-detail-status"), missing ? "Questo partito non è disponibile." : "Non è stato possibile caricare questo partito.", missing ? "Potrebbe non esistere nell'archivio pubblico." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+export function renderComparison(result) {
+  const rows = result.entries.map((entry) => {
+    const stratum = entry.stratum;
+    const body = stratum
+      ? `${renderCompositionBar(stratum.composition, { compact: true })}${renderRateBlock(stratum, result.credible_level)}`
+      : `<p class="empty-note">Nessuna promessa classificata in questo ruolo.</p>`;
+    return `<article class="compare-card"><h3><a href="./?politician=${encodeURIComponent(entry.politician_id)}">${escapeHtml(entry.name)}</a></h3>${body}</article>`;
+  }).join("");
+  const overlap = result.overlapping_intervals
+    ? `<p class="method-note">Gli intervalli plausibili si sovrappongono: con i dati attuali la differenza tra queste persone <strong>non è distinguibile</strong> dal caso.</p>`
+    : "";
+  return `${overlap}<div class="compare-grid">${rows}</div><p class="publication-meta">Ruolo: ${escapeHtml(ROLE_LABELS[result.role] || result.role)} · Metodologia ${escapeHtml(result.methodology_version)} · Dati al ${escapeHtml(formatDate(result.as_of))}</p>`;
+}
+
+async function showCompare(api) {
+  byId("compare-view").hidden = false;
+  document.title = "Confronto — VeraPolitica";
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get("role") || "government_coalition";
+  const chosen = new Set(params.getAll("id").filter((value) => /^\d+$/.test(value)));
+  byId("compare-role").innerHTML = Object.entries(ROLE_LABELS).filter(([key]) => key !== "unknown").map(([key, label]) => `<option value="${key}"${key === role ? " selected" : ""}>${escapeHtml(label)}</option>`).join("");
+  try {
+    const people = await api.listPoliticians();
+    byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</label>`).join("");
+  } catch {
+    byId("compare-people").innerHTML = `<p class="empty-note">${escapeHtml(PUBLIC_UNAVAILABLE)}</p>`;
+  }
+  if (chosen.size < 2) return;
+  if (chosen.size > 6) {
+    showState(byId("compare-status"), "Puoi confrontare al massimo 6 persone.", "Togli qualche selezione e riprova.", true);
+    return;
+  }
+  try {
+    const result = await api.compare([...chosen], role);
+    byId("compare-status").hidden = true;
+    byId("compare-result").hidden = false;
+    byId("compare-result").innerHTML = renderComparison(result);
+  } catch {
+    showState(byId("compare-status"), "Non è stato possibile calcolare il confronto.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Archivio storico.
+function dateRange(start, end) {
+  return `${formatDate(start)} – ${end ? formatDate(end) : "in corso"}`;
+}
+
+export function renderLegislatureCard(item) {
+  const total = item.camera_mandates + item.senato_mandates;
+  return `<a class="legislature-card" href="./?legislature=${encodeURIComponent(item.number)}">
+    <span class="legislature-roman">${escapeHtml(item.roman)}</span>
+    <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(formatYear(item.start_date))}–${item.end_date ? escapeHtml(formatYear(item.end_date)) : "oggi"}${total ? ` · ${total} mandati in archivio` : ""}</small></span>
+  </a>`;
+}
+
+async function showHistory(api) {
+  byId("history-view").hidden = false;
+  document.title = "Archivio storico — VeraPolitica";
+  try {
+    const payload = await api.listLegislatures();
+    byId("history-status").hidden = true;
+    byId("era-list").hidden = false;
+    byId("era-list").innerHTML = payload.eras.map((era) => `<section class="detail-card era-card">
+      <p class="eyebrow">${escapeHtml(formatYear(era.legislatures[0].start_date))}–${era.legislatures.at(-1).end_date ? escapeHtml(formatYear(era.legislatures.at(-1).end_date)) : "oggi"}</p>
+      <h2>${escapeHtml(era.label)}</h2>
+      <p class="empty-note">${escapeHtml(era.note)}</p>
+      <div class="legislature-grid">${era.legislatures.map(renderLegislatureCard).join("")}</div>
+    </section>`).join("");
+  } catch {
+    showState(byId("history-status"), "Non è stato possibile caricare l'archivio storico.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+export function renderRosterRow(item) {
+  const name = `${item.given_name} ${item.family_name}`;
+  const link = item.politician_id ? `<a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(name)}</a>` : escapeHtml(name);
+  const source = safeExternalUrl(item.source_url);
+  return `<li class="roster-row"><span class="roster-name">${link}</span><span>${escapeHtml(romanLegislature(item.legislature) || String(item.legislature))} · ${item.chamber === "senato" ? "Senato" : "Camera"}${item.election_area ? ` · ${escapeHtml(item.election_area)}` : ""}</span><span>${item.start_date ? escapeHtml(item.end_date ? dateRange(item.start_date, item.end_date) : `Dal ${formatDate(item.start_date)}`) : ""}</span>${source ? `<a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ↗</a>` : ""}</li>`;
+}
+
+async function renderRoster(api, { legislature = null, chamber = "", q = "", offset = 0, target, status, pagination, baseHref }) {
+  try {
+    const page = await api.listParliamentarians({ legislature, chamber, q, offset });
+    if (!page.items.length) {
+      target.hidden = true;
+      pagination.hidden = true;
+      showState(status, q ? "Nessun parlamentare corrisponde alla ricerca." : "Il registro storico non è ancora stato importato.", q ? "Prova un'altra grafia del cognome." : "I mandati compaiono dopo l'importazione dai dati aperti della Camera.");
+      return;
+    }
+    status.hidden = true;
+    target.hidden = false;
+    target.innerHTML = `<p class="count-pill">${countLabel(page.total, "mandato", "mandati")}</p><ul class="roster">${page.items.map(renderRosterRow).join("")}</ul>`;
+    const previous = offset > 0 ? Math.max(0, offset - page.limit) : null;
+    const next = offset + page.items.length < page.total ? offset + page.limit : null;
+    pagination.hidden = previous === null && next === null;
+    pagination.innerHTML = `${previous !== null ? `<a href="${baseHref}&amp;offset=${previous}">Precedente</a>` : ""}<span>${offset + 1}–${offset + page.items.length} di ${page.total}</span>${next !== null ? `<a href="${baseHref}&amp;offset=${next}">Successiva</a>` : ""}`;
+  } catch {
+    showState(status, "Non è stato possibile caricare il registro.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+async function showLegislature(api, number) {
+  byId("legislature-view").hidden = false;
+  const params = new URLSearchParams(window.location.search);
+  const chamber = params.get("chamber") === "senato" ? "senato" : params.get("chamber") === "camera" ? "camera" : "";
+  const offset = Number.parseInt(params.get("offset") || "0", 10) || 0;
+  try {
+    const detail = await api.getLegislature(number);
+    const item = detail.legislature;
+    byId("legislature-status").hidden = true;
+    const article = byId("legislature-detail");
+    article.hidden = false;
+    const referendums = detail.referendums.length
+      ? `<ul class="plain-list">${detail.referendums.map((ref) => `<li><a href="./?referendum=${encodeURIComponent(ref.id)}">${escapeHtml(ref.title)}</a> · ${escapeHtml(formatDate(ref.vote_date))}</li>`).join("")}</ul>`
+      : `<p class="empty-note">Nessun referendum pubblicato in questo periodo.</p>`;
+    const chamberTabs = [["", "Tutte"], ["camera", "Camera"], ["senato", "Senato"]].map(([key, label]) => `<a class="filter-pill${key === chamber ? " is-active" : ""}" href="./?legislature=${item.number}${key ? `&amp;chamber=${key}` : ""}">${label}</a>`).join("");
+    const source = safeExternalUrl(item.source_url);
+    article.innerHTML = `<section class="proposal-detail-hero">
+      <p class="eyebrow">${escapeHtml(item.era_label)}</p>
+      <h1 id="legislature-title">${escapeHtml(item.label)}</h1>
+      <p class="hero-copy">${escapeHtml(dateRange(item.start_date, item.end_date))}</p>
+      ${source ? `<p><a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a></p>` : ""}
+      <nav class="legislature-nav">${detail.previous !== null ? `<a href="./?legislature=${detail.previous}">← Precedente</a>` : "<span></span>"}${detail.next !== null ? `<a href="./?legislature=${detail.next}">Successiva →</a>` : ""}</nav>
+    </section>
+    <section class="detail-card"><p class="eyebrow">Atti</p><h2>Proposte di legge</h2>
+      <p>${countLabel(detail.published_proposals, "proposta pubblicata", "proposte pubblicate")} presentate in questo periodo.</p>
+      <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte <span aria-hidden="true">→</span></a>
+    </section>
+    <section class="detail-card"><p class="eyebrow">Consultazioni</p><h2>Referendum</h2>${referendums}</section>
+    <section class="detail-card"><p class="eyebrow">Parlamentari</p><h2>Chi sedeva in Parlamento</h2>
+      <div class="filter-pills">${chamberTabs}</div>
+      <div id="legislature-roster-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento del registro…</strong><small>Mandati ufficiali.</small></div></div>
+      <div id="legislature-roster" hidden></div>
+      <nav id="legislature-roster-pagination" class="territory-pagination" hidden></nav>
+    </section>`;
+    document.title = `${item.label} — VeraPolitica`;
+    await renderRoster(api, {
+      legislature: item.number, chamber, offset,
+      target: byId("legislature-roster"), status: byId("legislature-roster-status"), pagination: byId("legislature-roster-pagination"),
+      baseHref: `./?legislature=${item.number}${chamber ? `&amp;chamber=${chamber}` : ""}`,
+    });
+  } catch (error) {
+    showState(byId("legislature-status"), error.status === 404 ? "Questa legislatura non è in archivio." : "Non è stato possibile caricare la legislatura.", error.status === 404 ? "Le legislature vanno dalla Costituente (0) a oggi." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+async function showParliamentarians(api) {
+  byId("parliamentarians-view").hidden = false;
+  const params = new URLSearchParams(window.location.search);
+  const q = (params.get("q") || "").trim();
+  const offset = Number.parseInt(params.get("offset") || "0", 10) || 0;
+  byId("history-q").value = q;
+  document.title = `${q ? `${q} — ` : ""}Parlamentari dal 1948 — VeraPolitica`;
+  if (q && q.length < 2) {
+    showState(byId("parliamentarians-status"), "Scrivi almeno due lettere.", "Cerca per nome o cognome.");
+    return;
+  }
+  await renderRoster(api, {
+    q, offset,
+    target: byId("parliamentarians-list"), status: byId("parliamentarians-status"), pagination: byId("parliamentarians-pagination"),
+    baseHref: `./?view=parliamentarians&amp;q=${encodeURIComponent(q)}`,
+  });
+}
+
+async function showProvinces(api) {
+  byId("provinces-view").hidden = false;
+  document.title = "Province — VeraPolitica";
+  try {
+    const payload = await api.listProvinces();
+    if (!payload.items.length) {
+      showState(byId("provinces-status"), "Nessuna provincia disponibile.", "I comuni ISTAT non sono ancora stati importati.");
+      return;
+    }
+    const groups = new Map();
+    for (const item of payload.items) {
+      if (!groups.has(item.region_name)) groups.set(item.region_name, []);
+      groups.get(item.region_name).push(item);
+    }
+    byId("provinces-status").hidden = true;
+    byId("province-list").hidden = false;
+    byId("province-list").innerHTML = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b, "it")).map(([region, items]) => `<section class="province-group"><h2>${escapeHtml(region)}</h2><div class="favorite-chips">${items.map((item) => `<a class="topic-chip" href="./?province=${encodeURIComponent(item.abbreviation)}">${escapeHtml(item.name)}<small>${escapeHtml(item.abbreviation)}</small></a>`).join("")}</div></section>`).join("");
+  } catch {
+    showState(byId("provinces-status"), "Non è stato possibile caricare le province.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+export function renderTerritoryHistory(history) {
+  const holders = history.office_holders.length
+    ? `<ol class="proposal-timeline">${history.office_holders.map((item) => `<li><time>${escapeHtml(item.start_date ? formatYear(item.start_date) : "")}</time><div><strong><a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(item.name)}</a></strong><p>${escapeHtml(officeLabel(item.office))} · ${escapeHtml(item.territory_name)} · ${escapeHtml(dateRange(item.start_date, item.end_date))}</p>${safeExternalUrl(item.source_url) ? `<a class="source-link" href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}</div></li>`).join("")}</ol>`
+    : `<p class="empty-note">Nessun incarico ancora pubblicato con fonte.</p>`;
+  const referendums = history.referendums.length
+    ? `<ul class="plain-list">${history.referendums.map((ref) => `<li><a href="./?referendum=${encodeURIComponent(ref.id)}">${escapeHtml(ref.title)}</a> · ${escapeHtml(formatDate(ref.vote_date))}</li>`).join("")}</ul>`
+    : `<p class="empty-note">Nessun referendum pubblicato per questo territorio.</p>`;
+  const kind = history.kind === "province" ? `Provincia ${escapeHtml(history.province_abbreviation)}` : "Regione";
+  const links = history.kind === "province"
+    ? `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Vedi la regione <span aria-hidden="true">→</span></a>`
+    : `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Comuni della regione <span aria-hidden="true">→</span></a>`;
+  return `<section class="proposal-detail-hero"><p class="eyebrow">${kind} · Cosa è successo</p><h1 id="territory-history-title">${escapeHtml(history.name)}</h1>${links}</section>
+    <section class="detail-card"><p class="eyebrow">Incarichi</p><h2>${history.kind === "province" ? "Sindaci" : "Presidenti"}</h2>${holders}</section>
+    <section class="detail-card"><p class="eyebrow">Consultazioni</p><h2>Referendum</h2>${referendums}</section>
+    <p class="empty-note">${escapeHtml(history.coverage_note)}</p>`;
+}
+
+async function showTerritoryHistory(api, { province = null, regionId = null }) {
+  byId("territory-history-view").hidden = false;
+  try {
+    const history = province ? await api.getProvinceHistory(province) : await api.getRegionHistory(regionId);
+    byId("territory-history-status").hidden = true;
+    byId("territory-history").hidden = false;
+    byId("territory-history").innerHTML = renderTerritoryHistory(history);
+    document.title = `${history.name} — Archivio — VeraPolitica`;
+  } catch (error) {
+    showState(byId("territory-history-status"), error.status === 404 ? "Questo territorio non è in archivio." : "Non è stato possibile caricare la storia del territorio.", error.status === 404 ? "Controlla il codice." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+async function showReferendumArchive(api) {
+  byId("referendum-archive-view").hidden = false;
+  document.title = "Referendum per anno — VeraPolitica";
+  try {
+    const payload = await api.listReferendums();
+    if (!payload.items.length) {
+      showState(byId("referendum-archive-status"), "Nessun referendum pubblicato.", "Le consultazioni compaiono dopo la verifica editoriale.");
+      return;
+    }
+    const years = new Map();
+    for (const item of [...payload.items].sort((a, b) => String(b.vote_date).localeCompare(String(a.vote_date)))) {
+      const year = String(item.vote_date).slice(0, 4);
+      if (!years.has(year)) years.set(year, []);
+      years.get(year).push(item);
+    }
+    byId("referendum-archive-status").hidden = true;
+    byId("referendum-archive").hidden = false;
+    byId("referendum-archive").innerHTML = [...years.entries()].map(([year, items]) => `<section class="year-group"><h2>${escapeHtml(year)}</h2><div class="proposal-grid">${items.map(renderReferendumCard).join("")}</div></section>`).join("");
+  } catch {
+    showState(byId("referendum-archive-status"), "Non è stato possibile caricare i referendum.", PUBLIC_UNAVAILABLE, true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Profilo.
+async function showProfile(api) {
+  byId("profile-view").hidden = false;
+  document.title = "Profilo — VeraPolitica";
+  let profile = loadReaderProfile();
+  const regionSelect = byId("zone-region");
+  const provinceSelect = byId("zone-province");
+  const municipalitySelect = byId("zone-municipality");
+  const saved = byId("zone-saved");
+  const renderFavorites = () => {
+    byId("profile-favorites").innerHTML = profile.favorites.length
+      ? `${renderFavoriteChips(profile.favorites)}<button type="button" id="favorites-clear" class="ghost-button">Svuota</button>`
+      : `<p class="empty-note">Nessun preferito.</p>`;
+  };
+  const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+  const fillProvinces = async (regionId, selected) => {
+    provinceSelect.innerHTML = option("", "Tutta la regione", !selected);
+    municipalitySelect.innerHTML = option("", "Tutta la provincia", true);
+    municipalitySelect.disabled = true;
+    provinceSelect.disabled = !regionId;
+    if (!regionId) return;
+    const provinces = await api.listProvinces(regionId);
+    provinceSelect.insertAdjacentHTML("beforeend", provinces.items.map((item) => option(item.abbreviation, `${item.name} (${item.abbreviation})`, item.abbreviation === selected)).join(""));
+  };
+  const fillMunicipalities = async (province, selected) => {
+    municipalitySelect.innerHTML = option("", "Tutta la provincia", !selected);
+    municipalitySelect.disabled = !province;
+    if (!province) return;
+    const towns = await api.listMunicipalitiesInProvince(province);
+    towns.sort((a, b) => a.name.localeCompare(b.name, "it"));
+    municipalitySelect.insertAdjacentHTML("beforeend", towns.map((town) => option(town.id, town.name, String(town.id) === String(selected))).join(""));
+  };
+  renderFavorites();
+  saved.textContent = profile.zone ? `Zona salvata: ${zoneLabel(profile.zone)}` : "Nessuna zona salvata.";
+  try {
+    const regions = await api.listRegions();
+    regionSelect.insertAdjacentHTML("beforeend", regions.items.map((region) => option(region.id, region.name, String(region.id) === String(profile.zone?.region_id))).join(""));
+    if (profile.zone?.region_id) await fillProvinces(profile.zone.region_id, profile.zone.province);
+    if (profile.zone?.province) await fillMunicipalities(profile.zone.province, profile.zone.municipality_id);
+  } catch {
+    saved.textContent = "Le zone non sono al momento disponibili.";
+  }
+  regionSelect.addEventListener("change", () => fillProvinces(regionSelect.value, null).catch(() => {}));
+  provinceSelect.addEventListener("change", () => fillMunicipalities(provinceSelect.value, null).catch(() => {}));
+  byId("zone-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!regionSelect.value) {
+      saved.textContent = "Scegli almeno una regione.";
+      return;
+    }
+    const text = (select) => select.selectedOptions[0]?.textContent || "";
+    profile = {
+      ...profile,
+      zone: {
+        region_id: Number(regionSelect.value),
+        region_name: text(regionSelect),
+        province: provinceSelect.value || null,
+        province_name: provinceSelect.value ? text(provinceSelect).replace(/\s*\([A-Z]{2}\)$/, "") : null,
+        municipality_id: municipalitySelect.value ? Number(municipalitySelect.value) : null,
+        municipality_name: municipalitySelect.value ? text(municipalitySelect) : null,
+      },
+    };
+    saved.textContent = saveReaderProfile(profile)
+      ? `Zona salvata: ${zoneLabel(profile.zone)}`
+      : "Questo browser non permette di salvare la zona.";
+  });
+  byId("zone-clear").addEventListener("click", () => {
+    profile = { ...profile, zone: null };
+    saveReaderProfile(profile);
+    regionSelect.value = "";
+    fillProvinces("", null);
+    saved.textContent = "Zona rimossa.";
+  });
+  byId("profile-favorites").addEventListener("click", (event) => {
+    if (!(event.target instanceof Element) || event.target.id !== "favorites-clear") return;
+    profile = { ...profile, favorites: [] };
+    saveReaderProfile(profile);
+    renderFavorites();
+  });
+}
+
 // Broken portraits fall back to initials. Inline onerror handlers are blocked by
 // the Content-Security-Policy, so the cleanup is delegated here.
 document.addEventListener("error", (event) => {
@@ -2086,41 +2804,72 @@ const regionId = params.get("region");
 const municipalityId = params.get("municipality");
 const groupId = params.get("parliamentary_group");
 const partyId = params.get("political_party");
+const legislatureNumber = params.get("legislature");
+const provinceCode = params.get("province");
+const historyRegionId = params.get("history_region");
+const postId = params.get("post");
+const view = params.get("view");
 const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
-if (proposalId && /^\d+$/.test(proposalId)) {
+const isId = (value) => Boolean(value) && /^\d+$/.test(value);
+markSection(sectionFor(params));
+if (isId(proposalId)) {
   showProposalDetail(api, proposalId);
-} else if (politicianId && /^\d+$/.test(politicianId)) {
+} else if (isId(politicianId)) {
   showDetail(api, politicianId);
-} else if (referendumId && /^\d+$/.test(referendumId)) {
+} else if (isId(referendumId)) {
   showReferendumDetail(api, referendumId);
+} else if (isId(postId)) {
+  showPost(api, postId);
 } else if (glossarySlug) {
   showGlossary(api, glossarySlug);
-} else if (municipalityId && /^\d+$/.test(municipalityId)) {
+} else if (isId(municipalityId)) {
   showMunicipalityDetail(api, municipalityId);
-} else if (regionId && /^\d+$/.test(regionId)) {
+} else if (isId(historyRegionId)) {
+  showTerritoryHistory(api, { regionId: historyRegionId });
+} else if (isId(regionId)) {
   showRegionDetail(api, regionId);
-} else if (groupId && /^\d+$/.test(groupId)) {
+} else if (isId(groupId)) {
   showOrganization(api, "group", groupId);
-} else if (partyId && /^\d+$/.test(partyId)) {
-  showOrganization(api, "party", partyId);
-} else if (params.get("view") === "proposals") {
+} else if (isId(partyId)) {
+  showParty(api, partyId);
+} else if (legislatureNumber && /^\d{1,2}$/.test(legislatureNumber) && view !== "proposals") {
+  showLegislature(api, legislatureNumber);
+} else if (provinceCode && /^[A-Z]{2}$/.test(provinceCode)) {
+  showTerritoryHistory(api, { province: provinceCode });
+} else if (view === "politics") {
+  showPolitics(api);
+} else if (view === "politicians") {
+  showArchive(api);
+} else if (view === "compare") {
+  showCompare(api);
+} else if (view === "history") {
+  showHistory(api);
+} else if (view === "parliamentarians") {
+  showParliamentarians(api);
+} else if (view === "provinces") {
+  showProvinces(api);
+} else if (view === "referendum-archive") {
+  showReferendumArchive(api);
+} else if (view === "profile") {
+  showProfile(api);
+} else if (view === "proposals") {
   showProposals(api);
-} else if (params.get("view") === "referendums") {
+} else if (view === "referendums") {
   showReferendums(api);
-} else if (params.get("view") === "voting-guide") {
+} else if (view === "voting-guide") {
   showVotingGuide(api);
-} else if (params.get("view") === "glossary") {
+} else if (view === "glossary") {
   showGlossary(api);
-} else if (params.get("view") === "regions") {
+} else if (view === "regions") {
   showRegions(api);
-} else if (params.get("view") === "municipalities") {
+} else if (view === "municipalities") {
   showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
-} else if (params.get("view") === "methodology") {
+} else if (view === "methodology") {
   showMethodology(api);
-} else if (params.get("view") === "ask") {
+} else if (view === "ask") {
   showAsk(api);
-} else if (params.get("view") === "search") {
+} else if (view === "search") {
   showSearch(api, params.get("q") || "", params.get("type") || "");
 } else {
-  showArchive(api);
+  showHome(api);
 }

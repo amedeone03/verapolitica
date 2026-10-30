@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 from backend.app.models import (
+    ProposalTagKind,
     ProposalActorRole,
     ProposalActorType,
     ProposalDraftKind,
@@ -242,6 +243,17 @@ class PublicProposalStatusEvent(ImmutableSchema):
     source: PublicProposalSource
 
 
+class PublicProposalTag(ImmutableSchema):
+    kind: ProposalTagKind
+    value: str
+    label: str
+
+
+class ProposalTagsRequest(ImmutableSchema):
+    topics: tuple[str, ...] = Field(default=(), max_length=5)
+    dossiers: tuple[str, ...] = Field(default=(), max_length=5)
+
+
 class PublicProposalSummary(ImmutableSchema):
     id: int = Field(gt=0)
     title: str
@@ -250,6 +262,7 @@ class PublicProposalSummary(ImmutableSchema):
     current_status: ProposalStatus
     actors: tuple[PublicProposalActor, ...]
     source: PublicProposalSource
+    tags: tuple[PublicProposalTag, ...] = ()
 
 
 class PublicProposal(PublicProposalSummary):

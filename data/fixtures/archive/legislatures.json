@@ -1,0 +1,125 @@
+{
+  "description": "Legislatures of the Italian Republic and the Constituent Assembly. Bootstrap reference data: the camera-history job replaces republic rows with the dates published by dati.camera.it.",
+  "records": [
+    {
+      "number": 0,
+      "start_date": "1946-06-25",
+      "end_date": "1948-01-31",
+      "source_url": "https://storia.camera.it/legislature/assemblea-costituente"
+    },
+    {
+      "number": 1,
+      "start_date": "1948-05-08",
+      "end_date": "1953-06-24",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_1"
+    },
+    {
+      "number": 2,
+      "start_date": "1953-06-25",
+      "end_date": "1958-06-11",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_2"
+    },
+    {
+      "number": 3,
+      "start_date": "1958-06-12",
+      "end_date": "1963-05-15",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_3"
+    },
+    {
+      "number": 4,
+      "start_date": "1963-05-16",
+      "end_date": "1968-06-04",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_4"
+    },
+    {
+      "number": 5,
+      "start_date": "1968-06-05",
+      "end_date": "1972-05-24",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_5"
+    },
+    {
+      "number": 6,
+      "start_date": "1972-05-25",
+      "end_date": "1976-07-04",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_6"
+    },
+    {
+      "number": 7,
+      "start_date": "1976-07-05",
+      "end_date": "1979-06-19",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_7"
+    },
+    {
+      "number": 8,
+      "start_date": "1979-06-20",
+      "end_date": "1983-07-11",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_8"
+    },
+    {
+      "number": 9,
+      "start_date": "1983-07-12",
+      "end_date": "1987-07-01",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_9"
+    },
+    {
+      "number": 10,
+      "start_date": "1987-07-02",
+      "end_date": "1992-04-22",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_10"
+    },
+    {
+      "number": 11,
+      "start_date": "1992-04-23",
+      "end_date": "1994-04-14",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_11"
+    },
+    {
+      "number": 12,
+      "start_date": "1994-04-15",
+      "end_date": "1996-05-08",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_12"
+    },
+    {
+      "number": 13,
+      "start_date": "1996-05-09",
+      "end_date": "2001-05-29",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_13"
+    },
+    {
+      "number": 14,
+      "start_date": "2001-05-30",
+      "end_date": "2006-04-27",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_14"
+    },
+    {
+      "number": 15,
+      "start_date": "2006-04-28",
+      "end_date": "2008-04-28",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_15"
+    },
+    {
+      "number": 16,
+      "start_date": "2008-04-29",
+      "end_date": "2013-03-14",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_16"
+    },
+    {
+      "number": 17,
+      "start_date": "2013-03-15",
+      "end_date": "2018-03-22",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_17"
+    },
+    {
+      "number": 18,
+      "start_date": "2018-03-23",
+      "end_date": "2022-10-12",
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_18"
+    },
+    {
+      "number": 19,
+      "start_date": "2022-10-13",
+      "end_date": null,
+      "source_url": "http://dati.camera.it/ocd/legislatura.rdf/repubblica_19"
+    }
+  ]
+}
