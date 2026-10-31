@@ -78,6 +78,8 @@ class EditorialPost(Base):
         ForeignKey("municipalities.id", ondelete="RESTRICT"), nullable=True, index=True
     )
     citations: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    # Structured "Modello Notizia" blocks written in the redazione console.
+    blocks: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     corrects_id: Mapped[int | None] = mapped_column(
         ForeignKey("editorial_posts.id", ondelete="RESTRICT"), nullable=True
     )
@@ -104,6 +106,7 @@ _FROZEN_AFTER_PUBLICATION = (
     "province_abbreviation",
     "municipality_id",
     "citations",
+    "blocks",
     "corrects_id",
     "status",
     "published_at",

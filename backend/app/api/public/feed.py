@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
-from backend.app.api.deps import get_db_session
+from backend.app.api.deps import get_api_settings, get_db_session
+from backend.app.core.config import Settings
 from backend.app.schemas.feed import FeedFilter, FeedItem, FeedPage
 from backend.app.services.feed_service import FeedService, FeedValidationError
 
@@ -37,8 +38,9 @@ def get_feed(
 def get_post(
     post_id: Annotated[int, Path(gt=0)],
     session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_api_settings)],
 ) -> FeedItem:
-    item = FeedService(session).post(post_id)
+    item = FeedService(session, public_names=frozenset(settings.redazione_member_tokens.values())).post(post_id)
     if item is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "published post not found")
     return item

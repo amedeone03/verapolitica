@@ -16,6 +16,12 @@ from backend.app.models.editorial_post import (
     FeedScope,
     ImmutableEditorialPostError,
 )
+from backend.app.models.editorial_log import (
+    ChangeRequestStatus,
+    EditorialChangeRequest,
+    EditorialLogEntry,
+    ImmutableEditorialLogError,
+)
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
 from backend.app.models.historical_archive import (
     ERA_LABELS,
@@ -153,7 +159,11 @@ __all__ = [
     "Chamber",
     "DOSSIERS",
     "ERA_LABELS",
+    "ChangeRequestStatus",
+    "EditorialChangeRequest",
+    "EditorialLogEntry",
     "EditorialPost",
+    "ImmutableEditorialLogError",
     "EditorialPostStatus",
     "FeedScope",
     "HistoricalEra",

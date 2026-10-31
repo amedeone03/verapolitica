@@ -2,6 +2,12 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
+    EditorialPost,
+    EditorialPostStatus,
+    PledgeAssessment,
+    Proposal,
+    ProposalActor,
+    ProposalActorRole,
     Municipality,
     ParliamentaryGroup,
     ParliamentaryGroupMembership,
@@ -29,6 +35,14 @@ from backend.app.schemas import (
     PublicTerritorialSource,
 )
 from backend.app.schemas.politician import PoliticianVersionProfile
+from backend.app.schemas.public import PublicEditorialInfo, PublicRelatedPost
+from backend.app.models.politician_profile import (
+    PoliticianBiography,
+    PoliticianCareerEntry,
+    PoliticianPosition,
+    PoliticianProceeding,
+    ProfileContentStatus,
+)
 from backend.app.services.official_source_display import (
     citizen_source_label,
     citizen_source_url,
@@ -40,8 +54,11 @@ from backend.app.services.public_proposal_service import PublicProposalQueryServ
 class PublicPoliticianQueryService:
     """Read-only projection of explicitly published politician versions."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, public_names: frozenset[str] = frozenset()) -> None:
         self.session = session
+        # Only redazione members are named publicly (writer and verifier, rule 8 of
+        # the writing models); operator and import identities stay internal.
+        self.public_names = public_names
 
     def list(self, *, offset: int, limit: int) -> PublicPoliticianList:
         visible = self._visible_query()
@@ -218,6 +235,61 @@ class PublicPoliticianQueryService:
             proceedings=PoliticianProfileService.published_proceedings(
                 self.session, politician.id
             ),
+            editorial=self._editorial(politician.id),
+        )
+
+    def _editorial(self, politician_id: int) -> PublicEditorialInfo:
+        """Who wrote and who verified what the citizen reads, and when."""
+
+        writers: list[str] = []
+        verifiers: list[str] = []
+        dates = []
+        for model in (PoliticianBiography, PoliticianCareerEntry, PoliticianPosition, PoliticianProceeding):
+            for row in self.session.scalars(
+                select(model)
+                .where(model.politician_id == politician_id, model.status == ProfileContentStatus.PUBLISHED)
+                .order_by(model.published_at, model.id)
+            ):
+                if row.created_by and row.created_by not in writers:
+                    writers.append(row.created_by)
+                if row.reviewed_by and row.reviewed_by not in verifiers:
+                    verifiers.append(row.reviewed_by)
+                if row.published_at:
+                    dates.append(row.published_at)
+        for assessment in self.session.scalars(
+            select(PledgeAssessment)
+            .join(ProposalActor, ProposalActor.proposal_id == PledgeAssessment.proposal_id)
+            .where(
+                ProposalActor.politician_id == politician_id,
+                ProposalActor.role == ProposalActorRole.COMMITMENT_OWNER,
+            )
+            .order_by(PledgeAssessment.created_at)
+        ):
+            for name in assessment.approved_by or []:
+                if name not in verifiers:
+                    verifiers.append(name)
+            dates.append(assessment.created_at)
+        related = []
+        for post in self.session.scalars(
+            select(EditorialPost)
+            .where(EditorialPost.status == EditorialPostStatus.PUBLISHED, EditorialPost.blocks.is_not(None))
+            .order_by(EditorialPost.published_at.desc())
+            .limit(300)
+        ):
+            if politician_id in ((post.blocks or {}).get("politician_ids") or []):
+                related.append(
+                    PublicRelatedPost(
+                        id=post.id,
+                        title=post.title,
+                        published_on=post.published_at.date() if post.published_at else None,
+                    )
+                )
+        latest = max((value.replace(tzinfo=None) for value in dates), default=None)
+        return PublicEditorialInfo(
+            updated_at=latest,
+            written_by=tuple(name for name in writers if name in self.public_names),
+            verified_by=tuple(name for name in verifiers if name in self.public_names),
+            related_posts=tuple(related[:10]),
         )
 
     def _territorial_offices(

@@ -71,10 +71,38 @@ Publication rules:
 * a draft dated before the currently published verdict cannot be published;
 * `PledgeAssessment` rows are append-only; the current verdict is the latest row.
 
-> **Current limitation.** The admin API uses one shared bearer credential. The
-> `reviewer` / `coder` name sent with an approval or audit code is recorded as
-> `<credential identity>/<name>` and is an attestation, not an authenticated
-> identity. Real four-eyes control requires per-user editorial accounts.
+### 2.1 Verdicts assigned by the redazione (`/redazione`)
+
+The redazione console is where editors assign a status to a promise. Each
+member signs in with their own token (`VERAPOLITICA_REDAZIONE_MEMBERS`), so the
+names in `approved_by` are authenticated identities, not attestations. On top
+of the rules above, the console enforces the "Modelli di scrittura":
+
+* **a promise is tracked only with a date and a source link** to the page that
+  reports the declaration (home and section pages are refused);
+* **a promise must be classified before it gets a status**: unclassified
+  promises are not in the scorecard (`unclassified_pledges`), so the verifier
+  fills the classification when approving a promise that has none;
+* **the author never approves their own work**, not even as the second
+  approver of a `broken` verdict (stricter than the service rule above).
+  `broken` therefore needs two members other than the author;
+* **`broken` needs a reason**: the declared deadline passed without result
+  (the deadline must precede the date of the fact), the mandate ended, or an
+  explicit renunciation. The reason is prefixed to the rationale the citizen
+  reads;
+* **the excerpt is the passage copied from the source** (news agency,
+  institutional page, Gazzetta Ufficiale). It is stored with its URL as a
+  `RawDocument` (`collector_version = redazione/v1`), so it is verbatim in a
+  stored document; that the page really says it is what the second member
+  checks before approving. Unlike the evidence matcher, editors may cite
+  agencies and newspapers, as the writing models require;
+* re-classifying a published promise and withdrawing published profile
+  content are change requests that another member approves;
+* every write, approval, rejection, withdrawal and status assignment is a row
+  in the append-only `editorial_log_entries` table (the "Registro modifiche").
+
+The admin API (`/admin/*`) and the CLI scripts still use one shared operator
+credential; they are operator tools, not the editorial workflow.
 
 ## 3. Evidence matching (job `pledge-evidence`, matcher `pledge-evidence/v2`)
 

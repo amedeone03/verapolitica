@@ -738,3 +738,11 @@ a, button, select, summary, label { touch-action: manipulation; }
 }
 #detail-view[hidden] .profile-cta-bar { display: none; }
 @media print { .profile-cta-bar, .cover-button, .follow-button { display: none !important; } }
+
+/* Redazione news (nine blocks) and related posts. */
+.news-blocks { display: grid; gap: var(--space-5); margin-top: var(--space-5); max-width: var(--reading-width); }
+.news-block h2 { margin: 0 0 var(--space-2); font-size: 1.25rem; }
+.news-block p { margin: 0 0 var(--space-2); }
+.news-points { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }
+.news-destra, .news-sinistra { padding-left: var(--space-4); border-left: 3px solid var(--color-border); }
+.related-posts { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }

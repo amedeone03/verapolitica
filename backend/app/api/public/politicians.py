@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
-from backend.app.api.deps import get_db_session
+from backend.app.api.deps import get_api_settings, get_db_session
+from backend.app.core.config import Settings
 from backend.app.schemas import PublicPolitician, PublicPoliticianList
 from backend.app.services import PublicPoliticianQueryService
 
@@ -24,8 +25,11 @@ def list_politicians(
 def get_politician(
     politician_id: Annotated[int, Path(gt=0)],
     session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_api_settings)],
 ) -> PublicPolitician:
-    politician = PublicPoliticianQueryService(session).get(politician_id)
+    politician = PublicPoliticianQueryService(
+        session, public_names=frozenset(settings.redazione_member_tokens.values())
+    ).get(politician_id)
     if politician is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

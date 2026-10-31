@@ -63,6 +63,21 @@ class PublicPoliticalPartyAffiliation(ImmutableSchema):
     source: PublicPoliticalPartySource
 
 
+class PublicRelatedPost(ImmutableSchema):
+    id: int
+    title: str
+    published_on: date | None = None
+
+
+class PublicEditorialInfo(ImmutableSchema):
+    """Rule 8 of the "Modelli di scrittura": date, writers and verifiers."""
+
+    updated_at: datetime | None = None
+    written_by: tuple[str, ...] = ()
+    verified_by: tuple[str, ...] = ()
+    related_posts: tuple[PublicRelatedPost, ...] = ()
+
+
 class PublicPolitician(PublicPoliticianSummary):
     citations: tuple[PublicCitation, ...]
     parliamentary_groups: tuple[PublicParliamentaryGroupMembership, ...] = ()
@@ -73,6 +88,7 @@ class PublicPolitician(PublicPoliticianSummary):
     career_entries: tuple[PublicCareerEntry, ...] = ()
     positions: tuple[PublicPosition, ...] = ()
     proceedings: tuple[PublicProceeding, ...] = ()
+    editorial: PublicEditorialInfo | None = None
 
 
 class PublicPoliticianList(ImmutableSchema):

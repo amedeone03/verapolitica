@@ -17,6 +17,9 @@ build step, no runtime dependency.
 | `backend/app/api/public/site.py` | `/robots.txt`, `/sitemap.xml` (uses `VERAPOLITICA_PUBLIC_BASE_URL`). |
 | `backend/app/core/middleware.py`, `backend/app/main.py` | Gzip for text responses; one-year immutable cache for `/app/fonts/`. |
 
+The redazione console (`frontend/redazione/`) and the AI draft pages
+(`frontend/demo/styles.css`) use the same tokens and self-hosted fonts.
+
 ## Tokens
 
 Colours, fonts, radii (4–8 px), spacing scale (4–128 px) and transitions are CSS

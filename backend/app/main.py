@@ -2,7 +2,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -11,8 +12,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from backend.app.api.admin import router as admin_router
 from backend.app.api.demo_editorial import router as demo_editorial_router
-from backend.app.api.demo_pledge_review import router as demo_pledge_review_router
-from backend.app.api.demo_profile_review import router as demo_profile_review_router
+from backend.app.api.redazione import router as redazione_router
 from backend.app.api.errors import register_exception_handlers
 from backend.app.api.public import router as public_router
 from backend.app.core.config import Settings, get_settings
@@ -24,6 +24,7 @@ from backend.app.db.session import create_db_engine, create_session_factory
 
 DEMO_UI_DIRECTORY = Path(__file__).resolve().parents[2] / "frontend" / "demo"
 PUBLIC_UI_DIRECTORY = Path(__file__).resolve().parents[2] / "frontend" / "app"
+REDAZIONE_UI_DIRECTORY = Path(__file__).resolve().parents[2] / "frontend" / "redazione"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -81,15 +82,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(application)
     application.include_router(public_router)
     application.include_router(admin_router)
+    application.include_router(redazione_router)
     if runtime_settings.demo_ui_enabled and not runtime_settings.is_production:
         application.include_router(demo_editorial_router)
-        application.include_router(demo_pledge_review_router)
-        application.include_router(demo_profile_review_router)
+
+        @application.get("/demo/", include_in_schema=False)
+        def demo_home() -> RedirectResponse:
+            # The editorial walkthrough became the redazione console.
+            return RedirectResponse("/redazione/", status_code=307)
+
         application.mount(
             "/demo",
             StaticFiles(directory=DEMO_UI_DIRECTORY, html=True),
             name="demo-ui",
         )
+    application.mount(
+        "/redazione",
+        StaticFiles(directory=REDAZIONE_UI_DIRECTORY, html=True),
+        name="redazione-ui",
+    )
     application.mount(
         "/app",
         StaticFiles(directory=PUBLIC_UI_DIRECTORY, html=True),

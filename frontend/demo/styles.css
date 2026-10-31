@@ -1,53 +1,55 @@
-/* VeraPolitica editorial demo and AI upload — same design language as the
-   public app (/app/): dark surfaces, warm orange accent, liquid-glass panels,
-   pill controls, custom ease-out press feedback. Class names are stable so
+/* VeraPolitica AI draft pages (/demo/ai-upload) — Cambridge Classic palette,
+   same tokens as the public app and the redazione console. Class names are stable so
    server-rendered pages and the demo script keep working. */
 :root {
-  --bg: #0b0b0c;
-  --surface: #151517;
-  --surface-2: #1c1c1f;
-  --surface-3: #242428;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.14);
-  --ink: #f4f1ec;
-  --muted: #a19b93;
-  --faint: #6f6a64;
-  --accent: #ff6b1a;
-  --accent-strong: #ff8a3d;
-  --accent-soft: rgba(255, 107, 26, 0.14);
-  --accent-line: rgba(255, 107, 26, 0.35);
-  --ok: #3ddc97;
-  --ok-soft: rgba(61, 220, 151, 0.12);
-  --warn: #f5b942;
-  --warn-soft: rgba(245, 185, 66, 0.14);
-  --partial-ink: #140a03;
-  --info: #6aa8ff;
-  --info-soft: rgba(106, 168, 255, 0.14);
-  --red: #ff6b6b;
-  --red-soft: rgba(255, 107, 107, 0.12);
-  --stalled: #0e0e10;
-  --stalled-ink: #f4f1ec;
-  --unrated: #a8a29e;
-  --glass-fill: rgba(28, 26, 30, 0.55);
-  --glass-edge: rgba(255, 255, 255, 0.16);
-  --glass-edge-top: rgba(255, 255, 255, 0.32);
-  --glass-blur: blur(22px) saturate(160%);
-  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 -1px 0 rgba(0, 0, 0, 0.35) inset, 0 18px 40px rgba(0, 0, 0, 0.45);
+  /* Cambridge Classic palette (same tokens as /app and /redazione), light theme. */
+  --bg: #F8FAF9;
+  --surface: #FFFFFF;
+  --surface-2: #F1F4F3;
+  --surface-3: #E7ECEA;
+  --line: #DFE6E3;
+  --line-strong: #A8B8B5;
+  --ink: #1D2D35;
+  --muted: #526570;
+  --faint: #6B7C84;
+  --accent: #003C71;
+  --accent-strong: #0F2747;
+  --accent-soft: #DCEBE5;
+  --accent-line: #85B09A;
+  --ok: #1F6B45;
+  --ok-soft: #E3F1E9;
+  --warn: #7A4B00;
+  --warn-soft: #FBF0D9;
+  --partial-ink: #7A4B00;
+  --info: #003C71;
+  --info-soft: #E3ECF6;
+  --red: #A3261C;
+  --red-soft: #FBE9E7;
+  --stalled: #ECEFEF;
+  --stalled-ink: #3D4A52;
+  --unrated: #526570;
+  --glass-fill: #FFFFFF;
+  --glass-edge: #DFE6E3;
+  --glass-edge-top: #DFE6E3;
+  --glass-blur: none;
+  --glass-shadow: none;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --radius-lg: 26px;
-  --radius-md: 18px;
-  --radius-sm: 12px;
-  /* legacy names used by older markup */
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
   --teal: var(--accent);
   --teal-dark: var(--accent-strong);
   --teal-soft: var(--accent-soft);
   --navy: var(--ink);
-  --navy-dark: #0f0e10;
+  --navy-dark: #0F2747;
   --gold: var(--warn);
   --gold-soft: var(--warn-soft);
   --card: var(--surface);
   --paper: var(--bg);
 }
+
+@font-face { font-family: "Inter"; font-weight: 400 700; font-display: swap; src: url("/app/fonts/inter-latin-var.woff2") format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 400 700; font-display: swap; src: url("/app/fonts/source-serif-4-latin-var.woff2") format("woff2"); }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -364,3 +366,12 @@ footer {
   .reset-card code { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   footer { flex-direction: column; gap: 6px; }
 }
+
+/* Cambridge overrides: navy header bar, serif headings, white text on primary buttons. */
+body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+h1, h2, h3 { font-family: "Source Serif 4", Georgia, serif; color: #0F2747; }
+.topbar { background: #0F2747; border-radius: 0; color: #fff; }
+.topbar a, .topbar strong { color: #fff; }
+.topbar small, .demo-local-nav a { color: #D5DDE3; }
+.button-primary { background: #003C71; color: #fff; border-color: #003C71; }
+.button-primary:hover { background: #0F2747; color: #fff; }

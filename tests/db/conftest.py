@@ -20,6 +20,8 @@ _SAFE_DB_NAME = re.compile(r"^[a-z][a-z0-9_]{1,62}$")
 EXPECTED_TABLES = frozenset(
     {
         "sources",
+        "editorial_log_entries",
+        "editorial_change_requests",
         "raw_documents",
         "politicians",
         "politician_source_identifiers",

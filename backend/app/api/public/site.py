@@ -34,6 +34,7 @@ def robots(request: Request, settings: Annotated[Settings, Depends(get_api_setti
         "Allow: /app/\n"
         "Disallow: /admin/\n"
         "Disallow: /demo/\n"
+        "Disallow: /redazione/\n"
         "Disallow: /docs\n"
         f"Sitemap: {origin}/sitemap.xml\n"
     )

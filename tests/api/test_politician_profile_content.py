@@ -171,14 +171,9 @@ def test_editorial_preview_is_bearer_protected_and_does_not_publish(
         public = client.get(f"/politicians/{politician_id}").json()
         assert public["biography"] is None
         assert public["proceedings"] == []
-        desk = client.get("/demo/profile-review")
+        desk = client.get("/redazione/")
         assert desk.status_code == 200
-        assert "Load pending" in desk.text
-        assert CEO_REFERENCE_WARNING not in desk.text
         assert "Caso Almasri" not in desk.text
-        assert "profile-review.js" in desk.text
-        js = client.get("/demo/profile-review.js")
-        assert js.status_code == 200
         public_app = client.get("/app/")
         assert public_app.status_code == 200
         assert "editorial-preview" not in public_app.text

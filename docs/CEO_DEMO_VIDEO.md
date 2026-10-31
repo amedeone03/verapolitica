@@ -1,12 +1,12 @@
 # CEO demo video runbook
 
 Record a **4:00–4:45** walkthrough of the local CEO demo.
-Do not use the synthetic presenter dataset at `/demo/`.
+The editorial console is at `/redazione/` (see docs/redazione.md).
 Do not auto-publish. Do not present simulated AI as real.
 
 Local recording shortcuts (demo UI only):
 
-http://127.0.0.1:8000/demo/video
+http://127.0.0.1:8000/redazione/  (the recording guide page was removed; use the console)
 
 ## Pre-recording
 
@@ -255,5 +255,5 @@ Confirm public proposals = **3** again.
 
 - Ollama not running: start `ollama serve`. Do not silently switch to simulated mode.
 - Wrong public count before recording: run the reset command above.
-- `/demo/` shows Luca Bianchi / synthetic dataset: close it; that is a different demo.
+- `/demo/` now redirects to the redazione console (`/redazione/`).
 - Title wrapping looks tight: zoom the browser, do not crop evidence blocks.

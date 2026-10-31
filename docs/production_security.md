@@ -32,7 +32,7 @@ WAF product selection, and paid cloud IAM.
 | **public** | `GET /politicians`, `/proposals`, `/search`, `/regions`, `/municipalities`, `/parliamentary-groups`, `/political-parties`, `/referendums`, `/voting-guides`, `/glossary`, `/portraits`, scorecards/methodology, citizen UI `/app/` | Mounted. Read-only published records. Pagination and search length are capped. |
 | **admin/editor protected** | `/admin/drafts`, `/admin/identity-resolution`, `/admin/proposals/drafts`, `/admin/referendums/drafts`, `/admin/jobs`, `/admin/pledges` | Mounted. HTTP Bearer `VERAPOLITICA_ADMIN_API_KEY` on the whole `/admin` router. |
 | **internal/operator** | `python -m scripts.run_web`, `run_scheduler`, `backup_postgres`, `restore_postgres`, `release_check`, `smoke_test`, `alembic`, ingestion CLIs | Not HTTP. Run on the host/container with env access. |
-| **demo-only** | `/demo/*` (editorial UI, AI upload, pledge-review HTML), demo uploads | **Not mounted** when `env=production` or `ENABLE_DEMO_UI=false`. Production validation rejects `ENABLE_DEMO_UI=true`. |
+| **demo-only** | `/demo/*` (AI upload and AI draft pages), demo uploads; demo members of `/redazione` | **Not mounted** when `env=production` or `ENABLE_DEMO_UI=false`. Production validation rejects `ENABLE_DEMO_UI=true`. |
 | **should not exist in production** | `/docs`, `/redoc`, `/openapi.json`, debug `/__boom`-style routes, demo reset HTTP | Docs default off. No debug routes shipped. Reset is CLI-only and refuses production. |
 
 Health:

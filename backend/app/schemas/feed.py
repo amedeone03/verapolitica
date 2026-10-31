@@ -1,3 +1,4 @@
+from typing import Any
 from datetime import date, datetime
 from enum import StrEnum
 
@@ -44,6 +45,10 @@ class FeedItem(ImmutableSchema):
     municipality_name: str | None = None
     sources: tuple[FeedSource, ...] = ()
     label: str | None = None
+    # Present for news written with the nine-block model in the redazione console.
+    blocks: dict[str, Any] | None = None
+    written_by: str | None = None
+    verified_by: str | None = None
 
 
 class FeedPage(ImmutableSchema):
@@ -71,7 +76,7 @@ class Citation(ImmutableSchema):
 
 class EditorialPostRequest(ImmutableSchema):
     title: str = Field(min_length=5, max_length=300)
-    body: str = Field(min_length=20, max_length=4000)
+    body: str = Field(min_length=20, max_length=12000)
     scope: FeedScope
     region_id: int | None = Field(default=None, gt=0)
     province_abbreviation: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")

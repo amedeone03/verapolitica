@@ -31,6 +31,13 @@ _WEAK_ADMIN_KEYS = frozenset(
     }
 )
 
+# Local demo only: never accepted in production (see validate_production_settings).
+DEMO_REDAZIONE_MEMBERS: dict[str, str] = {
+    "demo-redattore": "Redattore demo",
+    "demo-verificatore": "Verificatore demo",
+    "demo-caporedattore": "Caporedattore demo",
+}
+
 _DEMO_STORAGE_MARKERS = ("/ceo_demo/", "/unified_demo/", "/data/demo/")
 
 
@@ -99,6 +106,9 @@ class Settings(BaseSettings):
         min_length=1,
         max_length=200,
     )
+    # Redazione members: "Nome Cognome=token;Nome Cognome=token". Each member
+    # signs in with their own token, so the log knows who wrote and who verified.
+    redazione_members: SecretStr | None = None
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_api_key: SecretStr | None = None
@@ -226,6 +236,20 @@ class Settings(BaseSettings):
         key = self.llm_api_key.get_secret_value() if self.llm_api_key else ""
         return bool(key)
 
+    @property
+    def redazione_member_tokens(self) -> dict[str, str]:
+        """Token -> member name. Local demos get three documented demo members."""
+
+        raw = self.redazione_members.get_secret_value() if self.redazione_members else ""
+        members: dict[str, str] = {}
+        for chunk in raw.replace("\n", ";").split(";"):
+            name, separator, token = chunk.partition("=")
+            if separator and name.strip() and token.strip():
+                members[token.strip()] = name.strip()
+        if not members and not self.is_production and self.demo_ui_enabled:
+            return dict(DEMO_REDAZIONE_MEMBERS)
+        return members
+
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
         if self.env is not AppEnvironment.PRODUCTION:
@@ -287,6 +311,12 @@ class Settings(BaseSettings):
             )
         if self.enable_demo_ui is True:
             errors.append("production must not enable VERAPOLITICA_ENABLE_DEMO_UI")
+        for token in self.redazione_member_tokens:
+            if len(token) < 24 or token in DEMO_REDAZIONE_MEMBERS:
+                errors.append(
+                    "production VERAPOLITICA_REDAZIONE_MEMBERS tokens must be at least 24 characters"
+                )
+                break
         provider = (self.llm_provider or "").strip().casefold()
         if provider:
             if not (self.llm_model or "").strip():

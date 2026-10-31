@@ -1454,6 +1454,21 @@ export function renderFollowButton(person) {
   return `<button type="button" class="follow-button favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" data-follow="1" aria-pressed="${active}">${active ? `${icon("check")}Segui già` : "Segui"}</button>`;
 }
 
+// Rule 8 of the redazione's writing models: date, writer and verifier on every sheet.
+export function renderEditorialMeta(editorial, publishedDate) {
+  const updated = editorial?.updated_at ? formatPublishedAt(editorial.updated_at) : publishedDate;
+  const parts = [updated ? `Aggiornato al ${escapeHtml(updated)}` : "Ultimo aggiornamento non indicato"];
+  if (editorial?.written_by?.length) parts.push(`Redattore: ${escapeHtml(editorial.written_by.join(", "))}`);
+  if (editorial?.verified_by?.length) parts.push(`Verificatore: ${escapeHtml(editorial.verified_by.join(", "))}`);
+  return `<p class="publication-meta">${parts.join(" · ")}</p>`;
+}
+
+export function renderRelatedPosts(editorial) {
+  const posts = editorial?.related_posts || [];
+  if (!posts.length) return "";
+  return `<h3 class="overview-subhead">Notizie collegate</h3><ul class="related-posts">${posts.map((post) => `<li><a href="./?post=${encodeURIComponent(post.id)}">${escapeHtml(post.title)}</a>${post.published_on ? ` <span class="feed-meta">${escapeHtml(formatDate(post.published_on))}</span>` : ""}</li>`).join("")}</ul>`;
+}
+
 export function renderPoliticianDetail(person, scorecard = null) {
   const profile = person.profile;
   const gender = profile?.gender;
@@ -1490,7 +1505,8 @@ export function renderPoliticianDetail(person, scorecard = null) {
       ${topics.length ? `<h3 class="overview-subhead">Temi chiave</h3><div class="topic-chips">${topics.map((topic) => `<a class="topic-chip" href="${escapeHtml(topic.href)}"${topic.href.startsWith("#") ? ` data-tab-link="${escapeHtml(topic.href.slice(1))}"` : ""}>${escapeHtml(topic.label)}</a>`).join("")}</div>` : ""}
       ${facts ? `<h3 class="overview-subhead">Dati anagrafici</h3><dl class="facts header-facts">${facts}</dl>` : ""}
       ${renderAskSuggestions(person, scorecard)}
-      <p class="publication-meta">${publishedDate ? `Ultimo aggiornamento ${escapeHtml(publishedDate)}` : "Ultimo aggiornamento non indicato"}</p>
+      ${renderRelatedPosts(person.editorial)}
+      ${renderEditorialMeta(person.editorial, publishedDate)}
     </section>`;
   return `<section class="profile-cover" aria-labelledby="profile-name">
       <div class="cover-media">
@@ -2460,6 +2476,35 @@ async function showHome(api) {
   await load(false);
 }
 
+const NEWS_SECTIONS = [
+  ["perche", "Perché ne parliamo"],
+  ["fatto", "Il fatto"],
+  ["cosa_cambia", "Cosa cambia per te"],
+  ["destra", "Cosa dice la destra"],
+  ["sinistra", "Cosa dice la sinistra"],
+  ["altri", "Cosa dicono gli altri"],
+  ["numeri", "I numeri e l'impatto economico"],
+  ["cosa_succede", "Cosa succede adesso"],
+];
+
+function newsText(text) {
+  const lines = String(text || "").split("\n").map((line) => line.trim()).filter(Boolean);
+  const bullets = lines.filter((line) => /^[-•*]\s/.test(line));
+  if (bullets.length && bullets.length === lines.length) {
+    return `<ul class="news-points">${bullets.map((line) => `<li>${escapeHtml(line.replace(/^[-•*]\s+/, ""))}</li>`).join("")}</ul>`;
+  }
+  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+}
+
+// The nine blocks of the redazione's news model, always in the same order.
+export function renderNewsBlocks(blocks) {
+  const sections = NEWS_SECTIONS.filter(([key]) => blocks[key]).map(([key, label]) => `<section class="news-block news-${key}">
+      <h2>${escapeHtml(label)}</h2>${newsText(blocks[key])}
+      ${key === "fatto" && blocks.perche_deciso ? `<p><strong>Perché è stato deciso, secondo chi ha deciso:</strong> ${escapeHtml(blocks.perche_deciso)}</p>` : ""}
+    </section>`).join("");
+  return `${blocks.sommario ? `<p class="lead">${escapeHtml(blocks.sommario)}</p>` : ""}<div class="news-blocks">${sections}</div>`;
+}
+
 async function showPost(api, postId) {
   byId("post-view").hidden = false;
   try {
@@ -2474,9 +2519,10 @@ async function showPost(api, postId) {
       <p class="feed-meta">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
       <h1>${escapeHtml(item.title)}</h1>
       ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
-      <p class="post-body">${escapeHtml(item.detail)}</p>
+      ${item.blocks ? renderNewsBlocks(item.blocks) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
+    ${item.written_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))} · Redattore: ${escapeHtml(item.written_by)} · Verificatore: ${escapeHtml(item.verified_by || "—")}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     document.title = `${item.title} — VeraPolitica`;
   } catch (error) {

@@ -76,8 +76,9 @@ class Zone:
 
 
 class FeedService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, public_names: frozenset[str] = frozenset()) -> None:
         self.session = session
+        self.public_names = public_names
         self._regions: dict[int, str] | None = None
 
     # ------------------------------------------------------------------ zone
@@ -297,5 +298,27 @@ class FeedService:
                 municipality_name=municipality.canonical_name if municipality else None,
                 sources=tuple(FeedSource(**item) for item in post.citations),
                 label="correction" if post.corrects_id else None,
+                blocks=_public_blocks(post.blocks),
+                written_by=post.created_by if post.blocks and post.created_by in self.public_names else None,
+                verified_by=post.reviewed_by if post.blocks and post.reviewed_by in self.public_names else None,
             )
 
+
+
+_PUBLIC_BLOCK_KEYS = (
+    "sommario", "perche", "fatto", "perche_deciso", "cosa_cambia", "destra",
+    "sinistra", "altri", "numeri", "cosa_succede",
+)
+
+
+def _public_blocks(blocks: dict | None) -> dict | None:
+    """The news blocks a citizen reads, plus each source's area and date."""
+
+    if not blocks:
+        return None
+    public = {key: blocks[key] for key in _PUBLIC_BLOCK_KEYS if blocks.get(key)}
+    public["fonti"] = [
+        {"name": item.get("name"), "url": item.get("url"), "area": item.get("area"), "date": item.get("date")}
+        for item in blocks.get("fonti") or []
+    ]
+    return public
