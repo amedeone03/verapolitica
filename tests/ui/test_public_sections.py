@@ -15,7 +15,9 @@ def test_four_sections_in_header_and_mobile_tab_bar():
     # The politician list is no longer the landing page.
     assert '<section id="archive-view" aria-labelledby="archive-title" hidden>' in html
     assert "dossier=legge_bilancio" in html
-    assert "nessun account, niente viene inviato" in html
+    assert "Salvato solo su questo dispositivo, senza account." in html
+    # No slogans or overlines in the page skeleton.
+    assert "class=\"eyebrow\"" not in html and "trust-line" not in html
 
 
 def test_routes_and_privacy_of_the_reader_profile():

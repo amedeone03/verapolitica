@@ -138,11 +138,24 @@ def _titles(page):
 
 
 def test_feed_filters_by_scope_and_reader_zone(world):
-    client, _factory, _data, lombardia, _lazio, towns = world
+    client, factory, data, lombardia, _lazio, towns = world
+    with factory() as session:
+        # An undated status event is not a feed fact (it would show its import date).
+        session.add(
+            ProposalStatusEvent(
+                proposal_id=data.bill_id, normalized_status=ProposalStatus.INTRODUCED,
+                source_status_label="Presentata", effective_at=None, observed_at=NOW,
+                source_id=data.source_id, raw_document_id=data.raw_document_id,
+                source_url="https://www.senato.it/ddl/123", source_field="stato", identity_key="f" * 64,
+            )
+        )
+        session.commit()
 
     everything = client.get("/feed").json()
     assert {"DDL 123", "Referendum nazionale", "Referendum lombardo", "Referendum romano"} <= set(_titles(everything))
-    status = next(item for item in everything["items"] if item["kind"] == "proposal_status")
+    statuses = [item for item in everything["items"] if item["kind"] == "proposal_status"]
+    assert len(statuses) == 1
+    status = statuses[0]
     assert status["detail"].startswith("Proposta approvata")
     assert status["sources"][0]["url"] == "https://www.senato.it/ddl/123"
 

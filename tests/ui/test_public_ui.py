@@ -28,7 +28,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert archive.status_code == 200
     assert detail.status_code == 200
     assert 'lang="it"' in archive.text
-    assert "Sai chi ti rappresenta" in archive.text
+    assert "Verificato significa controllato sulle fonti" in archive.text
     assert "Caricamento dei profili verificati" in archive.text
     assert styles.status_code == 200
     assert ".politician-grid" in styles.text
@@ -151,7 +151,7 @@ def test_public_ui_has_separate_proposal_archive_and_detail_timeline(tmp_path):
         detail = client.get("/proposals/1")
 
     assert page.status_code == 200
-    assert "Proposte e promesse esplicite" in page.text
+    assert 'id="proposals-title"' in page.text
     assert proposals.status_code == 200
     assert proposals.json()["total"] == 1
     assert detail.json()["status_history"][0]["status"] == "introduced"
@@ -266,7 +266,7 @@ def test_public_ui_search_and_click_through(tmp_path):
     assert carlo.json()["total"] == 0
     assert referendum.json()["items"][0]["entity_type"] == "referendum"
     assert glossary.json()["items"][0]["title"] == "Quorum"
-    assert "Referendum e consultazioni" in referendums_page.text
+    assert 'id="referendums-title">Referendum<' in referendums_page.text
     assert "Guide al voto" in guide_page.text
-    assert "Termini chiave" in glossary_page.text
+    assert 'id="glossary-title">Glossario<' in glossary_page.text
     assert unpublished_referendum.json()["total"] == 0

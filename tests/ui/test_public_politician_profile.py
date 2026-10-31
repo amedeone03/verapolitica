@@ -57,7 +57,7 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "Questa sezione non contiene ancora elementi pubblicati." in script
     assert "Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo." in script
     assert "Non ancora valutata" in script
-    assert "Apri la fonte" in script
+    assert "class=\"source-name\"" in script
     assert "view=ask" in script
     assert "sono ancora in corso?" in script
     assert "non sono ancora valutate?" in script

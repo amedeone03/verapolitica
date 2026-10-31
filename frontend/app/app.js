@@ -239,13 +239,11 @@ export function renderPoliticianCard(person) {
   return `<article class="politician-card">
     ${portrait(person)}
     <div class="card-content">
-      <span class="verified-badge">Verificato su fonti ufficiali</span>
       <div class="card-title-row"><h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>${renderFavoriteToggle(person)}</div>
       <p class="mandate">${escapeHtml(mandateTitle(mandate, gender))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "Istituzione nazionale")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
       <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Caricamento delle promesse…</p></div>
-      <p class="source-count">${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</p>
-      <a class="profile-link" href="./?politician=${encodeURIComponent(person.id)}">Vedi profilo <span aria-hidden="true">→</span></a>
+      <a class="profile-link card-link" href="./?politician=${encodeURIComponent(person.id)}">Vedi profilo <span aria-hidden="true">→</span></a>
     </div>
   </article>`;
 }
@@ -368,14 +366,14 @@ export function renderSourceCard({
   const displayName = name || (href ? sourceHostLabel(href) : "") || "";
   if (!displayName && !href && !title) return "";
   const kindLabel = kind && !SOURCE_KIND_LABELS[kind] ? kind : sourceKindLabel(kind, href);
-  return `<article class="source-card">
-    <p class="source-card-kind">${escapeHtml(kindLabel)}</p>
-    ${displayName ? `<h3>${escapeHtml(displayName)}</h3>` : ""}
-    ${title ? `<p class="source-card-title">${escapeHtml(title)}</p>` : ""}
-    ${date ? `<p class="source-card-date">${escapeHtml(date)}</p>` : ""}
+  // One quiet line: the name is the link; kind and date follow in muted text.
+  const label = displayName || title;
+  const meta = [kindLabel, displayName && title ? title : "", date].filter(Boolean).join(" · ");
+  return `<p class="source-card">
+    ${href ? `<a class="source-name" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} <span aria-hidden="true">↗</span></a>` : `<span class="source-name">${escapeHtml(label)}</span>`}
+    ${meta ? `<span class="source-card-meta">${escapeHtml(meta)}</span>` : ""}
     ${extra}
-    ${href ? `<a class="source-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Apri la fonte <span aria-hidden="true">→</span></a>` : ""}
-  </article>`;
+  </p>`;
 }
 
 function careerDedupeKey(entry) {
@@ -477,7 +475,6 @@ export function renderWhoIs(person) {
       kind: source.kind,
     })).filter(Boolean);
     return `<section class="detail-card profile-block profile-who" id="profilo">
-    <p class="eyebrow">Profilo</p>
     <h2>Chi è</h2>
     ${biography.split(/\n+/).map((paragraph) => `<p class="who-copy">${escapeHtml(paragraph)}</p>`).join("")}
     ${bioSources.length ? `<div class="source-card-list">${bioSources.join("")}</div>` : ""}
@@ -509,7 +506,6 @@ export function renderWhoIs(person) {
     partySource ? renderSourceCard({ kind: "Fonte ufficiale", name: partySource.name, url: partySource.url }) : "",
   ].filter(Boolean);
   return `<section class="detail-card profile-block profile-who" id="profilo">
-    <p class="eyebrow">Profilo</p>
     <h2>Chi è</h2>
     ${sentences.map((sentence) => `<p class="who-copy">${escapeHtml(sentence)}</p>`).join("")}
     ${sources.length ? `<div class="source-card-list">${sources.join("")}</div>` : ""}
@@ -556,7 +552,6 @@ export function renderKeyPositions(person = {}) {
       </article>`).join("")}</div>`
     : `<p class="empty-note">Non sono ancora disponibili posizioni verificate per questo profilo.</p>`;
   return `<section class="detail-card profile-block profile-positions" id="posizioni">
-    <p class="eyebrow">Posizioni</p>
     <h2>Posizioni su temi chiave</h2>
     ${body}
   </section>`;
@@ -579,7 +574,6 @@ export function renderProceedings(person = {}) {
       </article>`).join("")}</div>`
     : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`;
   return `<section class="detail-card profile-block profile-proceedings" id="procedimenti">
-    <p class="eyebrow">Procedimenti</p>
     <h2>Procedimenti e controversie</h2>
     ${body}
   </section>`;
@@ -618,7 +612,6 @@ export function renderAskSuggestions(person, scorecard = null) {
 
 export function renderTrustBlock() {
   return `<section class="detail-card profile-block profile-trust" id="metodologia-profilo">
-    <p class="eyebrow">Metodo</p>
     <h2>Come vengono verificati questi dati?</h2>
     <p>VeraPolitica utilizza fonti pubbliche e documenti verificabili. Le valutazioni delle promesse vengono pubblicate solo dopo revisione.</p>
     <a class="profile-link" href="./?view=methodology">Metodologia <span aria-hidden="true">→</span></a>
@@ -763,8 +756,8 @@ export function renderProposalDetail(proposal) {
       <p class="lead">Stato istituzionale attuale: <strong>${escapeHtml(proposalStatusLabel(proposal.current_status))}</strong></p>
       ${proposal.exact_statement ? `<blockquote>${escapeHtml(proposal.exact_statement)}</blockquote>` : proposal.summary ? `<p>${escapeHtml(proposal.summary)}</p>` : ""}
     </section>
-    <section class="detail-card proposal-timeline-card"><p class="eyebrow">Cronologia verificata</p><h2>Cronologia di stato</h2>${renderProposalTimeline(proposal.status_history)}</section>
-    <section class="detail-card"><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2><div class="source-list">${proposal.sources.map((source) => {
+    <section class="detail-card proposal-timeline-card"><h2>Cronologia di stato</h2>${renderProposalTimeline(proposal.status_history)}</section>
+    <section class="detail-card"><h2>Fonti ufficiali</h2><div class="source-list">${proposal.sources.map((source) => {
       const url = safeExternalUrl(source.url);
       return `<article class="source-block"><h3>${escapeHtml(source.name)}</h3>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Apri fonte ufficiale ↗</a>` : ""}</article>`;
     }).join("")}</div></section>`;
@@ -772,7 +765,7 @@ export function renderProposalDetail(proposal) {
 
 export function renderPoliticianProposals(proposals = []) {
   if (!proposals.length) return `<p class="empty-note">Nessuna proposta o promessa esplicita pubblicata è collegata a questa persona.</p>`;
-  return `<div class="linked-proposals">${proposals.map((proposal) => `<article><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><h3><a href="./?proposal=${encodeURIComponent(proposal.id)}">${escapeHtml(proposal.title)}</a></h3><p>${escapeHtml(actorRoleLabel(proposal.role))} · ${escapeHtml(proposalStatusLabel(proposal.current_status))}</p></article>`).join("")}</div>`;
+  return `<ul class="linked-proposals is-list">${proposals.map((proposal) => `<li><a href="./?proposal=${encodeURIComponent(proposal.id)}">${escapeHtml(proposal.title)}</a><span>${escapeHtml(proposalTypeLabel(proposal.proposal_type))} · ${escapeHtml(actorRoleLabel(proposal.role))} · ${escapeHtml(proposalStatusLabel(proposal.current_status))}</span></li>`).join("")}</ul>`;
 }
 
 function officeLabel(office) {
@@ -842,8 +835,7 @@ export function renderRegionDetail(region, municipalities = []) {
       <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione <span aria-hidden="true">→</span></a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ↗</a></p>` : ""}
     </section>
-    <section class="detail-card">
-      <p class="eyebrow">Comuni</p><h2>Comuni in questa regione</h2>
+    <section class="detail-card"><h2>Comuni in questa regione</h2>
       ${municipalities.length ? `<div class="proposal-grid">${municipalities.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
     </section>`;
 }
@@ -1004,7 +996,7 @@ function renderStratum(stratum, scorecard) {
     : "";
   return `<section class="stratum-card">
     <div class="stratum-head">
-      <div><p class="eyebrow">Ruolo al momento della promessa</p><h3>${escapeHtml(ROLE_LABELS[stratum.role] || titleCase(stratum.role))}</h3></div>
+      <div><h3>${escapeHtml(ROLE_LABELS[stratum.role] || titleCase(stratum.role))}</h3></div>
       <span class="count-pill">${stratum.scored_pledges} nel punteggio · ${stratum.open_pledges} aperte</span>
     </div>
     ${renderCompositionBar(stratum.composition)}
@@ -1442,7 +1434,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
   const hasGroups = Boolean((person.parliamentary_groups || []).length);
   const hasParties = Boolean((person.political_parties || []).length);
   const hasProposals = Boolean((person.proposals || []).length);
-  const hasCareer = Boolean(careerItems.length || hasGroups || hasParties);
+  const hasCareer = Boolean(careerItems.length || hasGroups || hasParties || hasProposals);
   const citationGroups = groupCitations(person.citations || []);
   const sourcesMarkup = renderSources(person.citations);
   const headerFacts = [
@@ -1477,7 +1469,6 @@ export function renderPoliticianDetail(person, scorecard = null) {
     ${nav}
     ${who}
     ${hasCareer ? `<section class="detail-card profile-block profile-career" id="carriera">
-      <p class="eyebrow">Carriera</p>
       <h2>Cosa ha fatto</h2>
       ${renderCareerTimeline(person)}
       ${hasGroups ? `<h3 class="career-subhead">Gruppi parlamentari</h3><p class="group-disclaimer">I gruppi parlamentari sono organi istituzionali di ciascuna Camera e non coincidono con i partiti politici.</p>${renderParliamentaryGroups(person.parliamentary_groups || [])}` : ""}
@@ -1486,14 +1477,13 @@ export function renderPoliticianDetail(person, scorecard = null) {
     </section>` : ""}
     ${renderKeyPositions(person)}
     <section class="detail-card profile-block commitments-card" id="promesse">
-      <p class="eyebrow">Detto e fatto</p>
       <h2>Scheda delle promesse</h2>
       ${renderScorecard(scorecard)}
     </section>
     ${renderProceedings(person)}
     ${sourcesMarkup ? `<section class="detail-card profile-block sources-card" id="fonti">
       <div class="sources-heading">
-        <div><p class="eyebrow">Informazione tracciabile</p><h2>Fonti ufficiali</h2></div>
+        <div><h2>Fonti ufficiali</h2></div>
         <div class="sources-summary"><strong>${person.citation_count} ${person.citation_count === 1 ? "riferimento verificato" : "riferimenti verificati"}</strong><br />${citationGroups.length} ${citationGroups.length === 1 ? "fonte ufficiale" : "fonti ufficiali"}</div>
       </div>
       <div class="source-list">${sourcesMarkup}</div>
@@ -2037,7 +2027,6 @@ export function renderReferendumDetail(item) {
     ${quorum}
     ${guide}
     <div class="section-rule"></div>
-    <p class="eyebrow">Fonti ufficiali</p>
     ${sources || `<p><a href="${escapeHtml(item.official_source_url)}" rel="noreferrer">${escapeHtml(item.official_source_url)}</a></p>`}
   </article>`;
 }
@@ -2298,17 +2287,18 @@ function feedPlace(item) {
 export function renderFeedItem(item) {
   const sources = (item.sources || []).map((source) => {
     const url = safeExternalUrl(source.url);
-    return url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a>` : "";
-  }).join("");
-  const chip = item.kind === "pledge_verdict" && item.label ? renderVerdictChip(item.label) : "";
-  const correction = item.label === "correction" ? `<span class="topic-chip is-small is-dossier">Rettifica</span>` : "";
-  const detail = item.kind === "editorial" && item.detail.length > 280 ? `${item.detail.slice(0, 277)}…` : item.detail;
-  return `<article class="feed-item kind-${escapeHtml(item.kind)}">
-    <div class="feed-meta"><span class="proposal-type">${escapeHtml(FEED_KIND_LABELS[item.kind] || item.kind)}</span><span>${escapeHtml(feedPlace(item))}</span><time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(formatDate(item.occurred_on))}</time></div>
+    return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a>` : "";
+  }).filter(Boolean).join(" · ");
+  const meta = [FEED_KIND_LABELS[item.kind] || item.kind, feedPlace(item)];
+  if (item.label === "correction") meta.push("Rettifica");
+  const verdict = item.kind === "pledge_verdict" && item.label ? renderVerdictChip(item.label) : "";
+  const detail = item.kind === "pledge_verdict" ? "" : (item.kind === "editorial" && item.detail.length > 280 ? `${item.detail.slice(0, 277)}…` : item.detail);
+  return `<article class="feed-item">
+    <p class="feed-meta"><time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(formatDate(item.occurred_on))}</time> · ${meta.map(escapeHtml).join(" · ")}</p>
     <h3><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
-    ${chip}${correction}
-    <p>${escapeHtml(detail)}</p>
-    ${sources ? `<div class="feed-sources">${sources}</div>` : ""}
+    ${verdict}
+    ${detail ? `<p>${escapeHtml(detail)}</p>` : ""}
+    ${sources ? `<p class="feed-sources">${sources}</p>` : ""}
   </article>`;
 }
 
@@ -2317,8 +2307,8 @@ async function showHome(api) {
   const profile = loadReaderProfile();
   const zone = profile.zone;
   byId("home-zone").innerHTML = zone
-    ? `La tua zona: <strong>${escapeHtml(zoneLabel(zone))}</strong>. Vedi i fatti nazionali e quelli del tuo territorio. <a href="./?view=profile">Cambia</a>`
-    : `Fatti verificati: leggi, promesse, referendum e aggiornamenti della redazione. <a href="./?view=profile">Imposta la tua zona</a> per vedere anche le notizie locali.`;
+    ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>`
+    : `<a href="./?view=profile">Imposta la tua zona</a> per le notizie locali.`;
   if (profile.favorites.length) {
     byId("home-favorites").hidden = false;
     byId("home-favorites-list").innerHTML = renderFavoriteChips(profile.favorites);
@@ -2389,12 +2379,12 @@ async function showPost(api, postId) {
       return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a></li>` : "";
     }).join("");
     byId("post-detail").innerHTML = `<section class="proposal-detail-hero">
-      <p class="eyebrow">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
+      <p class="feed-meta">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
       <h1>${escapeHtml(item.title)}</h1>
       ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
       <p class="post-body">${escapeHtml(item.detail)}</p>
     </section>
-    <section class="detail-card"><p class="eyebrow">Fonti</p><h2>Da dove viene</h2><ul class="explanation-sources">${sources}</ul>
+    <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     document.title = `${item.title} — VeraPolitica`;
   } catch (error) {
@@ -2471,15 +2461,14 @@ async function showParty(api, partyId) {
     detail.hidden = false;
     const toggle = [["current", "Attuale"], ["all", "Storica"]].map(([key, label]) => `<a class="filter-pill${key === windowName ? " is-active" : ""}" href="./?political_party=${encodeURIComponent(partyId)}&amp;window=${key}" aria-current="${key === windowName ? "true" : "false"}">${label}</a>`).join("");
     detail.innerHTML = `<article class="proposal-detail-hero">
-      <p class="eyebrow">Partito politico</p>
       <h1 id="organization-detail-title">${escapeHtml(party.name)}</h1>
       <p class="hero-copy">${party.abbreviation ? `${escapeHtml(party.abbreviation)} · ` : ""}${party.current_members?.length || 0} profili pubblicati in carica</p>
     </article>
-    <section class="detail-card"><p class="eyebrow">Persone</p><h2>Esponenti con scheda verificata</h2>
+    <section class="detail-card"><h2>Esponenti</h2>
       ${renderMemberList(party.current_members || [], "Nessun esponente in carica ha ancora una scheda pubblicata.")}
       ${(party.former_members || []).length ? `<h3 class="career-subhead">In passato</h3>${renderMemberList(party.former_members, "")}` : ""}
     </section>
-    <section class="detail-card commitments-card"><p class="eyebrow">Detto e fatto</p><h2>Promesse del partito</h2>
+    <section class="detail-card commitments-card"><h2>Promesse</h2>
       <div class="filter-pills" role="group" aria-label="Periodo">${toggle}</div>
       <p class="empty-note">${windowName === "current" ? "Attuale: solo le promesse il cui mandato è in corso oggi." : "Storica: tutte le promesse pubblicate, di ogni mandato."}</p>
       ${card ? renderPartyScorecard(card) : `<p class="empty-note">Promesse non disponibili.</p>`}
@@ -2557,7 +2546,6 @@ async function showHistory(api) {
     byId("history-status").hidden = true;
     byId("era-list").hidden = false;
     byId("era-list").innerHTML = payload.eras.map((era) => `<section class="detail-card era-card">
-      <p class="eyebrow">${escapeHtml(formatYear(era.legislatures[0].start_date))}–${era.legislatures.at(-1).end_date ? escapeHtml(formatYear(era.legislatures.at(-1).end_date)) : "oggi"}</p>
       <h2>${escapeHtml(era.label)}</h2>
       <p class="empty-note">${escapeHtml(era.note)}</p>
       <div class="legislature-grid">${era.legislatures.map(renderLegislatureCard).join("")}</div>
@@ -2612,18 +2600,18 @@ async function showLegislature(api, number) {
     const chamberTabs = [["", "Tutte"], ["camera", "Camera"], ["senato", "Senato"]].map(([key, label]) => `<a class="filter-pill${key === chamber ? " is-active" : ""}" href="./?legislature=${item.number}${key ? `&amp;chamber=${key}` : ""}">${label}</a>`).join("");
     const source = safeExternalUrl(item.source_url);
     article.innerHTML = `<section class="proposal-detail-hero">
-      <p class="eyebrow">${escapeHtml(item.era_label)}</p>
+      <p class="feed-meta">${escapeHtml(item.era_label)}</p>
       <h1 id="legislature-title">${escapeHtml(item.label)}</h1>
       <p class="hero-copy">${escapeHtml(dateRange(item.start_date, item.end_date))}</p>
       ${source ? `<p><a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a></p>` : ""}
       <nav class="legislature-nav">${detail.previous !== null ? `<a href="./?legislature=${detail.previous}">← Precedente</a>` : "<span></span>"}${detail.next !== null ? `<a href="./?legislature=${detail.next}">Successiva →</a>` : ""}</nav>
     </section>
-    <section class="detail-card"><p class="eyebrow">Atti</p><h2>Proposte di legge</h2>
+    <section class="detail-card"><h2>Proposte di legge</h2>
       <p>${countLabel(detail.published_proposals, "proposta pubblicata", "proposte pubblicate")} presentate in questo periodo.</p>
       <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte <span aria-hidden="true">→</span></a>
     </section>
-    <section class="detail-card"><p class="eyebrow">Consultazioni</p><h2>Referendum</h2>${referendums}</section>
-    <section class="detail-card"><p class="eyebrow">Parlamentari</p><h2>Chi sedeva in Parlamento</h2>
+    <section class="detail-card"><h2>Referendum</h2>${referendums}</section>
+    <section class="detail-card"><h2>Parlamentari</h2>
       <div class="filter-pills">${chamberTabs}</div>
       <div id="legislature-roster-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento del registro…</strong><small>Mandati ufficiali.</small></div></div>
       <div id="legislature-roster" hidden></div>
@@ -2691,9 +2679,9 @@ export function renderTerritoryHistory(history) {
   const links = history.kind === "province"
     ? `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Vedi la regione <span aria-hidden="true">→</span></a>`
     : `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Comuni della regione <span aria-hidden="true">→</span></a>`;
-  return `<section class="proposal-detail-hero"><p class="eyebrow">${kind} · Cosa è successo</p><h1 id="territory-history-title">${escapeHtml(history.name)}</h1>${links}</section>
-    <section class="detail-card"><p class="eyebrow">Incarichi</p><h2>${history.kind === "province" ? "Sindaci" : "Presidenti"}</h2>${holders}</section>
-    <section class="detail-card"><p class="eyebrow">Consultazioni</p><h2>Referendum</h2>${referendums}</section>
+  return `<section class="proposal-detail-hero"><p class="feed-meta">${kind}</p><h1 id="territory-history-title">${escapeHtml(history.name)}</h1>${links}</section>
+    <section class="detail-card"><h2>${history.kind === "province" ? "Sindaci" : "Presidenti"}</h2>${holders}</section>
+    <section class="detail-card"><h2>Referendum</h2>${referendums}</section>
     <p class="empty-note">${escapeHtml(history.coverage_note)}</p>`;
 }
 

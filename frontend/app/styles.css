@@ -1015,3 +1015,63 @@ h1 { letter-spacing: -.045em; }
   .site-header::after { display: none; }
   .brand small { display: none; }
 }
+
+/* Minimal pass -------------------------------------------------------------
+   Fewer signals, each one meaningful: no ambient glow, no orange overlines,
+   no coloured edges. Orange is kept for actions and the current section. */
+body { background: var(--bg); background-attachment: scroll; }
+.brand-mark { box-shadow: none; }
+.eyebrow { color: var(--muted); font-size: .78rem; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.hero { margin-bottom: 32px; }
+.compact-hero { margin-bottom: 24px; }
+h1 { font-size: clamp(2rem, 4.2vw, 3rem); letter-spacing: -.035em; line-height: 1.05; margin-bottom: 10px; }
+.hero-copy { font-size: 1rem; }
+.hero-copy:empty { display: none; }
+.proposal-detail-hero h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+h2 { font-size: clamp(1.25rem, 2.2vw, 1.5rem); letter-spacing: -.02em; }
+.section-title { margin: 0 0 12px; }
+.detail-card h2 { margin-bottom: 14px; font-size: 1.25rem; }
+.detail-card { box-shadow: none; }
+.politician-card { box-shadow: none; background: var(--surface); }
+
+.shortcut-card { padding: 14px 16px; font-weight: 650; }
+.shortcut-grid { gap: 8px; margin-bottom: 24px; }
+
+.feed-list { gap: 0; border-top: 1px solid var(--line); }
+.feed-item, .feed-item.kind-referendum, .feed-item.kind-pledge_verdict, .feed-item.kind-editorial {
+  padding: 18px 2px; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+}
+.feed-item h3 { margin: 4px 0 6px; font-size: 1.05rem; }
+.feed-item .verdict-chip { margin: 2px 0 4px; }
+.feed-meta { margin: 0; color: var(--faint); font-size: .76rem; font-weight: 600; }
+.feed-sources { color: var(--faint); font-size: .8rem; }
+.feed-sources a { color: var(--muted); }
+.feed-sources a:hover { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .feed-item:hover { border-color: var(--line); } }
+.feed-heading { margin-bottom: 4px; }
+#home-zone { color: var(--muted); font-size: .9rem; margin: 0; }
+#home-zone a { color: var(--accent-strong); }
+.home-hero { margin-bottom: 18px; }
+
+.card-link { margin-top: auto; }
+footer > div p { display: none; }
+@media (max-width: 640px) {
+  .shortcut-card { padding: 12px 14px; font-size: .9rem; }
+  main { padding-top: 22px; }
+}
+
+/* Sources: a single line per source instead of a boxed card with a button. */
+.source-card, .pledge-evidence .source-card {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 6px 0 0; padding: 0;
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+}
+.source-card-list { gap: 2px; margin-top: 12px; }
+.source-name { color: var(--ink); font-size: .86rem; font-weight: 600; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; overflow-wrap: anywhere; }
+a.source-name:hover { text-decoration-color: var(--accent); }
+.source-card-meta { color: var(--faint); font-size: .76rem; }
+.feed-meta { display: block; }
+.linked-proposals.is-list { display: block; margin: 8px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.linked-proposals.is-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.linked-proposals.is-list a { color: var(--ink); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.linked-proposals.is-list a:hover { color: var(--accent-strong); }
+.linked-proposals.is-list span { color: var(--faint); font-size: .8rem; }

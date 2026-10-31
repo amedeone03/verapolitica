@@ -142,7 +142,8 @@ class FeedService:
         rows = self.session.execute(
             select(ProposalStatusEvent, Proposal)
             .join(Proposal, Proposal.id == ProposalStatusEvent.proposal_id)
-            .where(Proposal.published_at.is_not(None))
+            # Only dated facts: an event without an official date would show the import date.
+            .where(Proposal.published_at.is_not(None), ProposalStatusEvent.effective_at.is_not(None))
             .order_by(ProposalStatusEvent.effective_at.desc(), ProposalStatusEvent.id.desc())
             .limit(cap)
         )
@@ -153,7 +154,7 @@ class FeedService:
                 FeedItem(
                     key=f"proposal-status-{event.id}",
                     kind=FeedItemKind.PROPOSAL_STATUS,
-                    occurred_on=event.effective_at or event.observed_at.date(),
+                    occurred_on=event.effective_at,
                     title=proposal.canonical_title,
                     detail=f"Proposta {PROPOSAL_STATUS_IT.get(status, status)}: {event.source_status_label}",
                     url=f"./?proposal={proposal.id}",
