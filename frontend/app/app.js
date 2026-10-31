@@ -2215,6 +2215,9 @@ document.addEventListener("click", (event) => {
     twin.setAttribute("aria-pressed", String(active));
     twin.setAttribute("aria-label", `${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${button.dataset.favoriteName}`);
     twin.textContent = active ? "★" : "☆";
+    twin.classList.remove("just-toggled");
+    void twin.offsetWidth; // restart the settle animation on repeated taps
+    twin.classList.add("just-toggled");
   }
 });
 
@@ -2227,6 +2230,25 @@ export function zoneLabel(zone) {
   if (zone.municipality_name) return `${zone.municipality_name}${zone.province ? ` (${zone.province})` : ""} · ${zone.region_name || ""}`;
   if (zone.province_name) return `Provincia di ${zone.province_name} · ${zone.region_name || ""}`;
   return zone.region_name || "";
+}
+
+// iOS Safari applies :active press states only when a touch listener exists.
+document.addEventListener("touchstart", () => {}, { passive: true });
+
+// Scroll-edge effect: the header shows a soft edge only while content is under it.
+{
+  let ticking = false;
+  const sync = () => {
+    ticking = false;
+    document.documentElement.toggleAttribute("data-scrolled", window.scrollY > 4);
+  };
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(sync);
+    }
+  }, { passive: true });
+  sync();
 }
 
 // ---------------------------------------------------------------------------
@@ -2311,10 +2333,13 @@ async function showHome(api) {
   };
   const load = async (append) => {
     more.disabled = true;
+    more.setAttribute("aria-busy", "true");
+    if (!append) list.setAttribute("aria-busy", "true");
     try {
       const page = await api.getFeed({ scope, zone: zone || {}, offset });
       byId("feed-status").hidden = true;
       if (!append) list.innerHTML = "";
+      const firstNew = list.children.length;
       if (!page.items.length && !append) {
         list.hidden = true;
         const local = scope !== "all" && scope !== "national";
@@ -2322,6 +2347,11 @@ async function showHome(api) {
       } else {
         list.hidden = false;
         list.insertAdjacentHTML("beforeend", page.items.map(renderFeedItem).join(""));
+        // New rows settle in; the first few stagger slightly, later ones arrive together.
+        [...list.children].slice(firstNew).forEach((node, index) => {
+          node.classList.add("is-new");
+          node.style.setProperty("--stagger", `${Math.min(index, 5) * 30}ms`);
+        });
       }
       more.hidden = !page.has_more;
       offset += page.items.length;
@@ -2331,6 +2361,8 @@ async function showHome(api) {
       showState(byId("feed-status"), "Non è stato possibile caricare gli aggiornamenti.", PUBLIC_UNAVAILABLE, true);
     } finally {
       more.disabled = false;
+      more.removeAttribute("aria-busy");
+      list.removeAttribute("aria-busy");
     }
   };
   filters.addEventListener("click", (event) => {

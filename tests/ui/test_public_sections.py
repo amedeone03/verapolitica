@@ -37,3 +37,20 @@ def test_tab_bar_only_on_small_screens():
     styles = (APP / "styles.css").read_text(encoding="utf-8")
     assert ".tab-bar { display: none; }" in styles
     assert "@media (max-width: 760px)" in styles
+
+
+def test_feedback_materials_and_accessibility_modes():
+    styles = (APP / "styles.css").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    # Response: press feedback and no double-tap delay.
+    assert "touch-action: manipulation" in styles
+    assert ".tab-bar a:active" in styles and ".shortcut-card:active" in styles
+    assert 'document.addEventListener("touchstart", () => {}, { passive: true })' in script
+    # Materials: scroll-edge effect instead of a permanent divider.
+    assert "html[data-scrolled] .site-header::after" in styles
+    assert 'toggleAttribute("data-scrolled"' in script
+    # Status while loading, gentler equivalents for every preference.
+    assert '.feed-list[aria-busy="true"]' in styles
+    assert "@media (prefers-reduced-transparency: reduce)" in styles
+    assert "@media (prefers-contrast: more)" in styles
+    assert ".feed-item.is-new { animation: none; }" in styles

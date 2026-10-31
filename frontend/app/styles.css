@@ -884,3 +884,134 @@ a.topic-chip:hover { border-color: var(--accent-line); }
 @media (max-width: 760px) { footer { flex-direction: column; } .footer-nav { justify-content: flex-start; } }
 a.filter-pill { text-decoration: none; }
 .roster-row .source-link { justify-self: start; }
+
+/* Apple-style craft pass (feedback, materials, type, accessibility) ------------
+   Rules from Apple's HIG / WWDC design talks, as distilled in Emil Kowalski's
+   apple-design skill: respond on press, translucent chrome with scroll-edge
+   effects instead of hard dividers, size-specific tracking, and gentler
+   equivalents for reduced motion, transparency and higher contrast. */
+
+/* Response: no 300ms double-tap wait, no grey tap flash; feedback lives on the press. */
+a, button, select, summary, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.shortcut-card, .legislature-card, .feed-item h3 a, .tab-bar a, .section-tabs a, .favorite-toggle,
+.ghost-button, .compare-form button[type="submit"], .zone-form button[type="submit"], a.topic-chip,
+a.filter-pill, .profile-link, .explain-pledge {
+  transition: transform 140ms var(--ease-out), background-color 140ms ease, color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shortcut-card:active, .legislature-card:active { transform: scale(0.985); }
+  .tab-bar a:active, .section-tabs a:active, .ghost-button:active, a.topic-chip:active, a.filter-pill:active,
+  .compare-form button[type="submit"]:active, .zone-form button[type="submit"]:active, .explain-pledge:active { transform: scale(0.96); }
+  .favorite-toggle:active { transform: scale(0.88); }
+}
+/* Reduced motion keeps feedback, as a colour change instead of a scale. */
+.shortcut-card:active, .legislature-card:active { border-color: var(--accent-line); }
+.tab-bar a:active { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .legislature-card:hover, .feed-item:hover { border-color: var(--line-strong); }
+  .favorite-toggle:hover { color: var(--ink); border-color: var(--line-strong); }
+  .ghost-button:hover { background: var(--surface-2); }
+}
+.favorite-toggle.is-active { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .favorite-toggle.just-toggled.is-active { animation: favorite-settle 260ms var(--ease-out); }
+}
+@keyframes favorite-settle { from { transform: scale(0.82); } to { transform: scale(1); } }
+
+/* Pending work shows status, never a frozen control. */
+.ghost-button[aria-busy="true"], button[aria-busy="true"] { opacity: .6; cursor: progress; }
+.feed-list { transition: opacity 160ms ease; }
+.feed-list[aria-busy="true"] { opacity: .45; }
+@media (prefers-reduced-motion: no-preference) {
+  .feed-item { transition: border-color 140ms ease; }
+  .feed-item.is-new { animation: feed-in 260ms var(--ease-out) both; animation-delay: var(--stagger, 0ms); }
+}
+@keyframes feed-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Materials: the header and the tab bar are translucent layers content scrolls
+   under. No hard 1px divider; a soft edge appears only once content is under it. */
+.site-header {
+  border-bottom-color: transparent;
+  background: rgba(11, 11, 12, 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+.site-header::after {
+  content: ""; position: absolute; inset: auto 0 -14px 0; height: 14px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .32), transparent);
+  opacity: 0; transition: opacity 200ms ease;
+}
+html[data-scrolled] .site-header { background: rgba(11, 11, 12, 0.72); }
+html[data-scrolled] .site-header::after { opacity: 1; }
+@media (max-width: 760px) {
+  .tab-bar {
+    border-top: 1px solid rgba(255, 255, 255, .1); /* light catching the top edge */
+    background: rgba(14, 13, 15, .62);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, .35);
+  }
+  /* Text over glass: brighter and a touch heavier than flat grey. */
+  .tab-bar a { color: rgba(244, 241, 236, .72); font-weight: 750; letter-spacing: .01em; }
+  .tab-bar a[aria-current="page"] { color: var(--accent-strong); }
+  .tab-icon { font-size: 1.15rem; }
+  /* Content never ends hidden behind the bar. */
+  footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+.section-tabs a[aria-current="page"] { font-weight: 750; }
+
+/* Typography: tracking and leading follow size, never one value for all. */
+body { font-optical-sizing: auto; text-rendering: optimizeLegibility; }
+h1 { letter-spacing: -.045em; }
+@media (max-width: 640px) { h1 { letter-spacing: -.035em; line-height: 1.02; } }
+.hero-copy { line-height: 1.6; }
+.feed-meta, .roster-row, .shortcut-card small, .legislature-card small, .compare-form legend,
+.compare-form label, .zone-form label { letter-spacing: .01em; }
+.feed-item h3 { letter-spacing: -.012em; }
+.feed-item p, .post-body { line-height: 1.6; }
+.shortcut-card strong, .legislature-card strong { letter-spacing: -.015em; }
+.legislature-roman { font-variant-numeric: lining-nums; }
+.roster-row span:nth-child(3), .feed-meta time { font-variant-numeric: tabular-nums; }
+
+/* Wayfinding: the current section is unmistakable, and focus never disappears. */
+.tab-bar a:focus-visible, .section-tabs a:focus-visible, .shortcut-card:focus-visible, .legislature-card:focus-visible { outline-offset: 2px; }
+
+/* Accessibility: gentler equivalents, not removals. */
+@media (prefers-reduced-transparency: reduce) {
+  .site-header, html[data-scrolled] .site-header { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); border-bottom-color: var(--line); }
+  .site-header::after { display: none; }
+  .tab-bar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--surface) !important; }
+}
+@media (prefers-contrast: more) {
+  :root { --muted: #c9c3bb; --faint: #a39d96; --line: rgba(255, 255, 255, .22); --line-strong: rgba(255, 255, 255, .4); }
+  .site-header, .tab-bar { background: var(--bg) !important; border-color: rgba(255, 255, 255, .5) !important; }
+  .shortcut-card, .legislature-card, .feed-item, .compare-card { border-color: rgba(255, 255, 255, .4); }
+  .tab-bar a { color: var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-item.is-new { animation: none; }
+  .feed-list { transition: none; }
+}
+/* A scrolling pill row must never widen its column (flex min-width: auto). */
+.feed-heading > * { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) { .feed-heading #feed-filters { width: 100%; } }
+@media (max-width: 760px) {
+  /* Denser material: labels stay legible over busy text underneath. */
+  .tab-bar { background: rgba(14, 13, 15, .8); -webkit-backdrop-filter: blur(28px) saturate(180%); backdrop-filter: blur(28px) saturate(180%); }
+}
+@media (max-width: 640px) {
+  /* Show the common path first: shortcuts take two columns, the feed starts on the first screen. */
+  .shortcut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 28px; }
+  .shortcut-card { padding: 14px; gap: 2px; }
+  .shortcut-card strong { font-size: .95rem; line-height: 1.25; }
+  .shortcut-card small { font-size: .74rem; line-height: 1.35; }
+  .home-hero { margin-bottom: 28px; }
+}
+@media (max-width: 640px) {
+  .feed-heading { align-items: stretch; }
+  /* The tab bar is the persistent navigation on phones; the tall header scrolls away with the page. */
+  .site-header { position: relative; }
+  .site-header::after { display: none; }
+  .brand small { display: none; }
+}
