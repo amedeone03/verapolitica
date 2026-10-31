@@ -3,52 +3,74 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b0b0c" />
-    <meta name="description" content="Profili verificati dei rappresentanti pubblici italiani, con fonti ufficiali." />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0F2747" />
     <title>VeraPolitica — Profili pubblici verificati</title>
+    <meta name="description" content="Profili, promesse, leggi e referendum ricavati da fonti istituzionali ufficiali e pubblicati dopo verifica editoriale." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VeraPolitica" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:title" content="VeraPolitica — Profili pubblici verificati" />
+    <meta property="og:description" content="Profili, promesse, leggi e referendum ricavati da fonti istituzionali ufficiali e pubblicati dopo verifica editoriale." />
+    <meta property="og:url" content="" />
+    <meta property="og:image" content="./og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preload" href="./fonts/source-serif-4-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="./fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"VeraPolitica","inLanguage":"it"}</script>
   </head>
   <body>
+    <a class="skip-link" href="#main">Vai al contenuto</a>
     <header class="site-header">
-      <div class="header-inner">
-        <a class="brand" href="./" aria-label="Archivio VeraPolitica">
-          <span class="brand-mark" aria-hidden="true">VP</span>
-          <span>
-            <strong>VeraPolitica</strong>
-            
-          </span>
+      <div class="container header-inner">
+        <a class="brand" href="./" aria-label="VeraPolitica, home">
+          <img class="brand-mark" src="./favicon.svg" alt="" width="36" height="36" />
+          <span class="brand-name">VeraPolitica</span>
         </a>
-        <form class="site-search" action="./" method="get" role="search">
-          <input type="hidden" name="view" value="search" />
-          <label class="visually-hidden" for="site-search-q">Cerca nell'archivio pubblico</label>
-          <input
-            id="site-search-q"
-            name="q"
-            type="search"
-            maxlength="200"
-            placeholder="Cerca persone, luoghi, proposte"
-            autocomplete="off"
-            autocorrect="off"
-            enterkeyhint="search"
-          />
-          <button type="submit">Cerca</button>
-        </form>
         <nav class="public-nav section-tabs" aria-label="Sezioni principali">
           <a href="./" data-section="home">Home</a>
           <a href="./?view=politics" data-section="politics">Politica</a>
           <a href="./?view=history" data-section="history">Archivio</a>
           <a href="./?view=profile" data-section="profile">Profilo</a>
+          <a class="nav-search" href="./?view=search" data-section="search"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Cerca</span></a>
         </nav>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg><span>Menu</span></button>
       </div>
     </header>
+    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" hidden>
+      <div class="mobile-menu-head">
+        <span class="brand-name">VeraPolitica</span>
+        <button class="menu-close" type="button"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="visually-hidden">Chiudi il menu</span></button>
+      </div>
+      <form class="site-search" action="./" method="get" role="search">
+        <input type="hidden" name="view" value="search" />
+        <label class="visually-hidden" for="site-search-q">Cerca nell'archivio pubblico</label>
+        <input id="site-search-q" name="q" type="search" maxlength="200" placeholder="Cerca persone, luoghi, proposte" autocomplete="off" enterkeyhint="search" />
+        <button class="button button-primary" type="submit">Cerca</button>
+      </form>
+      <nav aria-label="Sezioni principali">
+        <a href="./" data-section="home">Home</a>
+        <a href="./?view=politics" data-section="politics">Politica</a>
+        <a href="./?view=history" data-section="history">Archivio</a>
+        <a href="./?view=profile" data-section="profile">Profilo</a>
+      </nav>
+    </div>
 
-    <main>
+    <main id="main" class="container" tabindex="-1">
       <section id="home-view" aria-labelledby="home-title" hidden>
-        <div class="hero compact-hero home-hero">
-          <h1 id="home-title" class="visually-hidden">Aggiornamenti</h1>
-          <p id="home-zone" class="hero-copy"></p>
+        <div class="hero home-hero">
+          <p class="eyebrow">Informazione pubblica, con fonti</p>
+          <h1 id="home-title" class="display">Sai chi ti rappresenta. Verifica ogni dettaglio.</h1>
+          <p class="hero-copy">Profili, promesse, leggi e referendum ricavati da fonti istituzionali ufficiali e pubblicati dopo verifica editoriale. Ogni fatto rimanda alla sua fonte.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="./?view=politicians">Esplora i politici</a>
+            <a class="button button-secondary" href="./?view=methodology">Come verifichiamo</a>
+          </div>
         </div>
         <div class="shortcut-grid" aria-label="Accesso rapido">
           <a class="shortcut-card" href="./?view=proposals&amp;legislature=current">Proposte di legge attuali</a>
@@ -60,8 +82,9 @@
           <h2 id="home-favorites-title" class="section-title">Preferiti</h2>
           <div id="home-favorites-list" class="favorite-chips"></div>
         </section>
+        <p id="home-zone" class="zone-line"></p>
         <div class="archive-heading feed-heading">
-          <h2 class="visually-hidden">Aggiornamenti verificati</h2>
+          <h2>Ultimi aggiornamenti</h2>
           <div id="feed-filters" class="filter-pills" role="group" aria-label="Filtra per ambito"></div>
         </div>
         <div id="feed-status" class="state-card loading-state" role="status">
@@ -73,7 +96,7 @@
       </section>
 
       <section id="post-view" aria-labelledby="post-title" hidden>
-        <a class="back-link" href="./"><span aria-hidden="true">←</span> Torna alla Home</a>
+        <a class="back-link" href="./"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Torna alla Home</a>
         <div id="post-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento dell'aggiornamento…</strong></div>
@@ -102,7 +125,7 @@
       </section>
 
       <section id="compare-view" aria-labelledby="compare-title" hidden>
-        <a class="back-link" href="./?view=politics"><span aria-hidden="true">←</span> Politica</a>
+        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div class="hero compact-hero">
           <h1 id="compare-title">Confronto</h1>
           <p class="hero-copy">Solo tra persone nello stesso ruolo.</p>
@@ -130,7 +153,7 @@
         </form>
         <div id="history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dell'archivio…</strong></div></div>
         <div id="era-list" hidden></div>
-        <section class="detail-card" aria-labelledby="territory-archive-title"><h2 id="territory-archive-title">Territori e consultazioni</h2>
+        <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Territori e consultazioni</h2>
           <div class="shortcut-grid">
             <a class="shortcut-card" href="./?view=regions">Regioni</a>
             <a class="shortcut-card" href="./?view=provinces">Province</a>
@@ -141,13 +164,13 @@
       </section>
 
       <section id="legislature-view" aria-labelledby="legislature-title" hidden>
-        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div id="legislature-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della legislatura…</strong></div></div>
         <article id="legislature-detail" hidden></article>
       </section>
 
       <section id="parliamentarians-view" aria-labelledby="parliamentarians-title" hidden>
-        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div class="hero compact-hero"><h1 id="parliamentarians-title">Parlamentari dal 1948</h1></div>
         <div id="parliamentarians-status" class="state-card" role="status"></div>
         <div id="parliamentarians-list" class="roster-list" hidden></div>
@@ -155,20 +178,20 @@
       </section>
 
       <section id="provinces-view" aria-labelledby="provinces-title" hidden>
-        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div class="hero compact-hero"><h1 id="provinces-title">Province</h1></div>
         <div id="provinces-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento delle province…</strong></div></div>
         <div id="province-list" class="province-groups" hidden></div>
       </section>
 
       <section id="territory-history-view" aria-labelledby="territory-history-title" hidden>
-        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div id="territory-history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della storia del territorio…</strong></div></div>
         <article id="territory-history" hidden></article>
       </section>
 
       <section id="referendum-archive-view" aria-labelledby="referendum-archive-title" hidden>
-        <a class="back-link" href="./?view=history"><span aria-hidden="true">←</span> Archivio storico</a>
+        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div class="hero compact-hero"><h1 id="referendum-archive-title">Referendum per anno</h1></div>
         <div id="referendum-archive-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dei referendum…</strong></div></div>
         <div id="referendum-archive" hidden></div>
@@ -215,7 +238,7 @@
       </section>
 
       <section id="detail-view" aria-labelledby="profile-name" hidden>
-        <a class="back-link" href="./?view=politicians"><span aria-hidden="true">←</span> Tutti i profili verificati</a>
+        <a class="back-link" href="./?view=politicians"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutti i profili verificati</a>
         <div id="detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del profilo verificato…</strong></div>
@@ -254,7 +277,7 @@
       </section>
 
       <section id="referendum-detail-view" aria-labelledby="referendum-detail-title" hidden>
-        <a class="back-link" href="./?view=referendums"><span aria-hidden="true">←</span> Tutti i referendum</a>
+        <a class="back-link" href="./?view=referendums"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutti i referendum</a>
         <div id="referendum-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del referendum…</strong></div>
@@ -290,7 +313,7 @@
       </section>
 
       <section id="proposal-detail-view" aria-labelledby="proposal-detail-title" hidden>
-        <a class="back-link" href="./?view=proposals"><span aria-hidden="true">←</span> Tutte le proposte pubblicate</a>
+        <a class="back-link" href="./?view=proposals"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutte le proposte pubblicate</a>
         <div id="proposal-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento della proposta…</strong></div>
@@ -314,7 +337,7 @@
       </section>
 
       <section id="region-detail-view" aria-labelledby="region-detail-title" hidden>
-        <a class="back-link" href="./?view=regions"><span aria-hidden="true">←</span> Tutte le regioni</a>
+        <a class="back-link" href="./?view=regions"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutte le regioni</a>
         <div id="region-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento della regione…</strong></div>
@@ -409,7 +432,7 @@
       </section>
 
       <section id="organization-detail-view" aria-labelledby="organization-detail-title" hidden>
-        <a class="back-link" href="./?view=search"><span aria-hidden="true">←</span> Torna alla ricerca</a>
+        <a class="back-link" href="./?view=search"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Torna alla ricerca</a>
         <div id="organization-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento…</strong></div>
@@ -418,7 +441,7 @@
       </section>
 
       <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>
-        <a class="back-link" href="./?view=municipalities"><span aria-hidden="true">←</span> Tutti i comuni</a>
+        <a class="back-link" href="./?view=municipalities"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutti i comuni</a>
         <div id="municipality-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del comune…</strong></div>
@@ -427,29 +450,43 @@
       </section>
     </main>
 
-    <footer>
-      <div>
-        <strong>VeraPolitica</strong>
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div class="footer-identity">
+          <p class="footer-brand">VeraPolitica</p>
+          <p>Profili pubblici ricavati da fonti ufficiali e pubblicati dopo verifica editoriale.</p>
+        </div>
+        <nav aria-label="Sezioni">
+          <p class="footer-title">Sezioni</p>
+          <a href="./">Home</a>
+          <a href="./?view=politics">Politica</a>
+          <a href="./?view=history">Archivio</a>
+          <a href="./?view=profile">Profilo</a>
+        </nav>
+        <nav aria-label="Consulta">
+          <p class="footer-title">Consulta</p>
+          <a href="./?view=politicians">Politici</a>
+          <a href="./?view=proposals">Proposte</a>
+          <a href="./?view=referendums">Referendum</a>
+          <a href="./?view=voting-guide">Guide al voto</a>
+          <a href="./?view=glossary">Glossario</a>
+          <a href="./?view=regions">Regioni</a>
+          <a href="./?view=municipalities">Comuni</a>
+          <a href="./?view=search">Ricerca</a>
+          <a href="./?view=ask">Ask VeraPolitica</a>
+        </nav>
+        <nav aria-label="Metodo e note legali">
+          <p class="footer-title">Metodo</p>
+          <a href="./?view=methodology">Metodologia</a>
+          <span class="placeholder" title="Contenuto da fornire">Privacy policy (da pubblicare)</span>
+          <span class="placeholder" title="Contenuto da fornire">Note legali (da pubblicare)</span>
+          <span class="placeholder" title="Contenuto da fornire">Contatti (da fornire)</span>
+        </nav>
       </div>
-      <nav class="footer-nav" aria-label="Altre pagine">
-        <a href="./?view=politicians">Politici</a>
-        <a href="./?view=proposals">Proposte</a>
-        <a href="./?view=referendums">Referendum</a>
-        <a href="./?view=voting-guide">Guide al voto</a>
-        <a href="./?view=glossary">Glossario</a>
-        <a href="./?view=methodology">Metodologia</a>
-        <a href="./?view=regions">Regioni</a>
-        <a href="./?view=municipalities">Comuni</a>
-        <a href="./?view=ask">Ask VeraPolitica</a>
-        <a href="./?view=search">Ricerca</a>
-      </nav>
+      <div class="container footer-bottom">
+        <p>© 2026 VeraPolitica</p>
+      </div>
     </footer>
-    <nav class="tab-bar" aria-label="Sezioni principali">
-      <a href="./" data-section="home"><span class="tab-icon" aria-hidden="true">⌂</span>Home</a>
-      <a href="./?view=politics" data-section="politics"><span class="tab-icon" aria-hidden="true">◎</span>Politica</a>
-      <a href="./?view=history" data-section="history"><span class="tab-icon" aria-hidden="true">▤</span>Archivio</a>
-      <a href="./?view=profile" data-section="profile"><span class="tab-icon" aria-hidden="true">◉</span>Profilo</a>
-    </nav>
 
     <script type="module" src="./app.js"></script>
   </body>

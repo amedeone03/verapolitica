@@ -85,7 +85,7 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "scroll-padding-top: var(--profile-scroll-pad, 11rem)" in styles
     assert ".career-entry" in styles
     assert ".career-marker" in styles
-    assert ".will-reveal" in styles
+    assert ".will-reveal" not in styles  # no entrance animation (Cambridge Classic)
     assert ".pledge-details" in styles
     assert "--profile-nav-top" in styles
     assert "prefers-reduced-motion: reduce" in styles
@@ -117,7 +117,7 @@ def test_profile_section_nav_omits_missing_optional_blocks(tmp_path):
     assert "Dettagli e fonti" in script
     assert 'class="pledge-details"' in script
     assert "data-count-to" in script
-    assert "will-reveal" in script
+    assert "will-reveal" not in script
     assert "prefersReducedMotion" in script
     assert "form.requestSubmit()" in script
     assert 'href="./?view=ask&amp;prefill=' in script

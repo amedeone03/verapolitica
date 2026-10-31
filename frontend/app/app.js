@@ -1,5 +1,17 @@
 const byId = (id) => document.getElementById(id);
 
+// Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
+const ICON_PATHS = {
+  arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+};
+
+export function icon(name, { size = 16, filled = false } = {}) {
+  return `<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="${size}" height="${size}" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]}</svg>`;
+}
+
+
 function escapeHtml(value) {
   return String(value ?? "—")
     .replaceAll("&", "&amp;")
@@ -22,12 +34,17 @@ function titleCase(value) {
   return String(value ?? "").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+// Formatters are built once: constructing Intl objects per call is slow on phones.
+const DATE_UTC = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const DATE_LOCAL = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" });
+const PERCENT = new Map();
+
 function formatDate(value) {
   if (!value) return "Non indicata";
   const date = new Date(`${value}T00:00:00Z`);
   return Number.isNaN(date.valueOf())
     ? String(value)
-    : new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+    : DATE_UTC.format(date);
 }
 
 function formatYear(value) {
@@ -49,7 +66,7 @@ function formatPublishedAt(value) {
   const date = new Date(value);
   return Number.isNaN(date.valueOf())
     ? ""
-    : new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(date);
+    : DATE_LOCAL.format(date);
 }
 
 const PROPOSAL_TYPE_LABELS = {
@@ -157,7 +174,7 @@ function portrait(person, { size = "card" } = {}) {
   const image = imageUrl
     ? `<img src="${escapeHtml(imageUrl)}" alt="Ritratto di ${escapeHtml(name)}" loading="${size === "hero" ? "eager" : "lazy"}" decoding="async" referrerpolicy="no-referrer" />`
     : "";
-  return `<div class="portrait glass-portrait is-${size}${imageUrl ? " has-photo" : ""}"${imageUrl ? "" : ` aria-label="Nessun ritratto disponibile"`}>${monogram}${image}</div>`;
+  return `<div class="portrait glass-portrait is-${size}${imageUrl ? " has-photo" : ""}"${imageUrl ? "" : ` role="img" aria-label="Nessun ritratto disponibile"`}>${monogram}${image}</div>`;
 }
 
 export function renderPhotoCredit(person) {
@@ -168,7 +185,7 @@ export function renderPhotoCredit(person) {
     ? `Foto: ${photo.credit} · ${photo.license} · Wikimedia Commons`
     : `Foto: ${photo.origin}`;
   return link
-    ? `<a class="photo-credit" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ↗</a>`
+    ? `<a class="photo-credit" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ${icon("external", { size: 14 })}</a>`
     : `<span class="photo-credit">${escapeHtml(label)}</span>`;
 }
 
@@ -243,7 +260,7 @@ export function renderPoliticianCard(person) {
       <p class="mandate">${escapeHtml(mandateTitle(mandate, gender))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "Istituzione nazionale")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
       <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Caricamento delle promesse…</p></div>
-      <a class="profile-link card-link" href="./?politician=${encodeURIComponent(person.id)}">Vedi profilo <span aria-hidden="true">→</span></a>
+      <a class="profile-link card-link" href="./?politician=${encodeURIComponent(person.id)}">Vedi profilo ${icon("arrowRight")}</a>
     </div>
   </article>`;
 }
@@ -370,7 +387,7 @@ export function renderSourceCard({
   const label = displayName || title;
   const meta = [kindLabel, displayName && title ? title : "", date].filter(Boolean).join(" · ");
   return `<p class="source-card">
-    ${href ? `<a class="source-name" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} <span aria-hidden="true">↗</span></a>` : `<span class="source-name">${escapeHtml(label)}</span>`}
+    ${href ? `<a class="source-name" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ${icon("external", { size: 14 })}</a>` : `<span class="source-name">${escapeHtml(label)}</span>`}
     ${meta ? `<span class="source-card-meta">${escapeHtml(meta)}</span>` : ""}
     ${extra}
   </p>`;
@@ -614,7 +631,7 @@ export function renderTrustBlock() {
   return `<section class="detail-card profile-block profile-trust" id="metodologia-profilo">
     <h2>Come vengono verificati questi dati?</h2>
     <p>VeraPolitica utilizza fonti pubbliche e documenti verificabili. Le valutazioni delle promesse vengono pubblicate solo dopo revisione.</p>
-    <a class="profile-link" href="./?view=methodology">Metodologia <span aria-hidden="true">→</span></a>
+    <a class="profile-link" href="./?view=methodology">Metodologia ${icon("arrowRight")}</a>
   </section>`;
 }
 
@@ -736,14 +753,14 @@ export function renderProposalCard(proposal) {
     ${renderProposalTags(proposal.tags)}
     <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Nessun attore pubblicato</span>"}</div>
     <p>${escapeHtml(formatDate(proposal.introduced_at))}</p>
-    <div class="proposal-card-links"><a class="profile-link" href="./?proposal=${encodeURIComponent(proposal.id)}">Vedi cronologia <span aria-hidden="true">→</span></a>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}</div>
+    <div class="proposal-card-links"><a class="profile-link" href="./?proposal=${encodeURIComponent(proposal.id)}">Vedi cronologia ${icon("arrowRight")}</a>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}</div>
   </article>`;
 }
 
 export function renderProposalTimeline(events = []) {
   return `<ol class="proposal-timeline">${events.map((event) => {
     const url = safeExternalUrl(event.source?.url);
-    return `<li><time>${escapeHtml(formatDate(event.effective_at))}</time><div><strong>${escapeHtml(proposalStatusLabel(event.status))}</strong><p>Etichetta ufficiale: ${escapeHtml(event.source_status_label)}</p>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Elementi di verifica ↗</a>` : ""}</div></li>`;
+    return `<li><time>${escapeHtml(formatDate(event.effective_at))}</time><div><strong>${escapeHtml(proposalStatusLabel(event.status))}</strong><p>Etichetta ufficiale: ${escapeHtml(event.source_status_label)}</p>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Elementi di verifica ${icon("external", { size: 14 })}</a>` : ""}</div></li>`;
   }).join("")}</ol>`;
 }
 
@@ -759,7 +776,7 @@ export function renderProposalDetail(proposal) {
     <section class="detail-card proposal-timeline-card"><h2>Cronologia di stato</h2>${renderProposalTimeline(proposal.status_history)}</section>
     <section class="detail-card"><h2>Fonti ufficiali</h2><div class="source-list">${proposal.sources.map((source) => {
       const url = safeExternalUrl(source.url);
-      return `<article class="source-block"><h3>${escapeHtml(source.name)}</h3>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Apri fonte ufficiale ↗</a>` : ""}</article>`;
+      return `<article class="source-block"><h3>${escapeHtml(source.name)}</h3>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Apri fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}</article>`;
     }).join("")}</div></section>`;
 }
 
@@ -796,7 +813,7 @@ export function renderTerritorialOffices(offices = []) {
     return `<article class="territorial-office">
       <div><span class="proposal-type">${escapeHtml(officeLabel(office.office))}</span><h3>${territory}</h3>
       <p>${office.municipality && office.region ? `Regione: ${escapeHtml(office.region)} · ` : ""}${office.end_date ? `${formatDate(office.start_date)} – ${formatDate(office.end_date)}` : `Dal ${formatDate(office.start_date)}`}</p></div>
-      ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}
+      ${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}
     </article>`;
   }).join("")}</div>`;
 }
@@ -809,7 +826,7 @@ export function renderRegionCard(region) {
     <span class="proposal-type">ISTAT ${escapeHtml(region.istat_code)}</span>
     <h3>${escapeHtml(region.name)}</h3>
     <p>Presidente: ${escapeHtml(president)}</p>
-    <a class="profile-link" href="./?region=${encodeURIComponent(region.id)}">Vedi regione <span aria-hidden="true">→</span></a>
+    <a class="profile-link" href="./?region=${encodeURIComponent(region.id)}">Vedi regione ${icon("arrowRight")}</a>
   </article>`;
 }
 
@@ -821,7 +838,7 @@ export function renderMunicipalityCard(municipality) {
     <span class="proposal-type">ISTAT ${escapeHtml(municipality.istat_code)}</span>
     <h3>Comune di ${escapeHtml(municipality.name)}</h3>
     <p>Regione: ${escapeHtml(municipality.region_name)} · Sindaco: ${escapeHtml(mayor)}</p>
-    <a class="profile-link" href="./?municipality=${encodeURIComponent(municipality.id)}">Vedi comune <span aria-hidden="true">→</span></a>
+    <a class="profile-link" href="./?municipality=${encodeURIComponent(municipality.id)}">Vedi comune ${icon("arrowRight")}</a>
   </article>`;
 }
 
@@ -832,8 +849,8 @@ export function renderRegionDetail(region, municipalities = []) {
       <h1 id="region-detail-title">${escapeHtml(region.name)}</h1>
       <p>Presidente: ${holderLabel(region.current_president)}</p>
       <p>${region.municipality_count} ${region.municipality_count === 1 ? "comune" : "comuni"} nei dati ufficiali di riferimento.</p>
-      <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione <span aria-hidden="true">→</span></a></p>
-      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ↗</a></p>` : ""}
+      <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>
+      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>
     <section class="detail-card"><h2>Comuni in questa regione</h2>
       ${municipalities.length ? `<div class="proposal-grid">${municipalities.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
@@ -848,7 +865,7 @@ export function renderMunicipalityDetail(municipality) {
       <p>Regione: <a href="./?region=${encodeURIComponent(municipality.region_id)}">${escapeHtml(municipality.region_name)}</a></p>
       <p>Sindaco: ${holderLabel(municipality.current_mayor)}</p>
       <p>Provincia/UTS: <a href="./?province=${encodeURIComponent(municipality.province_abbreviation)}">${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</a></p>
-      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ↗</a></p>` : ""}
+      ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>`;
 }
 
@@ -938,11 +955,10 @@ function topicLabel(code) {
 }
 
 function percent(value, digits = 0) {
-  return new Intl.NumberFormat("it-IT", {
-    style: "percent",
-    maximumFractionDigits: digits,
-    minimumFractionDigits: digits,
-  }).format(Number(value));
+  if (!PERCENT.has(digits)) {
+    PERCENT.set(digits, new Intl.NumberFormat("it-IT", { style: "percent", maximumFractionDigits: digits, minimumFractionDigits: digits }));
+  }
+  return PERCENT.get(digits).format(Number(value));
 }
 
 export function renderVerdictChip(value) {
@@ -1126,7 +1142,7 @@ export function renderScorecard(scorecard) {
   return `<div class="scorecard">
     <div class="method-note">
       <p>Il punteggio conta solo le promesse concluse e si calcola separatamente per ciascun ruolo istituzionale, perché governo e opposizione hanno poteri molto diversi. Ogni valutazione cita un documento ufficiale.</p>
-      <a class="profile-link" href="./?view=methodology">Come funziona il punteggio <span aria-hidden="true">→</span></a>
+      <a class="profile-link" href="./?view=methodology">Come funziona il punteggio ${icon("arrowRight")}</a>
     </div>
     ${renderVerdictLegend()}
     ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
@@ -1182,7 +1198,7 @@ function renderPledgeExplanation(payload) {
     const url = safeExternalUrl(source.url);
     const title = escapeHtml(source.title || "Fonte ufficiale");
     return url
-      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ↗</a></li>`
+      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ${icon("external", { size: 14 })}</a></li>`
       : `<li>${title}</li>`;
   }).join("");
   const note = payload.generated_by_ai
@@ -1252,16 +1268,20 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
 }
 
-function navOffset() {
+function stickyHeaderHeight() {
   const header = document.querySelector(".site-header");
+  if (!header || !["sticky", "fixed"].includes(getComputedStyle(header).position)) return 0;
+  return header.offsetHeight;
+}
+
+function navOffset() {
   const nav = document.querySelector(".profile-section-nav");
-  return (header?.offsetHeight || 0) + (nav?.offsetHeight || 0) + 12;
+  return stickyHeaderHeight() + (nav?.offsetHeight || 0) + 12;
 }
 
 function syncScrollPadding() {
-  const header = document.querySelector(".site-header");
   const nav = document.querySelector(".profile-section-nav");
-  const headerHeight = header?.offsetHeight || 74;
+  const headerHeight = stickyHeaderHeight();
   const pad = headerHeight + (nav?.offsetHeight || 0) + 12;
   document.documentElement.style.setProperty("--profile-nav-top", `${headerHeight}px`);
   document.documentElement.style.setProperty("--profile-scroll-pad", `${pad}px`);
@@ -1354,54 +1374,9 @@ function bindProfileSectionNav(root) {
   }
 }
 
-function animateCount(node) {
-  const target = Number(node.dataset.countTo);
-  if (!Number.isFinite(target) || node.dataset.countAnimated === "1") return;
-  node.dataset.countAnimated = "1";
-  const finish = () => { node.textContent = String(target); };
-  if (prefersReducedMotion() || target === 0) {
-    finish();
-    return;
-  }
-  node.textContent = "0";
-  const start = performance.now();
-  const duration = 700;
-  const tick = (now) => {
-    const progress = Math.min(1, (now - start) / duration);
-    const eased = 1 - (1 - progress) ** 3;
-    node.textContent = String(Math.round(target * eased));
-    if (progress < 1) requestAnimationFrame(tick);
-    else finish();
-  };
-  requestAnimationFrame(tick);
-}
-
 function bindProfileMotion(root) {
-  const counters = [...root.querySelectorAll("[data-count-to]")];
-  if (prefersReducedMotion() || !("IntersectionObserver" in window)) {
-    for (const node of counters) node.textContent = String(node.dataset.countTo);
-    return;
-  }
-  const reveals = [...root.querySelectorAll(".profile-block, .career-entry, .pledge-summary-item")];
-  const observer = new IntersectionObserver((entries, observed) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      entry.target.classList.add("is-revealed");
-      if (entry.target.hasAttribute("data-count-to")) animateCount(entry.target);
-      for (const counter of entry.target.querySelectorAll(":scope [data-count-to]")) {
-        animateCount(counter);
-      }
-      observed.unobserve(entry.target);
-    }
-  }, { threshold: 0.16, rootMargin: "0px 0px -8% 0px" });
-  reveals.forEach((node, index) => {
-    node.classList.add("will-reveal");
-    if (node.classList.contains("career-entry") || node.classList.contains("pledge-summary-item")) {
-      node.style.setProperty("--reveal-delay", `${Math.min(index % 8, 6) * 40}ms`);
-    }
-    observer.observe(node);
-    window.setTimeout(() => node.classList.add("is-revealed"), 1200);
-  });
+  // Numbers are written in place; no count-up or entrance animation.
+  for (const node of root.querySelectorAll("[data-count-to]")) node.textContent = String(node.dataset.countTo);
 }
 
 export function renderMethodology(method) {
@@ -1847,7 +1822,7 @@ function renderAskResult(payload) {
     const url = safeExternalUrl(source.url);
     const title = escapeHtml(source.title || "Fonte ufficiale");
     return url
-      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ↗</a></li>`
+      ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ${icon("external", { size: 14 })}</a></li>`
       : `<li>${title}</li>`;
   }).join("");
   const note = payload.generated_by_ai
@@ -2189,7 +2164,7 @@ function isFavorite(id) {
 export function renderFavoriteToggle(person) {
   const name = `${person.given_name} ${person.family_name}`.trim();
   const active = typeof localStorage !== "undefined" && isFavorite(person.id);
-  return `<button type="button" class="favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" aria-pressed="${active}" aria-label="${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${escapeHtml(name)}">${active ? "★" : "☆"}</button>`;
+  return `<button type="button" class="favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" aria-pressed="${active}" aria-label="${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${escapeHtml(name)}">${icon("star", { size: 18, filled: active })}</button>`;
 }
 
 document.addEventListener("click", (event) => {
@@ -2203,15 +2178,12 @@ document.addEventListener("click", (event) => {
     twin.classList.toggle("is-active", active);
     twin.setAttribute("aria-pressed", String(active));
     twin.setAttribute("aria-label", `${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${button.dataset.favoriteName}`);
-    twin.textContent = active ? "★" : "☆";
-    twin.classList.remove("just-toggled");
-    void twin.offsetWidth; // restart the settle animation on repeated taps
-    twin.classList.add("just-toggled");
+    twin.innerHTML = icon("star", { size: 18, filled: active });
   }
 });
 
 function renderFavoriteChips(favorites) {
-  return favorites.map((item) => `<a class="topic-chip" href="./?politician=${encodeURIComponent(item.id)}">★ ${escapeHtml(item.name)}</a>`).join("");
+  return favorites.map((item) => `<a class="topic-chip" href="./?politician=${encodeURIComponent(item.id)}">${icon("star", { size: 14, filled: true })}${escapeHtml(item.name)}</a>`).join("");
 }
 
 export function zoneLabel(zone) {
@@ -2224,27 +2196,11 @@ export function zoneLabel(zone) {
 // iOS Safari applies :active press states only when a touch listener exists.
 document.addEventListener("touchstart", () => {}, { passive: true });
 
-// Scroll-edge effect: the header shows a soft edge only while content is under it.
-{
-  let ticking = false;
-  const sync = () => {
-    ticking = false;
-    document.documentElement.toggleAttribute("data-scrolled", window.scrollY > 4);
-  };
-  window.addEventListener("scroll", () => {
-    if (!ticking) {
-      ticking = true;
-      requestAnimationFrame(sync);
-    }
-  }, { passive: true });
-  sync();
-}
-
 // ---------------------------------------------------------------------------
 // Section tabs: Home, Politica, Archivio, Profilo.
 const SECTION_BY_VIEW = {
   politics: "politics", politicians: "politics", proposals: "politics", compare: "politics",
-  methodology: "politics", ask: "politics", search: "politics",
+  methodology: "politics", ask: "politics", search: "search",
   history: "history", parliamentarians: "history", provinces: "history", "referendum-archive": "history",
   regions: "history", municipalities: "history",
   profile: "profile",
@@ -2263,6 +2219,72 @@ function markSection(section) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
+}
+
+// Mobile menu: a modal dialog with focus trap, Escape, scroll lock and focus return.
+function bindMobileMenu() {
+  const toggle = document.querySelector(".menu-toggle");
+  const menu = byId("mobile-menu");
+  if (!toggle || !menu) return;
+  const close = menu.querySelector(".menu-close");
+  const focusable = () => [...menu.querySelectorAll("a[href], button, input, [tabindex]:not([tabindex='-1'])")]
+    .filter((node) => !node.hasAttribute("disabled"));
+  const setOpen = (open) => {
+    menu.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    document.documentElement.classList.toggle("menu-open", open);
+    if (open) focusable()[0]?.focus();
+    else toggle.focus();
+  };
+  toggle.addEventListener("click", () => setOpen(true));
+  close?.addEventListener("click", () => setOpen(false));
+  menu.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const items = focusable();
+    const first = items[0];
+    const last = items.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  window.matchMedia("(min-width: 1024px)").addEventListener?.("change", (event) => {
+    if (event.matches && !menu.hidden) setOpen(false);
+  });
+}
+
+const VIEW_DESCRIPTIONS = {
+  politics: "Partiti, politici e proposte, con promesse valutate secondo un metodo pubblico.",
+  history: "Legislature dal 1946, parlamentari, referendum e territori, con fonti ufficiali.",
+  profile: "La tua zona e i tuoi politici preferiti, salvati solo su questo dispositivo.",
+  proposals: "Proposte di legge e promesse esplicite verificate, con la cronologia ufficiale.",
+  methodology: "Come VeraPolitica valuta le promesse: formula, intervalli e revisione editoriale.",
+  referendums: "Referendum e consultazioni con quesiti ufficiali e date.",
+};
+
+function syncPageMeta(params) {
+  const description = VIEW_DESCRIPTIONS[params.get("view")];
+  if (description) document.querySelector('meta[name="description"]')?.setAttribute("content", description);
+  // Canonical URL: the view, the record id or the search query; no tracking or paging noise.
+  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary"];
+  const canonical = new URL(window.location.pathname, window.location.origin);
+  for (const key of keep) if (params.get(key)) canonical.searchParams.set(key, params.get(key));
+  let link = document.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "canonical";
+    document.head.append(link);
+  }
+  link.href = canonical.href;
+  document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical.href);
 }
 
 // ---------------------------------------------------------------------------
@@ -2329,7 +2351,6 @@ async function showHome(api) {
       const page = await api.getFeed({ scope, zone: zone || {}, offset });
       byId("feed-status").hidden = true;
       if (!append) list.innerHTML = "";
-      const firstNew = list.children.length;
       if (!page.items.length && !append) {
         list.hidden = true;
         const local = scope !== "all" && scope !== "national";
@@ -2337,11 +2358,6 @@ async function showHome(api) {
       } else {
         list.hidden = false;
         list.insertAdjacentHTML("beforeend", page.items.map(renderFeedItem).join(""));
-        // New rows settle in; the first few stagger slightly, later ones arrive together.
-        [...list.children].slice(firstNew).forEach((node, index) => {
-          node.classList.add("is-new");
-          node.style.setProperty("--stagger", `${Math.min(index, 5) * 30}ms`);
-        });
       }
       more.hidden = !page.has_more;
       offset += page.items.length;
@@ -2376,7 +2392,7 @@ async function showPost(api, postId) {
     byId("post-detail").hidden = false;
     const sources = item.sources.map((source) => {
       const url = safeExternalUrl(source.url);
-      return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a></li>` : "";
+      return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ${icon("external", { size: 14 })}</a></li>` : "";
     }).join("");
     byId("post-detail").innerHTML = `<section class="proposal-detail-hero">
       <p class="feed-meta">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
@@ -2399,7 +2415,7 @@ export function renderPartyCard(party) {
     <span class="proposal-type">${party.abbreviation ? escapeHtml(party.abbreviation) : "Partito"}</span>
     <h3>${escapeHtml(party.name)}</h3>
     <p>${party.current_member_count} ${party.current_member_count === 1 ? "profilo pubblicato in carica" : "profili pubblicati in carica"}</p>
-    <a class="profile-link" href="./?political_party=${encodeURIComponent(party.id)}">Vedi partito e promesse <span aria-hidden="true">→</span></a>
+    <a class="profile-link" href="./?political_party=${encodeURIComponent(party.id)}">Vedi partito e promesse ${icon("arrowRight")}</a>
   </article>`;
 }
 
@@ -2552,6 +2568,9 @@ async function showHistory(api) {
     </section>`).join("");
   } catch {
     showState(byId("history-status"), "Non è stato possibile caricare l'archivio storico.", PUBLIC_UNAVAILABLE, true);
+  } finally {
+    // Shown after the legislatures so nothing on screen moves when they arrive.
+    byId("territory-archive").hidden = false;
   }
 }
 
@@ -2559,7 +2578,7 @@ export function renderRosterRow(item) {
   const name = `${item.given_name} ${item.family_name}`;
   const link = item.politician_id ? `<a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(name)}</a>` : escapeHtml(name);
   const source = safeExternalUrl(item.source_url);
-  return `<li class="roster-row"><span class="roster-name">${link}</span><span>${escapeHtml(romanLegislature(item.legislature) || String(item.legislature))} · ${item.chamber === "senato" ? "Senato" : "Camera"}${item.election_area ? ` · ${escapeHtml(item.election_area)}` : ""}</span><span>${item.start_date ? escapeHtml(item.end_date ? dateRange(item.start_date, item.end_date) : `Dal ${formatDate(item.start_date)}`) : ""}</span>${source ? `<a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ↗</a>` : ""}</li>`;
+  return `<li class="roster-row"><span class="roster-name">${link}</span><span>${escapeHtml(romanLegislature(item.legislature) || String(item.legislature))} · ${item.chamber === "senato" ? "Senato" : "Camera"}${item.election_area ? ` · ${escapeHtml(item.election_area)}` : ""}</span><span>${item.start_date ? escapeHtml(item.end_date ? dateRange(item.start_date, item.end_date) : `Dal ${formatDate(item.start_date)}`) : ""}</span>${source ? `<a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ${icon("external", { size: 14 })}</a>` : ""}</li>`;
 }
 
 async function renderRoster(api, { legislature = null, chamber = "", q = "", offset = 0, target, status, pagination, baseHref }) {
@@ -2603,12 +2622,12 @@ async function showLegislature(api, number) {
       <p class="feed-meta">${escapeHtml(item.era_label)}</p>
       <h1 id="legislature-title">${escapeHtml(item.label)}</h1>
       <p class="hero-copy">${escapeHtml(dateRange(item.start_date, item.end_date))}</p>
-      ${source ? `<p><a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a></p>` : ""}
-      <nav class="legislature-nav">${detail.previous !== null ? `<a href="./?legislature=${detail.previous}">← Precedente</a>` : "<span></span>"}${detail.next !== null ? `<a href="./?legislature=${detail.next}">Successiva →</a>` : ""}</nav>
+      ${source ? `<p><a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
+      <nav class="legislature-nav">${detail.previous !== null ? `<a href="./?legislature=${detail.previous}">Precedente</a>` : "<span></span>"}${detail.next !== null ? `<a href="./?legislature=${detail.next}">Successiva ${icon("arrowRight")}</a>` : ""}</nav>
     </section>
     <section class="detail-card"><h2>Proposte di legge</h2>
       <p>${countLabel(detail.published_proposals, "proposta pubblicata", "proposte pubblicate")} presentate in questo periodo.</p>
-      <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte <span aria-hidden="true">→</span></a>
+      <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte ${icon("arrowRight")}</a>
     </section>
     <section class="detail-card"><h2>Referendum</h2>${referendums}</section>
     <section class="detail-card"><h2>Parlamentari</h2>
@@ -2670,15 +2689,15 @@ async function showProvinces(api) {
 
 export function renderTerritoryHistory(history) {
   const holders = history.office_holders.length
-    ? `<ol class="proposal-timeline">${history.office_holders.map((item) => `<li><time>${escapeHtml(item.start_date ? formatYear(item.start_date) : "")}</time><div><strong><a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(item.name)}</a></strong><p>${escapeHtml(officeLabel(item.office))} · ${escapeHtml(item.territory_name)} · ${escapeHtml(dateRange(item.start_date, item.end_date))}</p>${safeExternalUrl(item.source_url) ? `<a class="source-link" href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ↗</a>` : ""}</div></li>`).join("")}</ol>`
+    ? `<ol class="proposal-timeline">${history.office_holders.map((item) => `<li><time>${escapeHtml(item.start_date ? formatYear(item.start_date) : "")}</time><div><strong><a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(item.name)}</a></strong><p>${escapeHtml(officeLabel(item.office))} · ${escapeHtml(item.territory_name)} · ${escapeHtml(dateRange(item.start_date, item.end_date))}</p>${safeExternalUrl(item.source_url) ? `<a class="source-link" href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}</div></li>`).join("")}</ol>`
     : `<p class="empty-note">Nessun incarico ancora pubblicato con fonte.</p>`;
   const referendums = history.referendums.length
     ? `<ul class="plain-list">${history.referendums.map((ref) => `<li><a href="./?referendum=${encodeURIComponent(ref.id)}">${escapeHtml(ref.title)}</a> · ${escapeHtml(formatDate(ref.vote_date))}</li>`).join("")}</ul>`
     : `<p class="empty-note">Nessun referendum pubblicato per questo territorio.</p>`;
   const kind = history.kind === "province" ? `Provincia ${escapeHtml(history.province_abbreviation)}` : "Regione";
   const links = history.kind === "province"
-    ? `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Vedi la regione <span aria-hidden="true">→</span></a>`
-    : `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Comuni della regione <span aria-hidden="true">→</span></a>`;
+    ? `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Vedi la regione ${icon("arrowRight")}</a>`
+    : `<a class="profile-link" href="./?region=${encodeURIComponent(history.region_id)}">Comuni della regione ${icon("arrowRight")}</a>`;
   return `<section class="proposal-detail-hero"><p class="feed-meta">${kind}</p><h1 id="territory-history-title">${escapeHtml(history.name)}</h1>${links}</section>
     <section class="detail-card"><h2>${history.kind === "province" ? "Sindaci" : "Presidenti"}</h2>${holders}</section>
     <section class="detail-card"><h2>Referendum</h2>${referendums}</section>
@@ -2832,6 +2851,8 @@ const view = params.get("view");
 const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
+bindMobileMenu();
+syncPageMeta(params);
 if (isId(proposalId)) {
   showProposalDetail(api, proposalId);
 } else if (isId(politicianId)) {

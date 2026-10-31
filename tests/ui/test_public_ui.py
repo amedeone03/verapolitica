@@ -28,7 +28,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert archive.status_code == 200
     assert detail.status_code == 200
     assert 'lang="it"' in archive.text
-    assert "Verificato significa controllato sulle fonti" in archive.text
+    assert "Sai chi ti rappresenta" in archive.text
     assert "Caricamento dei profili verificati" in archive.text
     assert styles.status_code == 200
     assert ".politician-grid" in styles.text

@@ -5,19 +5,19 @@ from pathlib import Path
 APP = Path(__file__).resolve().parents[2] / "frontend" / "app"
 
 
-def test_four_sections_in_header_and_mobile_tab_bar():
+def test_four_sections_in_header_and_mobile_menu():
     html = (APP / "index.html").read_text(encoding="utf-8")
     for section, href in (("home", "./"), ("politics", "./?view=politics"), ("history", "./?view=history"), ("profile", "./?view=profile")):
-        assert html.count(f'href="{href}" data-section="{section}"') == 2  # header + tab bar
+        assert html.count(f'href="{href}" data-section="{section}"') == 2  # header + mobile menu
+    assert 'aria-controls="mobile-menu"' in html and 'role="dialog" aria-modal="true"' in html
+    assert "tab-bar" not in html
     for view in ("home-view", "politics-view", "compare-view", "history-view", "legislature-view",
                  "parliamentarians-view", "provinces-view", "territory-history-view", "profile-view", "post-view"):
         assert f'id="{view}"' in html
-    # The politician list is no longer the landing page.
     assert '<section id="archive-view" aria-labelledby="archive-title" hidden>' in html
     assert "dossier=legge_bilancio" in html
     assert "Salvato solo su questo dispositivo, senza account." in html
-    # No slogans or overlines in the page skeleton.
-    assert "class=\"eyebrow\"" not in html and "trust-line" not in html
+    assert "trust-line" not in html
 
 
 def test_routes_and_privacy_of_the_reader_profile():
@@ -35,24 +35,25 @@ def test_routes_and_privacy_of_the_reader_profile():
     assert "non è distinguibile" in script
 
 
-def test_tab_bar_only_on_small_screens():
-    styles = (APP / "styles.css").read_text(encoding="utf-8")
-    assert ".tab-bar { display: none; }" in styles
-    assert "@media (max-width: 760px)" in styles
-
-
-def test_feedback_materials_and_accessibility_modes():
+def test_cambridge_classic_tokens_fonts_and_accessibility():
     styles = (APP / "styles.css").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
-    # Response: press feedback and no double-tap delay.
-    assert "touch-action: manipulation" in styles
-    assert ".tab-bar a:active" in styles and ".shortcut-card:active" in styles
-    assert 'document.addEventListener("touchstart", () => {}, { passive: true })' in script
-    # Materials: scroll-edge effect instead of a permanent divider.
-    assert "html[data-scrolled] .site-header::after" in styles
-    assert 'toggleAttribute("data-scrolled"' in script
-    # Status while loading, gentler equivalents for every preference.
-    assert '.feed-list[aria-busy="true"]' in styles
-    assert "@media (prefers-reduced-transparency: reduce)" in styles
-    assert "@media (prefers-contrast: more)" in styles
-    assert ".feed-item.is-new { animation: none; }" in styles
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    for token in ("--color-primary: #0F2747", "--color-secondary: #003C71", "--color-accent: #85B09A",
+                  "--color-accent-light: #DCEBE5", "--color-background: #F8FAF9", "--color-border: #DFE6E3"):
+        assert token in styles
+    # Self-hosted fonts only: no @import, no third-party font host.
+    assert "@import" not in styles and "fonts.googleapis" not in html
+    assert (APP / "fonts" / "inter-latin-var.woff2").exists()
+    assert (APP / "fonts" / "source-serif-4-latin-var.woff2").exists()
+    assert html.count('rel="preload"') == 2
+    # No glass, glow or entrance animation.
+    assert "backdrop-filter" not in styles and "radial-gradient" not in styles
+    assert "will-reveal" not in styles and "is-new" not in script
+    assert "@media (prefers-reduced-motion: reduce)" in styles
+    # Accessible mobile menu: Escape, focus trap, focus return, scroll lock.
+    assert 'event.key === "Escape"' in script and 'classList.toggle("menu-open", open)' in script
+    assert 'class="skip-link"' in html
+    # SEO essentials.
+    assert 'property="og:image"' in html and "application/ld+json" in html
+    assert 'link.rel = "canonical"' in script

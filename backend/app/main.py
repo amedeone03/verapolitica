@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -56,6 +57,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     application.state.settings = runtime_settings
     application.add_middleware(RequestContextMiddleware)
+    # Text responses (HTML, CSS, JS, JSON) are compressed; WOFF2 and PNG already are.
+    application.add_middleware(GZipMiddleware, minimum_size=1000)
     if runtime_settings.cors_origin_list:
         application.add_middleware(
             CORSMiddleware,

@@ -84,12 +84,13 @@ def test_frontend_mapping_matches_python_helper():
         )
         assert re.search(pattern, script), value
         assert f".tone-{tone}" in styles
-    assert "--kept:" in styles
-    assert "--partial:" in styles
-    assert "--progress:" in styles
-    assert "--stalled: #0e0e10" in styles
-    assert "--unrated: #a8a29e" in styles
-    assert "--broken:" in styles
+    # Cambridge Classic tokens: same colour families, light-theme values.
+    assert "--verdict-kept: #1F6B45" in styles  # green
+    assert "--verdict-partial-mark: #B7791F" in styles  # yellow
+    assert "--verdict-progress-mark: #2F6FB0" in styles  # blue
+    assert "--verdict-stalled: #3D4A52" in styles  # near-black
+    assert "--verdict-unrated: #526570" in styles  # grey
+    assert "--verdict-broken: #A3261C" in styles  # red
     assert "verdict-chip.tone-partial" in styles
     assert "verdict-chip.tone-stalled" in styles
     assert "Partly kept" not in script

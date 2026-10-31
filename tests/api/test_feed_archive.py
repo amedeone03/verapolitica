@@ -431,3 +431,13 @@ def base64_bundle():
         "legislatures": base64.b64decode(bundle["legislatures_response_base64"]),
         **{key: base64.b64decode(value) for key, value in bundle["mandate_responses_base64"].items()},
     }
+
+
+def test_robots_and_sitemap(world):
+    client, *_ = world
+    robots = client.get("/robots.txt").text
+    assert "Disallow: /admin/" in robots and "Sitemap: http://testserver/sitemap.xml" in robots
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.headers["content-type"].startswith("application/xml")
+    assert "http://testserver/app/?view=politics" in sitemap.text
+    assert "?legislature=19" in sitemap.text

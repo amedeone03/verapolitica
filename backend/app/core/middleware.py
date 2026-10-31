@@ -75,8 +75,14 @@ def resolve_request_id(incoming: str | None) -> str:
 REVALIDATED_PREFIXES = ("/app", "/demo")
 
 
+# Self-hosted font files never change in place (a new font gets a new name).
+IMMUTABLE_PREFIXES = ("/app/fonts/",)
+
+
 def apply_security_headers(response: Response, path: str = "") -> None:
-    if path.startswith(REVALIDATED_PREFIXES):
+    if path.startswith(IMMUTABLE_PREFIXES):
+        response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
+    elif path.startswith(REVALIDATED_PREFIXES):
         response.headers.setdefault("Cache-Control", "no-cache")
     if path in DOCS_PATHS:
         response.headers.setdefault(
