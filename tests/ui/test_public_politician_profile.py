@@ -100,18 +100,23 @@ def test_profile_section_nav_omits_missing_optional_blocks(tmp_path):
     with public_demo_client(tmp_path) as client:
         script = client.get("/app/app.js").text
 
-    assert 'who ? { href: "#profilo", label: "Chi è" }' in script
-    assert 'hasCareer ? { href: "#carriera", label: "Cosa ha fatto" }' in script
+    # Tabs (profile layout): the overview is always there, optional blocks only when present.
+    assert '{ href: "#profilo", label: "Panoramica" }' in script
+    assert 'hasCareer ? { href: "#carriera", label: "Carriera" }' in script
     assert 'sourcesMarkup ? { href: "#fonti", label: "Fonti" }' in script
     assert 'href: "#posizioni"' in script
     assert 'href: "#promesse"' in script
-    assert 'href: "#procedimenti"' in script
-    assert '{ href: "#procedimenti", label: "Procedimenti e controversie" }' in script
+    assert '{ href: "#procedimenti", label: "Procedimenti" }' in script
     assert "bindProfileSectionNav" in script
-    assert "IntersectionObserver" in script
+    assert '"tablist"' in script and '"tabpanel"' in script and "aria-selected" in script
     assert "bindProfileMotion" in script
     assert "bindProfileTabs" not in script
-    assert 'aria-current="location"' in script
+    # Cover: back, share, verified mark, follow (favourites), sticky question.
+    assert 'class="cover-button cover-back"' in script
+    assert "bindProfileShare" in script
+    assert 'class="verified-mark"' in script
+    assert 'data-follow="1"' in script
+    assert 'class="profile-cta-bar"' in script
     assert 'class="career-entry' in script
     assert "career-marker" in script
     assert "Dettagli e fonti" in script

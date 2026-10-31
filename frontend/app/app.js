@@ -4,6 +4,11 @@ const byId = (id) => document.getElementById(id);
 const ICON_PATHS = {
   arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
+  badgeCheck: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  ask: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
 };
 
@@ -638,6 +643,7 @@ export function renderTrustBlock() {
 function renderProfileSectionNav(sections) {
   const links = sections.filter((item) => item.href && item.label);
   if (!links.length) return "";
+  // Links work without JavaScript (anchors); bindProfileSectionNav upgrades them to ARIA tabs.
   return `<nav class="profile-section-nav" aria-label="Sezioni del profilo">${
     links.map((item, index) => `<a href="${escapeHtml(item.href)}"${index === 0 ? ' aria-current="location"' : ""}>${escapeHtml(item.label)}</a>`).join("")
   }</nav>`;
@@ -1162,9 +1168,17 @@ export function renderScorecard(scorecard) {
   </div>`;
 }
 
+// Keeps the last word and the verified mark on the same line.
+function nameWithMark(name) {
+  const words = String(name).trim().split(/\s+/);
+  const last = words.pop() || "";
+  const head = words.length ? `${escapeHtml(words.join(" "))} ` : "";
+  return `${head}<span class="name-tail">${escapeHtml(last)}\u00a0`;
+}
+
 export function renderProfileStats(scorecard) {
   if (!scorecard || !scorecard.tracked_pledges) {
-    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Promesse</span></div></div>`;
+    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Promesse</span></div><div class="stat-tile"><strong>0</strong><span>Concluse</span></div><div class="stat-tile"><strong class="is-muted">—</strong><span>Punteggio non calcolato</span></div></div>`;
   }
   const single = scorecard.strata.length === 1 ? scorecard.strata[0] : null;
   const score = single
@@ -1305,73 +1319,86 @@ function setActiveSectionLink(nav, id) {
 function bindProfileSectionNav(root) {
   const nav = root.querySelector(".profile-section-nav");
   if (!nav) return;
-  syncScrollPadding();
-  if (!profileNavResizeBound) {
-    window.addEventListener("resize", syncScrollPadding, { passive: true });
-    profileNavResizeBound = true;
-  }
   const links = [...nav.querySelectorAll("a[href^='#']")];
-  const sections = links
-    .map((link) => root.querySelector(link.getAttribute("href")))
-    .filter(Boolean);
-  let lockUntil = 0;
-  let applyBest = () => {};
+  const panels = links.map((link) => root.querySelector(link.getAttribute("href"))).filter(Boolean);
+  if (!panels.length) return;
+  nav.setAttribute("role", "tablist");
   for (const link of links) {
-    link.addEventListener("click", (event) => {
-      const id = link.getAttribute("href")?.slice(1);
-      const target = id ? root.querySelector(`#${CSS.escape(id)}`) : null;
-      if (!target) return;
-      event.preventDefault();
-      lockUntil = Date.now() + 800;
-      setActiveSectionLink(nav, id);
-      const top = target.getBoundingClientRect().top + window.scrollY - navOffset();
-      window.scrollTo({
-        top: Math.max(0, top),
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
-      });
-      history.replaceState(null, "", `#${id}`);
-      const refresh = () => applyBest();
-      window.setTimeout(refresh, 820);
-      window.addEventListener("scrollend", refresh, { once: true });
-    });
+    const panel = root.querySelector(link.getAttribute("href"));
+    if (!panel) continue;
+    link.id = `tab-${panel.id}`;
+    link.setAttribute("role", "tab");
+    link.setAttribute("aria-controls", panel.id);
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", link.id);
+    panel.tabIndex = 0;
   }
-  if ("IntersectionObserver" in window && sections.length) {
-    const ratios = new Map();
-    applyBest = () => {
-      if (Date.now() < lockUntil) return;
-      let bestId = "";
-      let bestRatio = 0;
-      for (const section of sections) {
-        const ratio = ratios.get(section.id) || 0;
-        if (ratio > bestRatio) {
-          bestRatio = ratio;
-          bestId = section.id;
-        }
+  const select = (id, { focus = false, updateHash = true } = {}) => {
+    const panel = panels.find((item) => item.id === id) || panels[0];
+    for (const link of links) {
+      const active = link.getAttribute("aria-controls") === panel.id;
+      link.setAttribute("aria-selected", String(active));
+      link.tabIndex = active ? 0 : -1;
+      link.classList.toggle("is-active", active);
+      if (active) {
+        link.setAttribute("aria-current", "location");
+        if (focus) link.focus();
+        const left = link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2);
+        nav.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+      } else {
+        link.removeAttribute("aria-current");
       }
-      if (bestId) setActiveSectionLink(nav, bestId);
-    };
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
-      }
-      applyBest();
-    }, {
-      rootMargin: "-28% 0px -55% 0px",
-      threshold: [0, 0.2, 0.4, 0.6, 1],
-    });
-    for (const section of sections) observer.observe(section);
-  }
+    }
+    for (const item of panels) item.hidden = item !== panel;
+    if (updateHash) history.replaceState(null, "", `#${panel.id}`);
+  };
+  nav.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a[role='tab']") : null;
+    if (!link) return;
+    event.preventDefault();
+    select(link.getAttribute("aria-controls"));
+  });
+  nav.addEventListener("keydown", (event) => {
+    const index = links.indexOf(document.activeElement);
+    if (index === -1) return;
+    const next = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: links.length - 1 }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    const link = links[(next + links.length) % links.length];
+    select(link.getAttribute("aria-controls"), { focus: true });
+  });
+  // Topic chips that point at a tab open it instead of jumping.
+  root.addEventListener("click", (event) => {
+    const chip = event.target instanceof Element ? event.target.closest("[data-tab-link]") : null;
+    if (!chip) return;
+    event.preventDefault();
+    select(chip.dataset.tabLink);
+    nav.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  });
   const initial = window.location.hash.slice(1);
-  const target = initial ? root.querySelector(`#${CSS.escape(initial)}`) : null;
-  if (target) {
-    requestAnimationFrame(() => {
-      const top = target.getBoundingClientRect().top + window.scrollY - navOffset();
-      window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-      setActiveSectionLink(nav, target.id);
-    });
-  } else if (sections[0]) {
-    setActiveSectionLink(nav, sections[0].id);
+  select(panels.some((item) => item.id === initial) ? initial : panels[0].id, { updateHash: false });
+  if (initial && panels.some((item) => item.id === initial)) {
+    requestAnimationFrame(() => nav.scrollIntoView({ block: "start" }));
   }
+}
+
+function bindProfileShare(root) {
+  const button = root.querySelector(".cover-share");
+  const status = root.querySelector(".share-status");
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    const url = window.location.href.split("#")[0];
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: button.dataset.shareTitle, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      if (status) status.textContent = "Link del profilo copiato.";
+    } catch {
+      if (status) status.textContent = "Copia il link dalla barra degli indirizzi.";
+    }
+  });
 }
 
 function bindProfileMotion(root) {
@@ -1397,9 +1424,40 @@ export function renderMethodology(method) {
   </section>`;
 }
 
+export function profileTopics(person, scorecard = null) {
+  // Key topics come only from published content: position topics first, then pledge CAP topics.
+  const topics = [];
+  const seen = new Set();
+  for (const item of person.positions || []) {
+    const key = String(item.topic || "").toLocaleLowerCase("it");
+    if (item.topic && !seen.has(key)) {
+      seen.add(key);
+      topics.push({ label: item.topic, href: "#posizioni" });
+    }
+  }
+  for (const stratum of scorecard?.strata || []) {
+    for (const topic of stratum.topics || []) {
+      const label = topicLabel(topic.cap_topic_code);
+      const key = label.toLocaleLowerCase("it");
+      if (!seen.has(key)) {
+        seen.add(key);
+        topics.push({ label, href: `./?view=proposals&topic=${encodeURIComponent(topic.cap_topic_code)}` });
+      }
+    }
+  }
+  return topics.slice(0, 8);
+}
+
+export function renderFollowButton(person) {
+  const name = `${person.given_name} ${person.family_name}`.trim();
+  const active = typeof localStorage !== "undefined" && isFavorite(person.id);
+  return `<button type="button" class="follow-button favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" data-follow="1" aria-pressed="${active}">${active ? `${icon("check")}Segui già` : "Segui"}</button>`;
+}
+
 export function renderPoliticianDetail(person, scorecard = null) {
   const profile = person.profile;
   const gender = profile?.gender;
+  const name = `${person.given_name} ${person.family_name}`;
   const publishedDate = formatPublishedAt(person.published_at);
   const mandate = currentMandate(person);
   const party = currentParty(person);
@@ -1412,37 +1470,50 @@ export function renderPoliticianDetail(person, scorecard = null) {
   const hasCareer = Boolean(careerItems.length || hasGroups || hasParties || hasProposals);
   const citationGroups = groupCitations(person.citations || []);
   const sourcesMarkup = renderSources(person.citations);
-  const headerFacts = [
+  const facts = [
     person.birth_date ? fact("Data di nascita", formatDate(person.birth_date)) : "",
     place !== "Non indicato" ? fact("Luogo di nascita", place) : "",
     mandate?.start_date ? fact("In carica dal", formatDate(mandate.start_date)) : "",
   ].filter(Boolean).join("");
-  const nav = renderProfileSectionNav([
-    who ? { href: "#profilo", label: "Chi è" } : null,
-    hasCareer ? { href: "#carriera", label: "Cosa ha fatto" } : null,
+  const topics = profileTopics(person, scorecard);
+  const askQuestion = suggestedAskQuestions(person, scorecard)[0] || `Che cosa ha promesso ${name}?`;
+  const tabs = renderProfileSectionNav([
+    { href: "#profilo", label: "Panoramica" },
+    hasCareer ? { href: "#carriera", label: "Carriera" } : null,
     { href: "#posizioni", label: "Posizioni" },
     { href: "#promesse", label: "Promesse" },
-    { href: "#procedimenti", label: "Procedimenti e controversie" },
+    { href: "#procedimenti", label: "Procedimenti" },
     sourcesMarkup ? { href: "#fonti", label: "Fonti" } : null,
   ].filter(Boolean));
-  return `<section class="profile-hero">
-      <div class="hero-media">
+  const overview = `<section class="detail-card profile-block profile-overview" id="profilo">
+      ${who ? who.replace(/^<section[^>]*>/, "").replace(/<\/section>$/, "") : `<h2>Chi è</h2><p class="empty-note">La biografia non è ancora stata pubblicata.</p>`}
+      ${topics.length ? `<h3 class="overview-subhead">Temi chiave</h3><div class="topic-chips">${topics.map((topic) => `<a class="topic-chip" href="${escapeHtml(topic.href)}"${topic.href.startsWith("#") ? ` data-tab-link="${escapeHtml(topic.href.slice(1))}"` : ""}>${escapeHtml(topic.label)}</a>`).join("")}</div>` : ""}
+      ${facts ? `<h3 class="overview-subhead">Dati anagrafici</h3><dl class="facts header-facts">${facts}</dl>` : ""}
+      ${renderAskSuggestions(person, scorecard)}
+      <p class="publication-meta">${publishedDate ? `Ultimo aggiornamento ${escapeHtml(publishedDate)}` : "Ultimo aggiornamento non indicato"}</p>
+    </section>`;
+  return `<section class="profile-cover" aria-labelledby="profile-name">
+      <div class="cover-media">
         ${portrait(person, { size: "hero" })}
-        ${renderPhotoCredit(person)}
+        <div class="cover-shade" aria-hidden="true"></div>
+        <a class="cover-button cover-back" href="./?view=politicians" aria-label="Torna ai politici">${icon("arrowLeft", { size: 20 })}</a>
+        <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(name)} — VeraPolitica" aria-label="Condividi il profilo">${icon("share", { size: 20 })}</button>
+        <div class="cover-identity">
+          <div class="cover-text">
+            <h1 id="profile-name">${nameWithMark(name)}<span class="verified-mark" role="img" aria-label="Verificato su fonti ufficiali" title="Verificato su fonti ufficiali">${icon("badgeCheck", { size: 22 })}</span></span></h1>
+            <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
+            ${party ? `<p class="profile-party">${escapeHtml(party.name)}</p>` : ""}
+          </div>
+          ${renderFollowButton(person)}
+        </div>
       </div>
-      <div class="profile-intro">
-        <span class="verified-badge">Verificato su fonti ufficiali</span>
-        <div class="profile-name-row"><h1 id="profile-name">${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h1>${renderFavoriteToggle(person)}</div>
-        <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
-        ${party ? `<p class="profile-party">${escapeHtml(party.name)}</p>` : ""}
-        ${headerFacts ? `<dl class="facts header-facts">${headerFacts}</dl>` : ""}
-        ${renderProfileStats(scorecard)}
-        <p class="publication-meta">${publishedDate ? `Ultimo aggiornamento ${escapeHtml(publishedDate)}` : "Ultimo aggiornamento non indicato"}</p>
-        ${renderAskSuggestions(person, scorecard)}
-      </div>
+      ${renderPhotoCredit(person)}
+      <p class="share-status" role="status" aria-live="polite"></p>
     </section>
-    ${nav}
-    ${who}
+    ${renderProfileStats(scorecard)}
+    ${tabs}
+    <div class="profile-panels">
+    ${overview}
     ${hasCareer ? `<section class="detail-card profile-block profile-career" id="carriera">
       <h2>Cosa ha fatto</h2>
       ${renderCareerTimeline(person)}
@@ -1463,7 +1534,11 @@ export function renderPoliticianDetail(person, scorecard = null) {
       </div>
       <div class="source-list">${sourcesMarkup}</div>
     </section>` : ""}
-    ${renderTrustBlock()}`;
+    </div>
+    ${renderTrustBlock()}
+    <div class="profile-cta-bar">
+      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}">${icon("ask", { size: 18 })}Chiedi a VeraPolitica</a>
+    </div>`;
 }
 
 export function createPublicApiClient(fetchImpl = fetch) {
@@ -1628,6 +1703,7 @@ async function showDetail(api, politicianId) {
     detail.hidden = false;
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileSectionNav(detail);
+    bindProfileShare(detail);
     bindProfileMotion(detail);
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
@@ -2177,8 +2253,8 @@ document.addEventListener("click", (event) => {
   for (const twin of document.querySelectorAll(`.favorite-toggle[data-favorite-id="${CSS.escape(button.dataset.favoriteId)}"]`)) {
     twin.classList.toggle("is-active", active);
     twin.setAttribute("aria-pressed", String(active));
-    twin.setAttribute("aria-label", `${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${button.dataset.favoriteName}`);
-    twin.innerHTML = icon("star", { size: 18, filled: active });
+    if (!twin.dataset.follow) twin.setAttribute("aria-label", `${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${button.dataset.favoriteName}`);
+    twin.innerHTML = twin.dataset.follow ? (active ? `${icon("check")}Segui già` : "Segui") : icon("star", { size: 18, filled: active });
   }
 });
 
