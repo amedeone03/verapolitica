@@ -2529,17 +2529,6 @@ async function showHome(api) {
     },
   });
   const zoneLine = () => {
-    if (choice.value === "all" && isMember(profile)) {
-      const people = profile.favorites.length;
-      const parties = (profile.parties || []).length;
-      const parts = [
-        people ? `${people} ${people === 1 ? "politico" : "politici"}` : "",
-        parties ? `${parties} ${parties === 1 ? "partito" : "partiti"}` : "",
-        zone ? escapeHtml(zoneLabel(zone)) : "",
-      ].filter(Boolean);
-      byId("home-zone").innerHTML = `Per te: ${parts.join(" · ")} · <a href="./?view=registrati">Modifica</a>`;
-      return;
-    }
     byId("home-zone").innerHTML = choice.value === "local"
       ? (zone ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>` : `<a href="./?view=profile">Imposta la tua zona</a> per vedere le notizie del tuo territorio.`)
       : "";
