@@ -10,6 +10,7 @@ redazione member checks it and approves it.
 
 Needs internet access to query.wikidata.org and commons.wikimedia.org.
 
+    python -m scripts.sync_symbols --parties       # also propose the parties in Parliament
     python -m scripts.sync_symbols                 # all kinds
     python -m scripts.sync_symbols --kinds region  # only regions
     python -m scripts.sync_symbols --dry-run       # show matches, write nothing
@@ -65,6 +66,21 @@ QUERIES = {
           OPTIONAL { ?item wdt:P1813 ?short. }
         }""",
 }
+
+# Parties of the current members of the Chamber of Deputies (position Q18558478,
+# started in the XIX legislature, still held), with an Italian label.
+PARTIES_IN_PARLIAMENT = """
+    SELECT DISTINCT ?party ?label ?short ?site WHERE {
+      ?person p:P39 ?seat. ?seat ps:P39 wd:Q18558478; pq:P580 ?start.
+      FILTER(?start >= "2022-10-01T00:00:00Z"^^xsd:dateTime)
+      FILTER NOT EXISTS { ?seat pq:P582 ?seatEnd }
+      ?person p:P102 ?membership. ?membership ps:P102 ?party.
+      FILTER NOT EXISTS { ?membership pq:P582 ?membershipEnd }
+      FILTER NOT EXISTS { ?party wdt:P576 ?dissolved }
+      ?party rdfs:label ?label. FILTER(LANG(?label) = "it")
+      OPTIONAL { ?party wdt:P1813 ?short. FILTER(LANG(?short) = "it") }
+      OPTIONAL { ?party wdt:P856 ?site. }
+    }"""
 
 FREE_LICENSES = (
     (re.compile(r"^(public domain|pd\b|pd-)", re.I), "pubblico-dominio"),
@@ -214,11 +230,44 @@ def sync(service: RedazioneService, get: Getter, kinds: tuple[str, ...], *, dry_
     return report
 
 
+def propose_parties(service: RedazioneService, get: Getter, *, dry_run: bool = False) -> Report:
+    """Propose to the redazione each party of the current Chamber not yet in the list."""
+
+    report = Report()
+    state = service.symbols()
+    known = {fold(item["name"]) for item in state["party"]} | {fold(item["payload"]["name"]) for item in state["new_parties"]}
+    seen: set[str] = set()
+    for row in sparql(get, PARTIES_IN_PARLIAMENT):
+        name = row["label"]["value"].strip()
+        key = fold(name)
+        if not key or key in known or key in seen:
+            continue
+        seen.add(key)
+        site = row.get("site", {}).get("value", "")
+        payload = {
+            "name": name,
+            "abbreviation": row.get("short", {}).get("value") or None,
+            "website": site if site.startswith("https://") else None,
+            "source_url": row["party"]["value"].replace("http://www.wikidata.org/entity/", "https://www.wikidata.org/wiki/"),
+        }
+        if dry_run:
+            report.proposed.append(f"partito: {name}")
+            continue
+        try:
+            service.propose_party(payload, member=AUTHOR)
+        except RedazioneError as error:
+            report.skipped.append(f"partito: {name} ({error})")
+            continue
+        report.proposed.append(f"partito: {name}")
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--kinds", default="party,region,province")
     parser.add_argument("--database-url")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--parties", action="store_true", help="propose the parties of the current Chamber")
     args = parser.parse_args(argv)
     kinds = tuple(kind for kind in args.kinds.split(",") if kind in QUERIES)
     settings = get_settings()
@@ -228,7 +277,13 @@ def main(argv: list[str] | None = None) -> int:
     Base.metadata.create_all(engine)
     service = RedazioneService(create_session_factory(engine))
     try:
-        report = sync(service, http_get, kinds, dry_run=args.dry_run)
+        report = Report()
+        if args.parties:
+            report = propose_parties(service, http_get, dry_run=args.dry_run)
+        logos = sync(service, http_get, kinds, dry_run=args.dry_run)
+        report.proposed += logos.proposed
+        report.skipped += logos.skipped
+        report.unmatched += logos.unmatched
     except OSError as error:
         print(f"Rete non raggiungibile: {error}", file=sys.stderr)
         return 2

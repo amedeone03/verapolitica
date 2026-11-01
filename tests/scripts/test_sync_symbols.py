@@ -90,3 +90,37 @@ def test_regions_match_bilingual_istat_names():
     assert sync_symbols.licence_of({"LicenseShortName": {"value": "Public domain"}}) == "pubblico-dominio"
     assert sync_symbols.licence_of({"LicenseShortName": {"value": "CC BY-NC 4.0"}}) is None
 
+
+
+def test_parties_in_parliament_become_proposals(tmp_path):
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'parties.db'}")
+    Base.metadata.create_all(engine)
+    factory = create_session_factory(engine)
+    with factory.begin() as session:
+        session.add(PoliticalParty(canonical_name="Partito Esempio", abbreviation="PE"))
+    service = RedazioneService(factory, clock=lambda: datetime(2026, 11, 1, tzinfo=timezone.utc))
+    rows = [
+        _binding(party="http://www.wikidata.org/entity/Q1", label="Partito Esempio"),
+        _binding(party="http://www.wikidata.org/entity/Q3", label="Lista Nuova", short="LN", site="https://lista.example.org"),
+        _binding(party="http://www.wikidata.org/entity/Q3", label="Lista Nuova", short="LN", site="https://lista.example.org"),
+        _binding(party="http://www.wikidata.org/entity/Q4", label="Altro Gruppo", site="http://insecure.example.org"),
+    ]
+
+    def get(url: str) -> bytes:
+        assert url.startswith(sync_symbols.WIKIDATA_SPARQL)
+        return json.dumps({"results": {"bindings": rows}}).encode()
+
+    report = sync_symbols.propose_parties(service, get)
+    assert report.proposed == ["partito: Lista Nuova", "partito: Altro Gruppo"]
+    with factory() as session:
+        requests = {row.payload["name"]: row for row in session.scalars(select(EditorialChangeRequest))}
+    assert requests["Lista Nuova"].payload == {
+        "name": "Lista Nuova", "abbreviation": "LN", "website": "https://lista.example.org",
+        "source_url": "https://www.wikidata.org/wiki/Q3",
+    }
+    assert requests["Altro Gruppo"].payload["website"] is None
+    assert requests["Lista Nuova"].created_by == sync_symbols.AUTHOR
+    # Pending proposals are not proposed twice; nothing is in the list until approved.
+    assert sync_symbols.propose_parties(service, get).proposed == []
+    assert [item["name"] for item in service.symbols()["party"]] == ["Partito Esempio"]
+    engine.dispose()

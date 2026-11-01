@@ -1,6 +1,6 @@
 @echo off
 rem VeraPolitica: load every region, province and municipality from ISTAT and
-rem propose party logos and coats of arms from Wikidata/Wikimedia Commons.
+rem propose the parties of the current Chamber, party logos and coats of arms from Wikidata/Wikimedia Commons.
 rem Needs internet. Logos arrive in the redazione queue: they go public only
 rem after a redazione member approves them (/redazione/#/coda).
 rem Usage from the repository root:  scripts\sync_reference_data.cmd
@@ -22,5 +22,5 @@ if errorlevel 1 (
   exit /b 1
 )
 echo === Wikidata / Commons: logos and coats of arms (proposals for the redazione) ===
-".venv\Scripts\python.exe" -m scripts.sync_symbols
+".venv\Scripts\python.exe" -m scripts.sync_symbols --parties
 pause

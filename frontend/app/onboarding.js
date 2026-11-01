@@ -85,7 +85,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     const key = STEPS[state.step];
     if (key === "name") return state.name.trim().length >= 2;
     if (key === "politicians") return state.politicians.size > 0;
-    if (key === "zone") return Boolean(state.region && state.province);
+    // Without the ISTAT list (not loaded yet, or not reachable) the zone can be set later.
+    if (key === "zone") return Boolean(state.region && state.province) || (Array.isArray(state.regions) && !state.regions.length);
     return true;
   };
   const syncBar = () => {
@@ -147,7 +148,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   }
 
   function partyChips() {
-    if (!state.partyList.length) return `<p class="ob-sub">Nessun partito pubblicato.</p>`;
+    if (!state.partyList.length) return `<p class="ob-empty">L'elenco dei partiti non è ancora disponibile: lo pubblica la redazione. Puoi andare avanti e sceglierli più tardi dal Profilo.</p>`;
     return state.partyList.map((party) => {
       const on = state.parties.has(String(party.id));
       return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-party="${escape(party.id)}" aria-pressed="${on}">
@@ -157,6 +158,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   }
 
   function regionChips() {
+    if (!state.regions.length) return `<p class="ob-empty">L'elenco di regioni e province non è ancora disponibile. Puoi andare avanti e impostare la zona più tardi dal Profilo.</p>`;
     return state.regions.map((region) => {
       const on = state.region && String(state.region.id) === String(region.id);
       return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-region="${escape(region.id)}" aria-pressed="${on}">${logo(region.logo_url, 22)}${escape(region.name)}</button>`;
@@ -195,8 +197,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
         </section>
         <section class="ob-stat" style="--i:2">
           <p class="ob-stat-label">${logo(state.province?.logo_url || state.region?.logo_url, 36)}La tua zona</p>
-          <p class="ob-stat-place">${escape(state.province?.name || "")}</p>
-          <p class="ob-stat-names">${escape(state.region?.name || "")}</p>
+          ${state.province ? `<p class="ob-stat-place">${escape(state.province.name)}</p>
+          <p class="ob-stat-names">${escape(state.region?.name || "")}</p>` : `<p class="ob-stat-names">Da impostare nel Profilo.</p>`}
         </section>
       </div>
       <p class="ob-note">Il tuo Per te mostra le notizie della redazione su queste persone e questi partiti, più quelle della tua provincia. VeraPolitica non dà indicazioni di voto.</p>`;
@@ -319,14 +321,14 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
         member: { name: state.name.trim(), since: initial.member?.since || new Date().toISOString().slice(0, 10) },
         favorites: [...state.politicians.values()].map((item) => ({ id: String(item.id), name: item.name })),
         parties: [...state.parties.values()].map((item) => ({ id: Number(item.id), name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null })),
-        zone: {
+        zone: state.region && state.province ? {
           region_id: Number(state.region.id),
           region_name: state.region.name,
           province: state.province.code,
           province_name: state.province.name,
           municipality_id: null,
           municipality_name: null,
-        },
+        } : null,
       });
       return;
     }

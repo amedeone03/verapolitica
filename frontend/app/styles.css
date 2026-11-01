@@ -999,3 +999,4 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .ob-stat-parties span { display: inline-flex; align-items: center; gap: 6px; }
 .ob-stat-label .ob-logo { width: 36px; height: 36px; margin-right: 10px; vertical-align: middle; }
 .topic-chip .vp-logo { margin-right: 4px; }
+.ob-empty { margin: 4px 0 0; padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .12); font-size: 1rem; line-height: 1.5; }
