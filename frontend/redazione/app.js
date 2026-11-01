@@ -1280,8 +1280,9 @@ async function showSymbols(kind) {
     <ul class="symbol-list">${shown.map((item) => `<li>
       ${symbolThumb(item)}
       <div class="symbol-text"><strong>${esc(item.name)}</strong>${item.abbreviation ? ` <span class="muted">${esc(item.abbreviation)}</span>` : ""}${kind === "province" ? ` <span class="muted">${esc(item.key)}</span>` : ""}
-        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : "Nessun logo pubblicato"}${item.pending.length ? ` · <strong>in verifica</strong> (proposto da ${esc(item.pending[0].created_by)})` : ""}</p></div>
-      <button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}"${item.pending.length ? " disabled" : ""}>${item.symbol ? "Sostituisci" : "Carica logo"}</button>
+        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : "Nessun logo pubblicato"}</p>
+        ${item.pending.length ? `<div class="pending-symbol"><img src="${esc(item.pending[0].payload.image_url)}" alt="Logo proposto" width="40" height="40" /><p class="small"><strong>Proposto</strong> da ${esc(item.pending[0].created_by)} · ${esc(item.pending[0].payload.credit)} · ${esc(item.pending[0].payload.license_label)} · ${sourceLink({ url: item.pending[0].payload.source_url, name: "fonte" })}</p></div>` : ""}</div>
+      ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol ? "Sostituisci" : "Carica logo"}</button>`}
     </li>`).join("") || `<li class="empty">Nessun risultato.</li>`}</ul>`;
   const search = view.querySelector("#symbol-q");
   search.addEventListener("input", () => {
@@ -1301,6 +1302,20 @@ async function showSymbols(kind) {
       toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
     }
   }));
+  view.querySelectorAll("[data-review]").forEach((form) => form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    const id = form.dataset.review;
+    try {
+      if (action === "approva") await api(`/coda/change/${id}/approva`, { method: "POST", body: {} });
+      else await api(`/coda/change/${id}/rifiuta`, { method: "POST", body: { note: form.reason.value } });
+      toast(action === "approva" ? "Approvato e pubblicato." : "Respinto.");
+      showSymbols(kind);
+      refreshCount();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }));
   view.querySelector("#party-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1314,6 +1329,16 @@ async function showSymbols(kind) {
   });
 }
 
+const REJECT_REASONS = ["Non più attivo", "Non è un partito", "Duplicato di una voce esistente", "Logo non corretto o non ufficiale", "Licenza non verificabile"];
+function reviewControls(item) {
+  if (item.created_by === state.me?.name) return `<p class="small muted">In attesa di un'altra persona</p>`;
+  return `<form class="review-inline" data-review="${esc(item.id)}">
+    <button class="button button-approve" type="submit" value="approva">Approva</button>
+    <select name="reason" aria-label="Motivo">${REJECT_REASONS.map((reason) => `<option>${esc(reason)}</option>`).join("")}</select>
+    <button class="button button-danger" type="submit" value="rifiuta">Respingi</button>
+  </form>`;
+}
+
 function newPartyForm(pending) {
   return `<details class="card new-party"><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
     <form id="party-form" class="stack" style="margin-top:12px">
@@ -1325,8 +1350,15 @@ function newPartyForm(pending) {
       </div>
       <div class="actions"><button class="button button-primary" type="submit">Proponi il partito</button></div>
     </form>
-    ${pending.length ? `<p class="small muted" style="margin-top:8px">In verifica: ${pending.map((item) => `${esc(item.payload.name)} (${esc(item.created_by)})`).join(", ")}</p>` : ""}
-  </details>`;
+  </details>
+  ${pending.length ? `<section class="card pending-parties"><h2>Partiti proposti <span class="count">${pending.length}</span></h2>
+    <p class="small muted">Approva solo i partiti attivi oggi; respingi quelli sciolti, i duplicati e le voci che non sono partiti.</p>
+    <ul class="symbol-list">${pending.map((item) => `<li>
+      <span class="symbol-thumb is-empty" aria-hidden="true">${esc(String(item.payload.abbreviation || item.payload.name).replace(/[^\p{L}\p{N}]/gu, "").slice(0, 3).toUpperCase())}</span>
+      <div class="symbol-text"><strong>${esc(item.payload.name)}</strong>${item.payload.abbreviation ? ` <span class="muted">${esc(item.payload.abbreviation)}</span>` : ""}
+        <p class="small muted">Proposto da ${esc(item.created_by)} · fonte ${sourceLink({ url: item.payload.source_url })}${item.payload.website ? ` · sito ${sourceLink({ url: item.payload.website })}` : ""}</p></div>
+      ${reviewControls(item)}
+    </li>`).join("")}</ul></section>` : ""}`;
 }
 
 // Logos are not cropped: the whole image is fitted inside a transparent square.

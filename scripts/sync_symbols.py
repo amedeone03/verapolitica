@@ -282,7 +282,8 @@ def propose_parties(service: RedazioneService, get: Getter, *, dry_run: bool = F
     for row in sparql(get, PARTIES_IN_PARLIAMENT):
         name = row["label"]["value"].strip()
         key = fold(name)
-        if not key or key in known or key in seen:
+        # "Indipendente" is Wikidata's item for politicians without a party.
+        if not key or key in known or key in seen or key in {"indipendente", "politico indipendente"}:
             continue
         seen.add(key)
         site = row.get("site", {}).get("value", "")

@@ -104,6 +104,7 @@ def test_parties_in_parliament_become_proposals(tmp_path):
         _binding(party="http://www.wikidata.org/entity/Q3", label="Lista Nuova", short="LN", site="https://lista.example.org"),
         _binding(party="http://www.wikidata.org/entity/Q3", label="Lista Nuova", short="LN", site="https://lista.example.org"),
         _binding(party="http://www.wikidata.org/entity/Q4", label="Altro Gruppo", site="http://insecure.example.org"),
+        _binding(party="http://www.wikidata.org/entity/Q327591", label="indipendente"),
     ]
 
     def get(url: str) -> bytes:
