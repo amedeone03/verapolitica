@@ -110,6 +110,7 @@ export function renderFeedCard(item, options = {}) {
   // Parties already shown under a person are not repeated.
   const shownParties = new Set(people.map((person) => person.party_id).filter(Boolean));
   const extraParties = (card.parties || []).filter((party) => !shownParties.has(party.id));
+  const partyById = new Map((card.parties || []).map((party) => [party.id, party]));
   const sources = (item.sources || []).map((source) => {
     const url = safeUrl(source.url);
     return url ? `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source.title || source.name || new URL(url).hostname)} ${cardIcon("external", 13)}</a></li>` : "";
@@ -127,8 +128,8 @@ export function renderFeedCard(item, options = {}) {
       ${card.aside ? `<span class="vp-aside">${esc(card.aside)}</span>` : item.place ? `<span class="vp-aside">${esc(item.place)}</span>` : ""}
     </div>
     <div class="vp-body">
-      ${people.length ? `<ul class="vp-people">${people.map((person) => `<li>${avatar(person, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(person.name)}</a>` : `<strong>${esc(person.name)}</strong>`}${person.role ? `<small>${esc(person.role)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
-      ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Anche</li>${extraParties.map((party) => `<li title="${esc(party.name)}">${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
+      ${people.length ? `<ul class="vp-people">${people.map((person) => `<li>${avatar(person, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(person.name)}</a>` : `<strong>${esc(person.name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
+      ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Anche</li>${extraParties.map((party) => `<li title="${esc(party.name)}">${partyLogo(party)}${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
       ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
       <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
       ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Mostra altro</button>` : ""}` : ""}
@@ -197,4 +198,11 @@ export function bindFeedCards(container, { onSave } = {}) {
       } catch { /* cancelled */ }
     }
   });
+}
+
+// Approved party logo (served by VeraPolitica at /media/{id}); nothing otherwise.
+export function partyLogo(party, size = 16) {
+  const url = party?.logo_url;
+  if (typeof url !== "string" || !/^\/media\/\d+$/.test(url)) return "";
+  return `<img class="vp-logo" src="${esc(url)}" alt="" width="${size}" height="${size}" loading="lazy" />`;
 }

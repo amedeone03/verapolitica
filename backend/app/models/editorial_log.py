@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Enum, Index, Integer, LargeBinary, String, Text, event
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from backend.app.db.base import Base
@@ -104,3 +104,29 @@ class EditorialImage(Base):
     credit: Mapped[str | None] = mapped_column(String(300), nullable=True)
     uploaded_by: Mapped[str] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+SYMBOL_KINDS = ("party", "region", "province")
+
+
+class EditorialSymbol(Base):
+    """The approved logo of a party, or coat of arms of a region or province.
+
+    ``key`` is the party id, the region id, or the province abbreviation. A logo
+    reaches this table only after a second redazione member approves it, with
+    its credit, licence and source page.
+    """
+
+    __tablename__ = "editorial_symbols"
+    __table_args__ = (UniqueConstraint("kind", "key", name="uq_editorial_symbols_kind_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    key: Mapped[str] = mapped_column(String(40))
+    image_id: Mapped[int] = mapped_column(ForeignKey("editorial_images.id", ondelete="RESTRICT"))
+    credit: Mapped[str] = mapped_column(String(300))
+    license: Mapped[str] = mapped_column(String(100))
+    source_url: Mapped[str] = mapped_column(Text)
+    proposed_by: Mapped[str] = mapped_column(String(200))
+    approved_by: Mapped[str] = mapped_column(String(200))
+    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

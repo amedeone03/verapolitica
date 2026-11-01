@@ -40,7 +40,11 @@ from backend.app.models import (
     EditorialLogEntry,
     EditorialPost,
     EditorialPostStatus,
+    EditorialSymbol,
     FeedScope,
+    Municipality,
+    Region,
+    SYMBOL_KINDS,
     PledgeAssessment,
     PledgeAssessmentDraft,
     PledgeAssessmentDraftStatus,
@@ -73,7 +77,9 @@ from backend.app.models.politician_profile import (
     ProfileContentStatus,
     ProfileSourceKind,
 )
+from backend.app.core.text import normalize_search_text
 from backend.app.schemas import ProposalObservation
+from backend.app.services import symbols as symbols_module
 from backend.app.schemas.feed import Citation, EditorialPostRequest
 from backend.app.schemas.pledge import PledgeAssessmentProposal, PledgeClassificationRequest
 from backend.app.schemas.politician_profile import (
@@ -160,6 +166,7 @@ KIND_LABELS = {
     "status": "Stato di una promessa",
     "news": "Notizia",
     "change": "Modifica a contenuto pubblico",
+    "symbol": "Logo o stemma",
     "image": "Immagine",
 }
 VERDICT_LABELS = {
@@ -363,11 +370,12 @@ class RedazioneService:
             ).all()
             pending = self._pending_by_politician(session)
             parties = card_module.current_parties(session, [row.id for row in rows])
+            logos = symbols_module.logo_urls(session, "party")
             return [
                 {
                     "id": row.id,
                     "name": f"{row.canonical_given_name} {row.canonical_family_name}",
-                    "party": card_module.party_dict(parties[row.id]) if row.id in parties else None,
+                    "party": card_module.party_dict(parties[row.id], logos) if row.id in parties else None,
                     "birth_date": _iso(row.birth_date),
                     "public": row.current_version_id is not None,
                     "pending": pending.get(row.id, 0),
@@ -1387,10 +1395,155 @@ class RedazioneService:
 
     def list_parties(self) -> list[dict]:
         with self.session_factory() as session:
+            logos = symbols_module.logo_urls(session, "party")
             return [
-                card_module.party_dict(row)
+                card_module.party_dict(row, logos)
                 for row in session.scalars(select(PoliticalParty).order_by(PoliticalParty.canonical_name))
             ]
+
+    # --------------------------------------------------- parties and symbols
+    SYMBOL_LABELS = {"party": "Logo del partito", "region": "Stemma della regione", "province": "Stemma della provincia"}
+
+    @staticmethod
+    def _provinces(session: Session) -> dict[str, dict]:
+        rows = session.execute(
+            select(Municipality.province_abbreviation, func.min(Municipality.province_name), func.min(Municipality.region_id))
+            .group_by(Municipality.province_abbreviation)
+        )
+        return {
+            abbreviation: {"key": abbreviation, "name": name, "region_id": region_id}
+            for abbreviation, name, region_id in rows
+            if abbreviation
+        }
+
+    def _symbol_targets(self, session: Session, kind: str) -> dict[str, dict]:
+        if kind == "party":
+            return {
+                str(row.id): {"key": str(row.id), "name": row.canonical_name, "abbreviation": row.abbreviation, "website": row.official_website_url}
+                for row in session.scalars(select(PoliticalParty).order_by(PoliticalParty.canonical_name))
+            }
+        if kind == "region":
+            return {
+                str(row.id): {"key": str(row.id), "name": row.canonical_name, "istat_code": row.istat_code}
+                for row in session.scalars(select(Region).order_by(Region.canonical_name))
+            }
+        if kind == "province":
+            return dict(sorted(self._provinces(session).items(), key=lambda item: item[1]["name"] or ""))
+        raise RedazioneValidation("Tipo di simbolo sconosciuto.")
+
+    def symbols(self) -> dict:
+        """Parties, regions and provinces with their approved logo and pending proposals."""
+
+        with self.session_factory() as session:
+            pending: dict[tuple[str, str], list[dict]] = {}
+            for row in session.scalars(
+                select(EditorialChangeRequest).where(
+                    EditorialChangeRequest.status == ChangeRequestStatus.PENDING,
+                    EditorialChangeRequest.kind.in_(("simbolo", "partito")),
+                )
+            ):
+                key = (row.target_kind, str(row.payload.get("key"))) if row.kind == "simbolo" else ("party", "nuovo")
+                pending.setdefault(key, []).append(
+                    {"id": row.id, "created_by": row.created_by, "summary": row.summary, "payload": row.payload}
+                )
+            result: dict[str, Any] = {"licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()]}
+            for kind in SYMBOL_KINDS:
+                approved = symbols_module.symbol_rows(session, kind)
+                result[kind] = [
+                    {
+                        **target,
+                        "symbol": symbols_module.symbol_dict(approved.get(key)),
+                        "pending": pending.get((kind, key), []),
+                    }
+                    for key, target in self._symbol_targets(session, kind).items()
+                ]
+            result["new_parties"] = pending.get(("party", "nuovo"), [])
+        return result
+
+    def propose_symbol(self, payload: dict, *, member: str) -> dict:
+        kind = str(payload.get("kind") or "")
+        key = str(payload.get("key") or "")
+        credit = _clean(payload.get("credit"))[:300]
+        license_key = str(payload.get("license") or "")
+        source_url = _clean(payload.get("source_url"))
+        errors = {}
+        if kind not in SYMBOL_KINDS:
+            errors["kind"] = "Scegli partito, regione o provincia."
+        if not credit:
+            errors["credit"] = "Indica il titolare o l'autore del logo."
+        if license_key not in symbols_module.LICENSES:
+            errors["license"] = "Scegli la licenza con cui il logo può essere pubblicato."
+        if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
+            errors["source_url"] = "Indica la pagina https da cui proviene il logo."
+        if errors:
+            raise RedazioneValidation("Controlla i campi del logo.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
+        with self.session_factory.begin() as session:
+            targets = self._symbol_targets(session, kind)
+            if key not in targets:
+                raise RedazioneNotFound("Partito, regione o provincia non trovato.")
+            image = session.get(EditorialImage, int(payload.get("image_id") or 0))
+            if image is None:
+                raise RedazioneValidation("Carica prima l'immagine del logo.")
+            name = targets[key]["name"]
+            request = EditorialChangeRequest(
+                kind="simbolo",
+                target_kind=kind,
+                target_id=int(key) if key.isdigit() else 0,
+                politician_id=None,
+                summary=f"{self.SYMBOL_LABELS[kind]}: {name}",
+                payload={
+                    "key": key, "name": name, "image_id": image.id, "image_url": symbols_module.media_url(image.id),
+                    "credit": credit, "license": license_key, "license_label": symbols_module.LICENSES[license_key],
+                    "source_url": source_url,
+                },
+                created_by=member,
+                created_at=self.clock(),
+            )
+            session.add(request)
+            session.flush()
+            self._log(
+                session, actor=member, action="proposta", object_kind="change", object_id=request.id,
+                summary=f"Proposto: {request.summary} (fonte {urlsplit(source_url).netloc}, {symbols_module.LICENSES[license_key]}).",
+                details=request.payload,
+            )
+            return {"id": request.id, "summary": request.summary}
+
+    def propose_party(self, payload: dict, *, member: str) -> dict:
+        name = _clean(payload.get("name"))[:300]
+        abbreviation = _clean(payload.get("abbreviation"))[:40] or None
+        website = _clean(payload.get("website")) or None
+        source_url = _clean(payload.get("source_url"))
+        errors = {}
+        if len(name) < 2:
+            errors["name"] = "Scrivi il nome ufficiale del partito."
+        if website and (not website.startswith("https://") or not urlsplit(website).netloc):
+            errors["website"] = "Il sito ufficiale deve iniziare con https://."
+        if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
+            errors["source_url"] = "Indica una fonte https che attesti il partito (statuto, registro, sito)."
+        if errors:
+            raise RedazioneValidation("Controlla i campi del partito.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
+        with self.session_factory.begin() as session:
+            folded = normalize_search_text(name)
+            for row in session.scalars(select(PoliticalParty)):
+                if normalize_search_text(row.canonical_name) == folded:
+                    raise RedazioneConflict(f"«{row.canonical_name}» è già nell'elenco dei partiti.")
+            request = EditorialChangeRequest(
+                kind="partito",
+                target_kind="party",
+                target_id=0,
+                politician_id=None,
+                summary=f"Nuovo partito: {name}" + (f" ({abbreviation})" if abbreviation else ""),
+                payload={"name": name, "abbreviation": abbreviation, "website": website, "source_url": source_url},
+                created_by=member,
+                created_at=self.clock(),
+            )
+            session.add(request)
+            session.flush()
+            self._log(
+                session, actor=member, action="proposta", object_kind="change", object_id=request.id,
+                summary=f"Proposto: {request.summary}.", details=request.payload,
+            )
+            return {"id": request.id, "summary": request.summary}
 
     # ---------------------------------------------------------------- images
     IMAGE_TYPES = {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "image/webp"}
@@ -1800,6 +1953,40 @@ class RedazioneService:
             elif row.kind == "classificazione":
                 classification = row.payload["classification"]
                 summary = f"Applicata la classificazione: {row.summary}"
+            elif row.kind == "simbolo":
+                payload = row.payload
+                if session.get(EditorialImage, payload["image_id"]) is None:
+                    raise RedazioneConflict("L'immagine del logo non esiste più.")
+                current = session.scalar(
+                    select(EditorialSymbol).where(EditorialSymbol.kind == row.target_kind, EditorialSymbol.key == payload["key"])
+                )
+                if current is None:
+                    current = EditorialSymbol(kind=row.target_kind, key=payload["key"])
+                    session.add(current)
+                current.image_id = payload["image_id"]
+                current.credit = payload["credit"]
+                current.license = payload["license"]
+                current.source_url = payload["source_url"]
+                current.proposed_by = row.created_by
+                current.approved_by = member
+                current.approved_at = self.clock()
+                summary = f"Pubblicato: {row.summary}"
+            elif row.kind == "partito":
+                payload = row.payload
+                folded = normalize_search_text(payload["name"])
+                if any(normalize_search_text(item.canonical_name) == folded for item in session.scalars(select(PoliticalParty))):
+                    raise RedazioneConflict("Il partito è già nell'elenco.")
+                party = PoliticalParty(
+                    canonical_name=payload["name"],
+                    abbreviation=payload.get("abbreviation"),
+                    official_website_url=payload.get("website"),
+                    search_primary=folded,
+                    search_document=normalize_search_text(" ".join(filter(None, [payload["name"], payload.get("abbreviation")]))),
+                )
+                session.add(party)
+                session.flush()
+                row.target_id = party.id
+                summary = f"Aggiunto all'elenco: {row.summary.removeprefix('Nuovo partito: ')}"
             else:
                 raise RedazioneConflict("Tipo di richiesta sconosciuto.")
             row.status = ChangeRequestStatus.APPROVED

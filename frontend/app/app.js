@@ -1,4 +1,4 @@
-import { bindFeedCards, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { bindFeedCards, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { renderWelcome, runOnboarding } from "./onboarding.js";
 const byId = (id) => document.getElementById(id);
 
@@ -1605,7 +1605,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
       return request(`/feed?${params}`);
     },
     getPost: (id) => request(`/feed/posts/${encodeURIComponent(id)}`),
-    listParties: () => request("/political-parties"),
+    listParties: ({ all = false } = {}) => request(`/political-parties${all ? "?all=true" : ""}`),
     getPartyScorecard: (id, window = "all") => request(`/political-parties/${encodeURIComponent(id)}/scorecard?window=${encodeURIComponent(window)}`),
     compare: (ids, role) => request(`/compare/politicians?ids=${encodeURIComponent(ids.join(","))}&role=${encodeURIComponent(role)}`),
     listLegislatures: () => request("/archive/legislatures"),
@@ -2383,6 +2383,23 @@ async function showRegistration(api) {
   }));
 }
 
+// Keep the reader's followed parties in step with the redazione's list: names,
+// abbreviations and logos change there, and a party may be merged or removed.
+async function syncFollows(api) {
+  const profile = loadReaderProfile();
+  if (!isMember(profile) || !(profile.parties || []).length) return;
+  try {
+    const current = new Map((await api.listParties({ all: true })).items.map((item) => [String(item.id), item]));
+    const parties = profile.parties
+      .filter((party) => current.has(String(party.id)))
+      .map((party) => {
+        const item = current.get(String(party.id));
+        return { id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null };
+      });
+    if (JSON.stringify(parties) !== JSON.stringify(profile.parties)) saveReaderProfile({ ...loadReaderProfile(), parties });
+  } catch { /* offline: keep what is saved */ }
+}
+
 // iOS Safari applies :active press states only when a touch listener exists.
 document.addEventListener("touchstart", () => {}, { passive: true });
 
@@ -3007,7 +3024,7 @@ async function showProfile(api) {
   byId("profile-title").textContent = profile.member.name;
   byId("profile-copy").textContent = `Profilo su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}.`;
   byId("profile-parties").innerHTML = (profile.parties || []).length
-    ? profile.parties.map((party) => `<a class="topic-chip" href="./?political_party=${encodeURIComponent(party.id)}">${escapeHtml(party.abbreviation || party.name)}</a>`).join("")
+    ? profile.parties.map((party) => `<a class="topic-chip" href="./?political_party=${encodeURIComponent(party.id)}">${partyLogo(party)}${escapeHtml(party.abbreviation || party.name)}</a>`).join("")
     : `<p class="empty-note">Nessun partito.</p>`;
   byId("profile-delete").addEventListener("click", () => {
     try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
@@ -3120,6 +3137,7 @@ const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
 syncPageMeta(params);
 markReaderMode();
+syncFollows(api);
 // verapolitica.com opens on the welcome screen until the reader registers or enters the demo.
 // Shared links (a post, a profile...) open directly, read-only.
 const firstVisit = !isMember() && !isDemo() && ![...params.keys()].length;

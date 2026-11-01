@@ -116,6 +116,7 @@ class PublicRegionSummary(ImmutableSchema):
     name: str
     status: str
     current_president: PublicOfficeHolder | None = None
+    logo_url: str | None = None
 
 
 class PublicRegion(PublicRegionSummary):

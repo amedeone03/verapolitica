@@ -72,6 +72,7 @@ class PublicProvince(ImmutableSchema):
     region_id: int
     region_name: str
     municipalities: int = Field(ge=0)
+    logo_url: str | None = None
 
 
 class PublicProvinceList(ImmutableSchema):

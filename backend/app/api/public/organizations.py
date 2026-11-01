@@ -2,7 +2,7 @@ from typing import Annotated
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from backend.app.schemas.search import (
     PublicPoliticalPartyList,
     PublicPoliticalPartySummary,
 )
+from backend.app.services import symbols
 from backend.app.services.party_scorecard_service import published_names
 
 
@@ -80,16 +81,22 @@ def _member(row: PoliticalPartyAffiliation, name: str) -> PublicPartyMember:
 @parties_router.get("", response_model=PublicPoliticalPartyList)
 def list_political_parties(
     session: Annotated[Session, Depends(get_db_session)],
+    all_parties: Annotated[bool, Query(alias="all")] = False,
 ) -> PublicPoliticalPartyList:
-    """Parties with at least one published member, most current members first."""
+    """Parties with at least one published member, most current members first.
+
+    ``all=true`` lists every party in the redazione's list, members or not
+    (the sign-up asks readers which parties they want to follow).
+    """
 
     parties = list(session.scalars(select(PoliticalParty).order_by(PoliticalParty.canonical_name)))
     members = _members(session, [party.id for party in parties])
+    logos = symbols.logo_urls(session, "party")
     today = date.today()
     items = []
     for party in parties:
         rows = members.get(party.id, [])
-        if not rows:
+        if not rows and not all_parties:
             continue
         current = {row.politician_id for row, _ in rows if _is_current(row, today)}
         items.append(
@@ -97,6 +104,7 @@ def list_political_parties(
                 id=party.id,
                 name=party.canonical_name,
                 abbreviation=party.abbreviation,
+                logo_url=logos.get(str(party.id)),
                 current_member_count=len(current),
             )
         )
@@ -127,6 +135,7 @@ def get_political_party(
         id=party.id,
         name=party.canonical_name,
         abbreviation=party.abbreviation,
+        logo_url=symbols.logo_urls(session, "party").get(str(party.id)),
         current_members=tuple(sorted(current.values(), key=order)),
         former_members=tuple(sorted(former.values(), key=order)),
     )

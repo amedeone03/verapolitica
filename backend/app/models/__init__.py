@@ -21,6 +21,8 @@ from backend.app.models.editorial_log import (
     EditorialChangeRequest,
     EditorialImage,
     EditorialLogEntry,
+    EditorialSymbol,
+    SYMBOL_KINDS,
     ImmutableEditorialLogError,
 )
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
@@ -163,6 +165,8 @@ __all__ = [
     "ChangeRequestStatus",
     "EditorialChangeRequest",
     "EditorialImage",
+    "EditorialSymbol",
+    "SYMBOL_KINDS",
     "EditorialLogEntry",
     "EditorialPost",
     "ImmutableEditorialLogError",

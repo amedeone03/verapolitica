@@ -2,7 +2,7 @@
 // One ES module, no build. Every write goes to /redazione/api and is logged;
 // nothing reaches the citizen until another member approves it.
 
-import { bindFeedCards, renderFeedCard, sourceCoverage } from "/app/feed-card.js";
+import { bindFeedCards, partyLogo, renderFeedCard, sourceCoverage } from "/app/feed-card.js";
 
 const API = "/redazione/api";
 const TOKEN_KEY = "vp-redazione-token";
@@ -214,6 +214,7 @@ async function route() {
     else if (section === "notizie" && id) await showNewsEditor(id === "nuova" ? null : Number(id));
     else if (section === "notizie") await showNews();
     else if (section === "registro") await showLog();
+    else if (section === "simboli") await showSymbols(id || "party");
     else if (section === "regole") showRules();
     else await showQueue();
   } catch (error) {
@@ -336,6 +337,8 @@ function previewFor(item) {
   }
   if (item.kind === "status") return `<div class="preview"><dl><dt>Stato proposto</dt><dd>${verdictChip(p.verdict, p.verdict_label)}</dd><dt>Aggiornamento</dt><dd>${esc(p.rationale)}</dd><dt>Data del fatto</dt><dd>${longDate(p.effective_at) || "—"}</dd><dt>Passaggio della fonte</dt><dd>«${esc(p.quoted_excerpt)}»</dd><dt>Fonte</dt><dd>${sourceLink({ url: p.source_url })}</dd>${p.approvals?.length ? `<dt>Già approvato da</dt><dd>${esc(p.approvals.join(", "))}</dd>` : ""}</dl></div>`;
   if (item.kind === "news") return `${p.card ? `<div class="queue-card-preview"><p class="small muted">Come appare nel feed</p>${renderFeedCard({ key: `q-${item.id}`, url: "#", title: p.title || item.title, summary: p.blocks?.sommario, occurred_on: new Date().toISOString().slice(0, 10), sources: (p.sources || []).map((src) => ({ title: src.name, url: src.url })), card: { ...p.card, composed: true } }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null })}</div>` : ""}<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
+  if (item.kind === "change" && p.kind === "simbolo") return `<div class="preview symbol-preview"><img src="${esc(p.payload.image_url)}" alt="" width="96" height="96" /><div><p><strong>${esc(p.payload.name)}</strong></p><p class="small">${esc(p.payload.credit)} · ${esc(p.payload.license_label)}<br />Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div></div>`;
+  if (item.kind === "change" && p.kind === "partito") return `<div class="preview"><p><strong>${esc(p.payload.name)}</strong>${p.payload.abbreviation ? ` (${esc(p.payload.abbreviation)})` : ""}</p><p class="small">${p.payload.website ? `Sito: ${sourceLink({ url: p.payload.website })}<br />` : ""}Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div>`;
   if (item.kind === "change") return `<div class="preview"><p>${esc(p.summary)}</p>${p.payload?.classification ? `<p class="small"><strong>Nuova classificazione:</strong> ${esc(classificationText(p.payload.classification))}${p.payload.before ? `<br /><strong>Prima:</strong> ${esc(classificationText(p.payload.before))}` : ""}</p>` : ""}</div>`;
   return "";
 }
@@ -880,7 +883,7 @@ function createCardComposer(initial, initialPublic) {
     return list.map((party) => {
       const fromPerson = auto.has(party.id);
       const checked = fromPerson || c.parties.includes(party.id);
-      return `<label class="party-chip${checked ? " is-on" : ""}${fromPerson ? " is-auto" : ""}"><input type="checkbox" value="${party.id}" data-party${checked ? " checked" : ""}${fromPerson ? " disabled" : ""} />${esc(party.abbreviation || party.name)}${party.abbreviation ? `<span class="party-full">${esc(party.name)}</span>` : ""}</label>`;
+      return `<label class="party-chip${checked ? " is-on" : ""}${fromPerson ? " is-auto" : ""}"><input type="checkbox" value="${party.id}" data-party${checked ? " checked" : ""}${fromPerson ? " disabled" : ""} />${partyLogo(party)}${esc(party.abbreviation || party.name)}${party.abbreviation ? `<span class="party-full">${esc(party.name)}</span>` : ""}</label>`;
     }).join("");
   };
 
@@ -1241,3 +1244,140 @@ function showRules() {
 const saved = readToken();
 if (saved) signIn(saved);
 else showLogin();
+
+
+// ------------------------------------------------------------------ symbols
+// Party logos and coats of arms of regions and provinces. Each upload is a
+// proposal: it goes public only when another member approves it in the queue.
+const SYMBOL_TABS = [["party", "Partiti"], ["region", "Regioni"], ["province", "Province"]];
+let symbolFilter = "";
+
+function symbolThumb(item) {
+  if (item.symbol) return `<img class="symbol-thumb" src="${esc(item.symbol.url)}" alt="" width="48" height="48" />`;
+  const source = item.abbreviation || (/^[A-Z]{2}$/.test(item.key) ? item.key : item.name);
+  const letters = String(source).replace(/[^\p{L}\p{N}]/gu, "").slice(0, 3);
+  return `<span class="symbol-thumb is-empty" aria-hidden="true">${esc(letters.toUpperCase())}</span>`;
+}
+
+async function showSymbols(kind) {
+  if (!SYMBOL_TABS.some(([key]) => key === kind)) kind = "party";
+  const data = await api("/simboli");
+  const items = data[kind];
+  const withLogo = items.filter((item) => item.symbol).length;
+  const q = symbolFilter.trim().toLocaleLowerCase("it");
+  const shown = items.filter((item) => !q || `${item.name} ${item.abbreviation || ""} ${item.key}`.toLocaleLowerCase("it").includes(q));
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Elenchi</p><h1>Partiti e territori</h1>
+    <p>Loghi dei partiti e stemmi di regioni e province: li vede il cittadino nella registrazione, nel feed e nelle schede. Ogni logo serve con credito, licenza e pagina di provenienza, e va approvato da un'altra persona.</p></div></div>
+    <nav class="filters" aria-label="Elenco">${SYMBOL_TABS.map(([key, label]) => `<a class="filter-link" href="#/simboli/${key}" aria-current="${key === kind ? "page" : "false"}">${label} <span class="count">${data[key].length}</span></a>`).join("")}</nav>
+    <div class="summary-strip">
+      <div class="tile"><strong>${items.length}</strong><span>${kind === "party" ? "partiti nell'elenco" : kind === "region" ? "regioni (ISTAT)" : "province (ISTAT)"}</span></div>
+      <div class="tile"><strong>${withLogo}</strong><span>con logo pubblicato</span></div>
+      <div class="tile"><strong>${items.filter((item) => item.pending.length).length}</strong><span>logo in verifica</span></div>
+    </div>
+    ${kind === "party" ? newPartyForm(data.new_parties) : ""}
+    ${kind !== "party" && items.length < (kind === "region" ? 20 : 100) ? `<p class="notice">L'elenco ISTAT non è completo in questo database. Per caricare tutte le regioni, province e comuni esegui <code>scripts\\sync_reference_data.cmd</code> (serve internet).</p>` : ""}
+    <div class="field symbol-search"><label for="symbol-q">Cerca</label><input id="symbol-q" type="search" value="${esc(symbolFilter)}" autocomplete="off" /></div>
+    <ul class="symbol-list">${shown.map((item) => `<li>
+      ${symbolThumb(item)}
+      <div class="symbol-text"><strong>${esc(item.name)}</strong>${item.abbreviation ? ` <span class="muted">${esc(item.abbreviation)}</span>` : ""}${kind === "province" ? ` <span class="muted">${esc(item.key)}</span>` : ""}
+        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : "Nessun logo pubblicato"}${item.pending.length ? ` · <strong>in verifica</strong> (proposto da ${esc(item.pending[0].created_by)})` : ""}</p></div>
+      <button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}"${item.pending.length ? " disabled" : ""}>${item.symbol ? "Sostituisci" : "Carica logo"}</button>
+    </li>`).join("") || `<li class="empty">Nessun risultato.</li>`}</ul>`;
+  const search = view.querySelector("#symbol-q");
+  search.addEventListener("input", () => {
+    symbolFilter = search.value;
+    const position = search.selectionStart;
+    showSymbols(kind).then(() => { const again = view.querySelector("#symbol-q"); again.focus(); again.setSelectionRange(position, position); }).catch(() => {});
+  });
+  view.querySelectorAll("[data-symbol]").forEach((button) => button.addEventListener("click", async () => {
+    const proposal = await symbolDialog(kind, button.dataset.symbolName, data.licenses);
+    if (!proposal) return;
+    try {
+      const image = await api("/immagini", { method: "POST", body: { data: proposal.data, credit: proposal.credit, alt: `Simbolo: ${button.dataset.symbolName}` } });
+      await api("/simboli", { method: "POST", body: { kind, key: button.dataset.symbol, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
+      toast("Logo proposto: ora lo deve approvare un'altra persona.");
+      showSymbols(kind);
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+    }
+  }));
+  view.querySelector("#party-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await api("/partiti", { method: "POST", body: Object.fromEntries(new FormData(form)) });
+      toast("Partito proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      showSymbols("party");
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+    }
+  });
+}
+
+function newPartyForm(pending) {
+  return `<details class="card new-party"><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
+    <form id="party-form" class="stack" style="margin-top:12px">
+      <div class="grid-2">
+        <div class="field"><label for="party-name">Nome ufficiale</label><input id="party-name" name="name" type="text" required minlength="2" maxlength="300" /></div>
+        <div class="field"><label for="party-abbr">Sigla <span class="hint">facoltativa</span></label><input id="party-abbr" name="abbreviation" type="text" maxlength="40" /></div>
+        <div class="field"><label for="party-site">Sito ufficiale <span class="hint">https://…</span></label><input id="party-site" name="website" type="url" /></div>
+        <div class="field"><label for="party-source">Fonte <span class="hint">statuto, registro dei partiti, sito</span></label><input id="party-source" name="source_url" type="url" required /></div>
+      </div>
+      <div class="actions"><button class="button button-primary" type="submit">Proponi il partito</button></div>
+    </form>
+    ${pending.length ? `<p class="small muted" style="margin-top:8px">In verifica: ${pending.map((item) => `${esc(item.payload.name)} (${esc(item.created_by)})`).join(", ")}</p>` : ""}
+  </details>`;
+}
+
+// Logos are not cropped: the whole image is fitted inside a transparent square.
+function symbolDialog(kind, name, licenses) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "crop-dialog";
+    dialog.innerHTML = `<form method="dialog" class="stack">
+      <h2>${kind === "party" ? "Logo" : "Stemma"}: ${esc(name)}</h2>
+      <p class="small muted">Usa il file ufficiale o quello di Wikimedia Commons. Niente ricostruzioni o versioni ridisegnate.</p>
+      <div class="field"><label for="sym-file">Immagine <span class="hint">PNG, JPEG o WebP</span></label><input id="sym-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
+      <div class="symbol-stage"><canvas width="256" height="256" aria-label="Anteprima"></canvas></div>
+      <div class="field"><label for="sym-credit">Titolare o autore</label><input id="sym-credit" type="text" required maxlength="300" /></div>
+      <div class="field"><label for="sym-license">Licenza</label><select id="sym-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
+      <div class="field"><label for="sym-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="sym-source" type="url" required /></div>
+      <div class="actions"><button class="button button-primary" value="ok">Proponi</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+    </form>`;
+    document.body.append(dialog);
+    const canvas = dialog.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    let ready = false;
+    dialog.querySelector("#sym-file").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      ready = false;
+      ctx.clearRect(0, 0, 256, 256);
+      if (!file) return;
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast("Usa un file PNG, JPEG o WebP.", true); return; }
+      const reader = new FileReader();
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(232 / img.width, 232 / img.height);
+        const w = img.width * k, h = img.height * k;
+        ctx.clearRect(0, 0, 256, 256);
+        ctx.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h);
+        ready = true;
+      };
+      reader.onload = () => { img.src = reader.result; };
+      reader.readAsDataURL(file);
+    });
+    dialog.addEventListener("close", () => {
+      const ok = dialog.returnValue === "ok" && ready;
+      const result = ok ? {
+        data: canvas.toDataURL("image/png"),
+        credit: dialog.querySelector("#sym-credit").value.trim(),
+        license: dialog.querySelector("#sym-license").value,
+        source_url: dialog.querySelector("#sym-source").value.trim(),
+      } : null;
+      if (dialog.returnValue === "ok" && !ready) toast("Scegli prima l'immagine.", true);
+      dialog.remove();
+      resolve(result);
+    });
+    dialog.showModal();
+  });
+}

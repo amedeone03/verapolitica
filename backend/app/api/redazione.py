@@ -225,6 +225,22 @@ def parties(member: Member, service: Service) -> Any:
     return _run(service.list_parties)
 
 
+@router.post("/partiti")
+def propose_party(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
+    return _run(service.propose_party, payload, member=member)
+
+
+@router.get("/simboli")
+def symbols(member: Member, service: Service) -> Any:
+    del member
+    return _run(service.symbols)
+
+
+@router.post("/simboli")
+def propose_symbol(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
+    return _run(service.propose_symbol, payload, member=member)
+
+
 @router.get("/card")
 def card_options(member: Member) -> dict:
     del member

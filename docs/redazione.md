@@ -102,3 +102,13 @@ The English walkthrough at `/demo/` (Luca Bianchi), `/demo/video`,
 `/demo/pledge-review` and `/demo/profile-review` are replaced by the console;
 `/demo/` redirects to `/redazione/`. The AI draft tool (`/demo/ai-upload`)
 stays, in the same colours; its approvals are written to the same log.
+
+## Partiti e territori (loghi e stemmi)
+
+Sezione **Partiti e territori** della console (`#/simboli`):
+
+- **Partiti**: l'elenco viene dai dati parlamentari e da quello che aggiunge la redazione. «Aggiungi un partito» chiede nome ufficiale, sigla, sito e una fonte https (statuto, registro dei partiti, sito); il partito entra nell'elenco solo dopo l'approvazione di un'altra persona. La registrazione del cittadino mostra tutti i partiti dell'elenco (`/political-parties?all=true`).
+- **Regioni e province**: vengono da ISTAT (`scripts/run_territorial_ingestion.py territories --live`). Le province sono le sigle presenti nell'elenco dei comuni.
+- **Loghi e stemmi**: si caricano dalla console (PNG, JPEG o WebP, adattati senza ritaglio in un quadrato trasparente) con titolare, licenza (pubblico dominio, CC0, CC BY, CC BY-SA, uso autorizzato, stemma istituzionale) e pagina di provenienza. Ogni logo è una proposta nella coda: diventa pubblico solo quando lo approva un'altra persona (tabella `editorial_symbols`), e tutto finisce nel registro.
+- **Sincronizzazione**: `scripts/sync_reference_data.cmd` (Windows, serve internet) carica tutte le regioni, province e comuni da ISTAT, poi `scripts/sync_symbols.py` cerca su Wikidata il logo (P154) o lo stemma (P94) di ogni partito, regione e provincia e lo scarica da Wikimedia Commons **solo se la licenza è libera**. I loghi arrivano in coda firmati «Sincronizzazione Wikidata»: nessuno è pubblico finché la redazione non li approva. Con `--dry-run` mostra le corrispondenze senza scrivere nulla.
+- **Dove compaiono**: chip dei partiti e delle zone nella registrazione, riepilogo «La tua scheda», card del feed (accanto al partito della persona e nella riga «Anche»), composer della card in console, Profilo. I partiti seguiti dal lettore si riallineano all'elenco della redazione a ogni apertura (nome, sigla, logo; un partito rimosso sparisce).

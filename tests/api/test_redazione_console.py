@@ -368,7 +368,7 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
         session.commit()
         extra_party = extra.id
     found = client.get("/redazione/api/politici?q=esempio", headers=ANNA).json()
-    assert found[0]["party"] == {"id": own_party, "name": "Partito Esempio", "abbreviation": "PE"}
+    assert found[0]["party"] == {"id": own_party, "name": "Partito Esempio", "abbreviation": "PE", "logo_url": None}
     assert client.post("/redazione/api/immagini", headers=ANNA, json={"data": "data:text/plain;base64,aGVsbG8="}).status_code == 422
     image = client.post("/redazione/api/immagini", headers=ANNA, json={"data": PNG_1x1, "credit": "Camera dei deputati", "alt": "Mario Esempio"})
     assert image.status_code == 200, image.text
@@ -444,3 +444,50 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     assert [item["id"] for item in profile["editorial"]["related_posts"]] == [post["id"]]
     log = client.get("/redazione/api/registro", headers=ANNA).json()["items"]
     assert any(entry["action"] == "immagine" for entry in log)
+
+
+def test_parties_and_symbols_go_public_after_a_second_member(console):
+    client, politician_id, factory = console
+    own_party = _party(factory, politician_id, "Partito Esempio", "PE")
+    # A new party: proposed by one member, added by another.
+    bad = client.post("/redazione/api/partiti", headers=ANNA, json={"name": "X", "source_url": "http://a"})
+    assert bad.status_code == 422
+    assert client.post("/redazione/api/partiti", headers=ANNA, json={"name": "partito esempio", "source_url": "https://example.org/statuto"}).status_code == 409
+    proposed = client.post(
+        "/redazione/api/partiti", headers=ANNA,
+        json={"name": "Nuovo Partito Civico", "abbreviation": "NPC", "website": "https://npc.example.org", "source_url": "https://npc.example.org/statuto"},
+    ).json()
+    assert client.post(f"/redazione/api/coda/change/{proposed['id']}/approva", headers=ANNA, json={}).status_code == 409
+    assert client.post(f"/redazione/api/coda/change/{proposed['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    everyone = client.get("/political-parties", params={"all": "true"}).json()["items"]
+    assert {item["name"] for item in everyone} == {"Partito Esempio", "Nuovo Partito Civico"}
+    assert [item["name"] for item in client.get("/political-parties").json()["items"]] == ["Partito Esempio"]
+
+    # A logo needs credit, licence and an https source; then a second member.
+    image = client.post("/redazione/api/immagini", headers=ANNA, json={"data": PNG_1x1}).json()
+    missing = client.post("/redazione/api/simboli", headers=ANNA, json={"kind": "party", "key": str(own_party), "image_id": image["id"]})
+    assert missing.status_code == 422
+    assert {item["field"] for item in missing.json()["findings"]} == {"credit", "license", "source_url"}
+    assert client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "party", "key": "999999", "image_id": image["id"], "credit": "PE", "license": "cc-by-sa", "source_url": "https://commons.wikimedia.org/wiki/File:PE.png",
+    }).status_code == 404
+    symbol = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "party", "key": str(own_party), "image_id": image["id"], "credit": "Partito Esempio",
+        "license": "cc-by-sa", "source_url": "https://commons.wikimedia.org/wiki/File:PE.png",
+    }).json()
+    overview = client.get("/redazione/api/simboli", headers=ANNA).json()
+    row = next(item for item in overview["party"] if item["key"] == str(own_party))
+    assert row["symbol"] is None and row["pending"][0]["created_by"] == "Anna Redattrice"
+    assert client.get("/political-parties").json()["items"][0]["logo_url"] is None
+    queued = _queue_item(client, BRUNO, "change", id=symbol["id"])
+    assert queued["preview"]["payload"]["license_label"] == "CC BY-SA"
+    assert client.post(f"/redazione/api/coda/change/{symbol['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    logo = f"/media/{image['id']}"
+    assert client.get("/political-parties").json()["items"][0]["logo_url"] == logo
+    assert client.get(f"/political-parties/{own_party}").json()["logo_url"] == logo
+    assert client.get("/redazione/api/partiti", headers=ANNA).json()[0]["logo_url"] in (logo, None)
+    published = next(item for item in client.get("/redazione/api/simboli", headers=ANNA).json()["party"] if item["key"] == str(own_party))
+    assert published["symbol"]["approved_by"] == "Bruno Verificatore" and not published["pending"]
+    log = [entry["summary"] for entry in client.get("/redazione/api/registro", headers=ANNA).json()["items"]]
+    assert any("Logo del partito: Partito Esempio" in line for line in log)
+    assert any("Aggiunto all'elenco: Nuovo Partito Civico" in line for line in log)

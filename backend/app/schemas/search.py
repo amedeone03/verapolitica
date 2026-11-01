@@ -48,6 +48,7 @@ class PublicPoliticalParty(ImmutableSchema):
     id: int = Field(gt=0)
     name: str
     abbreviation: str | None = None
+    logo_url: str | None = None
 
 
 class PublicPartyMember(ImmutableSchema):

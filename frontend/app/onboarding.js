@@ -3,6 +3,7 @@
 // pill buttons; one large question per screen; circular avatar grid with check badges;
 // floating "Avanti" pill. The profile stays on this device: no email, no password.
 
+const logo = (url, size = 28) => (typeof url === "string" && /^\/media\/\d+$/.test(url) ? `<img class="ob-logo" src="${url}" alt="" width="${size}" height="${size}" loading="lazy" />` : "");
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
 const CHECK = `<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
@@ -150,7 +151,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     return state.partyList.map((party) => {
       const on = state.parties.has(String(party.id));
       return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-party="${escape(party.id)}" aria-pressed="${on}">
-        ${on ? CHECK : ""}${party.abbreviation ? `<strong>${escape(party.abbreviation)}</strong>` : ""}<span>${escape(party.name)}</span>
+        ${on ? CHECK : ""}${logo(party.logo_url)}${party.abbreviation ? `<strong>${escape(party.abbreviation)}</strong>` : ""}<span>${escape(party.name)}</span>
       </button>`;
     }).join("");
   }
@@ -158,7 +159,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   function regionChips() {
     return state.regions.map((region) => {
       const on = state.region && String(state.region.id) === String(region.id);
-      return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-region="${escape(region.id)}" aria-pressed="${on}">${escape(region.name)}</button>`;
+      return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-region="${escape(region.id)}" aria-pressed="${on}">${logo(region.logo_url, 22)}${escape(region.name)}</button>`;
     }).join("");
   }
 
@@ -169,7 +170,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       : !list.length ? `<p class="ob-sub">Nessuna provincia disponibile per questa regione.</p>`
       : list.map((item) => {
         const on = state.province?.code === item.abbreviation;
-        return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-province="${escape(item.abbreviation)}" data-province-name="${escape(item.name)}" aria-pressed="${on}">${escape(item.name)} <small>${escape(item.abbreviation)}</small></button>`;
+        return `<button type="button" class="ob-chip${on ? " is-on" : ""}" data-province="${escape(item.abbreviation)}" data-province-name="${escape(item.name)}" aria-pressed="${on}">${logo(item.logo_url, 22)}${escape(item.name)} <small>${escape(item.abbreviation)}</small></button>`;
       }).join("");
     return `<h2 class="ob-label">Provincia</h2><div class="ob-chips is-compact" role="group" aria-label="Provincia">${chips}</div>`;
   }
@@ -190,10 +191,10 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
         <section class="ob-stat" style="--i:1">
           <p class="ob-stat-num">${parties.length}</p>
           <p class="ob-stat-label">${parties.length === 1 ? "partito" : "partiti"}</p>
-          ${parties.length ? `<p class="ob-stat-names">${parties.map((party) => escape(party.abbreviation || party.name)).join(" · ")}</p>` : `<p class="ob-stat-names">Nessuno: li aggiungi quando vuoi.</p>`}
+          ${parties.length ? `<p class="ob-stat-names ob-stat-parties">${parties.map((party) => `<span>${logo(party.logo_url, 24)}${escape(party.abbreviation || party.name)}</span>`).join("")}</p>` : `<p class="ob-stat-names">Nessuno: li aggiungi quando vuoi.</p>`}
         </section>
         <section class="ob-stat" style="--i:2">
-          <p class="ob-stat-label">La tua zona</p>
+          <p class="ob-stat-label">${logo(state.province?.logo_url || state.region?.logo_url, 36)}La tua zona</p>
           <p class="ob-stat-place">${escape(state.province?.name || "")}</p>
           <p class="ob-stat-names">${escape(state.region?.name || "")}</p>
         </section>
@@ -212,13 +213,15 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     },
     parties: async () => {
       if (state.partyList !== null) return;
-      const payload = await api.listParties();
-      state.partyList = payload.items.map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null }));
+      const payload = await api.listParties({ all: true });
+      state.partyList = payload.items
+        .map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null }))
+        .sort((a, b) => a.name.localeCompare(b.name, "it"));
     },
     zone: async () => {
       if (state.regions === null) {
         const payload = await api.listRegions();
-        state.regions = payload.items.map((item) => ({ id: item.id, name: item.name })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+        state.regions = payload.items.map((item) => ({ id: item.id, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it"));
       }
       if (state.region) await loadProvinces(state.region.id);
     },
@@ -226,7 +229,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   async function loadProvinces(regionId) {
     if (state.provinces.has(String(regionId))) return;
     const payload = await api.listProvinces(regionId);
-    state.provinces.set(String(regionId), payload.items.map((item) => ({ abbreviation: item.abbreviation, name: item.name })).sort((a, b) => a.name.localeCompare(b.name, "it")));
+    state.provinces.set(String(regionId), payload.items.map((item) => ({ abbreviation: item.abbreviation, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it")));
   }
 
   // ---------------------------------------------------------------- render
@@ -302,7 +305,9 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     }
     const province = target?.closest("[data-province]");
     if (province) {
-      state.province = { code: province.dataset.province, name: province.dataset.provinceName };
+      const list = state.provinces.get(String(state.region.id)) || [];
+      const picked = list.find((item) => item.abbreviation === province.dataset.province);
+      state.province = { code: province.dataset.province, name: province.dataset.provinceName, logo_url: picked?.logo_url || null };
       refresh("zone");
     }
   });
@@ -313,7 +318,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       onDone({
         member: { name: state.name.trim(), since: initial.member?.since || new Date().toISOString().slice(0, 10) },
         favorites: [...state.politicians.values()].map((item) => ({ id: String(item.id), name: item.name })),
-        parties: [...state.parties.values()].map((item) => ({ id: Number(item.id), name: item.name, abbreviation: item.abbreviation || null })),
+        parties: [...state.parties.values()].map((item) => ({ id: Number(item.id), name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null })),
         zone: {
           region_id: Number(state.region.id),
           region_name: state.region.name,

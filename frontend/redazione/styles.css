@@ -282,3 +282,25 @@ body { overflow-wrap: break-word; }
 .party-chip.is-auto { background: var(--color-accent-strong); border-color: var(--color-accent-strong); cursor: default; }
 .party-chip:focus-within { outline: 3px solid var(--color-accent-light); }
 .party-full { font-weight: 400; opacity: .8; }
+
+/* Partiti e territori: logos and coats of arms. */
+.filter-link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--color-control-border); border-radius: 999px; background: #fff; color: var(--color-text); font: 600 .875rem var(--font-body); text-decoration: none; }
+.filter-link[aria-current="page"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.filter-link .count { min-width: 22px; padding: 0 6px; border-radius: 11px; background: rgba(15, 39, 71, .08); font-size: .75rem; text-align: center; }
+.filter-link[aria-current="page"] .count { background: rgba(255, 255, 255, .2); }
+.notice { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; background: var(--color-accent-light, #DCEBE5); }
+.new-party { margin-bottom: 16px; }
+.new-party summary { cursor: pointer; }
+.symbol-search { max-width: 360px; margin-bottom: 12px; }
+.symbol-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.symbol-list li { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 12px; background: #fff; }
+.symbol-list li.empty { display: block; }
+.symbol-text p { margin: 2px 0 0; }
+.symbol-thumb { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid var(--color-border); }
+.symbol-thumb.is-empty { background: var(--color-background); color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
+.symbol-stage { display: grid; place-items: center; }
+.symbol-stage canvas { width: 160px; height: 160px; border-radius: 12px; background: repeating-conic-gradient(#f1f4f3 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+.symbol-preview { display: flex; align-items: center; gap: 14px; }
+.symbol-preview img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 10px; background: #fff; }
+@media (max-width: 600px) { .symbol-list li { grid-template-columns: 40px 1fr; } .symbol-list li .button { grid-column: 1 / -1; } }
+[hidden] { display: none !important; }

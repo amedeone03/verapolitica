@@ -23,6 +23,7 @@ EXPECTED_TABLES = frozenset(
         "editorial_log_entries",
         "editorial_change_requests",
         "editorial_images",
+        "editorial_symbols",
         "raw_documents",
         "politicians",
         "politician_source_identifiers",

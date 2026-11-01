@@ -130,3 +130,6 @@
 .vp-pill, .vp-outline, .vp-icon-button, .vp-more { transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease; }
 .vp-pill:active, .vp-outline:active, .vp-icon-button:active { transform: scale(.96); }
 @media (prefers-reduced-motion: reduce) { .vp-pill:active, .vp-outline:active, .vp-icon-button:active { transform: none; } }
+
+.vp-logo { flex: none; width: 16px; height: 16px; margin-right: 5px; object-fit: contain; vertical-align: -3px; border-radius: 3px; }
+.vp-parties li { display: inline-flex; align-items: center; }

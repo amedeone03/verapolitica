@@ -993,3 +993,9 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .demo-notice a { color: #fff; font-weight: 800; }
 @media (min-width: 900px) { .demo-notice { bottom: 24px; } }
 @media (prefers-reduced-motion: reduce) { .demo-notice { transition: none; } }
+.ob-logo { flex: none; width: 28px; height: 28px; object-fit: contain; border-radius: 6px; background: #fff; padding: 2px; }
+.ob-chips.is-compact .ob-logo { width: 22px; height: 22px; }
+.ob-stat-parties { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.ob-stat-parties span { display: inline-flex; align-items: center; gap: 6px; }
+.ob-stat-label .ob-logo { width: 36px; height: 36px; margin-right: 10px; vertical-align: middle; }
+.topic-chip .vp-logo { margin-right: 4px; }

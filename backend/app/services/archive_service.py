@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from backend.app.services import symbols
 from backend.app.models import (
     ERA_LABELS,
     Chamber,
@@ -375,6 +376,7 @@ class ArchiveService:
             if region_id is not None:
                 query = query.where(Municipality.region_id == region_id)
             regions = {row.id: row.canonical_name for row in session.scalars(select(Region))}
+            logos = symbols.logo_urls(session, "province")
             items = tuple(
                 PublicProvince(
                     abbreviation=abbreviation,
@@ -382,6 +384,7 @@ class ArchiveService:
                     region_id=parent,
                     region_name=regions.get(parent, ""),
                     municipalities=count,
+                    logo_url=logos.get(abbreviation),
                 )
                 for abbreviation, name, parent, count in session.execute(query)
             )

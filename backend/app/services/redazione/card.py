@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.models import EditorialImage, PoliticalParty, PoliticalPartyAffiliation, Politician
+from backend.app.services import symbols
 from backend.app.services.reference_profile_audit import is_complete_source_url
 
 CATEGORIES: dict[str, tuple[str, str]] = {
@@ -69,8 +70,13 @@ def current_parties(session: Session, politician_ids: list[int]) -> dict[int, Po
     return result
 
 
-def party_dict(party: PoliticalParty) -> dict:
-    return {"id": party.id, "name": party.canonical_name, "abbreviation": party.abbreviation}
+def party_dict(party: PoliticalParty, logos: dict[str, str] | None = None) -> dict:
+    return {
+        "id": party.id,
+        "name": party.canonical_name,
+        "abbreviation": party.abbreviation,
+        "logo_url": (logos or {}).get(str(party.id)),
+    }
 
 
 def _text(value: Any, limit: int) -> str:
@@ -194,7 +200,8 @@ def public(card: dict | None, session: Session, *, portrait_ids: frozenset[int] 
         if person["party_id"] and person["party_id"] not in party_ids:
             party_ids.append(person["party_id"])
     parties_by_id = {row.id: row for row in session.scalars(select(PoliticalParty).where(PoliticalParty.id.in_(party_ids)))} if party_ids else {}
-    parties = [party_dict(parties_by_id[pid]) for pid in party_ids if pid in parties_by_id]
+    logos = symbols.logo_urls(session, "party")
+    parties = [party_dict(parties_by_id[pid], logos) for pid in party_ids if pid in parties_by_id]
     iter_data = card.get("iter")
     if iter_data:
         names_of_steps = ITER_STEPS[iter_data["first"]]
