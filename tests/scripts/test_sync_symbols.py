@@ -124,3 +124,27 @@ def test_parties_in_parliament_become_proposals(tmp_path):
     assert sync_symbols.propose_parties(service, get).proposed == []
     assert [item["name"] for item in service.symbols()["party"]] == ["Partito Esempio"]
     engine.dispose()
+
+
+def test_http_get_waits_on_rate_limit(monkeypatch):
+    import io
+    import urllib.error
+
+    calls, waits = [], []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def fake_urlopen(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {"Retry-After": "2"}, None)
+        return Response(b"{}")
+
+    monkeypatch.setattr(sync_symbols.urllib.request, "urlopen", fake_urlopen)
+    assert sync_symbols.http_get(sync_symbols.WIKIDATA_SPARQL + "?q", sleep=waits.append) == b"{}"
+    assert waits == [2, 2] and len(calls) == 3

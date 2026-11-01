@@ -24,7 +24,9 @@ import html
 import json
 import re
 import sys
+import time
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
@@ -92,10 +94,22 @@ FREE_LICENSES = (
 Getter = Callable[[str], bytes]
 
 
-def http_get(url: str) -> bytes:
+def http_get(url: str, *, attempts: int = 6, sleep: Callable[[float], None] = time.sleep) -> bytes:
+    """GET with a polite retry: the Wikidata query service may answer 429 (rate limit)."""
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json, image/*"})
-    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 — fixed https hosts
-        return response.read(MAX_BYTES + 1)
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 — fixed https hosts
+                return response.read(MAX_BYTES * 20 if url.startswith(WIKIDATA_SPARQL) else MAX_BYTES + 1)
+        except urllib.error.HTTPError as error:
+            if error.code not in (429, 503) or attempt == attempts - 1:
+                raise
+            wait = error.headers.get("Retry-After") if error.headers else None
+            seconds = int(wait) if wait and wait.isdigit() else 65
+            print(f"  Wikidata chiede di rallentare: riprovo tra {seconds} s…", flush=True)
+            sleep(min(seconds, 300))
+    raise OSError("unreachable")
 
 
 def fold(value: str) -> str:
