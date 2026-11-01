@@ -245,7 +245,7 @@ class FeedService:
                     PoliticalPartyAffiliation.end_date.is_(None),
                 )
             ):
-                parties.setdefault(affiliation.politician_id, party.abbreviation or party.name)
+                parties.setdefault(affiliation.politician_id, party.abbreviation or party.canonical_name)
         roles = {
             ProposalActorRole.PROPOSER, ProposalActorRole.SPONSOR, ProposalActorRole.GOVERNMENT,
             ProposalActorRole.COMMITMENT_OWNER, ProposalActorRole.CO_SPONSOR,

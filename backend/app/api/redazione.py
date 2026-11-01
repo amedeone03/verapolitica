@@ -219,6 +219,12 @@ def upload_image(member: Member, service: Service, payload: Annotated[dict, Body
     return _run(service.upload_image, payload, member=member)
 
 
+@router.get("/partiti")
+def parties(member: Member, service: Service) -> Any:
+    del member
+    return _run(service.list_parties)
+
+
 @router.get("/card")
 def card_options(member: Member) -> dict:
     del member

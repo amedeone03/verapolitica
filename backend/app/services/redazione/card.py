@@ -5,7 +5,8 @@ the public feed and in the console preview:
 
     [category band]          e.g. DISEGNO DI LEGGE (navy), REFERENDUM (red)
     [badge · date]   [aside] e.g. "Nuova pubblicazione · 30 ott", "Aperto il …"
-    (o) Name   (o) Name      round image, name, party or role (up to three)
+    (o) Name   (o) Name      politicians with a profile: round image, name, party
+    [PD] [M5S]               parties involved (chosen, plus the people's parties)
     Institution              e.g. "Ministero delle Infrastrutture e dei Trasporti"
     Title / summary          the post title and "sommario"
     [iter strip]             optional: four steps, current step, status text
@@ -21,7 +22,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.app.models import EditorialImage, Politician
+from backend.app.models import EditorialImage, PoliticalParty, PoliticalPartyAffiliation, Politician
 from backend.app.services.reference_profile_audit import is_complete_source_url
 
 CATEGORIES: dict[str, tuple[str, str]] = {
@@ -46,6 +47,30 @@ ITER_STEPS = {
 }
 ITER_STATES = ("in_corso", "fermo", "concluso")
 MAX_PEOPLE = 3
+MAX_PARTIES = 6
+
+
+def current_parties(session: Session, politician_ids: list[int]) -> dict[int, PoliticalParty]:
+    """Each politician's current party (affiliation without an end date)."""
+
+    if not politician_ids:
+        return {}
+    result: dict[int, PoliticalParty] = {}
+    for affiliation, party in session.execute(
+        select(PoliticalPartyAffiliation, PoliticalParty)
+        .join(PoliticalParty, PoliticalParty.id == PoliticalPartyAffiliation.political_party_id)
+        .where(
+            PoliticalPartyAffiliation.politician_id.in_(politician_ids),
+            PoliticalPartyAffiliation.end_date.is_(None),
+        )
+        .order_by(PoliticalPartyAffiliation.start_date.desc())
+    ):
+        result.setdefault(affiliation.politician_id, party)
+    return result
+
+
+def party_dict(party: PoliticalParty) -> dict:
+    return {"id": party.id, "name": party.canonical_name, "abbreviation": party.abbreviation}
 
 
 def _text(value: Any, limit: int) -> str:
@@ -66,28 +91,34 @@ def sanitize(card: dict | None, session: Session) -> dict | None:
         return None
     category = card.get("category") if card.get("category") in CATEGORIES else "notizia"
     badge = card.get("badge") or {}
+    # People are politicians with a profile: name and party come from the profile.
     people = []
-    for person in (card.get("people") or [])[:MAX_PEOPLE]:
-        name = _text(person.get("name"), 120)
+    seen: set[int] = set()
+    for person in card.get("people") or []:
         politician_id = person.get("politician_id")
         politician_id = int(politician_id) if str(politician_id or "").isdigit() else None
-        if politician_id is not None and session.get(Politician, politician_id) is None:
-            politician_id = None
+        if politician_id is None or politician_id in seen or session.get(Politician, politician_id) is None:
+            continue
         image_id = person.get("image_id")
         image_id = int(image_id) if str(image_id or "").isdigit() else None
         if image_id is not None and session.get(EditorialImage, image_id) is None:
             image_id = None
-        if not name:
-            continue
+        seen.add(politician_id)
         people.append(
             {
-                "name": name,
-                "role": _text(person.get("role"), 120) or None,
                 "politician_id": politician_id,
                 "image_id": image_id,
-                "use_portrait": bool(person.get("use_portrait")) and politician_id is not None and image_id is None,
+                "use_portrait": bool(person.get("use_portrait")) and image_id is None,
             }
         )
+        if len(people) == MAX_PEOPLE:
+            break
+    parties = []
+    for value in card.get("parties") or []:
+        party_id = int(value) if str(value or "").isdigit() else None
+        if party_id and party_id not in parties and session.get(PoliticalParty, party_id) is not None:
+            parties.append(party_id)
+    parties = parties[:MAX_PARTIES]
     iter_data = card.get("iter") or None
     if iter_data and iter_data.get("enabled", True):
         first = iter_data.get("first") if iter_data.get("first") in ITER_STEPS else "camera"
@@ -117,6 +148,7 @@ def sanitize(card: dict | None, session: Session) -> dict | None:
         },
         "aside": _text(card.get("aside"), 80) or None,
         "people": people,
+        "parties": parties,
         "institution": _text(card.get("institution"), 160) or None,
         "iter": iter_clean,
         "link": (
@@ -134,25 +166,35 @@ def public(card: dict | None, session: Session, *, portrait_ids: frozenset[int] 
         return None
     label, tone = CATEGORIES.get(card.get("category"), CATEGORIES["notizia"])
     ids = [p["politician_id"] for p in card.get("people", []) if p.get("politician_id")]
-    names = {
-        row.id: f"{row.canonical_given_name} {row.canonical_family_name}"
-        for row in session.scalars(select(Politician).where(Politician.id.in_(ids)))
-    } if ids else {}
+    politicians = {row.id: row for row in session.scalars(select(Politician).where(Politician.id.in_(ids)))} if ids else {}
+    party_of = current_parties(session, ids)
     people = []
     for person in card.get("people", []):
+        politician = politicians.get(person.get("politician_id"))
+        if politician is None:
+            continue  # cards only show politicians with a profile
         image_url = None
         if person.get("image_id"):
             image_url = f"/media/{person['image_id']}"
-        elif person.get("use_portrait") and person.get("politician_id"):
-            image_url = f"politician:{person['politician_id']}"
+        elif person.get("use_portrait"):
+            image_url = f"politician:{politician.id}"
+        party = party_of.get(politician.id)
         people.append(
             {
-                "name": person["name"] or names.get(person.get("politician_id")),
-                "role": person.get("role"),
-                "politician_id": person.get("politician_id"),
+                "name": f"{politician.canonical_given_name} {politician.canonical_family_name}",
+                "role": party.canonical_name if party else None,
+                "politician_id": politician.id,
+                "party_id": party.id if party else None,
                 "image_url": image_url,
             }
         )
+    # Parties involved: those chosen by the redazione plus the people's own parties.
+    party_ids = list(card.get("parties") or [])
+    for person in people:
+        if person["party_id"] and person["party_id"] not in party_ids:
+            party_ids.append(person["party_id"])
+    parties_by_id = {row.id: row for row in session.scalars(select(PoliticalParty).where(PoliticalParty.id.in_(party_ids)))} if party_ids else {}
+    parties = [party_dict(parties_by_id[pid]) for pid in party_ids if pid in parties_by_id]
     iter_data = card.get("iter")
     if iter_data:
         names_of_steps = ITER_STEPS[iter_data["first"]]
@@ -175,6 +217,7 @@ def public(card: dict | None, session: Session, *, portrait_ids: frozenset[int] 
         "badge": card.get("badge"),
         "aside": card.get("aside"),
         "people": people,
+        "parties": parties,
         "institution": card.get("institution"),
         "iter": iter_public,
         "link": card.get("link"),

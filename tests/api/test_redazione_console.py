@@ -16,6 +16,10 @@ from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.main import create_app
 from backend.app.models import (
     EditorialLogEntry,
+    PoliticalParty,
+    PoliticalPartyAffiliation,
+    RawDocument,
+    RawDocumentStatus,
     ImmutableEditorialLogError,
     Politician,
     PoliticianSourceIdentifier,
@@ -331,8 +335,40 @@ PNG_1x1 = (
 )
 
 
+def _party(factory, politician_id, name, abbreviation, *, current=True):
+    with factory() as session:
+        source = session.scalar(select(Source).where(Source.key == "camera-deputati"))
+        party = PoliticalParty(canonical_name=name, abbreviation=abbreviation)
+        document = RawDocument(
+            source_id=source.id, retrieved_at=NOW, source_url="https://dati.camera.it/x", content_type="text/plain",
+            storage_key=f"test/{abbreviation}", raw_sha256=abbreviation.ljust(64, "0")[:64], structured_records=[],
+            normalized_text="x", process_status=RawDocumentStatus.PARSED, collector_version="t", parser_version="t",
+        )
+        session.add_all([party, document])
+        session.flush()
+        session.add(
+            PoliticalPartyAffiliation(
+                politician_id=politician_id, political_party_id=party.id, source_id=source.id,
+                raw_document_id=document.id, identity_key=f"aff-{abbreviation}", source_url="https://dati.camera.it/x",
+                source_field="party", start_date=date(2020, 1, 1), end_date=None if current else date(2021, 1, 1),
+            )
+        )
+        session.commit()
+        return party.id
+
+
 def test_feed_card_with_round_image_reaches_the_timeline(console):
-    client, politician_id, _ = console
+    client, politician_id, factory = console
+    own_party = _party(factory, politician_id, "Partito Esempio", "PE")
+    other_party = client.get("/redazione/api/partiti", headers=ANNA).json()
+    assert [p["abbreviation"] for p in other_party] == ["PE"]
+    with factory() as session:
+        extra = PoliticalParty(canonical_name="Altro Partito", abbreviation="AP")
+        session.add(extra)
+        session.commit()
+        extra_party = extra.id
+    found = client.get("/redazione/api/politici?q=esempio", headers=ANNA).json()
+    assert found[0]["party"] == {"id": own_party, "name": "Partito Esempio", "abbreviation": "PE"}
     assert client.post("/redazione/api/immagini", headers=ANNA, json={"data": "data:text/plain;base64,aGVsbG8="}).status_code == 422
     image = client.post("/redazione/api/immagini", headers=ANNA, json={"data": PNG_1x1, "credit": "Camera dei deputati", "alt": "Mario Esempio"})
     assert image.status_code == 200, image.text
@@ -363,19 +399,22 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
             "badge": {"label": "Nuova pubblicazione", "tone": "navy", "date": "2026-10-30"},
             "aside": "Aperto il 5 novembre 2025",
             "institution": "Ministero delle Infrastrutture e dei Trasporti",
+            # Only politicians with a profile: free names are dropped, duplicates too.
             "people": [
-                {"name": "Mario Esempio", "role": "Partito Esempio", "politician_id": politician_id, "image_id": image_id},
-                {"name": "Persona Senza Foto", "role": "Ruolo", "image_id": 999999},
-                {"name": "Terza"}, {"name": "Quarta, scartata"},
+                {"name": "Nome scritto a mano", "politician_id": politician_id, "image_id": image_id},
+                {"name": "Persona di esempio", "role": "Ruolo"},
+                {"politician_id": politician_id},
+                {"politician_id": 999999},
             ],
+            "parties": [extra_party, 999999],
             "iter": {"first": "camera", "current": 2, "state": "in_corso", "status": "Esame in commissione · Senato", "since": "2025-11-05"},
             "link": {"label": "Leggi su senato.it", "url": "https://www.senato.it/leg/19/BGT/Schede/Ddliter/60001.htm"},
             "unknown": "ignored",
         },
     }
     post = client.post("/redazione/api/notizie", headers=ANNA, json=payload).json()
-    assert post["card"]["people"][1]["image_id"] is None  # unknown image dropped
-    assert len(post["card"]["people"]) == 3
+    assert post["card"]["people"] == [{"politician_id": politician_id, "image_id": image_id, "use_portrait": False}]
+    assert post["card"]["parties"] == [extra_party]
     assert "unknown" not in post["card"]
     assert [step["state"] for step in post["card_public"]["iter"]["steps"]] == ["done", "current", "todo", "todo"]
     assert post["card_public"]["iter"]["steps"][1]["label"] == "Senato"
@@ -387,7 +426,10 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     assert [item["kind"] for item in timeline] == ["editorial"]
     card = timeline[0]["card"]
     assert card["composed"] and card["tone"] == "navy" and card["category_label"] == "Disegno di legge del Governo"
-    assert card["people"][0] == {"name": "Mario Esempio", "role": "Partito Esempio", "politician_id": politician_id, "image_url": f"/media/{image_id}"}
+    assert card["people"] == [
+        {"name": "Mario Esempio", "role": "Partito Esempio", "politician_id": politician_id, "party_id": own_party, "image_url": f"/media/{image_id}"}
+    ]
+    assert [party["abbreviation"] for party in card["parties"]] == ["AP", "PE"]
     assert card["badge"] == {"label": "Nuova pubblicazione", "tone": "navy", "date": "2026-10-30"}
     assert card["link"]["url"].startswith("https://www.senato.it/")
     profile = client.get(f"/politicians/{politician_id}").json()

@@ -707,7 +707,8 @@ async function showNewsEditor(postId) {
   if (!state.portraits) {
     try { state.portraits = await fetch("/portraits").then((r) => (r.ok ? r.json() : {})); } catch { state.portraits = {}; }
   }
-  const composer = createCardComposer(post.card);
+  state.parties = state.parties || await api("/partiti");
+  const composer = createCardComposer(post.card, post.card_public);
   const editable = post.status === "pending" || !postId;
   const b = post.blocks || {};
   const blocks = state.rules.news_blocks;
@@ -831,15 +832,22 @@ async function showNewsEditor(postId) {
 const BADGE_TONE_LABELS = { plain: "Solo testo", navy: "Blu", green: "Verde", red: "Rosso" };
 const ITER_STATE_LABELS = { in_corso: "In corso", fermo: "Fermo", concluso: "Concluso" };
 
-function createCardComposer(initial) {
+function createCardComposer(initial, initialPublic) {
   const opts = state.cardOptions;
   const today = new Date().toISOString().slice(0, 10);
+  const publicPeople = new Map((initialPublic?.people || []).map((p) => [p.politician_id, p]));
   const c = {
     category: initial?.category || "notizia",
     badge: { label: initial?.badge?.label || "Nuova pubblicazione", tone: initial?.badge?.tone || "navy", date: initial?.badge?.date || today },
     aside: initial?.aside || "",
     institution: initial?.institution || "",
-    people: (initial?.people || []).map((p) => ({ ...p, image_url: p.image_id ? `/media/${p.image_id}` : null })),
+    // Only politicians with a profile: name and party come from the profile.
+    people: (initial?.people || []).filter((p) => p.politician_id && publicPeople.has(p.politician_id)).map((p) => {
+      const known = publicPeople.get(p.politician_id);
+      const party = (state.parties || []).find((x) => x.id === known.party_id) || (known.role ? { id: known.party_id, name: known.role } : null);
+      return { politician_id: p.politician_id, name: known.name, party, image_id: p.image_id || null, image_url: p.image_id ? `/media/${p.image_id}` : null, use_portrait: Boolean(p.use_portrait) };
+    }),
+    parties: [...(initial?.parties || [])],
     iter: initial?.iter ? { ...initial.iter, enabled: true } : { enabled: false, first: "camera", current: 1, state: "in_corso", status: "", since_label: "Presentato il", since: "" },
     link: initial?.link || { label: "", url: "" },
   };
@@ -847,26 +855,33 @@ function createCardComposer(initial) {
   let onChange = () => {};
 
   const personRow = (p, index) => `<div class="person-row" data-person="${index}">
-      <button type="button" class="avatar-pick" data-pick-photo="${index}" aria-label="Carica la foto di ${esc(p.name || "questa persona")}">
-        <span class="avatar-circle">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" />` : p.use_portrait && portraitFor(p.politician_id) ? `<img src="${esc(portraitFor(p.politician_id))}" alt="" />` : `<span>${esc(initialsOf(p.name) || "+")}</span>`}</span>
+      <button type="button" class="avatar-pick" data-pick-photo="${index}" aria-label="Carica la foto di ${esc(p.name)}">
+        <span class="avatar-circle">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" />` : p.use_portrait && portraitFor(p.politician_id) ? `<img src="${esc(portraitFor(p.politician_id))}" alt="" />` : `<span>${esc(initialsOf(p.name))}</span>`}</span>
         <span class="avatar-label">${p.image_url || (p.use_portrait && portraitFor(p.politician_id)) ? "Cambia foto" : "Carica foto"}</span>
       </button>
       <input type="file" accept="image/jpeg,image/png,image/webp" data-photo-input="${index}" hidden />
       <div class="person-fields">
-        <div class="field-row">
-          <div class="field"><label for="pn-${index}">Nome</label><input id="pn-${index}" type="text" data-p="name" value="${esc(p.name || "")}" /></div>
-          <div class="field"><label for="pr-${index}">Partito o ruolo</label><input id="pr-${index}" type="text" data-p="role" value="${esc(p.role || "")}" placeholder="Es. Partito Democratico" /></div>
-        </div>
-        <div class="actions" style="margin-top:0">
-          <input type="search" data-p-search placeholder="Collega a un profilo (cerca per cognome)" aria-label="Cerca un politico da collegare" style="flex:1 1 200px" />
-          <button type="button" class="button button-secondary" data-p-link="${index}">Collega</button>
-          ${p.politician_id ? `<span class="chip chip-published">Profilo collegato</span>` : ""}
-          ${p.politician_id && portraitFor(p.politician_id) && !p.image_url ? `<label class="check small"><input type="checkbox" data-p="use_portrait"${p.use_portrait ? " checked" : ""} />Usa la foto del profilo</label>` : ""}
+        <p class="person-name"><strong>${esc(p.name)}</strong> <a class="small" href="#/politici/${p.politician_id}">scheda</a></p>
+        <p class="person-party">${p.party ? `${esc(p.party.name)}${p.party.abbreviation ? ` (${esc(p.party.abbreviation)})` : ""}` : `<span class="muted">Partito non indicato nel profilo</span>`}</p>
+        <div class="actions" style="margin-top:4px">
+          ${portraitFor(p.politician_id) && !p.image_url ? `<label class="check small"><input type="checkbox" data-p="use_portrait"${p.use_portrait ? " checked" : ""} />Usa la foto del profilo</label>` : ""}
           ${p.image_url ? `<button type="button" class="button-link" data-remove-photo="${index}">Togli foto</button>` : ""}
-          <button type="button" class="button-link" data-remove-person="${index}">Rimuovi persona</button>
+          <button type="button" class="button-link" data-remove-person="${index}">Rimuovi</button>
         </div>
       </div>
     </div>`;
+
+  const peopleParties = () => new Set(c.people.map((p) => p.party?.id).filter(Boolean));
+  const partyChips = () => {
+    const auto = peopleParties();
+    const list = state.parties || [];
+    if (!list.length) return `<p class="muted small">Nessun partito nell'archivio.</p>`;
+    return list.map((party) => {
+      const fromPerson = auto.has(party.id);
+      const checked = fromPerson || c.parties.includes(party.id);
+      return `<label class="party-chip${checked ? " is-on" : ""}${fromPerson ? " is-auto" : ""}"><input type="checkbox" value="${party.id}" data-party${checked ? " checked" : ""}${fromPerson ? " disabled" : ""} />${esc(party.abbreviation || party.name)}${party.abbreviation ? `<span class="party-full">${esc(party.name)}</span>` : ""}</label>`;
+    }).join("");
+  };
 
   const stepOptions = () => opts.iter_steps[c.iter.first].map((label, i) => [String(i + 1), `${i + 1}. ${label}`]);
 
@@ -882,10 +897,18 @@ function createCardComposer(initial) {
         <div class="field"><label for="c-aside">Testo a destra <span class="hint">Facoltativo. Es. «Aperto il 1 aprile 2026».</span></label><input id="c-aside" type="text" data-c="aside" value="${esc(c.aside)}" /></div>
         <div class="field"><label for="c-inst">Ente o istituzione <span class="hint">Es. «Ministero delle Infrastrutture e dei Trasporti»</span></label><input id="c-inst" type="text" data-c="institution" value="${esc(c.institution)}" /></div>
       </div>
-      <fieldset><legend>Persone · foto rotonda accanto al nome</legend>
+      <fieldset><legend>Politici coinvolti · foto rotonda accanto al nome</legend>
         <div id="people-rows">${c.people.map(personRow).join("")}</div>
-        <button type="button" class="button button-secondary" id="add-person"${c.people.length >= opts.max_people ? " disabled" : ""}>+ Aggiungi persona</button>
-        <p class="hint" style="margin-top:6px">Tocca il cerchio per caricare una foto: la ritagli in tondo qui, poi viene salvata piccola (320×320).</p>
+        <div class="politician-picker">
+          <label for="pp-q">Aggiungi un politico <span class="hint">Solo profili presenti in archivio: nome e partito arrivano dalla scheda. Fino a ${opts.max_people}.</span></label>
+          <input id="pp-q" type="search" placeholder="Cerca per nome o cognome" autocomplete="off" aria-controls="pp-results"${c.people.length >= opts.max_people ? " disabled" : ""} />
+          <ul id="pp-results" class="pp-results" role="listbox" aria-label="Politici trovati" hidden></ul>
+        </div>
+        <p class="hint" style="margin-top:6px">Tocca il cerchio per caricare una foto: la ritagli in tondo qui, poi viene salvata piccola (320×320). Oppure usa la foto del profilo, se c'è.</p>
+      </fieldset>
+      <fieldset><legend>Partiti coinvolti</legend>
+        <div class="party-chips" id="party-chips">${partyChips()}</div>
+        <p class="hint" style="margin-top:6px">I partiti dei politici scelti sono inclusi in automatico. Aggiungi gli altri partiti che c'entrano con la notizia.</p>
       </fieldset>
       <fieldset><legend><label class="check"><input type="checkbox" data-c="iter.enabled"${c.iter.enabled ? " checked" : ""} />Mostra l'iter (per leggi e decreti)</label></legend>
         <div class="iter-fields"${c.iter.enabled ? "" : " hidden"}>
@@ -914,8 +937,26 @@ function createCardComposer(initial) {
   };
   const redrawPeople = () => {
     root.querySelector("#people-rows").innerHTML = c.people.map(personRow).join("");
-    root.querySelector("#add-person").disabled = c.people.length >= opts.max_people;
+    root.querySelector("#pp-q").disabled = c.people.length >= opts.max_people;
+    root.querySelector("#party-chips").innerHTML = partyChips();
     onChange();
+  };
+  let searchTimer;
+  const searchPoliticians = () => {
+    clearTimeout(searchTimer);
+    const input = root.querySelector("#pp-q");
+    const list = root.querySelector("#pp-results");
+    const query = input.value.trim();
+    if (query.length < 2) { list.hidden = true; return; }
+    searchTimer = setTimeout(async () => {
+      const found = await api(`/politici?q=${encodeURIComponent(query)}&limit=8`);
+      const taken = new Set(c.people.map((p) => p.politician_id));
+      list.innerHTML = found.length
+        ? found.map((p) => `<li><button type="button" role="option" data-pick-politician="${p.id}"${taken.has(p.id) ? " disabled" : ""}><span class="avatar-mini">${portraitFor(p.id) ? `<img src="${esc(portraitFor(p.id))}" alt="" />` : esc(initialsOf(p.name))}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.party ? p.party.name : "Partito non indicato")}</small></span></button></li>`).join("")
+        : `<li class="muted small" style="padding:8px 12px">Nessun profilo trovato.</li>`;
+      list.hidden = false;
+      list._found = found;
+    }, 250);
   };
 
   const bind = (form, changed) => {
@@ -933,14 +974,27 @@ function createCardComposer(initial) {
         c.people[Number(row.dataset.person)][el.dataset.p] = el.type === "checkbox" ? el.checked : el.value;
         if (el.dataset.p === "use_portrait") redrawPeople();
       }
+      if (el.id === "pp-q") searchPoliticians();
+      if (el.matches("[data-party]")) {
+        const id = Number(el.value);
+        c.parties = el.checked ? [...new Set([...c.parties, id])] : c.parties.filter((x) => x !== id);
+        el.closest(".party-chip").classList.toggle("is-on", el.checked);
+      }
     });
     root.addEventListener("click", async (event) => {
       const el = event.target instanceof Element ? event.target : null;
       if (!el) return;
-      if (el.closest("#add-person")) {
-        c.people.push({ name: "", role: "", politician_id: null, image_id: null, image_url: null, use_portrait: false });
+      const pickPolitician = el.closest("[data-pick-politician]");
+      if (pickPolitician) {
+        const list = root.querySelector("#pp-results");
+        const found = (list._found || []).find((p) => p.id === Number(pickPolitician.dataset.pickPolitician));
+        if (found && c.people.length < opts.max_people && !c.people.some((p) => p.politician_id === found.id)) {
+          c.people.push({ politician_id: found.id, name: found.name, party: found.party, image_id: null, image_url: null, use_portrait: Boolean(portraitFor(found.id)) });
+        }
+        list.hidden = true;
+        root.querySelector("#pp-q").value = "";
         redrawPeople();
-        root.querySelector(`#pn-${c.people.length - 1}`)?.focus();
+        return;
       }
       const remove = el.closest("[data-remove-person]");
       if (remove) { c.people.splice(Number(remove.dataset.removePerson), 1); redrawPeople(); }
@@ -948,22 +1002,6 @@ function createCardComposer(initial) {
       if (removePhoto) { Object.assign(c.people[Number(removePhoto.dataset.removePhoto)], { image_id: null, image_url: null }); redrawPeople(); }
       const pick = el.closest("[data-pick-photo]");
       if (pick) root.querySelector(`[data-photo-input="${pick.dataset.pickPhoto}"]`).click();
-      const link = el.closest("[data-p-link]");
-      if (link) {
-        const index = Number(link.dataset.pLink);
-        const query = link.parentElement.querySelector("[data-p-search]").value.trim() || c.people[index].name;
-        if (!query) return toast("Scrivi un nome da cercare.", true);
-        const found = await api(`/politici?q=${encodeURIComponent(query)}&limit=1`);
-        if (!found.length) return toast("Nessun profilo con questo nome.", true);
-        const scheda = await api(`/politici/${found[0].id}`);
-        Object.assign(c.people[index], {
-          politician_id: found[0].id,
-          name: c.people[index].name || found[0].name,
-          role: c.people[index].role || scheda.scheda_rapida.party || "",
-          use_portrait: !c.people[index].image_url && Boolean(portraitFor(found[0].id)),
-        });
-        redrawPeople();
-      }
     });
     root.addEventListener("change", async (event) => {
       const input = event.target.closest?.("[data-photo-input]");
@@ -986,7 +1024,8 @@ function createCardComposer(initial) {
     badge: { ...c.badge },
     aside: c.aside,
     institution: c.institution,
-    people: c.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name, role: p.role, politician_id: p.politician_id, image_id: p.image_id, use_portrait: p.use_portrait })),
+    people: c.people.map((p) => ({ politician_id: p.politician_id, image_id: p.image_id, use_portrait: p.use_portrait })),
+    parties: c.parties.filter((id) => !peopleParties().has(id)),
     iter: c.iter.enabled ? { ...c.iter, current: Number(c.iter.current) } : null,
     link: c.link.url ? { ...c.link } : null,
   });
@@ -1013,7 +1052,11 @@ function createCardComposer(initial) {
       badge: { ...c.badge },
       aside: c.aside || null,
       institution: c.institution || null,
-      people: c.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name, role: p.role, politician_id: p.politician_id, image_url: p.image_url || (p.use_portrait && p.politician_id ? `politician:${p.politician_id}` : null) })),
+      people: c.people.map((p) => ({ name: p.name, role: p.party?.name || null, politician_id: p.politician_id, image_url: p.image_url || (p.use_portrait ? `politician:${p.politician_id}` : null) })),
+      parties: (() => {
+        const ids = [...c.parties, ...[...peopleParties()].filter((id) => !c.parties.includes(id))];
+        return ids.map((id) => (state.parties || []).find((x) => x.id === id)).filter(Boolean);
+      })(),
       iter,
       link: c.link.url ? { label: c.link.label || "Leggi la fonte", url: c.link.url } : null,
     };

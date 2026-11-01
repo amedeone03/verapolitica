@@ -46,6 +46,7 @@ from backend.app.models import (
     PledgeAssessmentDraftStatus,
     PledgeAssessmentOrigin,
     PledgeClassification,
+    PoliticalParty,
     Politician,
     PoliticianSourceIdentifier,
     PoliticianVersion,
@@ -361,10 +362,12 @@ class RedazioneService:
                 statement.order_by(Politician.canonical_family_name, Politician.canonical_given_name).limit(limit)
             ).all()
             pending = self._pending_by_politician(session)
+            parties = card_module.current_parties(session, [row.id for row in rows])
             return [
                 {
                     "id": row.id,
                     "name": f"{row.canonical_given_name} {row.canonical_family_name}",
+                    "party": card_module.party_dict(parties[row.id]) if row.id in parties else None,
                     "birth_date": _iso(row.birth_date),
                     "public": row.current_version_id is not None,
                     "pending": pending.get(row.id, 0),
@@ -1381,6 +1384,13 @@ class RedazioneService:
                     {"id": post.id, "title": post.title, "status": post.status.value, "published_at": _iso(post.published_at)}
                 )
         return result
+
+    def list_parties(self) -> list[dict]:
+        with self.session_factory() as session:
+            return [
+                card_module.party_dict(row)
+                for row in session.scalars(select(PoliticalParty).order_by(PoliticalParty.canonical_name))
+            ]
 
     # ---------------------------------------------------------------- images
     IMAGE_TYPES = {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "image/webp"}

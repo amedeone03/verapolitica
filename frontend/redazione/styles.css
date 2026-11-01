@@ -262,3 +262,23 @@ body { overflow-wrap: break-word; }
 .crop-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at center, transparent 139px, rgba(15, 39, 71, .6) 140px); }
 .crop-stage { overflow: hidden; border-radius: var(--radius-md); }
 @media (max-width: 600px) { .person-row { grid-template-columns: 1fr; } }
+
+/* Politician picker and party chips */
+.person-name { margin: 6px 0 0; font-size: 1rem; }
+.person-party { margin: 2px 0 0; color: var(--color-text-muted); font-size: .875rem; }
+.politician-picker { position: relative; margin-top: 12px; }
+.pp-results { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 4px; list-style: none; background: #fff; border: 1px solid var(--color-control-border); border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(15, 39, 71, .15); max-height: 320px; overflow: auto; }
+.pp-results button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; font: inherit; cursor: pointer; }
+.pp-results button:hover, .pp-results button:focus-visible { background: var(--color-accent-light); }
+.pp-results button[disabled] { opacity: .45; cursor: default; }
+.pp-results strong { display: block; color: var(--color-primary); }
+.pp-results small { color: var(--color-text-muted); }
+.avatar-mini { display: grid; place-items: center; flex: none; width: 34px; height: 34px; overflow: hidden; border-radius: 50%; border: 2px solid var(--color-secondary); background: var(--color-accent-light); color: var(--color-primary); font-size: .75rem; font-weight: 700; }
+.avatar-mini img { width: 100%; height: 100%; object-fit: cover; }
+.party-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 220px; overflow: auto; }
+.party-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 0; padding: 0 12px; border: 1px solid var(--color-control-border); border-radius: 999px; background: #fff; font-size: .8125rem; font-weight: 700; cursor: pointer; }
+.party-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.party-chip.is-on { background: var(--color-secondary); border-color: var(--color-secondary); color: #fff; }
+.party-chip.is-auto { background: var(--color-accent-strong); border-color: var(--color-accent-strong); cursor: default; }
+.party-chip:focus-within { outline: 3px solid var(--color-accent-light); }
+.party-full { font-weight: 400; opacity: .8; }

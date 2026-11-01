@@ -42,7 +42,8 @@ first, one card each. The editor composes the card in the news editor
 | Coloured band | Tipo: Notizia, Disegno di legge del Governo, Proposta di legge, Decreto-legge, Votazione in Aula, Interrogazione, Referendum (red), Promessa (green), Elezioni |
 | Badge · date | Etichetta (suggestions: Nuova pubblicazione, Approvato, Respinto, Scade oggi…), colour, date |
 | Text on the right | Testo a destra (e.g. «Aperto il 1 aprile 2026») |
-| People with a round photo | Up to three: name, party or role, optional link to a profile. The photo is uploaded from the computer, cropped to a circle in the console and saved as a 320×320 JPEG (max 400 KB, credit required); a linked profile can use its portrait instead |
+| Politicians with a round photo | Up to three, picked from the profiles in the archive (search by name): name and current party come from the profile, free names are not accepted. The photo is uploaded from the computer, cropped to a circle in the console and saved as a 320×320 JPEG (max 400 KB, credit required), or the profile's portrait is used |
+| Parties involved | Chips: the politicians' parties are included automatically; other parties are picked from the list |
 | Institution | Ente o istituzione |
 | Title, summary | Titolo and Sommario of block 0 |
 | Iter strip | Optional: first chamber, current step (Camera/Senato, Senato/Camera, Navetta, Gazzetta Ufficiale), state, step text, date |

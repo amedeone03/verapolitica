@@ -99,6 +99,7 @@ export function renderFeedCard(item, options = {}) {
     </div>
     <div class="vp-body">
       ${people.length ? `<ul class="vp-people">${people.map((person) => `<li>${avatar(person, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(person.name)}</a>` : `<strong>${esc(person.name)}</strong>`}${person.role ? `<small>${esc(person.role)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
+      ${(card.parties || []).length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Partiti coinvolti</li>${card.parties.map((party) => `<li title="${esc(party.name)}">${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
       ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
       <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
       ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Mostra altro</button>` : ""}` : ""}
