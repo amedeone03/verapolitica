@@ -48,8 +48,10 @@ def test_cambridge_classic_tokens_fonts_and_accessibility():
     # Self-hosted fonts only: no @import, no third-party font host.
     assert "@import" not in styles and "fonts.googleapis" not in html
     assert (APP / "fonts" / "inter-latin-var.woff2").exists()
-    assert (APP / "fonts" / "source-serif-4-latin-var.woff2").exists()
-    assert html.count('rel="preload"') == 2
+    # One family, as on House of the People: Inter for text and headings.
+    assert "Source Serif" not in styles and "source-serif" not in html
+    assert '--font-heading: "Inter"' in styles
+    assert html.count('rel="preload"') == 1
     # No glass, glow or entrance animation.
     assert "backdrop-filter" not in styles and "radial-gradient" not in styles
     assert "will-reveal" not in styles and "is-new" not in script

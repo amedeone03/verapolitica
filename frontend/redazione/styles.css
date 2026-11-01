@@ -7,13 +7,6 @@
   font-display: swap;
   src: url("/app/fonts/inter-latin-var.woff2") format("woff2");
 }
-@font-face {
-  font-family: "Source Serif 4";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("/app/fonts/source-serif-4-latin-var.woff2") format("woff2");
-}
 
 :root {
   color-scheme: light;
@@ -39,7 +32,7 @@
   --verdict-stalled: #3D4A52; --verdict-stalled-bg: #ECEFEF;
   --verdict-unrated: #526570; --verdict-unrated-bg: #F1F4F3;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-heading: "Source Serif 4", Georgia, serif;
+  --font-heading: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
   --gutter: 20px;
 }
@@ -51,7 +44,7 @@ body {
   font: 400 15px/1.55 var(--font-body);
   color: var(--color-text); background: var(--color-background);
 }
-h1, h2, h3 { font-family: var(--font-heading); color: var(--color-primary); line-height: 1.2; margin: 0; font-weight: 600; }
+h1, h2, h3 { font-family: var(--font-heading); color: var(--color-primary); line-height: 1.2; margin: 0; font-weight: 700; letter-spacing: -0.015em; }
 h1 { font-size: 1.75rem; }
 h2 { font-size: 1.3rem; }
 h3 { font-size: 1.05rem; }
@@ -70,7 +63,7 @@ code { font-size: .875em; background: var(--color-accent-light); padding: 1px 5p
   max-width: 1280px; margin: 0 auto; padding: 0 var(--gutter);
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; min-height: 64px;
 }
-.console-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-family: var(--font-heading); font-size: 1.15rem; font-weight: 600; }
+.console-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
 .console-brand img { width: 30px; height: 30px; }
 .console-brand small { font-family: var(--font-body); font-size: .8125rem; font-weight: 500; color: var(--color-accent); letter-spacing: .04em; text-transform: uppercase; }
 .console-nav { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 auto; }

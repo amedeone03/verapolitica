@@ -13,14 +13,6 @@
   src: url("./fonts/inter-latin-var.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-@font-face {
-  font-family: "Source Serif 4";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("./fonts/source-serif-4-latin-var.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
 /* Tokens ------------------------------------------------------------------ */
 :root {
@@ -64,7 +56,7 @@
   --verdict-unrated-mark: #7D8E8B;
 
   --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-heading: "Source Serif 4", Georgia, serif;
+  --font-heading: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --container-width: 1200px;
   --reading-width: 740px;
@@ -110,9 +102,9 @@ a:hover { color: var(--color-primary); }
 .icon { flex: 0 0 auto; vertical-align: -0.15em; }
 
 h1, h2, h3, h4, p, ul, ol, dl, blockquote, figure { margin-top: 0; }
-h1, h2 { font-family: var(--font-heading); color: var(--color-primary); font-weight: 500; font-optical-sizing: auto; }
-h1 { font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.25rem); line-height: 1.12; letter-spacing: -0.012em; margin-bottom: var(--space-4); }
-h2 { font-size: clamp(1.875rem, 1.5rem + 1.5vw, 2.625rem); line-height: 1.18; letter-spacing: -0.01em; margin-bottom: var(--space-4); }
+h1, h2 { font-family: var(--font-heading); color: var(--color-primary); font-weight: 700; font-optical-sizing: auto; }
+h1 { font-size: clamp(2rem, 1.5rem + 2.2vw, 3rem); line-height: 1.15; letter-spacing: -0.022em; margin-bottom: var(--space-4); }
+h2 { font-size: clamp(1.5rem, 1.25rem + 1.2vw, 2.125rem); line-height: 1.2; letter-spacing: -0.018em; margin-bottom: var(--space-4); }
 h3 { font-family: var(--font-body); color: var(--color-primary); font-size: clamp(1.25rem, 1.15rem + .4vw, 1.375rem); font-weight: 600; line-height: 1.3; margin-bottom: var(--space-2); }
 h4 { font-size: clamp(1.1875rem, 1.15rem + .15vw, 1.3125rem); font-weight: 600; line-height: 1.35; color: var(--color-primary); }
 .display { font-size: clamp(2.375rem, 1.5rem + 3.6vw, 4rem); line-height: 1.1; letter-spacing: -0.015em; }
@@ -816,3 +808,10 @@ a, button, select, summary, label { touch-action: manipulation; }
 #home-view.feed-view { margin-top: calc(-1 * var(--space-4)); }
 @media (max-width: 767px) { #home-view.feed-view { margin-top: calc(-1 * var(--space-6)); } }
 #post-detail > .detail-card { max-width: 720px; margin-inline: auto; }
+
+/* Typography after House of the People: Inter only, bold headings and figures. */
+h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
+.brand-name, .footer-brand { font-weight: 700; letter-spacing: -0.02em; }
+.monogram, .stat-tile strong, .rate-value, .pledge-summary-total strong, .legislature-roman { font-weight: 700; letter-spacing: -0.02em; }
+.mobile-menu nav a { font-weight: 600; }
+.pledge-quote, blockquote, .evidence-quote { font-family: var(--font-body); font-style: normal; }

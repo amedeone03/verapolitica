@@ -9,7 +9,7 @@ build step, no runtime dependency.
 | File | Role |
 | --- | --- |
 | `frontend/app/styles.css` | Tokens (`:root`), base, components, responsive rules. Rewritten from scratch; no other stylesheet. |
-| `frontend/app/fonts/` | Self-hosted variable WOFF2, Latin subset: Inter and Source Serif 4 (~50 KB each), OFL licences. |
+| `frontend/app/fonts/` | Self-hosted variable WOFF2, Latin subset: Inter (~50 KB), OFL licence. Since November 2026 Inter is the only family, for text and headings (bold headings, tight tracking), as on House of the People; Source Serif 4 was removed. |
 | `frontend/app/LICENSE-lucide.txt` | Licence of the inlined Lucide icons (ISC). |
 | `frontend/app/og-image.png` | 1200×630 social sharing image (wordmark and existing tagline only). |
 | `frontend/app/index.html` | Header, accessible mobile menu, home hero, navy footer, metadata. |

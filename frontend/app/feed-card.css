@@ -54,7 +54,7 @@
 .vp-person-text a:hover { text-decoration: underline; }
 .vp-person-text small { color: var(--vp-muted); font-size: .8125rem; }
 .vp-institution { margin: 0 0 6px; color: var(--vp-muted); font-size: .875rem; font-weight: 600; }
-.vp-title { margin: 6px 0 8px; font-family: var(--font-heading, Georgia, serif); font-size: 1.3125rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.vp-title { margin: 6px 0 8px; font-family: var(--font-heading, "Inter", system-ui, sans-serif); font-size: 1.3125rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .vp-title a { color: var(--vp-ink); text-decoration: none; }
 .vp-title a:hover { text-decoration: underline; }
 .vp-summary { margin: 0; font-size: 1rem; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
