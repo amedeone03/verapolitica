@@ -20,6 +20,15 @@ class PublicCitation(ImmutableSchema):
     source_field: str | None = None
 
 
+class PublicPartyMark(ImmutableSchema):
+    """The party of a current, source-supported affiliation (logo once approved)."""
+
+    id: int
+    name: str
+    abbreviation: str | None = None
+    logo_url: str | None = None
+
+
 class PublicPoliticianSummary(ImmutableSchema):
     id: int = Field(gt=0)
     given_name: str
@@ -30,6 +39,7 @@ class PublicPoliticianSummary(ImmutableSchema):
     published_at: datetime
     profile: PoliticianVersionProfile
     citation_count: int = Field(ge=0)
+    current_party: PublicPartyMark | None = None
 
 
 class PublicParliamentaryGroupSource(ImmutableSchema):

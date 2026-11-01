@@ -1124,3 +1124,29 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .statement-cite { margin-top: var(--space-3); padding-left: var(--space-4); color: var(--color-text-muted); font-size: .875rem; }
 .proposal-timeline-card { margin: 0; }
 .proposal-timeline-card .proposal-timeline { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------
+   Governo: portraits sized by institutional role (biggest = highest office).
+   Under each portrait, smaller, the party logo; smaller still, the name.
+   Positions come from a deterministic spiral packing (app.js packAuthority). */
+.authority-cloud { position: relative; min-height: 160px; margin: 0 0 var(--space-2); padding: 0; border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); box-sizing: content-box; padding-block: var(--space-5); overflow: hidden; }
+.authority-cloud[aria-busy="true"] { min-height: 320px; }
+.authority-cloud > .empty-note { padding: var(--space-4); }
+.authority-node { position: absolute; top: var(--space-5); left: 0; display: grid; justify-items: center; align-content: start; gap: 4px; color: var(--color-text); text-align: center; text-decoration: none; transition: transform 380ms cubic-bezier(.2, .8, .2, 1); animation: authority-in 420ms ease-out both; }
+.authority-photo { display: grid; place-items: center; width: var(--d); height: var(--d); overflow: hidden; border-radius: 50%; background: var(--color-accent-light); color: var(--color-primary); font-size: calc(var(--d) * .3); font-weight: 800; letter-spacing: -.02em; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-border), 0 6px 16px rgba(15, 39, 71, .10); transition: transform 100ms ease-out, box-shadow 150ms ease; }
+.authority-photo img { width: 100%; height: 100%; object-fit: cover; }
+.authority-node:hover .authority-photo { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary), 0 8px 20px rgba(15, 39, 71, .14); }
+.authority-node:active .authority-photo { transform: scale(.96); }
+.authority-node:focus-visible { outline: none; }
+.authority-node:focus-visible .authority-photo { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 5px var(--color-focus, var(--color-primary)); }
+.authority-party { display: grid; place-items: center; height: 22px; margin-top: 2px; }
+.authority-party .vp-logo { width: 22px; height: 22px; margin: 0; border-radius: 5px; object-fit: contain; }
+.authority-abbr { padding: 1px 6px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-background); color: var(--color-text-muted); font-size: .625rem; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.authority-name { max-width: 100%; color: var(--color-primary); font-size: .6875rem; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 900px) { .authority-name { font-size: .75rem; } }
+.authority-note { margin: 0 0 var(--space-2); color: var(--color-text-muted); font-size: .8125rem; line-height: 1.45; }
+/* Without a measured width (or before layout): a centred wrap, same order. */
+.authority-cloud.is-static { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; height: auto !important; padding: var(--space-4); }
+.authority-cloud.is-static .authority-node { position: static; width: 96px; transform: none !important; }
+@keyframes authority-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .authority-node { transition: none; animation: none; } .authority-node:active .authority-photo { transform: none; } }

@@ -416,3 +416,11 @@ def test_public_pagination_is_validated(public_api_context):
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_error"
+
+
+def test_list_carries_the_current_party_only(public_api_context):
+    items = {item["id"]: item for item in public_api_context.client.get("/politicians").json()["items"]}
+    mark = items[public_api_context.published_id]["current_party"]
+    # The ended affiliation is not shown; no logo until the redazione approves one.
+    assert mark["name"] == "Partito attuale" and mark["logo_url"] is None
+    assert items[public_api_context.pointer_test_id]["current_party"] is None

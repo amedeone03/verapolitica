@@ -2833,14 +2833,76 @@ export function shortRole(person) {
   return role.replace(/^Vice Presidente/i, "Vicepresidente").replace(/ e Ministro .+$/i, "");
 }
 
-function personBubble(person) {
+// Size of each portrait in the Government cloud, by institutional role only
+// (never by opinion, votes or popularity).
+export const AUTHORITY_WEIGHT = [1, 0.78, 0.62, 0.52, 0.42];
+
+export function authorityWeight(person) {
+  return AUTHORITY_WEIGHT[governmentRank(person)] ?? 0.42;
+}
+
+function authorityNode(person, diameter) {
   const name = `${person.given_name} ${person.family_name}`.trim();
   const photo = resolvePortrait(person.id);
-  return `<a class="person-bubble" href="./?politician=${encodeURIComponent(person.id)}">
-    <span class="bubble-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
-    <span class="bubble-name">${escapeHtml(name)}</span>
-    <span class="bubble-role">${escapeHtml(shortRole(person))}</span>
+  const party = person.current_party;
+  const mark = party
+    ? partyLogo(party, 18) || `<span class="authority-abbr">${escapeHtml(party.abbreviation || party.name)}</span>`
+    : "";
+  return `<a class="authority-node" href="./?politician=${encodeURIComponent(person.id)}" style="--d:${diameter}px" aria-label="${escapeHtml(`${name}, ${shortRole(person)}${party ? `, ${party.name}` : ""}`)}">
+    <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    ${mark ? `<span class="authority-party" title="${escapeHtml(party.name)}">${mark}</span>` : ""}
+    <span class="authority-name">${escapeHtml(name)}</span>
   </a>`;
+}
+
+// Deterministic packing: highest role in the middle, the others placed along a
+// spiral at the first spot where their box (portrait + logo + name) is free.
+export function packAuthority(boxes, width) {
+  const placed = [];
+  const gap = 6;
+  const squash = width < 600 ? 0.8 : 1.15; // narrow screens grow a little downwards
+  const fits = (x, y, box) => x >= 0 && x + box.w <= width && placed.every((other) =>
+    x + box.w + gap <= other.x || other.x + other.w + gap <= x || y + box.h + gap <= other.y || other.y + other.h + gap <= y);
+  for (const box of boxes) {
+    let x = (width - box.w) / 2;
+    let y = 0;
+    for (let step = 0; step < 6000; step += 1) {
+      const angle = step * 0.21;
+      const radius = 2.2 * angle;
+      const cx = width / 2 + Math.cos(angle) * radius * squash - box.w / 2;
+      const cy = Math.sin(angle) * radius - box.h / 2;
+      if (fits(cx, cy, box)) { x = cx; y = cy; break; }
+    }
+    placed.push({ ...box, x, y });
+  }
+  const top = Math.min(0, ...placed.map((box) => box.y));
+  for (const box of placed) box.y -= top;
+  return { placed, height: Math.max(0, ...placed.map((box) => box.y + box.h)) };
+}
+
+export function renderAuthorityCloud(container, people) {
+  const width = container.clientWidth;
+  const ordered = [...people].sort((a, b) => authorityWeight(b) - authorityWeight(a)
+    || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
+  const largest = Math.round(Math.min(150, Math.max(92, width * 0.27)));
+  const diameters = ordered.map((person) => Math.round(largest * authorityWeight(person)));
+  container.innerHTML = ordered.map((person, index) => authorityNode(person, diameters[index])).join("");
+  if (!width) { container.classList.add("is-static"); return; }
+  container.classList.remove("is-static");
+  const nodes = [...container.querySelectorAll(".authority-node")];
+  // Fix each box's width first, then measure its real height (names wrap).
+  const labelWidth = width < 600 ? 78 : 92;
+  const boxes = nodes.map((node, index) => {
+    const w = Math.max(diameters[index], labelWidth);
+    node.style.width = `${w}px`;
+    return { w, h: node.offsetHeight, index };
+  });
+  const { placed, height } = packAuthority(boxes, width);
+  for (const box of placed) {
+    const node = nodes[box.index];
+    node.style.transform = `translate(${Math.round(box.x)}px, ${Math.round(box.y)}px)`;
+  }
+  container.style.height = `${Math.ceil(height)}px`;
 }
 
 export function renderPartyRow(party) {
@@ -2872,10 +2934,21 @@ async function showPolitics(api) {
   const people = Promise.all([api.listPoliticians(), loadPortraits(api)]).then(([payload]) => {
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
-    const row = byId("government-row");
-    row.innerHTML = government.length
-      ? government.map(personBubble).join("")
-      : `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
+    const cloud = byId("government-row");
+    if (!government.length) {
+      cloud.classList.add("is-static");
+      cloud.innerHTML = `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
+      return;
+    }
+    renderAuthorityCloud(cloud, government);
+    let lastWidth = cloud.clientWidth;
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(() => {
+        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
+        lastWidth = cloud.clientWidth;
+        renderAuthorityCloud(cloud, government);
+      }).observe(cloud);
+    }
   }).catch(() => {
     byId("government-row").innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
   }).finally(() => byId("government-row").removeAttribute("aria-busy"));

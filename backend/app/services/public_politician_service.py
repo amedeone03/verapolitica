@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from datetime import date
+
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
@@ -35,7 +38,8 @@ from backend.app.schemas import (
     PublicTerritorialSource,
 )
 from backend.app.schemas.politician import PoliticianVersionProfile
-from backend.app.schemas.public import PublicEditorialInfo, PublicRelatedPost
+from backend.app.schemas.public import PublicEditorialInfo, PublicPartyMark, PublicRelatedPost
+from backend.app.services import symbols
 from backend.app.models.politician_profile import (
     PoliticianBiography,
     PoliticianCareerEntry,
@@ -83,9 +87,12 @@ class PublicPoliticianQueryService:
             .offset(offset)
             .limit(limit)
         ).all()
+        parties = self.current_parties([politician.id for politician, _, _ in rows])
         return PublicPoliticianList(
             items=tuple(
-                self._project_summary(politician, version, count)
+                self._project_summary(politician, version, count).model_copy(
+                    update={"current_party": parties.get(politician.id)}
+                )
                 for politician, version, count in rows
             ),
             total=total,
@@ -382,6 +389,34 @@ class PublicPoliticianQueryService:
                 PoliticianVersion.published_at.is_not(None),
             )
         )
+
+    def current_parties(self, politician_ids: "Sequence[int]") -> dict[int, PublicPartyMark]:
+        """Current party of each person: an open (or not yet ended) affiliation,
+        the most recent start first. People without one get no mark."""
+
+        if not politician_ids:
+            return {}
+        today = date.today()
+        logos = symbols.logo_urls(self.session, "party")
+        rows = self.session.execute(
+            select(PoliticalPartyAffiliation, PoliticalParty)
+            .join(PoliticalParty, PoliticalParty.id == PoliticalPartyAffiliation.political_party_id)
+            .where(PoliticalPartyAffiliation.politician_id.in_(politician_ids))
+        ).all()
+        rows.sort(key=lambda row: (row[0].start_date or date.min, row[0].id))
+        marks: dict[int, PublicPartyMark] = {}
+        for affiliation, party in rows:
+            if affiliation.end_date is not None and affiliation.end_date < today:
+                continue
+            if affiliation.start_date is not None and affiliation.start_date > today:
+                continue
+            marks[affiliation.politician_id] = PublicPartyMark(
+                id=party.id,
+                name=party.canonical_name,
+                abbreviation=party.abbreviation,
+                logo_url=logos.get(str(party.id)),
+            )
+        return marks
 
     @staticmethod
     def _project_summary(

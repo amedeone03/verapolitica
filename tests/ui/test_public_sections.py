@@ -106,3 +106,18 @@ def test_proposals_section_layout() -> None:
         assert marker in detail
     assert 'bindExplainPledges(byId("proposal-detail"), api)' in script
     assert ".proposals-tabs a:active { transform: scale(.95); }" in css
+
+
+def test_government_cloud_sizes_by_institutional_role() -> None:
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    assert 'id="government-row" class="authority-cloud"' in html
+    assert "Non è un giudizio." in html
+    assert "export const AUTHORITY_WEIGHT = [1, 0.78, 0.62, 0.52, 0.42];" in script
+    # Portrait, then the party logo (only from a current affiliation), then the name.
+    node = script.split("function authorityNode")[1].split("export function packAuthority")[0]
+    assert node.index("authority-photo") < node.index("authority-party") < node.index("authority-name")
+    assert "person.current_party" in node
+    assert "new ResizeObserver" in script and ".authority-cloud.is-static" in css
+    assert "@media (prefers-reduced-motion: reduce) { .authority-node" in css
