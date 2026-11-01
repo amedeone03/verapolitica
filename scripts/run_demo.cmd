@@ -25,6 +25,13 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem An existing demo database is kept (ISTAT territories, parties, logos, the
+rem redazione's work). Pass "rebuild" to start again from official data.
+if exist "data\demo\verapolitica_demo.db" if /i not "%~1"=="rebuild" if /i not "%~1"=="synthetic" (
+  echo === Keeping the existing demo data: scripts\run_demo.cmd rebuild starts from scratch ===
+  goto serve
+)
+
 if /i "%~1"=="synthetic" (
   echo === Rebuilding the synthetic demo data ===
   ".venv\Scripts\python.exe" -m scripts.prepare_demo
@@ -38,6 +45,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+:serve
 set "VERAPOLITICA_DATABASE_URL=sqlite:///./data/demo/verapolitica_demo.db"
 set "VERAPOLITICA_RAW_STORAGE_PATH=./data/demo/raw"
 set "VERAPOLITICA_ADMIN_API_KEY=verapolitica-demo-admin"
