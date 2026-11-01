@@ -39,6 +39,17 @@ from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.services.redazione.service import RedazioneError, RedazioneService
 
 WIKIDATA_SPARQL = "https://query.wikidata.org/sparql"
+# Same Wikidata data, another query engine (University of Freiburg): used when the
+# Wikidata query service is rate-limited or down.
+QLEVER_SPARQL = "https://qlever.cs.uni-freiburg.de/api/wikidata"
+PREFIXES = """PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX p: <http://www.wikidata.org/prop/>
+PREFIX ps: <http://www.wikidata.org/prop/statement/>
+PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+"""
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "VeraPolitica/1.0 (redazione; symbol sync)"
 AUTHOR = "Sincronizzazione Wikidata"
@@ -97,11 +108,13 @@ Getter = Callable[[str], bytes]
 def http_get(url: str, *, attempts: int = 6, sleep: Callable[[float], None] = time.sleep) -> bytes:
     """GET with a polite retry: the Wikidata query service may answer 429 (rate limit)."""
 
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json, image/*"})
+    sparql_url = url.startswith((WIKIDATA_SPARQL, QLEVER_SPARQL))
+    accept = "application/sparql-results+json" if sparql_url else "application/json, image/*"
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept})
     for attempt in range(attempts):
         try:
             with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 — fixed https hosts
-                return response.read(MAX_BYTES * 20 if url.startswith(WIKIDATA_SPARQL) else MAX_BYTES + 1)
+                return response.read(MAX_BYTES * 50 if sparql_url else MAX_BYTES + 1)
         except urllib.error.HTTPError as error:
             if error.code not in (429, 503) or attempt == attempts - 1:
                 raise
@@ -139,8 +152,17 @@ class Report:
 
 
 def sparql(get: Getter, query: str) -> list[dict]:
-    url = f"{WIKIDATA_SPARQL}?{urllib.parse.urlencode({'query': query, 'format': 'json'})}"
-    return json.loads(get(url))["results"]["bindings"]
+    """Ask the Wikidata query service; if it is rate-limited or down, ask QLever."""
+
+    errors = []
+    for endpoint in (WIKIDATA_SPARQL, QLEVER_SPARQL):
+        url = f"{endpoint}?{urllib.parse.urlencode({'query': PREFIXES + query, 'format': 'json'})}"
+        try:
+            return json.loads(get(url))["results"]["bindings"]
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, KeyError) as error:
+            errors.append(f"{endpoint}: {error}")
+            print(f"  {endpoint} non risponde ({error}): provo il prossimo servizio.", flush=True)
+    raise OSError("; ".join(errors))
 
 
 def commons_file(image_uri: str) -> str:
@@ -244,6 +266,12 @@ def sync(service: RedazioneService, get: Getter, kinds: tuple[str, ...], *, dry_
     return report
 
 
+def quick_get(url: str) -> bytes:
+    # One quick try on the Wikidata query service (QLever is the fallback);
+    # patient retries on the other hosts.
+    return http_get(url, attempts=1 if url.startswith(WIKIDATA_SPARQL) else 6)
+
+
 def propose_parties(service: RedazioneService, get: Getter, *, dry_run: bool = False) -> Report:
     """Propose to the redazione each party of the current Chamber not yet in the list."""
 
@@ -293,8 +321,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = Report()
         if args.parties:
-            report = propose_parties(service, http_get, dry_run=args.dry_run)
-        logos = sync(service, http_get, kinds, dry_run=args.dry_run)
+            report = propose_parties(service, quick_get, dry_run=args.dry_run)
+        logos = sync(service, quick_get, kinds, dry_run=args.dry_run)
         report.proposed += logos.proposed
         report.skipped += logos.skipped
         report.unmatched += logos.unmatched
