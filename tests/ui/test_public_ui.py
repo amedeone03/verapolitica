@@ -60,7 +60,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderSearchCard" in script.text
     assert "/search?" in script.text
     assert "view=search" in archive.text
-    assert "Cerca nell'archivio" in archive.text and 'aria-label="Cerca"' in archive.text
+    assert 'id="search-title" class="politics-title">Cerca<' in archive.text and 'aria-label="Cerca"' in archive.text
     assert "Referendum" in archive.text
     assert "Guide al voto" in archive.text
     assert "Glossario" in archive.text
@@ -90,7 +90,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "In carica dal" in script.text
     assert "Cosa ha fatto" in script.text
     assert 'DateTimeFormat("it-IT"' in script.text
-    assert "Nessun risultato trovato" in script.text
+    assert "Nessun risultato per «" in script.text
     assert "Caricamento delle promesse" in script.text
     assert "Presentata" in script.text
     assert "Come funziona il punteggio delle promesse" in script.text
@@ -256,7 +256,7 @@ def test_public_ui_search_and_click_through(tmp_path):
         unpublished_referendum = client.get("/search", params={"q": "Unpublished synthetic civic"})
 
     assert page.status_code == 200
-    assert "Cerca nell'archivio" in page.text
+    assert 'id="search-title" class="politics-title">Cerca<' in page.text
     assert "renderSearchCard" in script
     assert anna.json()["items"][0]["url"] == "/app/?politician=1"
     assert luca.json()["total"] == 0

@@ -121,3 +121,23 @@ def test_government_cloud_sizes_by_institutional_role() -> None:
     assert "person.current_party" in node
     assert "new ResizeObserver" in script and ".authority-cloud.is-static" in css
     assert "@media (prefers-reduced-motion: reduce) { .authority-node" in css
+
+
+def test_search_is_grouped_instant_and_keeps_the_lens() -> None:
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    view = html.split('id="search-view"')[1].split('id="organization-detail-view"')[0]
+    # The lens stays in the field and in the navigation; no type dropdown.
+    assert '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>' in view
+    assert 'data-section="search" aria-label="Cerca"' in html
+    assert "<select" not in view and 'id="search-clear"' in view and 'id="search-scopes"' in view
+    show = script.split("async function showSearch")[1].split("async function showOrganization")[0]
+    # Instant (debounced) search, stale answers dropped, grouped by kind with a best match.
+    assert "window.setTimeout(() => run(), 220)" in show and "seq !== state.seq" in show and "controller?.abort()" in show
+    assert "limit: SEARCH_GROUP_SIZE" in show and "renderSearchGroups(all.groups, query)" in show
+    assert "export function bestSearchMatch" in script and "Risultato migliore" in script
+    # Recent searches stay on this device and can be removed.
+    assert 'SEARCH_RECENT_KEY = "verapolitica.search.recent.v1"' in script
+    assert "Restano solo su questo dispositivo." in script and "data-remove-recent" in script
+    assert "@keyframes search-shimmer" in css and ".skeleton-line { animation: none; }" in css
