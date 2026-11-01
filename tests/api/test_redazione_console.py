@@ -491,3 +491,23 @@ def test_parties_and_symbols_go_public_after_a_second_member(console):
     log = [entry["summary"] for entry in client.get("/redazione/api/registro", headers=ANNA).json()["items"]]
     assert any("Logo del partito: Partito Esempio" in line for line in log)
     assert any("Aggiunto all'elenco: Nuovo Partito Civico" in line for line in log)
+
+
+def test_the_redazione_can_always_edit_a_party(console):
+    client, politician_id, factory = console
+    party_id = _party(factory, politician_id, "Partito Esempio", "PE")
+    assert client.put(f"/redazione/api/partiti/{party_id}", headers=ANNA, json={"name": "Partito Esempio", "abbreviation": "PE"}).status_code == 422
+    same = client.put(f"/redazione/api/partiti/{party_id}", headers=ANNA, json={"name": "Partito Esempio", "abbreviation": "PE", "reason": "nulla"})
+    assert same.status_code == 422
+    proposed = client.put(
+        f"/redazione/api/partiti/{party_id}", headers=ANNA,
+        json={"name": "Partito Esempio Nuovo", "abbreviation": "PEN", "website": "https://pen.example.org", "reason": "Nuovo nome dal congresso"},
+    ).json()
+    row = next(item for item in client.get("/redazione/api/simboli", headers=ANNA).json()["party"] if item["key"] == str(party_id))
+    assert row["name"] == "Partito Esempio" and row["pending_edit"][0]["id"] == proposed["id"]
+    assert client.post(f"/redazione/api/coda/change/{proposed['id']}/approva", headers=ANNA, json={}).status_code == 409
+    assert client.post(f"/redazione/api/coda/change/{proposed['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    party = client.get(f"/political-parties/{party_id}").json()
+    assert party["name"] == "Partito Esempio Nuovo" and party["abbreviation"] == "PEN"
+    log = [entry["summary"] for entry in client.get("/redazione/api/registro", headers=ANNA).json()["items"]]
+    assert any("Modifica del partito Partito Esempio: nome, sigla, sito" in line for line in log)

@@ -1439,10 +1439,14 @@ class RedazioneService:
             for row in session.scalars(
                 select(EditorialChangeRequest).where(
                     EditorialChangeRequest.status == ChangeRequestStatus.PENDING,
-                    EditorialChangeRequest.kind.in_(("simbolo", "partito")),
+                    EditorialChangeRequest.kind.in_(("simbolo", "partito", "partito_modifica")),
                 )
             ):
-                key = (row.target_kind, str(row.payload.get("key"))) if row.kind == "simbolo" else ("party", "nuovo")
+                key = (
+                    (row.target_kind, str(row.payload.get("key"))) if row.kind == "simbolo"
+                    else ("party-edit", str(row.target_id)) if row.kind == "partito_modifica"
+                    else ("party", "nuovo")
+                )
                 pending.setdefault(key, []).append(
                     {"id": row.id, "created_by": row.created_by, "summary": row.summary, "payload": row.payload}
                 )
@@ -1454,6 +1458,7 @@ class RedazioneService:
                         **target,
                         "symbol": symbols_module.symbol_dict(approved.get(key)),
                         "pending": pending.get((kind, key), []),
+                        "pending_edit": pending.get(("party-edit", key), []) if kind == "party" else [],
                     }
                     for key, target in self._symbol_targets(session, kind).items()
                 ]
@@ -1505,6 +1510,58 @@ class RedazioneService:
                 session, actor=member, action="proposta", object_kind="change", object_id=request.id,
                 summary=f"Proposto: {request.summary} (fonte {urlsplit(source_url).netloc}, {symbols_module.LICENSES[license_key]}).",
                 details=request.payload,
+            )
+            return {"id": request.id, "summary": request.summary}
+
+    def propose_party_edit(self, party_id: int, payload: dict, *, member: str) -> dict:
+        """Change a party's name, abbreviation or website, or remove its logo. Waits for a second member."""
+
+        name = _clean(payload.get("name"))[:300]
+        abbreviation = _clean(payload.get("abbreviation"))[:40] or None
+        website = _clean(payload.get("website")) or None
+        remove_logo = bool(payload.get("remove_logo"))
+        reason = _clean(payload.get("reason"))[:500]
+        errors = {}
+        if len(name) < 2:
+            errors["name"] = "Scrivi il nome ufficiale del partito."
+        if website and (not website.startswith("https://") or not urlsplit(website).netloc):
+            errors["website"] = "Il sito ufficiale deve iniziare con https://."
+        if not reason:
+            errors["reason"] = "Spiega perché cambia (es. «nuovo nome dal congresso del …»)."
+        if errors:
+            raise RedazioneValidation("Controlla i campi del partito.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
+        with self.session_factory.begin() as session:
+            party = session.get(PoliticalParty, party_id)
+            if party is None:
+                raise RedazioneNotFound("Partito non trovato.")
+            before = {"name": party.canonical_name, "abbreviation": party.abbreviation, "website": party.official_website_url}
+            after = {"name": name, "abbreviation": abbreviation, "website": website}
+            has_logo = session.scalar(
+                select(EditorialSymbol.id).where(EditorialSymbol.kind == "party", EditorialSymbol.key == str(party_id))
+            ) is not None
+            if before == after and not (remove_logo and has_logo):
+                raise RedazioneValidation("Non c'è nessuna modifica da proporre.")
+            folded = normalize_search_text(name)
+            if any(normalize_search_text(row.canonical_name) == folded and row.id != party_id for row in session.scalars(select(PoliticalParty))):
+                raise RedazioneConflict("Esiste già un altro partito con questo nome.")
+            changes = [label for key, label in (("name", "nome"), ("abbreviation", "sigla"), ("website", "sito")) if before[key] != after[key]]
+            if remove_logo and has_logo:
+                changes.append("logo rimosso")
+            request = EditorialChangeRequest(
+                kind="partito_modifica",
+                target_kind="party",
+                target_id=party_id,
+                politician_id=None,
+                summary=f"Modifica del partito {party.canonical_name}: {', '.join(changes)}",
+                payload={"before": before, "after": after, "remove_logo": remove_logo and has_logo, "reason": reason},
+                created_by=member,
+                created_at=self.clock(),
+            )
+            session.add(request)
+            session.flush()
+            self._log(
+                session, actor=member, action="proposta", object_kind="change", object_id=request.id,
+                summary=f"Proposto: {request.summary}. Motivo: {reason}", details=request.payload,
             )
             return {"id": request.id, "summary": request.summary}
 
@@ -1971,6 +2028,24 @@ class RedazioneService:
                 current.approved_by = member
                 current.approved_at = self.clock()
                 summary = f"Pubblicato: {row.summary}"
+            elif row.kind == "partito_modifica":
+                payload = row.payload
+                party = session.get(PoliticalParty, row.target_id)
+                if party is None:
+                    raise RedazioneConflict("Il partito non esiste più.")
+                current = {"name": party.canonical_name, "abbreviation": party.abbreviation, "website": party.official_website_url}
+                if current != payload["before"]:
+                    raise RedazioneConflict("Il partito è cambiato dopo la proposta: proponi di nuovo la modifica.")
+                party.canonical_name = payload["after"]["name"]
+                party.abbreviation = payload["after"]["abbreviation"]
+                party.official_website_url = payload["after"]["website"]
+                if payload.get("remove_logo"):
+                    symbol = session.scalar(
+                        select(EditorialSymbol).where(EditorialSymbol.kind == "party", EditorialSymbol.key == str(party.id))
+                    )
+                    if symbol is not None:
+                        session.delete(symbol)
+                summary = f"Applicata: {row.summary}"
             elif row.kind == "partito":
                 payload = row.payload
                 folded = normalize_search_text(payload["name"])

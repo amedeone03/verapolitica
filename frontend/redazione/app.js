@@ -338,6 +338,7 @@ function previewFor(item) {
   if (item.kind === "status") return `<div class="preview"><dl><dt>Stato proposto</dt><dd>${verdictChip(p.verdict, p.verdict_label)}</dd><dt>Aggiornamento</dt><dd>${esc(p.rationale)}</dd><dt>Data del fatto</dt><dd>${longDate(p.effective_at) || "—"}</dd><dt>Passaggio della fonte</dt><dd>«${esc(p.quoted_excerpt)}»</dd><dt>Fonte</dt><dd>${sourceLink({ url: p.source_url })}</dd>${p.approvals?.length ? `<dt>Già approvato da</dt><dd>${esc(p.approvals.join(", "))}</dd>` : ""}</dl></div>`;
   if (item.kind === "news") return `${p.card ? `<div class="queue-card-preview"><p class="small muted">Come appare nel feed</p>${renderFeedCard({ key: `q-${item.id}`, url: "#", title: p.title || item.title, summary: p.blocks?.sommario, occurred_on: new Date().toISOString().slice(0, 10), sources: (p.sources || []).map((src) => ({ title: src.name, url: src.url })), card: { ...p.card, composed: true } }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null })}</div>` : ""}<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
   if (item.kind === "change" && p.kind === "simbolo") return `<div class="preview symbol-preview"><img src="${esc(p.payload.image_url)}" alt="" width="96" height="96" /><div><p><strong>${esc(p.payload.name)}</strong></p><p class="small">${esc(p.payload.credit)} · ${esc(p.payload.license_label)}<br />Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div></div>`;
+  if (item.kind === "change" && p.kind === "partito_modifica") return `<div class="preview"><dl>${["name", "abbreviation", "website"].filter((k) => p.payload.before[k] !== p.payload.after[k]).map((k) => `<dt>${{ name: "Nome", abbreviation: "Sigla", website: "Sito" }[k]}</dt><dd><s>${esc(p.payload.before[k] || "—")}</s> → <strong>${esc(p.payload.after[k] || "—")}</strong></dd>`).join("")}${p.payload.remove_logo ? "<dt>Logo</dt><dd>rimosso</dd>" : ""}<dt>Motivo</dt><dd>${esc(p.payload.reason)}</dd></dl></div>`;
   if (item.kind === "change" && p.kind === "partito") return `<div class="preview"><p><strong>${esc(p.payload.name)}</strong>${p.payload.abbreviation ? ` (${esc(p.payload.abbreviation)})` : ""}</p><p class="small">${p.payload.website ? `Sito: ${sourceLink({ url: p.payload.website })}<br />` : ""}Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div>`;
   if (item.kind === "change") return `<div class="preview"><p>${esc(p.summary)}</p>${p.payload?.classification ? `<p class="small"><strong>Nuova classificazione:</strong> ${esc(classificationText(p.payload.classification))}${p.payload.before ? `<br /><strong>Prima:</strong> ${esc(classificationText(p.payload.before))}` : ""}</p>` : ""}</div>`;
   return "";
@@ -1282,7 +1283,11 @@ async function showSymbols(kind) {
       <div class="symbol-text"><strong>${esc(item.name)}</strong>${item.abbreviation ? ` <span class="muted">${esc(item.abbreviation)}</span>` : ""}${kind === "province" ? ` <span class="muted">${esc(item.key)}</span>` : ""}
         <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : "Nessun logo pubblicato"}</p>
         ${item.pending.length ? `<div class="pending-symbol"><img src="${esc(item.pending[0].payload.image_url)}" alt="Logo proposto" width="40" height="40" /><p class="small"><strong>Proposto</strong> da ${esc(item.pending[0].created_by)} · ${esc(item.pending[0].payload.credit)} · ${esc(item.pending[0].payload.license_label)} · ${sourceLink({ url: item.pending[0].payload.source_url, name: "fonte" })}</p></div>` : ""}</div>
-      ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol ? "Sostituisci" : "Carica logo"}</button>`}
+      <div class="symbol-actions">
+        ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol ? "Sostituisci logo" : "Carica logo"}</button>`}
+        ${kind === "party" && !item.pending_edit.length ? `<button type="button" class="button button-secondary" data-edit-party="${esc(item.key)}">Modifica</button>` : ""}
+      </div>
+      ${item.pending_edit.length ? `<div class="pending-edit"><p class="small"><strong>Modifica proposta</strong> da ${esc(item.pending_edit[0].created_by)}: ${esc(item.pending_edit[0].summary)}. Motivo: ${esc(item.pending_edit[0].payload.reason)}</p>${reviewControls(item.pending_edit[0])}</div>` : ""}
     </li>`).join("") || `<li class="empty">Nessun risultato.</li>`}</ul>`;
   const search = view.querySelector("#symbol-q");
   search.addEventListener("input", () => {
@@ -1298,6 +1303,18 @@ async function showSymbols(kind) {
       await api("/simboli", { method: "POST", body: { kind, key: button.dataset.symbol, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
       toast("Logo proposto: ora lo deve approvare un'altra persona.");
       showSymbols(kind);
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+    }
+  }));
+  view.querySelectorAll("[data-edit-party]").forEach((button) => button.addEventListener("click", async () => {
+    const party = items.find((item) => item.key === button.dataset.editParty);
+    const edit = await partyEditDialog(party);
+    if (!edit) return;
+    try {
+      await api(`/partiti/${party.key}`, { method: "PUT", body: edit });
+      toast("Modifica proposta: la applica un'altra persona approvandola.");
+      showSymbols("party");
     } catch (error) {
       toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
     }
@@ -1359,6 +1376,35 @@ function newPartyForm(pending) {
         <p class="small muted">Proposto da ${esc(item.created_by)} · fonte ${sourceLink({ url: item.payload.source_url })}${item.payload.website ? ` · sito ${sourceLink({ url: item.payload.website })}` : ""}</p></div>
       ${reviewControls(item)}
     </li>`).join("")}</ul></section>` : ""}`;
+}
+
+function partyEditDialog(party) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "crop-dialog";
+    dialog.innerHTML = `<form method="dialog" class="stack">
+      <h2>Modifica: ${esc(party.name)}</h2>
+      <div class="field"><label for="pe-name">Nome ufficiale</label><input id="pe-name" type="text" required minlength="2" maxlength="300" value="${esc(party.name)}" /></div>
+      <div class="field"><label for="pe-abbr">Sigla</label><input id="pe-abbr" type="text" maxlength="40" value="${esc(party.abbreviation || "")}" /></div>
+      <div class="field"><label for="pe-site">Sito ufficiale <span class="hint">https://…</span></label><input id="pe-site" type="url" value="${esc(party.website || "")}" /></div>
+      ${party.symbol ? `<label class="check"><input id="pe-logo" type="checkbox" /> Rimuovi il logo pubblicato</label>` : ""}
+      <div class="field"><label for="pe-reason">Perché cambia</label><input id="pe-reason" type="text" required maxlength="500" /></div>
+      <div class="actions"><button class="button button-primary" value="ok">Proponi la modifica</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+    </form>`;
+    document.body.append(dialog);
+    dialog.addEventListener("close", () => {
+      const result = dialog.returnValue === "ok" ? {
+        name: dialog.querySelector("#pe-name").value.trim(),
+        abbreviation: dialog.querySelector("#pe-abbr").value.trim(),
+        website: dialog.querySelector("#pe-site").value.trim(),
+        remove_logo: Boolean(dialog.querySelector("#pe-logo")?.checked),
+        reason: dialog.querySelector("#pe-reason").value.trim(),
+      } : null;
+      dialog.remove();
+      resolve(result);
+    });
+    dialog.showModal();
+  });
 }
 
 // Logos are not cropped: the whole image is fitted inside a transparent square.

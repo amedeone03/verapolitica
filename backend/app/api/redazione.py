@@ -230,6 +230,11 @@ def propose_party(member: Member, service: Service, payload: Annotated[dict, Bod
     return _run(service.propose_party, payload, member=member)
 
 
+@router.put("/partiti/{party_id}")
+def propose_party_edit(party_id: int, member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
+    return _run(service.propose_party_edit, party_id, payload, member=member)
+
+
 @router.get("/simboli")
 def symbols(member: Member, service: Service) -> Any:
     del member
