@@ -2,6 +2,8 @@
 // One ES module, no build. Every write goes to /redazione/api and is logged;
 // nothing reaches the citizen until another member approves it.
 
+import { bindFeedCards, renderFeedCard } from "/app/feed-card.js";
+
 const API = "/redazione/api";
 const TOKEN_KEY = "vp-redazione-token";
 const view = document.getElementById("view");
@@ -52,7 +54,13 @@ function writeToken(value) {
   try { value ? sessionStorage.setItem(TOKEN_KEY, value) : sessionStorage.removeItem(TOKEN_KEY); } catch { /* memory only */ }
 }
 
+// Each navigation gets a ticket: a slow GET from a previous view must not
+// overwrite the view the editor has since opened.
+let routeTicket = 0;
+class StaleRoute extends Error {}
+
 async function api(path, { method = "GET", body } = {}) {
+  const ticket = routeTicket;
   const headers = { Accept: "application/json" };
   const token = state.token || readToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -60,6 +68,7 @@ async function api(path, { method = "GET", body } = {}) {
   const response = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   let data = null;
   try { data = await response.json(); } catch { data = null; }
+  if (method === "GET" && ticket !== routeTicket && !path.startsWith("/me") && !path.startsWith("/regole") && !path.startsWith("/panoramica")) throw new StaleRoute();
   if (!response.ok) {
     const error = new Error(typeof data?.detail === "string" ? data.detail : "Operazione non riuscita.");
     error.status = response.status;
@@ -195,6 +204,7 @@ async function refreshCount() {
 
 async function route() {
   if (!state.me) return;
+  routeTicket += 1;
   const [, section = "coda", id, extra] = location.hash.replace(/^#/, "").split("/");
   setSection(section);
   view.innerHTML = `<p class="muted">Caricamento…</p>`;
@@ -207,6 +217,7 @@ async function route() {
     else if (section === "regole") showRules();
     else await showQueue();
   } catch (error) {
+    if (error instanceof StaleRoute) return;
     if (error.status === 401) return signOut();
     view.innerHTML = `<div class="empty">${esc(error.message)}</div>`;
   }
@@ -324,7 +335,7 @@ function previewFor(item) {
     return `<div class="preview"><dl>${item.kind === "promise" ? `<dt>Dichiarazione</dt><dd>«${esc(p.exact_statement)}»</dd>` : p.summary ? `<dt>Sintesi</dt><dd>${esc(p.summary)}</dd>` : ""}<dt>Quando e dove</dt><dd>${longDate(p.introduced_at)}${p.where ? ` · ${esc(p.where)}` : ""}</dd><dt>Fonte</dt><dd>${sourceLink(p.source)}</dd>${classification}${suggestion}</dl></div>`;
   }
   if (item.kind === "status") return `<div class="preview"><dl><dt>Stato proposto</dt><dd>${verdictChip(p.verdict, p.verdict_label)}</dd><dt>Aggiornamento</dt><dd>${esc(p.rationale)}</dd><dt>Data del fatto</dt><dd>${longDate(p.effective_at) || "—"}</dd><dt>Passaggio della fonte</dt><dd>«${esc(p.quoted_excerpt)}»</dd><dt>Fonte</dt><dd>${sourceLink({ url: p.source_url })}</dd>${p.approvals?.length ? `<dt>Già approvato da</dt><dd>${esc(p.approvals.join(", "))}</dd>` : ""}</dl></div>`;
-  if (item.kind === "news") return `<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
+  if (item.kind === "news") return `${p.card ? `<div class="queue-card-preview"><p class="small muted">Come appare nel feed</p>${renderFeedCard({ key: `q-${item.id}`, url: "#", title: p.title || item.title, summary: p.blocks?.sommario, occurred_on: new Date().toISOString().slice(0, 10), sources: (p.sources || []).map((src) => ({ title: src.name, url: src.url })), card: { ...p.card, composed: true } }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null })}</div>` : ""}<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
   if (item.kind === "change") return `<div class="preview"><p>${esc(p.summary)}</p>${p.payload?.classification ? `<p class="small"><strong>Nuova classificazione:</strong> ${esc(classificationText(p.payload.classification))}${p.payload.before ? `<br /><strong>Prima:</strong> ${esc(classificationText(p.payload.before))}` : ""}</p>` : ""}</div>`;
   return "";
 }
@@ -692,6 +703,11 @@ const NEWS_HINTS = {
 
 async function showNewsEditor(postId) {
   const post = postId ? await api(`/notizie/${postId}`) : { title: "", blocks: {}, sources: [], politicians: [], status: "pending", findings: [] };
+  state.cardOptions = state.cardOptions || await api("/card");
+  if (!state.portraits) {
+    try { state.portraits = await fetch("/portraits").then((r) => (r.ok ? r.json() : {})); } catch { state.portraits = {}; }
+  }
+  const composer = createCardComposer(post.card);
   const editable = post.status === "pending" || !postId;
   const b = post.blocks || {};
   const blocks = state.rules.news_blocks;
@@ -703,8 +719,9 @@ async function showNewsEditor(postId) {
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo e sommario</h2></div>
         <div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div>
         <div class="field"><label for="n-title">Titolo</label><input id="n-title" type="text" name="title" maxlength="300" value="${esc(post.title)}" required /></div>
-        <div class="field"><label for="n-sommario">Sommario</label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
+        <div class="field"><label for="n-sommario">Sommario <span class="hint">È il testo della card nel feed.</span></label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
       </section>
+      ${composer.html()}
       ${blocks.map((block, index) => `<section class="card"><div class="card-head"><h2><span class="block-number">${index + 1}</span>${esc(block.label)}</h2></div>
         <div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div>
         <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
@@ -723,7 +740,9 @@ async function showNewsEditor(postId) {
       </section>
       ${editable ? `<div class="actions"><button class="button button-primary" type="submit">${postId ? "Salva le modifiche" : "Salva e invia alla verifica"}</button><span class="small muted">Fonti: Redattore e Verificatore compaiono in fondo alla notizia pubblicata.</span></div>` : ""}
     </form>
-    <aside class="card side-panel"><h3>Quando una notizia merita una sintesi</h3>
+    <aside class="card side-panel"><h3>Anteprima nel feed</h3>
+      <div id="card-preview" class="card-preview"></div>
+      <h3 style="margin-top:20px">Quando una notizia merita una sintesi</h3>
       <p class="small muted">Ne bastano 3 su 5. Con meno di 3 criteri non si scrive: resta tra le segnalazioni.</p>
       <ul class="criteria" id="criteria">${["Cambia qualcosa di concreto nella vita di molte persone", "È una decisione formale (legge, decreto, sentenza, voto)", "Gli schieramenti hanno posizioni diverse e verificabili", "C'è una scadenza", "Ha effetti economici misurabili"].map((text, i) => `<li><label class="check"><input type="checkbox" data-criterion="${i}" />${esc(text)}</label></li>`).join("")}</ul>
       <p class="small" id="criteria-text"></p>
@@ -751,8 +770,24 @@ async function showNewsEditor(postId) {
       municipality_id: scope === "municipality" ? territory : null,
       province_abbreviation: scope === "province" ? form.province.value.trim().toUpperCase() : null,
       politician_ids: [...view.querySelectorAll("#n-pol-list [data-politician]")].map((el) => Number(el.dataset.politician)),
+      card: composer.value(),
     };
   };
+  const preview = () => {
+    const data = collect();
+    view.querySelector("#card-preview").innerHTML = renderFeedCard({
+      key: "anteprima",
+      url: "#",
+      title: data.title || "Titolo della notizia",
+      summary: data.blocks.sommario || "Il sommario compare qui.",
+      occurred_on: new Date().toISOString().slice(0, 10),
+      place: { national: "Nazionale", region: "Regionale", province: "Provinciale", municipality: "Comunale" }[data.scope],
+      sources: data.sources.map((src) => ({ title: src.name, url: src.url })),
+      card: composer.publicCard(),
+    }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null });
+  };
+  composer.bind(form, preview);
+  bindFeedCards(view.querySelector("#card-preview"));
   const balance = () => {
     const right = words(form.destra.value), left = words(form.sinistra.value);
     const total = right + left || 1;
@@ -771,10 +806,11 @@ async function showNewsEditor(postId) {
       } catch { /* ignore */ }
     }, 500);
   };
-  form.addEventListener("input", () => { balance(); check(); });
-  form.addEventListener("change", check);
+  form.addEventListener("input", () => { balance(); check(); preview(); });
+  form.addEventListener("change", () => { check(); preview(); });
   view.querySelectorAll("[data-count]").forEach(updateCounter);
   balance();
+  preview();
   bindPoliticianPicker();
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -785,6 +821,275 @@ async function showNewsEditor(postId) {
       location.hash = `#/notizie/${saved.id}`;
       if (postId) showNewsEditor(saved.id);
     } catch (error) { toast(error.message, true); }
+  });
+}
+
+// ------------------------------------------------------------- card composer
+// The feed card: category band, badge, people with a round photo, institution,
+// optional iter strip and link. Photos are cropped to a circle here and
+// uploaded as small square JPEGs.
+const BADGE_TONE_LABELS = { plain: "Solo testo", navy: "Blu", green: "Verde", red: "Rosso" };
+const ITER_STATE_LABELS = { in_corso: "In corso", fermo: "Fermo", concluso: "Concluso" };
+
+function createCardComposer(initial) {
+  const opts = state.cardOptions;
+  const today = new Date().toISOString().slice(0, 10);
+  const c = {
+    category: initial?.category || "notizia",
+    badge: { label: initial?.badge?.label || "Nuova pubblicazione", tone: initial?.badge?.tone || "navy", date: initial?.badge?.date || today },
+    aside: initial?.aside || "",
+    institution: initial?.institution || "",
+    people: (initial?.people || []).map((p) => ({ ...p, image_url: p.image_id ? `/media/${p.image_id}` : null })),
+    iter: initial?.iter ? { ...initial.iter, enabled: true } : { enabled: false, first: "camera", current: 1, state: "in_corso", status: "", since_label: "Presentato il", since: "" },
+    link: initial?.link || { label: "", url: "" },
+  };
+  let root;
+  let onChange = () => {};
+
+  const personRow = (p, index) => `<div class="person-row" data-person="${index}">
+      <button type="button" class="avatar-pick" data-pick-photo="${index}" aria-label="Carica la foto di ${esc(p.name || "questa persona")}">
+        <span class="avatar-circle">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" />` : p.use_portrait && portraitFor(p.politician_id) ? `<img src="${esc(portraitFor(p.politician_id))}" alt="" />` : `<span>${esc(initialsOf(p.name) || "+")}</span>`}</span>
+        <span class="avatar-label">${p.image_url || (p.use_portrait && portraitFor(p.politician_id)) ? "Cambia foto" : "Carica foto"}</span>
+      </button>
+      <input type="file" accept="image/jpeg,image/png,image/webp" data-photo-input="${index}" hidden />
+      <div class="person-fields">
+        <div class="field-row">
+          <div class="field"><label for="pn-${index}">Nome</label><input id="pn-${index}" type="text" data-p="name" value="${esc(p.name || "")}" /></div>
+          <div class="field"><label for="pr-${index}">Partito o ruolo</label><input id="pr-${index}" type="text" data-p="role" value="${esc(p.role || "")}" placeholder="Es. Partito Democratico" /></div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <input type="search" data-p-search placeholder="Collega a un profilo (cerca per cognome)" aria-label="Cerca un politico da collegare" style="flex:1 1 200px" />
+          <button type="button" class="button button-secondary" data-p-link="${index}">Collega</button>
+          ${p.politician_id ? `<span class="chip chip-published">Profilo collegato</span>` : ""}
+          ${p.politician_id && portraitFor(p.politician_id) && !p.image_url ? `<label class="check small"><input type="checkbox" data-p="use_portrait"${p.use_portrait ? " checked" : ""} />Usa la foto del profilo</label>` : ""}
+          ${p.image_url ? `<button type="button" class="button-link" data-remove-photo="${index}">Togli foto</button>` : ""}
+          <button type="button" class="button-link" data-remove-person="${index}">Rimuovi persona</button>
+        </div>
+      </div>
+    </div>`;
+
+  const stepOptions = () => opts.iter_steps[c.iter.first].map((label, i) => [String(i + 1), `${i + 1}. ${label}`]);
+
+  const html = () => `<section class="card" id="card-composer"><div class="card-head"><h2><span class="block-number">F</span>La card nel feed</h2><span class="chip chip-kind">Così appare nella timeline</span></div>
+      <div class="block-guide"><div><b>Cosa scrivere</b>Il tipo di contenuto, l'etichetta con la data, chi è coinvolto (con foto rotonda), l'ente. Titolo e sommario sono quelli del blocco 0.</div><div><b>Persone</b>Fino a 3</div><div class="avoid"><b>Da evitare</b>Foto senza diritti d'uso: indica sempre il credito.</div></div>
+      <div class="field-row">
+        <div class="field"><label for="c-category">Tipo</label><select id="c-category" data-c="category">${options(opts.categories.map((x) => [x.key, x.label]), c.category)}</select></div>
+        <div class="field"><label for="c-badge">Etichetta</label><input id="c-badge" type="text" list="c-badge-presets" data-c="badge.label" value="${esc(c.badge.label)}" /><datalist id="c-badge-presets">${opts.badge_presets.map((x) => `<option value="${esc(x)}"></option>`).join("")}</datalist></div>
+        <div class="field"><label for="c-tone">Colore etichetta</label><select id="c-tone" data-c="badge.tone">${options(opts.badge_tones.map((x) => [x, BADGE_TONE_LABELS[x] || x]), c.badge.tone)}</select></div>
+        <div class="field"><label for="c-date">Data</label><input id="c-date" type="date" data-c="badge.date" value="${esc(c.badge.date || "")}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="c-aside">Testo a destra <span class="hint">Facoltativo. Es. «Aperto il 1 aprile 2026».</span></label><input id="c-aside" type="text" data-c="aside" value="${esc(c.aside)}" /></div>
+        <div class="field"><label for="c-inst">Ente o istituzione <span class="hint">Es. «Ministero delle Infrastrutture e dei Trasporti»</span></label><input id="c-inst" type="text" data-c="institution" value="${esc(c.institution)}" /></div>
+      </div>
+      <fieldset><legend>Persone · foto rotonda accanto al nome</legend>
+        <div id="people-rows">${c.people.map(personRow).join("")}</div>
+        <button type="button" class="button button-secondary" id="add-person"${c.people.length >= opts.max_people ? " disabled" : ""}>+ Aggiungi persona</button>
+        <p class="hint" style="margin-top:6px">Tocca il cerchio per caricare una foto: la ritagli in tondo qui, poi viene salvata piccola (320×320).</p>
+      </fieldset>
+      <fieldset><legend><label class="check"><input type="checkbox" data-c="iter.enabled"${c.iter.enabled ? " checked" : ""} />Mostra l'iter (per leggi e decreti)</label></legend>
+        <div class="iter-fields"${c.iter.enabled ? "" : " hidden"}>
+          <div class="field-row">
+            <div class="field"><label for="c-first">Prima lettura</label><select id="c-first" data-c="iter.first">${options([["camera", "Camera"], ["senato", "Senato"]], c.iter.first)}</select></div>
+            <div class="field"><label for="c-current">Fase attuale</label><select id="c-current" data-c="iter.current">${options(stepOptions(), String(c.iter.current))}</select></div>
+            <div class="field"><label for="c-state">Stato</label><select id="c-state" data-c="iter.state">${options(opts.iter_states.map((x) => [x, ITER_STATE_LABELS[x]]), c.iter.state)}</select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="c-status">Testo della fase <span class="hint">Es. «Esame in commissione · Senato»</span></label><input id="c-status" type="text" data-c="iter.status" value="${esc(c.iter.status || "")}" /></div>
+            <div class="field"><label for="c-since-label">Etichetta data</label><input id="c-since-label" type="text" data-c="iter.since_label" value="${esc(c.iter.since_label || "Presentato il")}" /></div>
+            <div class="field"><label for="c-since">Data</label><input id="c-since" type="date" data-c="iter.since" value="${esc(c.iter.since || "")}" /></div>
+          </div>
+        </div>
+      </fieldset>
+      <div class="field-row">
+        <div class="field"><label for="c-link-label">Pulsante esterno <span class="hint">Facoltativo. Es. «Leggi su camera.it»</span></label><input id="c-link-label" type="text" data-c="link.label" value="${esc(c.link.label || "")}" /></div>
+        <div class="field"><label for="c-link-url">Link</label><input id="c-link-url" type="url" data-c="link.url" value="${esc(c.link.url || "")}" placeholder="https://…" /></div>
+      </div>
+    </section>`;
+
+  const setPath = (path, value) => {
+    const [head, tail] = path.split(".");
+    if (tail) c[head][tail] = value;
+    else c[head] = value;
+  };
+  const redrawPeople = () => {
+    root.querySelector("#people-rows").innerHTML = c.people.map(personRow).join("");
+    root.querySelector("#add-person").disabled = c.people.length >= opts.max_people;
+    onChange();
+  };
+
+  const bind = (form, changed) => {
+    root = form.querySelector("#card-composer");
+    onChange = changed;
+    root.addEventListener("input", (event) => {
+      const el = event.target;
+      if (el.dataset.c) {
+        setPath(el.dataset.c, el.type === "checkbox" ? el.checked : el.value);
+        if (el.dataset.c === "iter.enabled") root.querySelector(".iter-fields").hidden = !el.checked;
+        if (el.dataset.c === "iter.first") root.querySelector("#c-current").innerHTML = options(stepOptions(), String(c.iter.current));
+      }
+      const row = el.closest("[data-person]");
+      if (row && el.dataset.p) {
+        c.people[Number(row.dataset.person)][el.dataset.p] = el.type === "checkbox" ? el.checked : el.value;
+        if (el.dataset.p === "use_portrait") redrawPeople();
+      }
+    });
+    root.addEventListener("click", async (event) => {
+      const el = event.target instanceof Element ? event.target : null;
+      if (!el) return;
+      if (el.closest("#add-person")) {
+        c.people.push({ name: "", role: "", politician_id: null, image_id: null, image_url: null, use_portrait: false });
+        redrawPeople();
+        root.querySelector(`#pn-${c.people.length - 1}`)?.focus();
+      }
+      const remove = el.closest("[data-remove-person]");
+      if (remove) { c.people.splice(Number(remove.dataset.removePerson), 1); redrawPeople(); }
+      const removePhoto = el.closest("[data-remove-photo]");
+      if (removePhoto) { Object.assign(c.people[Number(removePhoto.dataset.removePhoto)], { image_id: null, image_url: null }); redrawPeople(); }
+      const pick = el.closest("[data-pick-photo]");
+      if (pick) root.querySelector(`[data-photo-input="${pick.dataset.pickPhoto}"]`).click();
+      const link = el.closest("[data-p-link]");
+      if (link) {
+        const index = Number(link.dataset.pLink);
+        const query = link.parentElement.querySelector("[data-p-search]").value.trim() || c.people[index].name;
+        if (!query) return toast("Scrivi un nome da cercare.", true);
+        const found = await api(`/politici?q=${encodeURIComponent(query)}&limit=1`);
+        if (!found.length) return toast("Nessun profilo con questo nome.", true);
+        const scheda = await api(`/politici/${found[0].id}`);
+        Object.assign(c.people[index], {
+          politician_id: found[0].id,
+          name: c.people[index].name || found[0].name,
+          role: c.people[index].role || scheda.scheda_rapida.party || "",
+          use_portrait: !c.people[index].image_url && Boolean(portraitFor(found[0].id)),
+        });
+        redrawPeople();
+      }
+    });
+    root.addEventListener("change", async (event) => {
+      const input = event.target.closest?.("[data-photo-input]");
+      if (!input || !input.files?.[0]) return;
+      const index = Number(input.dataset.photoInput);
+      const result = await cropToCircle(input.files[0], c.people[index].name);
+      input.value = "";
+      if (!result) return;
+      try {
+        const uploaded = await api("/immagini", { method: "POST", body: { data: result.dataUrl, width: 320, height: 320, credit: result.credit, alt: c.people[index].name } });
+        Object.assign(c.people[index], { image_id: uploaded.id, image_url: uploaded.url, use_portrait: false });
+        redrawPeople();
+        toast("Foto caricata.");
+      } catch (error) { toast(error.message, true); }
+    });
+  };
+
+  const value = () => ({
+    category: c.category,
+    badge: { ...c.badge },
+    aside: c.aside,
+    institution: c.institution,
+    people: c.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name, role: p.role, politician_id: p.politician_id, image_id: p.image_id, use_portrait: p.use_portrait })),
+    iter: c.iter.enabled ? { ...c.iter, current: Number(c.iter.current) } : null,
+    link: c.link.url ? { ...c.link } : null,
+  });
+
+  const publicCard = () => {
+    const category = opts.categories.find((x) => x.key === c.category) || opts.categories[0];
+    let iter = null;
+    if (c.iter.enabled) {
+      const current = Number(c.iter.current);
+      iter = {
+        ...c.iter,
+        steps: opts.iter_steps[c.iter.first].map((label, i) => {
+          const n = i + 1;
+          const stateOf = n < current || (c.iter.state === "concluso" && n <= current) ? "done" : n === current ? (c.iter.state === "fermo" ? "stopped" : "current") : "todo";
+          return { label, state: stateOf };
+        }),
+      };
+    }
+    return {
+      category: c.category,
+      category_label: category.label,
+      tone: category.tone,
+      composed: true,
+      badge: { ...c.badge },
+      aside: c.aside || null,
+      institution: c.institution || null,
+      people: c.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name, role: p.role, politician_id: p.politician_id, image_url: p.image_url || (p.use_portrait && p.politician_id ? `politician:${p.politician_id}` : null) })),
+      iter,
+      link: c.link.url ? { label: c.link.label || "Leggi la fonte", url: c.link.url } : null,
+    };
+  };
+
+  return { html, bind, value, publicCard };
+}
+
+function portraitFor(politicianId) {
+  if (!politicianId) return null;
+  const url = state.portraits?.[String(politicianId)]?.url;
+  return url || null;
+}
+function initialsOf(name) {
+  return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
+}
+
+// Round crop: drag to move, slider to zoom. Output: 320×320 JPEG.
+function cropToCircle(file, name) {
+  return new Promise((resolve) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast("Usa una foto JPEG, PNG o WebP.", true); return resolve(null); }
+    // Read as a data: URL: the site's Content-Security-Policy does not allow blob: images.
+    const reader = new FileReader();
+    const img = new Image();
+    img.onload = () => {
+      const dialog = document.createElement("dialog");
+      dialog.className = "crop-dialog";
+      dialog.innerHTML = `<form method="dialog" class="stack">
+        <h2>Ritaglia la foto${name ? ` di ${esc(name)}` : ""}</h2>
+        <p class="small muted">Trascina per spostare, usa il cursore per ingrandire. Nel feed si vede solo il cerchio.</p>
+        <div class="crop-stage"><canvas width="280" height="280" aria-label="Anteprima del ritaglio"></canvas></div>
+        <div class="field"><label for="crop-zoom">Zoom</label><input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1" /></div>
+        <div class="field"><label for="crop-credit">Credito della foto <span class="hint">Es. «Camera dei deputati» o «Foto: nome, licenza CC BY»</span></label><input id="crop-credit" type="text" required /></div>
+        <div class="actions"><button class="button button-primary" value="ok">Usa questa foto</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+      </form>`;
+      document.body.append(dialog);
+      const canvas = dialog.querySelector("canvas");
+      const ctx = canvas.getContext("2d");
+      const zoomInput = dialog.querySelector("#crop-zoom");
+      const base = Math.max(280 / img.width, 280 / img.height);
+      let zoom = 1, x = 0, y = 0, drag = null;
+      const clamp = () => {
+        const w = img.width * base * zoom, h = img.height * base * zoom;
+        x = Math.min(0, Math.max(280 - w, x));
+        y = Math.min(0, Math.max(280 - h, y));
+      };
+      const draw = (target = ctx, size = 280) => {
+        const k = size / 280;
+        target.fillStyle = "#fff";
+        target.fillRect(0, 0, size, size);
+        target.drawImage(img, x * k, y * k, img.width * base * zoom * k, img.height * base * zoom * k);
+      };
+      x = (280 - img.width * base) / 2; y = (280 - img.height * base) / 2; clamp(); draw();
+      zoomInput.addEventListener("input", () => {
+        const prev = zoom; zoom = Number(zoomInput.value);
+        x = 140 - (140 - x) * (zoom / prev); y = 140 - (140 - y) * (zoom / prev); clamp(); draw();
+      });
+      canvas.addEventListener("pointerdown", (e) => { drag = { sx: e.clientX, sy: e.clientY, x, y }; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener("pointermove", (e) => { if (!drag) return; x = drag.x + e.clientX - drag.sx; y = drag.y + e.clientY - drag.sy; clamp(); draw(); });
+      canvas.addEventListener("pointerup", () => { drag = null; });
+      dialog.addEventListener("close", () => {
+        if (dialog.returnValue !== "ok") { dialog.remove(); return resolve(null); }
+        const out = document.createElement("canvas");
+        out.width = 320; out.height = 320;
+        draw(out.getContext("2d"), 320);
+        const credit = dialog.querySelector("#crop-credit").value.trim();
+        dialog.remove();
+        resolve({ dataUrl: out.toDataURL("image/jpeg", 0.86), credit });
+      });
+      dialog.showModal();
+    };
+    img.onerror = () => { toast("Non riesco a leggere questa immagine.", true); resolve(null); };
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = img.onerror;
+    if (file.size > 15_000_000) { toast("La foto è troppo grande (massimo 15 MB).", true); return resolve(null); }
+    reader.readAsDataURL(file);
   });
 }
 

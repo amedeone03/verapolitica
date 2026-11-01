@@ -15,7 +15,10 @@ def test_four_sections_in_header_and_mobile_menu():
                  "parliamentarians-view", "provinces-view", "territory-history-view", "profile-view", "post-view"):
         assert f'id="{view}"' in html
     assert '<section id="archive-view" aria-labelledby="archive-title" hidden>' in html
-    assert "dossier=legge_bilancio" in html
+    # The home is only the redazione's timeline.
+    assert 'id="feed-choice"' in html and 'class="feed-timeline"' in html
+    home = html.split('id="home-view"')[1].split("</section>")[0]
+    assert "shortcut-grid" not in home and "home-hero" not in home
     assert "Salvato solo su questo dispositivo, senza account." in html
     assert "trust-line" not in html
 

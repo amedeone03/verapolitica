@@ -1,3 +1,4 @@
+import { bindFeedCards, renderFeedCard } from "./feed-card.js";
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -1592,8 +1593,9 @@ export function createPublicApiClient(fetchImpl = fetch) {
       return request(`/proposals?${params}`);
     },
     listProposalTags: () => request("/proposals/tags"),
-    getFeed: ({ scope = "all", zone = {}, offset = 0 } = {}) => {
+    getFeed: ({ scope = "all", zone = {}, offset = 0, redazione = false } = {}) => {
       const params = new URLSearchParams({ scope, offset: String(offset), limit: "20" });
+      if (redazione) params.set("redazione", "true");
       if (zone.municipality_id) params.set("municipality", String(zone.municipality_id));
       else if (zone.province) params.set("province", zone.province);
       else if (zone.region_id) params.set("region", String(zone.region_id));
@@ -2223,15 +2225,16 @@ export function loadReaderProfile(storage = globalThis.localStorage) {
     return {
       zone: value && typeof value.zone === "object" && value.zone ? value.zone : null,
       favorites: Array.isArray(value?.favorites) ? value.favorites.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
+      saved: Array.isArray(value?.saved) ? value.saved.filter((item) => item && typeof item.url === "string" && item.url.startsWith("./?post=")) : [],
     };
   } catch {
-    return { zone: null, favorites: [] };
+    return { zone: null, favorites: [], saved: [] };
   }
 }
 
 export function saveReaderProfile(profile, storage = globalThis.localStorage) {
   try {
-    storage?.setItem(PROFILE_KEY, JSON.stringify({ zone: profile.zone || null, favorites: profile.favorites || [] }));
+    storage?.setItem(PROFILE_KEY, JSON.stringify({ zone: profile.zone || null, favorites: profile.favorites || [], saved: profile.saved || [] }));
     return true;
   } catch {
     return false;
@@ -2398,150 +2401,108 @@ function feedPlace(item) {
   return "Nazionale";
 }
 
-const SHORT_MONTHS = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
-function shortDate(value) {
-  const [y, m, d] = String(value || "").slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return "";
-  const thisYear = new Date().getFullYear();
-  return `${d} ${SHORT_MONTHS[m - 1]}${y !== thisYear ? ` ${y}` : ""}`;
+// Feed: only the redazione's posts, one card each (frontend/app/feed-card.js).
+function cardItem(item) {
+  return {
+    key: item.key,
+    url: item.url,
+    title: item.title,
+    summary: item.card?.summary || item.detail,
+    occurred_on: item.occurred_on,
+    place: feedPlace(item),
+    sources: item.sources || [],
+    card: item.card?.composed ? item.card : { category: "notizia", category_label: "Notizia", tone: "navy", badge: { label: item.label === "correction" ? "Correzione" : "Dalla redazione", tone: "plain" } },
+  };
 }
 
-function renderStageStrip(stage) {
-  if (!stage?.steps?.length) return "";
-  const states = { done: "completato", current: "fase attuale", stopped: "iter fermo", todo: "da fare" };
-  return `<ol class="stage-strip${stage.stopped ? " is-stopped" : ""}" aria-label="Iter">${stage.steps.map((step) => `<li class="stage-step is-${escapeHtml(step.state)}"><span class="stage-dot" aria-hidden="true">${step.state === "done" ? icon("check", { size: 12 }) : ""}</span><span class="stage-name">${escapeHtml(step.label)}</span><span class="visually-hidden"> (${states[step.state] || step.state})</span></li>`).join("")}</ol>`;
+function resolvePortrait(politicianId) {
+  const photo = portraits.get(String(politicianId));
+  return photo ? safeImageUrl(photo.url) : null;
 }
 
-// Feed card: type and badge, people, institution, title, summary, scope and
-// sources, stage, Info / Fonti / Chiedi, stage text and date, open and share.
-// No support/oppose buttons: VeraPolitica does not collect opinions on laws.
-export function renderFeedItem(item) {
-  const card = item.card || {};
-  const key = escapeHtml(item.key || item.url);
-  const sources = (item.sources || []).map((source) => {
-    const url = safeExternalUrl(source.url);
-    return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ${icon("external", { size: 14 })}</a></li>` : "";
-  }).filter(Boolean);
-  const typeLabel = card.type_label || FEED_KIND_LABELS[item.kind] || item.kind;
-  const badge = item.label === "correction" ? "Rettifica" : card.badge;
-  const people = (card.actors || []).map((person) => {
-    const name = person.politician_id ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${escapeHtml(person.name)}</a>` : escapeHtml(person.name);
-    return `<span class="feed-person">${name}${person.party ? ` <span class="feed-party">(${escapeHtml(person.party)})</span>` : ""}</span>`;
-  }).join("");
-  let summary = card.summary || (item.kind === "editorial" ? item.detail : "");
-  if (summary.length > 280) summary = `${summary.slice(0, 277)}…`;
-  const verdict = card.verdict || (item.kind === "pledge_verdict" ? item.label : null);
-  const question = item.kind === "editorial" ? `Spiegami: ${item.title}` : `Che cosa prevede «${item.title}»?`;
-  return `<article class="feed-card feed-item" data-feed-card="${key}">
-    <header class="feed-card-top">
-      <span class="feed-type">${escapeHtml(typeLabel)}</span>
-      <span class="feed-badge">${badge ? `${escapeHtml(badge)} · ` : ""}<time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(shortDate(item.occurred_on))}</time></span>
-    </header>
-    ${people ? `<p class="feed-people">${people}</p>` : ""}
-    ${card.institution ? `<p class="feed-institution">${escapeHtml(card.institution)}</p>` : ""}
-    <h3 class="feed-title"><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
-    ${summary ? `<p class="feed-summary">${escapeHtml(summary)}</p>` : ""}
-    <p class="feed-facts"><span class="feed-scope">${escapeHtml(feedPlace(item))}</span>${sources.length ? `<span>${sources.length === 1 ? "1 fonte" : `${sources.length} fonti`}</span>` : ""}</p>
-    ${verdict ? `<div class="feed-verdict">${renderVerdictChip(verdict)}${card.update ? `<p>${escapeHtml(card.update)}</p>` : ""}</div>` : renderStageStrip(card.stage)}
-    <div class="feed-tabs" role="group" aria-label="Dettagli">
-      <a class="feed-tab" href="${escapeHtml(item.url)}">Info</a>
-      ${sources.length ? `<button type="button" class="feed-tab" aria-expanded="false" aria-controls="sources-${key}" data-feed-sources>Fonti</button>` : ""}
-      <a class="feed-tab" href="./?view=ask&amp;prefill=${encodeURIComponent(question)}">Chiedi</a>
-    </div>
-    ${sources.length ? `<ul class="feed-source-list explanation-sources" id="sources-${key}" hidden>${sources.join("")}</ul>` : ""}
-    ${card.stage_label ? `<p class="feed-stage-text">${escapeHtml(card.stage_label)}</p>` : ""}
-    ${card.since ? `<p class="feed-since">${escapeHtml(card.since_label || "")} ${escapeHtml(formatDate(card.since))}</p>` : ""}
-    <footer class="feed-card-actions">
-      <a class="feed-action" href="${escapeHtml(item.url)}">${icon("arrowRight", { size: 16 })}Apri</a>
-      <button type="button" class="feed-action" data-feed-share="${escapeHtml(item.url)}" data-share-title="${escapeHtml(item.title)}">${icon("share", { size: 16 })}Condividi</button>
-    </footer>
-  </article>`;
+export function toggleSavedPost(profile, url, title) {
+  const saved = profile.saved || [];
+  const exists = saved.some((item) => item.url === url);
+  return { ...profile, saved: exists ? saved.filter((item) => item.url !== url) : [{ url, title }, ...saved].slice(0, 100) };
 }
 
-function bindFeedCards(list) {
-  if (list.dataset.bound) return;
-  list.dataset.bound = "1";
-  list.addEventListener("click", async (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const toggle = target?.closest("[data-feed-sources]");
-    if (toggle) {
-      const panel = document.getElementById(toggle.getAttribute("aria-controls"));
-      const open = toggle.getAttribute("aria-expanded") !== "true";
-      toggle.setAttribute("aria-expanded", String(open));
-      if (panel) panel.hidden = !open;
-      return;
-    }
-    const share = target?.closest("[data-feed-share]");
-    if (!share) return;
-    const url = new URL(share.dataset.feedShare, window.location.href).href;
-    try {
-      if (navigator.share) await navigator.share({ title: share.dataset.shareTitle, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        share.lastChild.textContent = "Link copiato";
-      }
-    } catch { /* the reader cancelled */ }
-  });
+export function renderFeedTimelineItem(item, profile = { saved: [] }) {
+  const entry = cardItem(item);
+  return renderFeedCard(entry, { resolvePortrait, saved: (profile.saved || []).some((saved) => saved.url === entry.url) });
 }
 
 async function showHome(api) {
   byId("home-view").hidden = false;
-  const profile = loadReaderProfile();
+  document.title = "Feed — VeraPolitica";
+  let profile = loadReaderProfile();
   const zone = profile.zone;
-  byId("home-zone").innerHTML = zone
-    ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>`
-    : `<a href="./?view=profile">Imposta la tua zona</a> per le notizie locali.`;
-  if (profile.favorites.length) {
-    byId("home-favorites").hidden = false;
-    byId("home-favorites-list").innerHTML = renderFavoriteChips(profile.favorites);
-  }
-  let scope = "all";
-  let offset = 0;
-  const filters = byId("feed-filters");
+  const choice = byId("feed-choice");
   const list = byId("feed-list");
   const more = byId("feed-more");
-  bindFeedCards(list);
-  const render = () => {
-    filters.innerHTML = FEED_FILTERS.map(([key, label]) => `<button type="button" class="filter-pill${key === scope ? " is-active" : ""}" data-feed-scope="${key}" aria-pressed="${key === scope}">${label}</button>`).join("");
+  const status = byId("feed-status");
+  let offset = 0;
+  try { await loadPortraits(api); } catch { /* portraits are optional */ }
+  bindFeedCards(list, {
+    onSave: (url, title) => {
+      profile = toggleSavedPost(loadReaderProfile(), url, title);
+      saveReaderProfile(profile);
+      return profile.saved.some((item) => item.url === url);
+    },
+  });
+  const zoneLine = () => {
+    byId("home-zone").innerHTML = choice.value === "local"
+      ? (zone ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>` : `<a href="./?view=profile">Imposta la tua zona</a> per vedere le notizie del tuo territorio.`)
+      : "";
+  };
+  const scopeFor = () => {
+    if (choice.value === "national") return "national";
+    if (choice.value === "local") return zone?.municipality_id ? "municipality" : zone?.province ? "province" : "region";
+    return "all";
+  };
+  const showEmpty = (title, detail) => {
+    list.hidden = true;
+    more.hidden = true;
+    showState(status, title, detail);
   };
   const load = async (append) => {
+    zoneLine();
+    if (choice.value === "saved") {
+      const saved = loadReaderProfile().saved || [];
+      more.hidden = true;
+      if (!saved.length) return showEmpty("Nessun post salvato.", "Usa il segnalibro su una card per ritrovarla qui.");
+      const items = await Promise.all(saved.map((entry) => {
+        const id = new URLSearchParams(entry.url.split("?")[1] || "").get("post");
+        return id ? api.getPost(id).catch(() => null) : null;
+      }));
+      status.hidden = true;
+      list.hidden = false;
+      list.innerHTML = items.filter(Boolean).map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join("") || "";
+      return;
+    }
+    if (choice.value === "local" && !zone) return showEmpty("Nessuna zona impostata.", "Imposta comune, provincia o regione nel Profilo.");
     more.disabled = true;
-    more.setAttribute("aria-busy", "true");
     if (!append) list.setAttribute("aria-busy", "true");
     try {
-      const page = await api.getFeed({ scope, zone: zone || {}, offset });
-      byId("feed-status").hidden = true;
+      const page = await api.getFeed({ scope: scopeFor(), zone: zone || {}, offset, redazione: true });
+      status.hidden = true;
       if (!append) list.innerHTML = "";
       if (!page.items.length && !append) {
-        list.hidden = true;
-        const local = scope !== "all" && scope !== "national";
-        showState(byId("feed-status"), "Nessun aggiornamento verificato per questo filtro.", local && !zone ? "Imposta la tua zona nel Profilo per vedere le notizie del territorio." : "I nuovi fatti compaiono qui dopo la verifica.");
+        showEmpty("Nessun post della redazione per questa scelta.", "I post compaiono qui dopo la verifica di una seconda persona della redazione.");
       } else {
         list.hidden = false;
-        list.insertAdjacentHTML("beforeend", page.items.map(renderFeedItem).join(""));
+        list.insertAdjacentHTML("beforeend", page.items.map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join(""));
+        more.hidden = !page.has_more;
+        offset += page.items.length;
       }
-      more.hidden = !page.has_more;
-      offset += page.items.length;
     } catch {
-      list.hidden = true;
-      more.hidden = true;
-      showState(byId("feed-status"), "Non è stato possibile caricare gli aggiornamenti.", PUBLIC_UNAVAILABLE, true);
+      showEmpty("Non è stato possibile caricare il feed.", PUBLIC_UNAVAILABLE);
     } finally {
       more.disabled = false;
-      more.removeAttribute("aria-busy");
       list.removeAttribute("aria-busy");
     }
   };
-  filters.addEventListener("click", (event) => {
-    const button = event.target instanceof Element ? event.target.closest("[data-feed-scope]") : null;
-    if (!button || button.dataset.feedScope === scope) return;
-    scope = button.dataset.feedScope;
-    offset = 0;
-    render();
-    load(false);
-  });
+  choice.addEventListener("change", () => { offset = 0; load(false); });
   more.addEventListener("click", () => load(true));
-  render();
   await load(false);
 }
 
@@ -2584,15 +2545,25 @@ async function showPost(api, postId) {
       const url = safeExternalUrl(source.url);
       return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ${icon("external", { size: 14 })}</a></li>` : "";
     }).join("");
-    byId("post-detail").innerHTML = `<section class="proposal-detail-hero">
-      <p class="feed-meta">Redazione · ${escapeHtml(feedPlace(item))} · ${escapeHtml(formatDate(item.occurred_on))}</p>
-      <h1>${escapeHtml(item.title)}</h1>
+    try { await loadPortraits(api); } catch { /* optional */ }
+    const detail = byId("post-detail");
+    detail.innerHTML = `<h1 class="visually-hidden">${escapeHtml(item.title)}</h1>
+    <div class="post-card">${renderFeedTimelineItem(item, loadReaderProfile())}</div>
+    <section class="proposal-detail-hero post-deep">
+      <p class="eyebrow">Approfondimento</p>
       ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
-      ${item.blocks ? renderNewsBlocks(item.blocks) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
+      ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
     ${item.written_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))} · Redattore: ${escapeHtml(item.written_by)} · Verificatore: ${escapeHtml(item.verified_by || "—")}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
+    bindFeedCards(detail, {
+      onSave: (url, title) => {
+        const profile = toggleSavedPost(loadReaderProfile(), url, title);
+        saveReaderProfile(profile);
+        return profile.saved.some((entry) => entry.url === url);
+      },
+    });
     document.title = `${item.title} — VeraPolitica`;
   } catch (error) {
     showState(byId("post-status"), error.status === 404 ? "Questo aggiornamento non è disponibile." : "Non è stato possibile caricare l'aggiornamento.", error.status === 404 ? "Potrebbe non essere ancora pubblicato." : PUBLIC_UNAVAILABLE, true);

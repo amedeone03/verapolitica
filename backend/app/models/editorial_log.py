@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Enum, Index, Integer, String, Text, event
+from sqlalchemy import JSON, DateTime, Enum, Index, Integer, LargeBinary, String, Text, event
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from backend.app.db.base import Base
@@ -83,3 +83,24 @@ class EditorialChangeRequest(Base):
 @event.listens_for(EditorialLogEntry, "before_delete")
 def _log_is_append_only(_mapper: Mapper[Any], _connection: Any, _target: Any) -> None:
     raise ImmutableEditorialLogError("the editorial log is append-only")
+
+
+class EditorialImage(Base):
+    """A small image uploaded by the redazione (round portrait on a feed card).
+
+    The console crops and resizes it to a square before upload; the server
+    checks the format and size and serves it at ``/media/{id}``.
+    """
+
+    __tablename__ = "editorial_images"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    content_type: Mapped[str] = mapped_column(String(40))
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    alt: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    credit: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    uploaded_by: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

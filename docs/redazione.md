@@ -31,6 +31,31 @@ console is not linked from the public site and is `noindex`.
 | Registro modifiche | The append-only log: who, when, what, with before/after details. |
 | Regole | The eight rules, the conventions and the checklist. |
 
+## The feed (Home)
+
+The public Home is now only the redazione's timeline: published news, newest
+first, one card each. The editor composes the card in the news editor
+("La card nel feed"), with a live preview:
+
+| Card part | Field in the editor |
+| --- | --- |
+| Coloured band | Tipo: Notizia, Disegno di legge del Governo, Proposta di legge, Decreto-legge, Votazione in Aula, Interrogazione, Referendum (red), Promessa (green), Elezioni |
+| Badge · date | Etichetta (suggestions: Nuova pubblicazione, Approvato, Respinto, Scade oggi…), colour, date |
+| Text on the right | Testo a destra (e.g. «Aperto il 1 aprile 2026») |
+| People with a round photo | Up to three: name, party or role, optional link to a profile. The photo is uploaded from the computer, cropped to a circle in the console and saved as a 320×320 JPEG (max 400 KB, credit required); a linked profile can use its portrait instead |
+| Institution | Ente o istituzione |
+| Title, summary | Titolo and Sommario of block 0 |
+| Iter strip | Optional: first chamber, current step (Camera/Senato, Senato/Camera, Navetta, Gazzetta Ufficiale), state, step text, date |
+| External button | Optional label and link (e.g. «Leggi su senato.it») |
+
+Readers filter the timeline with «Per te / Nazionale / La tua zona / Salvati»;
+the bookmark saves a post in their browser only. «Info» opens the post with
+its nine blocks, «Fonti» lists the sources, «Chiedi» opens Ask VeraPolitica.
+There are no support/oppose buttons: VeraPolitica does not collect opinions.
+
+Images are stored in `editorial_images` (migration `c2f4e8a17b93`) and served
+at `/media/{id}`; each upload is logged.
+
 ## Rules enforced by code
 
 Blocking (the item cannot be approved):

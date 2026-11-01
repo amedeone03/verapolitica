@@ -39,6 +39,7 @@ from backend.app.models import (
     Referendum,
     Region,
 )
+from backend.app.services.redazione import card as card_module
 from backend.app.schemas.feed import FeedFilter, FeedItem, FeedItemKind, FeedPage, FeedSource
 
 PROPOSAL_STATUS_IT = {
@@ -371,16 +372,18 @@ class FeedService:
         zone: Zone = Zone(),
         offset: int = 0,
         limit: int = 20,
+        redazione_only: bool = False,
     ) -> FeedPage:
         # Every source is newest-first, so its first offset+limit+1 rows can
         # fill this page. Zone filtering drops local rows, so those over-fetch.
         cap = offset + limit + 1
         local_cap = cap * 4
         candidates: list[FeedItem] = []
-        if feed_filter in (FeedFilter.ALL, FeedFilter.NATIONAL):
-            candidates += self._proposal_events(cap)
-            candidates += self._pledge_verdicts(cap)
-        candidates += self._referendums(local_cap)
+        if not redazione_only:
+            if feed_filter in (FeedFilter.ALL, FeedFilter.NATIONAL):
+                candidates += self._proposal_events(cap)
+                candidates += self._pledge_verdicts(cap)
+            candidates += self._referendums(local_cap)
         candidates += self._posts(local_cap)
         accepted = [item for item in candidates if self._accepts(feed_filter, zone, item)]
         accepted.sort(key=lambda item: (item.occurred_on, item.key), reverse=True)
@@ -401,6 +404,20 @@ class FeedService:
         if post is None or post.status is not EditorialPostStatus.PUBLISHED:
             return None
         return next(item for item in self._posts_for([post]))
+
+    def _post_card(self, post: EditorialPost) -> dict:
+        blocks = post.blocks or {}
+        composed = card_module.public(blocks.get("card"), self.session)
+        base = {
+            "type_label": "Notizia",
+            "badge": "Correzione" if post.corrects_id else "Dalla redazione",
+            "actors": [],
+            "institution": None,
+            "summary": blocks.get("sommario") or post.body[:280],
+        }
+        if composed is None:
+            return base
+        return {**base, **composed, "type_label": composed["category_label"], "composed": True}
 
     def _posts_for(self, posts: list[EditorialPost]) -> Iterator[FeedItem]:
         for post in posts:
@@ -423,13 +440,7 @@ class FeedService:
                 sources=tuple(FeedSource(**item) for item in post.citations),
                 label="correction" if post.corrects_id else None,
                 blocks=_public_blocks(post.blocks),
-                card={
-                    "type_label": "Notizia",
-                    "badge": "Rettifica" if post.corrects_id else "Dalla redazione",
-                    "actors": [],
-                    "institution": None,
-                    "summary": (post.blocks or {}).get("sommario") or post.body[:280],
-                },
+                card=self._post_card(post),
                 written_by=post.created_by if post.blocks and post.created_by in self.public_names else None,
                 verified_by=post.reviewed_by if post.blocks and post.reviewed_by in self.public_names else None,
             )

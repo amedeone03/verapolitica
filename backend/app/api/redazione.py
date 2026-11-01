@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.api.deps import get_api_settings, get_session_factory
 from backend.app.core.config import DEMO_REDAZIONE_MEMBERS, Settings
 from backend.app.models import CAP_MAJOR_TOPICS
+from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
 from backend.app.services.redazione.service import RedazioneError, RedazioneService
 
@@ -211,6 +212,17 @@ def reclassify(
     payload: Annotated[dict, Body()],
 ) -> Any:
     return _run(service.request_reclassification, proposal_id, payload, member=member)
+
+
+@router.post("/immagini")
+def upload_image(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
+    return _run(service.upload_image, payload, member=member)
+
+
+@router.get("/card")
+def card_options(member: Member) -> dict:
+    del member
+    return card_module.options()
 
 
 @router.get("/notizie")

@@ -250,3 +250,22 @@ details.writer > form { margin-top: 12px; }
 body { overflow-wrap: break-word; }
 .data-table { min-width: 560px; }
 @media (max-width: 600px) { .summary-strip strong { font-size: 1.4rem; } .summary-strip .tile { padding: 10px 12px; } }
+
+/* Card composer -------------------------------------------------------------- */
+.card-preview { margin-top: 8px; }
+.card-preview .vp-card { font-size: 15px; }
+.queue-card-preview { max-width: 560px; margin-bottom: 12px; }
+.person-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; background: var(--color-background); border-radius: var(--radius-md); }
+.person-row + .person-row { margin-top: 10px; }
+.avatar-pick { display: grid; justify-items: center; gap: 6px; padding: 4px; border: 0; background: none; cursor: pointer; color: var(--color-secondary); font: 600 .75rem var(--font-body); }
+.avatar-circle { display: grid; place-items: center; width: 76px; height: 76px; overflow: hidden; border-radius: 50%; border: 3px solid var(--color-secondary); background: var(--color-accent-light); color: var(--color-primary); font: 700 1.25rem var(--font-body); }
+.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-pick:hover .avatar-circle { border-color: var(--color-accent-strong); }
+.person-fields .field { margin-bottom: 8px; }
+.crop-dialog { width: min(420px, calc(100vw - 32px)); border: 0; border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 20px 60px rgba(15, 39, 71, .3); }
+.crop-dialog::backdrop { background: rgba(15, 39, 71, .55); }
+.crop-stage { position: relative; width: 280px; height: 280px; margin: 0 auto; touch-action: none; }
+.crop-stage canvas { display: block; border-radius: var(--radius-md); cursor: grab; }
+.crop-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at center, transparent 139px, rgba(15, 39, 71, .6) 140px); }
+.crop-stage { overflow: hidden; border-radius: var(--radius-md); }
+@media (max-width: 600px) { .person-row { grid-template-columns: 1fr; } }

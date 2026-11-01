@@ -19,6 +19,7 @@ from backend.app.models.editorial_post import (
 from backend.app.models.editorial_log import (
     ChangeRequestStatus,
     EditorialChangeRequest,
+    EditorialImage,
     EditorialLogEntry,
     ImmutableEditorialLogError,
 )
@@ -161,6 +162,7 @@ __all__ = [
     "ERA_LABELS",
     "ChangeRequestStatus",
     "EditorialChangeRequest",
+    "EditorialImage",
     "EditorialLogEntry",
     "EditorialPost",
     "ImmutableEditorialLogError",

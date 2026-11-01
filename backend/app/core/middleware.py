@@ -72,7 +72,7 @@ def resolve_request_id(incoming: str | None) -> str:
 
 # Front-end assets are small and change with every release: always revalidate
 # (ETag / Last-Modified) instead of letting browsers reuse a stale app.js.
-REVALIDATED_PREFIXES = ("/app", "/demo")
+REVALIDATED_PREFIXES = ("/app", "/demo", "/redazione")
 
 
 # Self-hosted font files never change in place (a new font gets a new name).

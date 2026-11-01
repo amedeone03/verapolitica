@@ -21,6 +21,8 @@ publication path.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import re
 from collections.abc import Callable
@@ -34,6 +36,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.models import (
     ChangeRequestStatus,
     EditorialChangeRequest,
+    EditorialImage,
     EditorialLogEntry,
     EditorialPost,
     EditorialPostStatus,
@@ -108,6 +111,7 @@ from backend.app.services.proposal_review_service import (
 )
 from backend.app.services.proposal_service import ProposalService, ProposalServiceError
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
+from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
 
 
@@ -155,6 +159,7 @@ KIND_LABELS = {
     "status": "Stato di una promessa",
     "news": "Notizia",
     "change": "Modifica a contenuto pubblico",
+    "image": "Immagine",
 }
 VERDICT_LABELS = {
     "kept": "Mantenuta",
@@ -1279,6 +1284,11 @@ class RedazioneService:
                 post.municipality_id = request.municipality_id
                 post.citations = [{"title": item.title, "url": str(item.url)} for item in request.citations]
                 post.created_by = member
+            composed = card_module.sanitize(payload.get("card"), session)
+            if composed:
+                linked = {person["politician_id"] for person in composed["people"] if person.get("politician_id")}
+                stored_blocks["politician_ids"] = sorted(set(stored_blocks["politician_ids"]) | linked)
+            stored_blocks["card"] = composed
             post.blocks = stored_blocks
             post.updated_at = self.clock()
             session.flush()
@@ -1324,11 +1334,16 @@ class RedazioneService:
             {"name": item.get("title"), "url": item.get("url"), "area": "altro", "date": None} for item in post.citations
         ]
         politician_ids = blocks.pop("politician_ids", []) or []
+        composed = blocks.pop("card", None)
         if not post.blocks:
             blocks = {"sommario": post.body}
         findings = [
             item.as_dict() for item in style.news_findings({"title": post.title, "blocks": blocks, "sources": sources})
         ]
+        if not composed:
+            findings.append(
+                {"level": "warning", "code": "card_mancante", "message": "La card del feed non è stata composta: comparirà come notizia semplice.", "field": "card"}
+            )
         names = self._politician_names(session, set(politician_ids))
         return {
             "id": post.id,
@@ -1341,6 +1356,8 @@ class RedazioneService:
             "blocks": blocks,
             "sources": sources,
             "politicians": [{"id": key, "name": names.get(key)} for key in politician_ids],
+            "card": composed,
+            "card_public": card_module.public(composed, session),
             "created_by": post.created_by,
             "reviewed_by": post.reviewed_by,
             "created_at": _iso(post.created_at),
@@ -1364,6 +1381,56 @@ class RedazioneService:
                     {"id": post.id, "title": post.title, "status": post.status.value, "published_at": _iso(post.published_at)}
                 )
         return result
+
+    # ---------------------------------------------------------------- images
+    IMAGE_TYPES = {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "image/webp"}
+    MAX_IMAGE_BYTES = 400_000
+
+    def upload_image(self, payload: dict, *, member: str) -> dict:
+        """A square image for a feed card, cropped and resized by the console."""
+
+        raw = str(payload.get("data") or "")
+        if "," in raw and raw.startswith("data:"):
+            raw = raw.split(",", 1)[1]
+        try:
+            data = base64.b64decode(raw, validate=True)
+        except (ValueError, binascii.Error) as error:
+            raise RedazioneValidation("Immagine non leggibile.") from error
+        if not data or len(data) > self.MAX_IMAGE_BYTES:
+            raise RedazioneValidation("L'immagine deve pesare meno di 400 KB.")
+        content_type = next((kind for magic, kind in self.IMAGE_TYPES.items() if data.startswith(magic)), None)
+        if content_type == "image/webp" and data[8:12] != b"WEBP":
+            content_type = None
+        if content_type is None:
+            raise RedazioneValidation("Formato non supportato: usa JPEG, PNG o WebP.")
+        digest = hashlib.sha256(data).hexdigest()
+        with self.session_factory.begin() as session:
+            existing = session.scalar(select(EditorialImage).where(EditorialImage.sha256 == digest))
+            if existing is not None:
+                return {"id": existing.id, "url": f"/media/{existing.id}"}
+            image = EditorialImage(
+                content_type=content_type,
+                data=data,
+                sha256=digest,
+                width=int(payload["width"]) if str(payload.get("width") or "").isdigit() else None,
+                height=int(payload["height"]) if str(payload.get("height") or "").isdigit() else None,
+                alt=_clean(payload.get("alt"))[:300] or None,
+                credit=_clean(payload.get("credit"))[:300] or None,
+                uploaded_by=member,
+                created_at=self.clock(),
+            )
+            session.add(image)
+            session.flush()
+            self._log(
+                session,
+                actor=member,
+                action="immagine",
+                object_kind="image",
+                object_id=image.id,
+                summary=f"Caricata un'immagine per le card del feed ({len(data) // 1024} KB).",
+                details={"credit": image.credit, "alt": image.alt},
+            )
+            return {"id": image.id, "url": f"/media/{image.id}"}
 
     # ------------------------------------------------------- change requests
     def _change_requests(self, session: Session, *, politician_id: int | None = None, member: str) -> list[dict]:
@@ -1514,7 +1581,14 @@ class RedazioneService:
                         politician_name=None,
                         author=post.created_by,
                         created_at=post.created_at,
-                        preview={"blocks": news["blocks"], "sources": news["sources"], "words": news["words"]},
+                        preview={
+                            "blocks": news["blocks"],
+                            "sources": news["sources"],
+                            "words": news["words"],
+                            "card": news["card_public"],
+                            "title": post.title,
+                            "scope": news["scope"],
+                        },
                         findings=news["findings"],
                         member=member,
                     )

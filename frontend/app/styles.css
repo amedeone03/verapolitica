@@ -793,3 +793,26 @@ a, button, select, summary, label { touch-action: manipulation; }
 @media (max-width: 600px) { .feed-card { padding: var(--space-4); border-radius: var(--radius-md); } .feed-card .feed-title { font-size: 1.125rem; } }
 .feed-card .feed-title { font-family: var(--font-heading); font-weight: 600; }
 .feed-verdict { justify-items: start; }
+
+/* Feed (Home): one timeline of redazione posts. */
+.feed-view { max-width: 720px; margin-inline: auto; }
+.feed-bar { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: var(--space-2); padding: var(--space-2) 0 var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
+.feed-bar-actions { display: flex; gap: var(--space-1); }
+.feed-bar-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--color-primary); }
+.feed-bar-icon:hover { background: var(--color-accent-light); color: var(--color-primary); }
+.feed-choice { justify-self: center; }
+.feed-choice select {
+  min-height: 44px; padding: 0 44px 0 20px; border: 1px solid var(--color-border); border-radius: 999px;
+  background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23003C71'/%3E%3Cpath d='m8 10 4 4 4-4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 8px center / 26px 26px;
+  color: var(--color-primary); font: 700 1.0625rem var(--font-body); appearance: none; -webkit-appearance: none; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 39, 71, .08);
+}
+.feed-zone { margin: 0 0 var(--space-3); color: var(--color-text-muted); font-size: .875rem; text-align: center; }
+.feed-zone:empty { display: none; }
+.feed-timeline { display: grid; gap: var(--space-4); }
+.feed-more { display: block; margin: var(--space-5) auto 0; }
+.post-card { max-width: 720px; margin: 0 auto var(--space-5); }
+.post-deep { max-width: 720px; margin-inline: auto; }
+#home-view.feed-view { margin-top: calc(-1 * var(--space-4)); }
+@media (max-width: 767px) { #home-view.feed-view { margin-top: calc(-1 * var(--space-6)); } }
+#post-detail > .detail-card { max-width: 720px; margin-inline: auto; }

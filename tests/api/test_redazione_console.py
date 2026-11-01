@@ -324,3 +324,73 @@ def test_rejection_needs_a_reason_and_is_logged(console):
     log = client.get(f"/redazione/api/registro?politico={politician_id}", headers=ANNA).json()["items"]
     assert log[0]["action"] == "rifiuto" and "Manca il resoconto." in log[0]["summary"]
     assert log[0]["actor"] == "Bruno Verificatore"
+
+
+PNG_1x1 = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
+
+
+def test_feed_card_with_round_image_reaches_the_timeline(console):
+    client, politician_id, _ = console
+    assert client.post("/redazione/api/immagini", headers=ANNA, json={"data": "data:text/plain;base64,aGVsbG8="}).status_code == 422
+    image = client.post("/redazione/api/immagini", headers=ANNA, json={"data": PNG_1x1, "credit": "Camera dei deputati", "alt": "Mario Esempio"})
+    assert image.status_code == 200, image.text
+    image_id = image.json()["id"]
+    media = client.get(image.json()["url"])
+    assert media.status_code == 200 and media.headers["content-type"] == "image/png"
+    assert "immutable" in media.headers["cache-control"]
+    options = client.get("/redazione/api/card", headers=ANNA).json()
+    assert {item["key"] for item in options["categories"]} >= {"notizia", "disegno_di_legge", "referendum"}
+
+    sources = [
+        {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/politica/2026/10/30/ddl-ferrovie.html", "area": "agenzia"},
+        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/ddl-ferrovie.html", "area": "centrodestra"},
+        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/ddl-ferrovie", "area": "centrosinistra"},
+    ]
+    payload = {
+        "title": "Disegno di legge sulle ferrovie: esame in commissione al Senato",
+        "blocks": {
+            "sommario": "Il disegno di legge riorganizza la gestione delle ferrovie regionali.",
+            "fatto": "Il Consiglio dei ministri ha approvato il disegno di legge.",
+            "cosa_cambia": "- Cambia chi gestisce le linee regionali.",
+            "destra": "- Maggioranza: favorevole.",
+            "sinistra": "- Opposizione: contraria.",
+        },
+        "sources": sources,
+        "card": {
+            "category": "disegno_di_legge",
+            "badge": {"label": "Nuova pubblicazione", "tone": "navy", "date": "2026-10-30"},
+            "aside": "Aperto il 5 novembre 2025",
+            "institution": "Ministero delle Infrastrutture e dei Trasporti",
+            "people": [
+                {"name": "Mario Esempio", "role": "Partito Esempio", "politician_id": politician_id, "image_id": image_id},
+                {"name": "Persona Senza Foto", "role": "Ruolo", "image_id": 999999},
+                {"name": "Terza"}, {"name": "Quarta, scartata"},
+            ],
+            "iter": {"first": "camera", "current": 2, "state": "in_corso", "status": "Esame in commissione · Senato", "since": "2025-11-05"},
+            "link": {"label": "Leggi su senato.it", "url": "https://www.senato.it/leg/19/BGT/Schede/Ddliter/60001.htm"},
+            "unknown": "ignored",
+        },
+    }
+    post = client.post("/redazione/api/notizie", headers=ANNA, json=payload).json()
+    assert post["card"]["people"][1]["image_id"] is None  # unknown image dropped
+    assert len(post["card"]["people"]) == 3
+    assert "unknown" not in post["card"]
+    assert [step["state"] for step in post["card_public"]["iter"]["steps"]] == ["done", "current", "todo", "todo"]
+    assert post["card_public"]["iter"]["steps"][1]["label"] == "Senato"
+    queued = _queue_item(client, BRUNO, "news", id=post["id"])
+    assert queued["preview"]["card"]["category_label"] == "Disegno di legge del Governo"
+    assert client.post(f"/redazione/api/coda/news/{post['id']}/approva", headers=BRUNO, json={}).status_code == 200
+
+    timeline = client.get("/feed?redazione=true").json()["items"]
+    assert [item["kind"] for item in timeline] == ["editorial"]
+    card = timeline[0]["card"]
+    assert card["composed"] and card["tone"] == "navy" and card["category_label"] == "Disegno di legge del Governo"
+    assert card["people"][0] == {"name": "Mario Esempio", "role": "Partito Esempio", "politician_id": politician_id, "image_url": f"/media/{image_id}"}
+    assert card["badge"] == {"label": "Nuova pubblicazione", "tone": "navy", "date": "2026-10-30"}
+    assert card["link"]["url"].startswith("https://www.senato.it/")
+    profile = client.get(f"/politicians/{politician_id}").json()
+    assert [item["id"] for item in profile["editorial"]["related_posts"]] == [post["id"]]
+    log = client.get("/redazione/api/registro", headers=ANNA).json()["items"]
+    assert any(entry["action"] == "immagine" for entry in log)
