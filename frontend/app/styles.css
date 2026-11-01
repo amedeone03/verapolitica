@@ -1000,3 +1000,60 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .ob-stat-label .ob-logo { width: 36px; height: 36px; margin-right: 10px; vertical-align: middle; }
 .topic-chip .vp-logo { margin-right: 4px; }
 .ob-empty { margin: 4px 0 0; padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .12); font-size: 1rem; line-height: 1.5; }
+
+/* ---------------------------------------------------------------------------
+   Politica: one screen to find people, parties, tools and topics.
+   Pattern: Ground News "Explore" (large heading, wide search, titled sections,
+   topic chips) + iOS grouped lists for navigation rows. */
+.politics { padding-top: var(--space-2); }
+@media (min-width: 900px) { .politics { padding-top: var(--space-5); } }
+.politics-title { margin: 0 0 var(--space-4); font-size: clamp(2rem, 6vw, 2.75rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
+.politics-search { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; margin-bottom: var(--space-6); border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text-muted); box-shadow: 0 1px 2px rgba(15, 39, 71, .05); }
+.politics-search:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-accent-light); }
+.politics-search input { flex: 1; min-width: 0; min-height: 46px; border: 0; background: transparent; color: var(--color-text); font: 500 1rem var(--font-body); }
+.politics-search input:focus { outline: none; }
+.politics-block { margin-bottom: var(--space-6); }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.block-head h2 { margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.015em; }
+.block-link { color: var(--color-primary); font-size: .9375rem; font-weight: 600; text-decoration: none; }
+.block-link:hover { text-decoration: underline; text-decoration-color: var(--color-accent); }
+.block-subhead { margin: var(--space-5) 0 0; color: var(--color-text-muted); font-size: .8125rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Government: a horizontal row of round portraits (scroll on phones, wraps on desktop). */
+.people-row { display: grid; grid-auto-flow: column; grid-auto-columns: 92px; gap: 12px; margin: 0 calc(var(--gutter) * -1); padding: 4px var(--gutter) 8px; scroll-padding-inline: var(--gutter); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; }
+.people-row::-webkit-scrollbar { display: none; }
+.people-row[aria-busy="true"] { min-height: 150px; }
+.person-bubble { display: grid; justify-items: center; align-content: start; gap: 4px; scroll-snap-align: start; color: var(--color-text); text-align: center; text-decoration: none; transition: transform 100ms ease-out; }
+.person-bubble:active { transform: scale(.96); }
+.bubble-photo { display: grid; place-items: center; width: 76px; height: 76px; margin-bottom: 4px; overflow: hidden; border-radius: 50%; background: var(--color-accent-light); color: var(--color-primary); font-size: 1.25rem; font-weight: 800; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-border); }
+.bubble-photo img { width: 100%; height: 100%; object-fit: cover; }
+.person-bubble:hover .bubble-photo { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
+.bubble-name { max-width: 100%; font-size: .8125rem; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.bubble-role { color: var(--color-text-muted); font-size: .75rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 900px) {
+  .people-row { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); grid-auto-columns: auto; gap: 22px 12px; margin: 0; padding: 4px 0; overflow: visible; }
+}
+
+/* Grouped list rows (parties, tools). */
+.row-list { margin: 0; padding: 0; list-style: none; overflow: hidden; border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); }
+.row-list > li + li { border-top: 1px solid var(--color-border); }
+.row-list[aria-busy="true"] { min-height: 64px; }
+.row-link { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px 10px 16px; color: var(--color-text); text-decoration: none; transition: background-color 150ms ease; }
+.row-link:hover { background: var(--color-background); }
+.row-link:active { background: var(--color-accent-light); }
+.row-text { display: grid; gap: 2px; min-width: 0; }
+.row-text strong { font-size: 1rem; font-weight: 700; color: var(--color-primary); }
+.row-text small { color: var(--color-text-muted); font-size: .875rem; }
+.row-chevron { color: var(--color-text-muted); display: grid; }
+.row-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-accent-light); color: var(--color-accent-strong); }
+.row-logo { display: grid; place-items: center; width: 44px; height: 44px; }
+.row-logo .vp-logo { width: 44px; height: 44px; margin: 0; border-radius: 10px; }
+.party-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: var(--color-background); border: 1px solid var(--color-border); color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
+.row-empty { padding: 16px; color: var(--color-text-muted); }
+@media (min-width: 900px) {
+  .party-rows { display: grid; grid-template-columns: 1fr 1fr; }
+  .party-rows > li + li { border-top: 0; }
+  .party-rows > li { border-bottom: 1px solid var(--color-border); }
+  .party-rows > li:nth-child(odd) { border-right: 1px solid var(--color-border); }
+}
+@media (prefers-reduced-motion: reduce) { .person-bubble:active { transform: none; } }

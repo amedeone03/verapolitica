@@ -4,6 +4,10 @@ const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
 const ICON_PATHS = {
+  chevronRight: '<path d="m9 18 6-6-6-6"/>',
+  proposal: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  calculator: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M16 14v4"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>',
   arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -2669,38 +2673,80 @@ async function showPost(api, postId) {
 
 // ---------------------------------------------------------------------------
 // Politica: parties, topics, party pages, comparison.
-export function renderPartyCard(party) {
-  return `<article class="proposal-card">
-    <span class="proposal-type">${party.abbreviation ? escapeHtml(party.abbreviation) : "Partito"}</span>
-    <h3>${escapeHtml(party.name)}</h3>
-    <p>${party.current_member_count} ${party.current_member_count === 1 ? "profilo pubblicato in carica" : "profili pubblicati in carica"}</p>
-    <a class="profile-link" href="./?political_party=${encodeURIComponent(party.id)}">Vedi partito e promesse ${icon("arrowRight")}</a>
-  </article>`;
+// Government order: Prime Minister, Deputy Prime Ministers, Ministers, then the rest.
+const GOVERNMENT_RANK = ["presidente del consiglio", "vice presidente del consiglio", "ministro", "ministro senza portafoglio", "sottosegretario"];
+
+export function governmentRank(person) {
+  const office = String(primaryMandate(person)?.office ?? "").toLocaleLowerCase("it");
+  const index = GOVERNMENT_RANK.indexOf(office);
+  return index === -1 ? GOVERNMENT_RANK.length : index;
+}
+
+// "Ministro della Difesa" → "Difesa"; titles without a portfolio keep their wording.
+export function shortRole(person) {
+  const mandate = primaryMandate(person);
+  if (!mandate) return "";
+  const role = mandateRole(mandate, person.profile?.gender);
+  const portfolio = role.match(/^Ministr[oa] (?:della |del |dell['’]|degli |delle |dei |per (?:la |il |l['’]|gli |le |i )?)(.+)$/i);
+  if (portfolio && !/^Vice/i.test(role)) return portfolio[1].charAt(0).toLocaleUpperCase("it") + portfolio[1].slice(1);
+  return role.replace(/^Vice Presidente/i, "Vicepresidente").replace(/ e Ministro .+$/i, "");
+}
+
+function personBubble(person) {
+  const name = `${person.given_name} ${person.family_name}`.trim();
+  const photo = resolvePortrait(person.id);
+  return `<a class="person-bubble" href="./?politician=${encodeURIComponent(person.id)}">
+    <span class="bubble-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    <span class="bubble-name">${escapeHtml(name)}</span>
+    <span class="bubble-role">${escapeHtml(shortRole(person))}</span>
+  </a>`;
+}
+
+export function renderPartyRow(party) {
+  const members = party.current_member_count
+    ? `${party.current_member_count} ${party.current_member_count === 1 ? "profilo in carica" : "profili in carica"}`
+    : "";
+  const mark = partyLogo(party, 40) || `<span class="party-mark" aria-hidden="true">${escapeHtml(String(party.abbreviation || party.name).replace(/[^\p{L}\p{N}]/gu, "").slice(0, 3).toUpperCase())}</span>`;
+  return `<li><a class="row-link" href="./?political_party=${encodeURIComponent(party.id)}">
+    <span class="row-logo">${mark}</span>
+    <span class="row-text"><strong>${escapeHtml(party.name)}</strong><small>${[party.abbreviation, members].filter(Boolean).map(escapeHtml).join(" · ")}</small></span>
+  </a></li>`;
 }
 
 async function showPolitics(api) {
   byId("politics-view").hidden = false;
   document.title = "Politica — VeraPolitica";
+  for (const holder of document.querySelectorAll("#politics-view [data-icon]")) holder.innerHTML = icon(holder.dataset.icon, { size: 20 });
+  for (const link of document.querySelectorAll("#politics-view .row-link")) link.insertAdjacentHTML("beforeend", `<span class="row-chevron">${icon("chevronRight", { size: 18 })}</span>`);
   api.listProposalTags().then((tags) => {
-    byId("topic-list").innerHTML = tags.topics.map((topic) => `<a class="topic-chip" href="./?view=proposals&amp;topic=${encodeURIComponent(topic.value)}">${escapeHtml(topic.label)}</a>`).join("")
-      + tags.dossiers.map((item) => `<a class="topic-chip is-dossier" href="./?view=proposals&amp;dossier=${encodeURIComponent(item.value)}">${escapeHtml(item.label)}</a>`).join("");
+    byId("topic-list").innerHTML = tags.topics.map((topic) => `<a class="topic-chip" href="./?view=proposals&amp;topic=${encodeURIComponent(topic.value)}">${escapeHtml(topic.label)}</a>`).join("");
+    if (tags.dossiers.length) {
+      byId("dossier-title").hidden = false;
+      byId("dossier-list").hidden = false;
+      byId("dossier-list").innerHTML = tags.dossiers.map((item) => `<a class="topic-chip" href="./?view=proposals&amp;dossier=${encodeURIComponent(item.value)}">${escapeHtml(item.label)}</a>`).join("");
+    }
   }).catch(() => {
     byId("topic-list").innerHTML = `<p class="empty-note">Temi non disponibili.</p>`;
   });
-  try {
-    const parties = await api.listParties();
-    byId("party-count").textContent = countLabel(parties.total, "partito", "partiti");
-    if (!parties.items.length) {
-      showState(byId("parties-status"), "Nessun partito ha ancora profili pubblicati.", "I partiti compaiono quando almeno un loro esponente ha una scheda verificata.");
-      return;
-    }
-    byId("parties-status").hidden = true;
-    byId("party-list").hidden = false;
-    byId("party-list").innerHTML = parties.items.map(renderPartyCard).join("");
-  } catch {
-    byId("party-count").textContent = "Non disponibile";
-    showState(byId("parties-status"), "Non è stato possibile caricare i partiti.", PUBLIC_UNAVAILABLE, true);
-  }
+  const people = Promise.all([api.listPoliticians(), loadPortraits(api)]).then(([payload]) => {
+    const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
+    government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
+    const row = byId("government-row");
+    row.innerHTML = government.length
+      ? government.map(personBubble).join("")
+      : `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
+  }).catch(() => {
+    byId("government-row").innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
+  }).finally(() => byId("government-row").removeAttribute("aria-busy"));
+  const parties = api.listParties({ all: true }).then((payload) => {
+    const items = [...payload.items].sort((a, b) => b.current_member_count - a.current_member_count || a.name.localeCompare(b.name, "it"));
+    byId("party-list").innerHTML = items.length
+      ? items.map(renderPartyRow).join("")
+      : `<li class="row-empty">La redazione non ha ancora pubblicato l'elenco dei partiti.</li>`;
+  }).catch(() => {
+    byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
+  }).finally(() => byId("party-list").removeAttribute("aria-busy"));
+  await Promise.all([people, parties]);
 }
 
 function renderMemberList(members, emptyText) {

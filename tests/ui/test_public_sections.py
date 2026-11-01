@@ -73,3 +73,15 @@ def test_cambridge_classic_tokens_fonts_and_accessibility():
     # SEO essentials.
     assert 'property="og:image"' in html and "application/ld+json" in html
     assert 'link.rel = "canonical"' in script
+
+
+def test_politics_section_layout() -> None:
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
+    # Search, government row, parties with logos, tools and topics; no empty tile grid.
+    for marker in ('class="politics-search"', 'id="government-row"', 'id="party-list"', 'id="topic-list"', 'id="dossier-list"'):
+        assert marker in view
+    assert "shortcut-grid" not in view
+    assert "api.listParties({ all: true })" in script and "partyLogo(party, 40)" in script
+    assert "export function shortRole" in script and "GOVERNMENT_RANK" in script

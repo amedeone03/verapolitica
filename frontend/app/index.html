@@ -75,23 +75,39 @@
         <article id="post-detail" hidden></article>
       </section>
 
-      <section id="politics-view" aria-labelledby="politics-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="politics-title">Politica</h1>
-        </div>
-        <div class="shortcut-grid">
-          <a class="shortcut-card" href="./?view=politicians">Politici</a>
-          <a class="shortcut-card" href="./?view=proposals">Proposte di legge</a>
-          <a class="shortcut-card" href="./?view=compare">Confronto</a>
-          <a class="shortcut-card" href="./?view=methodology">Come si calcola</a>
-        </div>
-        <section class="detail-card" aria-labelledby="parties-title">
-          <div class="archive-heading"><div><h2 id="parties-title">Partiti</h2></div><span id="party-count" class="count-pill">Caricamento</span></div>
-          <div id="parties-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dei partiti…</strong></div></div>
-          <div id="party-list" class="proposal-grid" hidden></div>
+      <section id="politics-view" class="politics" aria-labelledby="politics-title" hidden>
+        <h1 id="politics-title" class="politics-title">Politica</h1>
+        <form class="politics-search" action="./" method="get" role="search">
+          <input type="hidden" name="view" value="search" />
+          <label class="visually-hidden" for="politics-q">Cerca</label>
+          <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="politics-q" name="q" type="search" placeholder="Politico, partito o proposta" autocomplete="off" />
+        </form>
+
+        <section class="politics-block" aria-labelledby="government-title">
+          <div class="block-head"><h2 id="government-title">Governo</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
+          <div id="government-row" class="people-row" aria-busy="true"></div>
         </section>
-        <section class="detail-card" aria-labelledby="topics-title"><h2 id="topics-title">Temi</h2>
+
+        <section class="politics-block" aria-labelledby="parties-title">
+          <div class="block-head"><h2 id="parties-title">Partiti</h2></div>
+          <ul id="party-list" class="row-list party-rows" aria-busy="true"></ul>
+        </section>
+
+        <section class="politics-block" aria-labelledby="tools-title">
+          <div class="block-head"><h2 id="tools-title">Strumenti</h2></div>
+          <ul class="row-list">
+            <li><a class="row-link" href="./?view=proposals"><span class="row-icon" data-icon="proposal"></span><span class="row-text"><strong>Proposte di legge</strong><small>A che punto è ogni proposta in Parlamento</small></span></a></li>
+            <li><a class="row-link" href="./?view=compare"><span class="row-icon" data-icon="scale"></span><span class="row-text"><strong>Confronta</strong><small>Promesse di persone nello stesso ruolo</small></span></a></li>
+            <li><a class="row-link" href="./?view=methodology"><span class="row-icon" data-icon="calculator"></span><span class="row-text"><strong>Come si calcola</strong><small>Il metodo pubblico del punteggio</small></span></a></li>
+          </ul>
+        </section>
+
+        <section class="politics-block" aria-labelledby="topics-title">
+          <div class="block-head"><h2 id="topics-title">Temi</h2></div>
           <div id="topic-list" class="topic-chips"></div>
+          <h3 id="dossier-title" class="block-subhead" hidden>Dossier</h3>
+          <div id="dossier-list" class="topic-chips" hidden></div>
         </section>
       </section>
 
