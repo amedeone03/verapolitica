@@ -868,3 +868,19 @@ h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
 .button, .ghost-button, .header-profile, .filter-pill, .topic-chip, .cover-button, .follow-button { transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease, border-color 150ms ease; }
 .button:active, .ghost-button:active, .header-profile:active, .filter-pill:active, .topic-chip:active, .cover-button:active, .follow-button:active { transform: scale(.97); }
 @media (prefers-reduced-motion: reduce) { .button:active, .ghost-button:active, .header-profile:active, .filter-pill:active, .topic-chip:active, .cover-button:active, .follow-button:active { transform: none; } }
+
+/* Desktop: the bottom bar moves into the header, centred (sticky header, same four sections). */
+@media (min-width: 900px) {
+  .site-header { position: sticky; top: 0; z-index: 29; }
+  .header-inner { min-height: 72px; }
+  .bottom-nav {
+    top: 9px; bottom: auto; width: auto; grid-template-columns: repeat(4, auto); gap: 2px; padding: 4px;
+    background: var(--color-background); -webkit-backdrop-filter: none; backdrop-filter: none;
+    border-color: var(--color-border); border-radius: 999px; box-shadow: none;
+  }
+  .bottom-nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-size: .875rem; }
+  .bottom-nav .icon, .bottom-nav-logo { width: 20px; height: 20px; }
+  .bottom-nav a:active { transform: scale(.96); }
+  .site-footer { padding-bottom: var(--space-6); }
+  .profile-cta-bar { bottom: 0; }
+}
