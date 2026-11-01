@@ -56,8 +56,13 @@ def test_cambridge_classic_tokens_fonts_and_accessibility():
     assert "Source Serif" not in styles and "source-serif" not in html
     assert '--font-heading: "Inter"' in styles
     assert html.count('rel="preload"') == 1
-    # No glass, glow or entrance animation.
-    assert "backdrop-filter" not in styles and "radial-gradient" not in styles
+    # No glow or entrance animation. Translucency only on the floating bottom bar,
+    # with a solid fallback when the reader asks for less transparency.
+    assert "radial-gradient" not in styles
+    assert styles.count(" backdrop-filter: blur") == 1 and "prefers-reduced-transparency: reduce" in styles
+    # Feed switcher shows its options directly; every button responds on press.
+    assert 'class="feed-segments"' in html and "<select" not in html.split('id="feed-choice"')[1][:200]
+    assert ".button:active" in styles
     assert "will-reveal" not in styles and "is-new" not in script
     assert "@media (prefers-reduced-motion: reduce)" in styles
     # Navigation is a bottom bar on every page; no hamburger menu to trap focus in.

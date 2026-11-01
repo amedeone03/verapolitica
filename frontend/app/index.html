@@ -47,14 +47,12 @@
         <h1 id="home-title" class="visually-hidden">Feed della redazione</h1>
         <div class="feed-bar">
           <a class="feed-bar-icon" href="./?view=profile" aria-label="La tua zona e i preferiti"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></a>
-          <label class="feed-choice"><span class="visually-hidden">Mostra</span>
-            <select id="feed-choice">
-              <option value="all">Per te</option>
-              <option value="national">Nazionale</option>
-              <option value="local">La tua zona</option>
-              <option value="saved">Salvati</option>
-            </select>
-          </label>
+          <div id="feed-choice" class="feed-segments" role="group" aria-label="Mostra">
+            <button type="button" data-feed="all" aria-pressed="true">Per te</button>
+            <button type="button" data-feed="national" aria-pressed="false">Nazionale</button>
+            <button type="button" data-feed="local" aria-pressed="false">Zona</button>
+            <button type="button" data-feed="saved" aria-pressed="false">Salvati</button>
+          </div>
           <div class="feed-bar-actions">
             <a class="feed-bar-icon" href="./?view=methodology" aria-label="Come lavora la redazione"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
           </div>
@@ -373,12 +371,12 @@
       <section id="search-view" aria-labelledby="search-title" hidden>
         <div class="hero compact-hero">
           <h1 id="search-title">Cerca nell'archivio</h1>
-          <p class="hero-copy">Trova politici, proposte, territori, gruppi parlamentari e partiti politici pubblicati. I record editoriali non pubblicati restano nascosti.</p>
+          <p class="hero-copy">Politici, proposte, territori, gruppi e partiti.</p>
         </div>
         <form class="search-panel" action="./" method="get">
           <input type="hidden" name="view" value="search" />
           <label class="visually-hidden" for="search-page-q">Testo di ricerca</label>
-          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Prova Anna, Milano, Lombardia" autocomplete="off" autocorrect="off" enterkeyhint="search" />
+          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Nome, comune o proposta" autocomplete="off" autocorrect="off" enterkeyhint="search" />
           <label class="visually-hidden" for="search-type">Tipo di record</label>
           <select id="search-type" name="type">
             <option value="">Tutti i tipi</option>
@@ -423,20 +421,8 @@
     </main>
 
     <footer class="site-footer">
-      <div class="container footer-grid">
-        <div class="footer-identity">
-          <p class="footer-brand">VeraPolitica</p>
-          <p>Profili pubblici ricavati da fonti ufficiali e pubblicati dopo verifica editoriale.</p>
-        </div>
-        <nav aria-label="Sezioni">
-          <p class="footer-title">Sezioni</p>
-          <a href="./">Feed</a>
-          <a href="./?view=politics">Politica</a>
-          <a href="./?view=history">Archivio</a>
-          <a href="./?view=profile">Profilo</a>
-        </nav>
+      <div class="container footer-compact">
         <nav aria-label="Consulta">
-          <p class="footer-title">Consulta</p>
           <a href="./?view=politicians">Politici</a>
           <a href="./?view=proposals">Proposte</a>
           <a href="./?view=referendums">Referendum</a>
@@ -444,19 +430,10 @@
           <a href="./?view=glossary">Glossario</a>
           <a href="./?view=regions">Regioni</a>
           <a href="./?view=municipalities">Comuni</a>
-          <a href="./?view=search">Ricerca</a>
-          <a href="./?view=ask">Ask VeraPolitica</a>
-        </nav>
-        <nav aria-label="Metodo e note legali">
-          <p class="footer-title">Metodo</p>
+          <a href="./?view=ask">Chiedi a VeraPolitica</a>
           <a href="./?view=methodology">Metodologia</a>
-          <span class="placeholder" title="Contenuto da fornire">Privacy policy (da pubblicare)</span>
-          <span class="placeholder" title="Contenuto da fornire">Note legali (da pubblicare)</span>
-          <span class="placeholder" title="Contenuto da fornire">Contatti (da fornire)</span>
         </nav>
-      </div>
-      <div class="container footer-bottom">
-        <p>© 2026 VeraPolitica</p>
+        <p class="footer-legal">© 2026 VeraPolitica · <span class="placeholder" title="Contenuto da fornire">Privacy (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Note legali (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Contatti (da fornire)</span></p>
       </div>
     </footer>
 

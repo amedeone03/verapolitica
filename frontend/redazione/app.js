@@ -2,7 +2,7 @@
 // One ES module, no build. Every write goes to /redazione/api and is logged;
 // nothing reaches the citizen until another member approves it.
 
-import { bindFeedCards, renderFeedCard } from "/app/feed-card.js";
+import { bindFeedCards, renderFeedCard, sourceCoverage } from "/app/feed-card.js";
 
 const API = "/redazione/api";
 const TOKEN_KEY = "vp-redazione-token";
@@ -784,6 +784,7 @@ async function showNewsEditor(postId) {
       occurred_on: new Date().toISOString().slice(0, 10),
       place: { national: "Nazionale", region: "Regionale", province: "Provinciale", municipality: "Comunale" }[data.scope],
       sources: data.sources.map((src) => ({ title: src.name, url: src.url })),
+      coverage: sourceCoverage(data.sources),
       card: composer.publicCard(),
     }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null });
   };
@@ -1052,7 +1053,7 @@ function createCardComposer(initial, initialPublic) {
       badge: { ...c.badge },
       aside: c.aside || null,
       institution: c.institution || null,
-      people: c.people.map((p) => ({ name: p.name, role: p.party?.name || null, politician_id: p.politician_id, image_url: p.image_url || (p.use_portrait ? `politician:${p.politician_id}` : null) })),
+      people: c.people.map((p) => ({ name: p.name, role: p.party?.name || null, party_id: p.party?.id || null, politician_id: p.politician_id, image_url: p.image_url || (p.use_portrait ? `politician:${p.politician_id}` : null) })),
       parties: (() => {
         const ids = [...c.parties, ...[...peopleParties()].filter((id) => !c.parties.includes(id))];
         return ids.map((id) => (state.parties || []).find((x) => x.id === id)).filter(Boolean);

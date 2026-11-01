@@ -70,6 +70,32 @@ function avatar(person, resolvePortrait) {
   return `<span class="vp-avatar">${src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" width="44" height="44" />` : `<span aria-hidden="true">${esc(initials(person.name))}</span>`}</span>`;
 }
 
+// Where the sources come from, as counts: a fact, not a judgement on the news.
+export function sourceCoverage(fonti = []) {
+  const count = { centrosinistra: 0, centro: 0, centrodestra: 0 };
+  for (const source of fonti) {
+    if (source.area === "centrosinistra") count.centrosinistra += 1;
+    else if (source.area === "centrodestra") count.centrodestra += 1;
+    else count.centro += 1;
+  }
+  return count.centrosinistra + count.centro + count.centrodestra ? count : null;
+}
+
+function coverageBar(coverage) {
+  if (!coverage) return "";
+  const total = coverage.centrosinistra + coverage.centro + coverage.centrodestra;
+  const parts = [
+    ["centrosinistra", "Centrosinistra", coverage.centrosinistra],
+    ["centro", "Istituzionali e agenzie", coverage.centro],
+    ["centrodestra", "Centrodestra", coverage.centrodestra],
+  ];
+  const label = parts.map(([, name, n]) => `${n} ${name.toLowerCase()}`).join(", ");
+  return `<div class="vp-coverage" role="img" aria-label="Fonti: ${esc(label)}">
+      <div class="vp-coverage-bar">${parts.filter(([, , n]) => n).map(([key, , n]) => `<span class="cov-${key}" style="flex-grow:${n}"></span>`).join("")}</div>
+      <p class="vp-coverage-legend">${parts.map(([key, name, n]) => `<span class="cov-${key}">${n} ${esc(name)}</span>`).join("")}<span class="vp-coverage-total">${total} fonti</span></p>
+    </div>`;
+}
+
 /**
  * item: { key, url, title, summary, occurred_on, place, sources: [{title,url}], card }
  * options: { resolvePortrait(id) -> url, saved: bool, preview: bool }
@@ -81,6 +107,9 @@ export function renderFeedCard(item, options = {}) {
   const badge = card.badge || { label: "Dalla redazione", tone: "plain" };
   const badgeDate = badge.date || item.occurred_on;
   const people = card.people || [];
+  // Parties already shown under a person are not repeated.
+  const shownParties = new Set(people.map((person) => person.party_id).filter(Boolean));
+  const extraParties = (card.parties || []).filter((party) => !shownParties.has(party.id));
   const sources = (item.sources || []).map((source) => {
     const url = safeUrl(source.url);
     return url ? `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source.title || source.name || new URL(url).hostname)} ${cardIcon("external", 13)}</a></li>` : "";
@@ -94,12 +123,12 @@ export function renderFeedCard(item, options = {}) {
   return `<article class="vp-card tone-${esc(tone)}" data-card="${esc(key)}">
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
     <div class="vp-sub">
-      <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(shortDate(badgeDate))}` : ""}${badge.tone && badge.tone !== "plain" ? cardIcon("chevron", 14) : ""}</span>
+      <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(shortDate(badgeDate))}` : ""}</span>
       ${card.aside ? `<span class="vp-aside">${esc(card.aside)}</span>` : item.place ? `<span class="vp-aside">${esc(item.place)}</span>` : ""}
     </div>
     <div class="vp-body">
       ${people.length ? `<ul class="vp-people">${people.map((person) => `<li>${avatar(person, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(person.name)}</a>` : `<strong>${esc(person.name)}</strong>`}${person.role ? `<small>${esc(person.role)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
-      ${(card.parties || []).length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Partiti coinvolti</li>${card.parties.map((party) => `<li title="${esc(party.name)}">${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
+      ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Anche</li>${extraParties.map((party) => `<li title="${esc(party.name)}">${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
       ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
       <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
       ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Mostra altro</button>` : ""}` : ""}
@@ -109,6 +138,7 @@ export function renderFeedCard(item, options = {}) {
         <a class="vp-pill" href="${options.preview ? "#" : `./?view=ask&amp;prefill=${encodeURIComponent(question)}`}">${cardIcon("question", 15)}Chiedi</a>
       </div>
       ${sources.length ? `<ul class="vp-sources" id="src-${esc(key)}" hidden>${sources.join("")}</ul>` : ""}
+      ${coverageBar(item.coverage)}
       ${iterData?.steps ? `<ol class="vp-iter" aria-label="Iter" style="--vp-progress:${Math.max(0, iterData.steps.findIndex((step) => step.state !== "done") === -1 ? 1 : iterData.steps.findIndex((step) => step.state !== "done") / (iterData.steps.length - 1))}">${iterData.steps.map((step, index) => `<li class="vp-step is-${esc(step.state)}"><span class="vp-step-dot">${cardIcon(STEP_ICON[index], 14)}</span><span class="vp-step-name">${esc(step.label)}</span><span class="vp-hidden"> (${esc({ done: "completato", current: "fase attuale", stopped: "fermo", todo: "da fare" }[step.state] || step.state)})</span></li>`).join("")}</ol>
         ${iterData.status ? `<p class="vp-stage">${esc(iterData.status)}</p>` : ""}
         ${iterData.since ? `<p class="vp-since">${esc(iterData.since_label || "Presentato il")} ${esc(longDate(iterData.since))}</p>` : ""}` : ""}

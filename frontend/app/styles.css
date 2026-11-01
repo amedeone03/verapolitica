@@ -817,22 +817,54 @@ h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
 .header-profile[aria-current="page"] { border-color: var(--color-accent-strong); background: var(--color-accent-light); }
 @media (max-width: 479px) { .header-profile { width: 44px; padding: 0; justify-content: center; } .header-profile-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 
+/* Floating bottom bar (Apple / Ground News pattern): detached from the edges, translucent,
+   content scrolls underneath. Solid when the reader asks for less transparency. */
 .bottom-nav {
-  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-1);
-  padding: 8px max(12px, calc((100vw - 640px) / 2)) calc(8px + env(safe-area-inset-bottom, 0px));
-  background: var(--color-surface); border-top: 1px solid var(--color-border);
-  box-shadow: 0 -2px 12px rgba(15, 39, 71, .06);
+  position: fixed; z-index: 30; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%); width: min(560px, calc(100vw - 24px));
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px;
+  background: rgba(255, 255, 255, .82); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(15, 39, 71, .08); border-radius: 28px;
+  box-shadow: 0 8px 28px rgba(15, 39, 71, .14), 0 1px 2px rgba(15, 39, 71, .08);
 }
+@media (prefers-reduced-transparency: reduce) { .bottom-nav { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (prefers-contrast: more) { .bottom-nav { background: #fff; border-color: var(--color-primary); } }
 .bottom-nav a {
-  display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; border-radius: 999px;
-  color: var(--color-text-muted); font-size: .75rem; font-weight: 600; text-decoration: none;
+  display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; border-radius: 22px;
+  color: var(--color-text-muted); font-size: .6875rem; font-weight: 700; letter-spacing: .01em; text-decoration: none;
+  transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease;
 }
-.bottom-nav a:hover { color: var(--color-primary); background: var(--color-background); }
+.bottom-nav a:hover { color: var(--color-primary); }
+.bottom-nav a:active { transform: scale(.94); }
 .bottom-nav a[aria-current="page"] { color: var(--color-primary); background: var(--color-accent-light); }
 .bottom-nav .icon { width: 24px; height: 24px; }
-.bottom-nav-logo { width: 24px; height: 24px; border-radius: 6px; filter: grayscale(1) opacity(.7); }
+.bottom-nav-logo { width: 24px; height: 24px; border-radius: 6px; filter: grayscale(1) opacity(.65); transition: filter 150ms ease; }
 .bottom-nav a[aria-current="page"] .bottom-nav-logo, .bottom-nav a:hover .bottom-nav-logo { filter: none; }
-body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
-.profile-cta-bar { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
-@media print { .bottom-nav, .header-profile { display: none !important; } body { padding-bottom: 0; } }
+.site-footer { padding-bottom: calc(var(--space-6) + 88px + env(safe-area-inset-bottom, 0px)); }
+.profile-cta-bar { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: transparent; border: 0; }
+@media (prefers-reduced-motion: reduce) { .bottom-nav a:active { transform: none; } }
+@media print { .bottom-nav, .header-profile { display: none !important; } }
+
+/* Compact footer: the bottom bar already carries the sections. */
+.site-footer { margin-top: var(--space-8); padding-top: var(--space-6); background: transparent; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+.footer-compact { display: grid; gap: var(--space-3); }
+.footer-compact nav { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.site-footer a { color: var(--color-primary); font-size: .875rem; font-weight: 500; text-decoration: none; }
+.site-footer a:hover { color: var(--color-primary); text-decoration: underline; text-decoration-color: var(--color-accent); }
+.footer-legal { margin: 0; font-size: .8125rem; }
+.site-footer .placeholder { color: var(--color-text-muted); font-style: italic; font-size: .8125rem; }
+
+/* Feed: segmented switcher instead of a dropdown (show the options directly). */
+.feed-bar { grid-template-columns: 44px 1fr 44px; }
+.feed-segments { justify-self: center; display: inline-grid; grid-auto-flow: column; gap: 2px; padding: 3px; border-radius: 999px; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: 0 1px 2px rgba(15, 39, 71, .06); }
+.feed-segments button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--color-text-muted); font: 700 .875rem var(--font-body); white-space: nowrap; cursor: pointer; transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease; }
+.feed-segments button:hover { color: var(--color-primary); }
+.feed-segments button:active { transform: scale(.95); }
+.feed-segments button[aria-pressed="true"] { background: var(--color-primary); color: #fff; }
+@media (max-width: 420px) { .feed-bar { gap: 4px; } .feed-segments button { padding: 0 10px; font-size: .8125rem; } }
+@media (prefers-reduced-motion: reduce) { .feed-segments button:active { transform: none; } }
+
+/* Press feedback on every button (respond on press, not on release). */
+.button, .ghost-button, .header-profile, .filter-pill, .topic-chip, .cover-button, .follow-button { transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease, border-color 150ms ease; }
+.button:active, .ghost-button:active, .header-profile:active, .filter-pill:active, .topic-chip:active, .cover-button:active, .follow-button:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { .button:active, .ghost-button:active, .header-profile:active, .filter-pill:active, .topic-chip:active, .cover-button:active, .follow-button:active { transform: none; } }

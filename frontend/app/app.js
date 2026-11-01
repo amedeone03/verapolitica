@@ -1,4 +1,4 @@
-import { bindFeedCards, renderFeedCard } from "./feed-card.js";
+import { bindFeedCards, renderFeedCard, sourceCoverage } from "./feed-card.js";
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -1991,15 +1991,20 @@ async function showSearch(api, query, type) {
   byId("search-type").value = type;
   const headerSearch = byId("site-search-q");
   if (headerSearch) headerSearch.value = query;
+  const heading = byId("search-heading")?.closest(".archive-heading");
   if (!query.trim()) {
-    byId("search-count").textContent = "Pronto";
+    // Nothing to report before a search: no heading, no "ready" badge, no empty card.
+    if (heading) heading.hidden = true;
     byId("search-list").hidden = true;
-    showState(byId("search-status"), "Inserisci un termine di ricerca.", "Usa il modulo qui sopra per cercare nell'archivio pubblico.");
+    byId("search-status").hidden = true;
+    byId("search-page-q").focus({ preventScroll: true });
     return;
   }
+  if (heading) heading.hidden = false;
+  byId("search-heading").textContent = "Risultati";
   byId("search-status").hidden = false;
   byId("search-status").className = "state-card loading-state";
-  byId("search-status").innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Ricerca in corso…</strong><small>Consultazione dei record pubblici pubblicati.</small></div>`;
+  byId("search-status").innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Ricerca in corso…</strong></div>`;
   try {
     const payload = await api.search({ q: query, type });
     byId("search-count").textContent = countLabel(payload.total, "risultato", "risultati");
@@ -2374,6 +2379,7 @@ function cardItem(item) {
     occurred_on: item.occurred_on,
     place: feedPlace(item),
     sources: item.sources || [],
+    coverage: item.kind === "editorial" ? sourceCoverage(item.blocks?.fonti || []) : null,
     card: item.card?.composed ? item.card : { category: "notizia", category_label: "Notizia", tone: "navy", badge: { label: item.label === "correction" ? "Correzione" : "Dalla redazione", tone: "plain" } },
   };
 }
@@ -2399,7 +2405,8 @@ async function showHome(api) {
   document.title = "Feed — VeraPolitica";
   let profile = loadReaderProfile();
   const zone = profile.zone;
-  const choice = byId("feed-choice");
+  const segments = byId("feed-choice");
+  const choice = { value: "all" };
   const list = byId("feed-list");
   const more = byId("feed-more");
   const status = byId("feed-status");
@@ -2464,7 +2471,14 @@ async function showHome(api) {
       list.removeAttribute("aria-busy");
     }
   };
-  choice.addEventListener("change", () => { offset = 0; load(false); });
+  segments.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-feed]") : null;
+    if (!button || button.dataset.feed === choice.value) return;
+    choice.value = button.dataset.feed;
+    for (const item of segments.querySelectorAll("[data-feed]")) item.setAttribute("aria-pressed", String(item === button));
+    offset = 0;
+    load(false);
+  });
   more.addEventListener("click", () => load(true));
   await load(false);
 }
