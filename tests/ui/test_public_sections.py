@@ -85,3 +85,24 @@ def test_politics_section_layout() -> None:
     assert "shortcut-grid" not in view
     assert "api.listParties({ all: true })" in script and "partyLogo(party, 40)" in script
     assert "export function shortRole" in script and "GOVERNMENT_RANK" in script
+
+
+def test_proposals_section_layout() -> None:
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    view = html.split('id="proposals-view"')[1].split('id="referendums-view"')[0]
+    # Type tabs, topic chips, verdict summary, one grouped list (no card grid).
+    for marker in ('class="proposals-tabs', 'data-type="explicit_promise"', 'id="proposal-topics"', 'id="proposal-summary"', 'class="row-list proposal-rows"'):
+        assert marker in view
+    assert "proposal-grid" not in view
+    # A promise row shows its verdict, a bill its institutional status; one tap target per row.
+    assert 'renderVerdictChip(proposal.verdict || "not_yet_rated")' in script
+    assert "export function renderPromiseSummary" in script and "renderCompositionBar(entries)" in script
+    assert "Fonte ufficiale ${icon" not in script.split("export function renderProposalCard")[1].split("export function renderPromiseSummary")[0]
+    # Record: verdict panel, exact words, people, timeline, sources.
+    detail = script.split("export function renderProposalDetail")[1].split("export function renderPoliticianProposals")[0]
+    for marker in ("renderProposalState(proposal)", "Le parole esatte", "Chi l'ha promesso", "Cronologia", "Fonti ufficiali"):
+        assert marker in detail
+    assert 'bindExplainPledges(byId("proposal-detail"), api)' in script
+    assert ".proposals-tabs a:active { transform: scale(.95); }" in css

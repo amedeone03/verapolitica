@@ -156,7 +156,10 @@ def test_public_ui_has_separate_proposal_archive_and_detail_timeline(tmp_path):
     assert proposals.json()["total"] == 1
     assert detail.json()["status_history"][0]["status"] == "introduced"
     assert "Promessa esplicita" in script
-    assert "legislative_proposal" not in page.text
+    # Enum values only in links and data attributes, never as visible text.
+    import re
+    visible = re.sub(r"<[^>]+>", " ", page.text)
+    assert "legislative_proposal" not in visible
 
 
 def test_public_ui_assets_are_strictly_public(tmp_path):

@@ -757,16 +757,57 @@ export function renderProposalTags(tags = []) {
   }).join("")}</div>`;
 }
 
-export function renderProposalCard(proposal) {
-  const sourceUrl = safeExternalUrl(proposal.source?.url);
-  return `<article class="proposal-card">
-    <div class="proposal-card-top"><span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span><span class="status-chip">${escapeHtml(proposalStatusLabel(proposal.current_status))}</span></div>
-    <h3>${escapeHtml(proposal.title)}</h3>
-    ${renderProposalTags(proposal.tags)}
-    <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Nessun attore pubblicato</span>"}</div>
-    <p>${escapeHtml(formatDate(proposal.introduced_at))}</p>
-    <div class="proposal-card-links"><a class="profile-link" href="./?proposal=${encodeURIComponent(proposal.id)}">Vedi cronologia ${icon("arrowRight")}</a>${sourceUrl ? `<a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}</div>
-  </article>`;
+const isPromise = (proposal) => proposal.proposal_type === "explicit_promise";
+
+// The one state a reader needs first: the verdict for a promise, the
+// institutional status for a bill. Never both in the same place.
+function proposalStateChip(proposal) {
+  return isPromise(proposal)
+    ? renderVerdictChip(proposal.verdict || "not_yet_rated")
+    : `<span class="status-chip">${escapeHtml(proposalStatusLabel(proposal.current_status))}</span>`;
+}
+
+function proposalActorNames(proposal) {
+  return proposal.actors.length ? proposal.actors.map((actor) => actor.display_name).join(", ") : "Attore non indicato";
+}
+
+// List row (Ground News list + iOS grouped row): state and topic on top, the
+// title, then who and when. The whole row opens the record; the official
+// source is one tap further, in the record itself.
+export function renderProposalCard(proposal, { showType = true } = {}) {
+  const topic = proposal.tags.find((tag) => tag.kind === "topic");
+  // The verdict chip already says "promise"; the type is named only for bills.
+  const kicker = [showType && !isPromise(proposal) ? proposalTypeLabel(proposal.proposal_type) : "", topic?.label || ""].filter(Boolean).join(" · ");
+  const date = formatDate(proposal.introduced_at);
+  return `<li><a class="row-link proposal-row" href="./?proposal=${encodeURIComponent(proposal.id)}">
+    ${proposal.actors[0] ? actorAvatar(proposal.actors[0], " is-small") : `<span class="actor-avatar is-small" aria-hidden="true">${icon("proposal", { size: 18 })}</span>`}
+    <span class="row-text">
+      <span class="proposal-row-top">${proposalStateChip(proposal)}${kicker ? `<span class="proposal-kicker">${escapeHtml(kicker)}</span>` : ""}</span>
+      <strong>${escapeHtml(proposal.title)}</strong>
+      <small>${escapeHtml(proposalActorNames(proposal))}${date ? ` · ${escapeHtml(date)}` : ""}</small>
+    </span>
+    <span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span>
+  </a></li>`;
+}
+
+// Verdict mix of the promises on screen (same bar as the profile record).
+export function renderPromiseSummary(items, total) {
+  const promises = items.filter(isPromise);
+  if (!promises.length) return "";
+  const counts = new Map();
+  for (const item of promises) counts.set(item.verdict || "not_yet_rated", (counts.get(item.verdict || "not_yet_rated") || 0) + 1);
+  const entries = VERDICT_LEGEND_ORDER.map((verdict) => ({ verdict, count: counts.get(verdict) || 0 }));
+  const unrated = counts.get("not_yet_rated") || 0;
+  const scope = total > items.length ? ` (le prime ${promises.length} in elenco)` : "";
+  const note = unrated === promises.length
+    ? "Nessuna di queste promesse ha ancora una valutazione. Ogni valutazione cita un documento ufficiale ed è approvata da un secondo membro della redazione."
+    : "Ogni valutazione cita un documento ufficiale ed è approvata da un secondo membro della redazione.";
+  return `<div class="block-head"><h2 id="proposal-summary-title">Come stanno le promesse</h2><a class="block-link" href="./?view=methodology">Il metodo</a></div>
+    <div class="proposal-summary-card">
+      <p class="proposal-summary-count"><strong>${promises.length}</strong> ${promises.length === 1 ? "promessa" : "promesse"}${escapeHtml(scope)}</p>
+      ${renderCompositionBar(entries)}
+      <p class="proposal-summary-note">${note}</p>
+    </div>`;
 }
 
 export function renderProposalTimeline(events = []) {
@@ -776,20 +817,75 @@ export function renderProposalTimeline(events = []) {
   }).join("")}</ol>`;
 }
 
+function renderProposalState(proposal) {
+  if (isPromise(proposal)) {
+    const verdict = proposal.verdict || "not_yet_rated";
+    const body = verdict === "not_yet_rated"
+      ? "La redazione non ha ancora pubblicato una valutazione. Comparirà qui con il documento che la giustifica."
+      : "Valutazione pubblicata dalla redazione, con il documento ufficiale che la giustifica.";
+    return `<section class="state-panel tone-${verdictMeta(verdict).tone}" aria-label="Valutazione">
+      <p class="state-panel-label">Valutazione VeraPolitica</p>
+      <p class="state-panel-value">${renderVerdictChip(verdict)}</p>
+      <p class="state-panel-note">${body}</p>
+      ${verdict === "not_yet_rated" ? "" : `<button class="ghost-button explain-pledge" type="button" data-pledge-id="${escapeHtml(proposal.id)}">Perché questa valutazione</button><div class="pledge-explanation" hidden></div>`}
+    </section>`;
+  }
+  return `<section class="state-panel" aria-label="Stato">
+    <p class="state-panel-label">Stato istituzionale</p>
+    <p class="state-panel-value"><span class="status-chip">${escapeHtml(proposalStatusLabel(proposal.current_status))}</span></p>
+    <p class="state-panel-note">Come risulta dalla fonte ufficiale più recente.</p>
+  </section>`;
+}
+
+function actorAvatar(actor, size = "") {
+  const words = String(actor.display_name || "").trim().split(/\s+/);
+  const photo = actor.politician_id ? resolvePortrait(actor.politician_id) : null;
+  const mono = initials({ given_name: words[0] || "", family_name: words.length > 1 ? words[words.length - 1] : "" });
+  return `<span class="actor-avatar${size}" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : escapeHtml(mono)}</span>`;
+}
+
+function renderProposalActorRow(actor) {
+  const inner = `${actorAvatar(actor)}<span class="row-text"><strong>${escapeHtml(actor.display_name)}</strong><small>${escapeHtml(actorRoleLabel(actor.role))}</small></span>`;
+  return actor.politician_id
+    ? `<li><a class="row-link" href="./?politician=${encodeURIComponent(actor.politician_id)}">${inner}<span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`
+    : `<li><div class="row-link is-static">${inner}<span></span></div></li>`;
+}
+
 export function renderProposalDetail(proposal) {
-  return `<section class="proposal-detail-hero">
-      <span class="proposal-type">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}</span>
+  const date = formatDate(proposal.introduced_at);
+  const first = proposal.sources[0];
+  const text = proposal.exact_statement
+    ? `<figure class="statement">
+        <figcaption class="statement-label">${isPromise(proposal) ? "Le parole esatte" : "Testo"}</figcaption>
+        <blockquote>${escapeHtml(proposal.exact_statement)}</blockquote>
+        <figcaption class="statement-cite">${escapeHtml(proposalActorNames(proposal))}${first ? ` — ${escapeHtml(first.name)}` : ""}${date ? `, ${escapeHtml(date)}` : ""}</figcaption>
+      </figure>`
+    : proposal.summary ? `<p class="lead">${escapeHtml(proposal.summary)}</p>` : "";
+  return `<header class="proposal-hero">
+      <p class="proposal-kicker">${escapeHtml(proposalTypeLabel(proposal.proposal_type))}${date ? ` · ${escapeHtml(date)}` : ""}</p>
       <h1 id="proposal-detail-title">${escapeHtml(proposal.title)}</h1>
       ${renderProposalTags(proposal.tags)}
-      <div class="proposal-actors">${proposal.actors.length ? proposal.actors.map(renderProposalActor).join("") : "<span>Nessun attore pubblicato</span>"}</div>
-      <p class="lead">Stato istituzionale attuale: <strong>${escapeHtml(proposalStatusLabel(proposal.current_status))}</strong></p>
-      ${proposal.exact_statement ? `<blockquote>${escapeHtml(proposal.exact_statement)}</blockquote>` : proposal.summary ? `<p>${escapeHtml(proposal.summary)}</p>` : ""}
+    </header>
+    ${renderProposalState(proposal)}
+    ${text}
+    <section class="politics-block" aria-labelledby="proposal-actors-title">
+      <div class="block-head"><h2 id="proposal-actors-title">${isPromise(proposal) ? "Chi l'ha promesso" : "Chi l'ha presentata"}</h2></div>
+      <ul class="row-list">${proposal.actors.length ? proposal.actors.map(renderProposalActorRow).join("") : `<li class="row-empty">Nessun attore pubblicato.</li>`}</ul>
     </section>
-    <section class="detail-card proposal-timeline-card"><h2>Cronologia di stato</h2>${renderProposalTimeline(proposal.status_history)}</section>
-    <section class="detail-card"><h2>Fonti ufficiali</h2><div class="source-list">${proposal.sources.map((source) => {
-      const url = safeExternalUrl(source.url);
-      return `<article class="source-block"><h3>${escapeHtml(source.name)}</h3>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Apri fonte ufficiale ${icon("external", { size: 14 })}</a>` : ""}</article>`;
-    }).join("")}</div></section>`;
+    <section class="politics-block" aria-labelledby="proposal-history-title">
+      <div class="block-head"><h2 id="proposal-history-title">Cronologia</h2></div>
+      <div class="detail-card proposal-timeline-card">${renderProposalTimeline(proposal.status_history)}</div>
+    </section>
+    <section class="politics-block" aria-labelledby="proposal-sources-title">
+      <div class="block-head"><h2 id="proposal-sources-title">Fonti ufficiali</h2></div>
+      <ul class="row-list">${proposal.sources.map((source) => {
+        const url = safeExternalUrl(source.url);
+        const inner = `<span class="row-icon" aria-hidden="true">${icon("external", { size: 18 })}</span><span class="row-text"><strong>${escapeHtml(source.name)}</strong><small>${url ? escapeHtml(new URL(url).hostname.replace(/^www\./, "")) : "Indirizzo non disponibile"}</small></span>`;
+        return url
+          ? `<li><a class="row-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${inner}<span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`
+          : `<li><div class="row-link is-static">${inner}<span></span></div></li>`;
+      }).join("")}</ul>
+    </section>`;
 }
 
 export function renderPoliticianProposals(proposals = []) {
@@ -1770,36 +1866,80 @@ async function proposalFilters(api, params) {
   return { filters, notes };
 }
 
+const PROPOSAL_TYPES = ["explicit_promise", "legislative_proposal", "government_initiative"];
+const PROPOSAL_COUNT_LABELS = {
+  "": ["atto pubblicato", "atti pubblicati"],
+  explicit_promise: ["promessa", "promesse"],
+  legislative_proposal: ["proposta di legge", "proposte di legge"],
+  government_initiative: ["iniziativa del Governo", "iniziative del Governo"],
+};
+
+const PROPOSAL_EMPTY = {
+  "": "Nessun atto verificato",
+  explicit_promise: "Nessuna promessa verificata",
+  legislative_proposal: "Nessuna proposta di legge verificata",
+  government_initiative: "Nessuna iniziativa del Governo verificata",
+};
+
+function proposalsUrl(params, changes) {
+  const next = new URLSearchParams(params);
+  next.set("view", "proposals");
+  for (const [key, value] of Object.entries(changes)) {
+    if (value) next.set(key, value);
+    else next.delete(key);
+  }
+  return `./?${next}`;
+}
+
 async function showProposals(api) {
   byId("archive-view").hidden = true;
   byId("proposals-view").hidden = false;
   const params = new URLSearchParams(window.location.search);
+  const type = PROPOSAL_TYPES.includes(params.get("type")) ? params.get("type") : "";
+  for (const tab of byId("proposals-view").querySelectorAll(".proposals-tabs a")) {
+    const active = tab.dataset.type === type;
+    tab.setAttribute("aria-current", active ? "page" : "false");
+    tab.href = proposalsUrl(params, { type: tab.dataset.type, topic: params.get("topic") });
+  }
   try {
     const [{ filters, notes }, tags] = await Promise.all([proposalFilters(api, params), api.listProposalTags().catch(() => null)]);
+    if (type) filters.proposal_type = type;
     const dossier = tags?.dossiers.find((item) => item.value === filters.dossier);
     const topic = tags?.topics.find((item) => item.value === filters.topic);
     if (dossier) {
       byId("proposals-title").textContent = dossier.label;
       document.title = `${dossier.label} — VeraPolitica`;
-    } else if (topic) {
-      byId("proposals-title").textContent = `Proposte: ${topic.label}`;
     } else if (params.get("legislature") === "current") {
       byId("proposals-title").textContent = "Proposte di legge attuali";
     }
-    if (topic) notes.unshift(`Tema: ${topic.label}`);
-    const payload = await api.listProposals(filters);
-    byId("proposal-count").textContent = `${countLabel(payload.total, "record pubblicato", "record pubblicati")}${notes.length ? ` · ${notes.join(" · ")}` : ""}`;
+    if (tags?.topics.length) {
+      const chips = byId("proposal-topics");
+      chips.hidden = false;
+      chips.innerHTML = [`<a class="topic-chip${topic ? "" : " is-active"}" href="${escapeHtml(proposalsUrl(params, { topic: "" }))}"${topic ? "" : ' aria-current="true"'}>Tutti i temi</a>`]
+        .concat(tags.topics.map((item) => {
+          const active = item.value === filters.topic;
+          return `<a class="topic-chip${active ? " is-active" : ""}" href="${escapeHtml(proposalsUrl(params, { topic: item.value }))}"${active ? ' aria-current="true"' : ""}>${escapeHtml(item.label)}</a>`;
+        })).join("");
+      chips.querySelector(".is-active")?.scrollIntoView?.({ block: "nearest", inline: "center" });
+    }
+    const [payload] = await Promise.all([api.listProposals({ ...filters, limit: 100 }), loadPortraits(api)]);
+    const [one, many] = PROPOSAL_COUNT_LABELS[type];
+    byId("proposal-count").textContent = `${countLabel(payload.total, one, many)}${notes.length ? ` · ${notes.join(" · ")}` : ""}`;
+    const summary = byId("proposal-summary");
+    summary.innerHTML = type === "explicit_promise" || !type ? renderPromiseSummary(payload.items, payload.total) : "";
+    summary.hidden = !summary.innerHTML;
     if (!payload.items.length) {
       showState(
         byId("proposals-status"),
-        dossier ? `Il dossier «${dossier.label}» non ha ancora atti pubblicati.` : "Nessuna proposta verificata corrisponde a questi filtri.",
-        "Le proposte compaiono qui dopo la verifica editoriale.",
+        dossier ? `Il dossier «${dossier.label}» non ha ancora atti pubblicati.` : `${PROPOSAL_EMPTY[type]} per questa selezione.`,
+        "Compaiono qui dopo la verifica della redazione.",
       );
+      byId("proposal-list").hidden = true;
       return;
     }
     byId("proposals-status").hidden = true;
     byId("proposal-list").hidden = false;
-    byId("proposal-list").innerHTML = payload.items.map(renderProposalCard).join("");
+    byId("proposal-list").innerHTML = payload.items.map((item) => renderProposalCard(item, { showType: !type })).join("");
   } catch {
     showState(byId("proposals-status"), "Non è stato possibile caricare l'archivio delle proposte.", PUBLIC_UNAVAILABLE, true);
   }
@@ -1809,10 +1949,11 @@ async function showProposalDetail(api, proposalId) {
   byId("archive-view").hidden = true;
   byId("proposal-detail-view").hidden = false;
   try {
-    const proposal = await api.getProposal(proposalId);
+    const [proposal] = await Promise.all([api.getProposal(proposalId), loadPortraits(api)]);
     byId("proposal-detail-status").hidden = true;
     byId("proposal-detail").hidden = false;
     byId("proposal-detail").innerHTML = renderProposalDetail(proposal);
+    bindExplainPledges(byId("proposal-detail"), api);
     document.title = `${proposal.title} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;

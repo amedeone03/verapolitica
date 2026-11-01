@@ -1057,3 +1057,70 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
   .party-rows > li:nth-child(odd) { border-right: 1px solid var(--color-border); }
 }
 @media (prefers-reduced-motion: reduce) { .person-bubble:active { transform: none; } }
+
+/* ---------------------------------------------------------------------------
+   Promesse e proposte. Pattern: Ground News list (three-tab switcher, chip
+   scroller, one state per row) + Kowalski grouped rows with chevrons.
+   The verdict mix reuses the composition bar of the profile record. */
+.proposals-lede { max-width: 62ch; margin: calc(var(--space-2) * -1) 0 var(--space-5); color: var(--color-text-muted); font-size: 1rem; line-height: 1.55; }
+.proposals-lede a { color: var(--color-primary); font-weight: 600; }
+.proposals-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; max-width: 460px; justify-self: start; margin: 0 0 var(--space-4); }
+.proposals-tabs a { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 14px; border-radius: 999px; color: var(--color-text-muted); font: 700 .875rem var(--font-body); white-space: nowrap; text-decoration: none; transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease; }
+.proposals-tabs a:hover { color: var(--color-primary); }
+.proposals-tabs a:active { transform: scale(.95); }
+.proposals-tabs a[aria-current="page"] { background: var(--color-primary); color: #fff; }
+@media (max-width: 420px) { .proposals-tabs a { padding: 0 11px; font-size: .8125rem; } }
+
+.chip-scroller { display: flex; gap: var(--space-2); margin: 0 calc(var(--gutter) * -1) var(--space-6); padding: 2px var(--gutter) 6px; scroll-padding-inline: var(--gutter); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.chip-scroller::-webkit-scrollbar { display: none; }
+.chip-scroller .topic-chip { flex: none; min-height: 36px; padding: 6px 14px; border-radius: 18px; white-space: nowrap; }
+.topic-chip.is-active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
+@media (min-width: 900px) { .chip-scroller { margin-inline: 0; padding-inline: 0; -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent); mask-image: linear-gradient(90deg, #000 92%, transparent); } }
+
+.proposal-summary { margin-bottom: var(--space-6); }
+.proposal-summary-card { padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); }
+.proposal-summary-count { margin: 0 0 var(--space-3); color: var(--color-text-muted); font-size: .9375rem; }
+.proposal-summary-count strong { color: var(--color-primary); font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.proposal-summary-card .composition-legend { margin-top: var(--space-3); }
+.proposal-summary-note { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: .875rem; line-height: 1.5; }
+
+.proposals-head { margin-bottom: var(--space-3); }
+.proposal-count { color: var(--color-text-muted); font-size: .875rem; font-variant-numeric: tabular-nums; text-align: right; }
+.proposal-row { grid-template-columns: auto 1fr auto; align-items: start; padding-block: 14px; }
+.proposal-row .row-text { gap: 4px; }
+.proposal-row .row-text strong { font-size: 1rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.proposal-row .row-chevron { align-self: center; }
+.proposal-row-top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.proposal-row-top .status-chip, .proposal-row-top .verdict-chip { font-size: .75rem; padding: 1px 7px; }
+.proposal-kicker { color: var(--color-text-muted); font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+@media (min-width: 900px) {
+  .proposal-rows { display: grid; grid-template-columns: 1fr 1fr; }
+  .proposal-rows > li + li { border-top: 0; }
+  .proposal-rows > li { border-bottom: 1px solid var(--color-border); }
+  .proposal-rows > li:nth-child(odd) { border-right: 1px solid var(--color-border); }
+}
+
+.actor-avatar { display: grid; place-items: center; width: 44px; height: 44px; flex: none; overflow: hidden; border-radius: 50%; background: var(--color-accent-light); color: var(--color-primary); font-size: .875rem; font-weight: 800; }
+.actor-avatar.is-small { width: 36px; height: 36px; font-size: .75rem; margin-top: 2px; }
+.actor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.row-link.is-static:hover, .row-link.is-static:active { background: transparent; }
+
+/* Record: what was said, how it stands, who, when, where it comes from. */
+#proposal-detail { max-width: 760px; }
+.proposal-hero { margin: var(--space-4) 0 var(--space-5); }
+.proposal-hero h1 { margin: var(--space-2) 0 var(--space-3); font-size: clamp(1.75rem, 5.5vw, 2.5rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.1; overflow-wrap: anywhere; }
+.proposal-hero .topic-chips { margin: 0; }
+.state-panel { margin-bottom: var(--space-6); padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border); border-left: 4px solid var(--tone-mark, var(--color-border-strong)); border-radius: 16px; background: var(--color-surface); }
+.state-panel-label { margin: 0 0 var(--space-2); color: var(--color-text-muted); font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.state-panel-value { margin: 0; }
+.state-panel-value .verdict-chip, .state-panel-value .status-chip { font-size: 1rem; padding: 4px 12px; }
+.state-panel-note { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: .9375rem; line-height: 1.5; }
+.state-panel .explain-pledge { margin-top: var(--space-3); }
+.statement { margin: 0 0 var(--space-6); }
+.statement-label { margin-bottom: var(--space-2); color: var(--color-text-muted); font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.statement blockquote { margin: 0; padding: 0 0 0 var(--space-4); border-left: 3px solid var(--color-accent); color: var(--color-text); font-size: clamp(1.0625rem, 2.6vw, 1.25rem); line-height: 1.6; }
+.statement blockquote::before { content: "«"; } .statement blockquote::after { content: "»"; }
+.statement-cite { margin-top: var(--space-3); padding-left: var(--space-4); color: var(--color-text-muted); font-size: .875rem; }
+.proposal-timeline-card { margin: 0; }
+.proposal-timeline-card .proposal-timeline { margin-top: 0; }

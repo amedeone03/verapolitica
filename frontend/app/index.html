@@ -97,7 +97,7 @@
         <section class="politics-block" aria-labelledby="tools-title">
           <div class="block-head"><h2 id="tools-title">Strumenti</h2></div>
           <ul class="row-list">
-            <li><a class="row-link" href="./?view=proposals"><span class="row-icon" data-icon="proposal"></span><span class="row-text"><strong>Proposte di legge</strong><small>A che punto è ogni proposta in Parlamento</small></span></a></li>
+            <li><a class="row-link" href="./?view=proposals"><span class="row-icon" data-icon="proposal"></span><span class="row-text"><strong>Promesse e proposte</strong><small>Cosa è stato promesso, e a che punto è</small></span></a></li>
             <li><a class="row-link" href="./?view=compare"><span class="row-icon" data-icon="scale"></span><span class="row-text"><strong>Confronta</strong><small>Promesse di persone nello stesso ruolo</small></span></a></li>
             <li><a class="row-link" href="./?view=methodology"><span class="row-icon" data-icon="calculator"></span><span class="row-text"><strong>Come si calcola</strong><small>Il metodo pubblico del punteggio</small></span></a></li>
           </ul>
@@ -241,19 +241,26 @@
         <article id="profile-detail" hidden></article>
       </section>
 
-      <section id="proposals-view" aria-labelledby="proposals-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="proposals-title">Proposte e promesse esplicite</h1>
-          
-        </div>
-        <div class="archive-heading">
-          <span id="proposal-count" class="count-pill" aria-live="polite">Caricamento</span>
+      <section id="proposals-view" class="politics proposals" aria-labelledby="proposals-title" hidden>
+        <h1 id="proposals-title" class="politics-title">Promesse e proposte</h1>
+        <p class="proposals-lede">Quello che è stato promesso o presentato, con il testo esatto e la fonte ufficiale. Le valutazioni seguono <a href="./?view=methodology">un metodo pubblico</a>.</p>
+        <nav class="proposals-tabs feed-segments" aria-label="Tipo di atto">
+          <a data-type="" href="./?view=proposals">Tutte</a>
+          <a data-type="explicit_promise" href="./?view=proposals&amp;type=explicit_promise">Promesse</a>
+          <a data-type="legislative_proposal" href="./?view=proposals&amp;type=legislative_proposal" aria-label="Proposte di legge">Proposte</a>
+          <a data-type="government_initiative" href="./?view=proposals&amp;type=government_initiative">Governo</a>
+        </nav>
+        <div id="proposal-topics" class="chip-scroller" hidden></div>
+        <section id="proposal-summary" class="proposal-summary" aria-labelledby="proposal-summary-title" hidden></section>
+        <div class="block-head proposals-head">
+          <h2 id="proposal-list-title">Elenco</h2>
+          <span id="proposal-count" class="proposal-count" aria-live="polite">Caricamento</span>
         </div>
         <div id="proposals-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento delle proposte pubblicate…</strong></div>
         </div>
-        <div id="proposal-list" class="proposal-grid" hidden></div>
+        <ul id="proposal-list" class="row-list proposal-rows" aria-labelledby="proposal-list-title" hidden></ul>
       </section>
 
       <section id="referendums-view" aria-labelledby="referendums-title" hidden>
@@ -308,7 +315,7 @@
       </section>
 
       <section id="proposal-detail-view" aria-labelledby="proposal-detail-title" hidden>
-        <a class="back-link" href="./?view=proposals"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutte le proposte pubblicate</a>
+        <a class="back-link" href="./?view=proposals"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Promesse e proposte</a>
         <div id="proposal-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento della proposta…</strong></div>

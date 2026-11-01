@@ -15,6 +15,7 @@ from backend.app.models import (
     ProposalType,
 )
 from backend.app.schemas.candidate_profile import ImmutableSchema
+from backend.app.scoring.types import FulfillmentVerdict
 from backend.app.schemas.ai_extraction import (
     AbstentionReason,
     ModelConfidence,
@@ -263,6 +264,8 @@ class PublicProposalSummary(ImmutableSchema):
     actors: tuple[PublicProposalActor, ...]
     source: PublicProposalSource
     tags: tuple[PublicProposalTag, ...] = ()
+    # Explicit promises only: the latest published assessment, or not_yet_rated.
+    verdict: FulfillmentVerdict | None = None
 
 
 class PublicProposal(PublicProposalSummary):

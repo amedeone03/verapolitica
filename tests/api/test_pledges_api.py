@@ -55,6 +55,26 @@ def test_admin_pledge_workflow_and_public_scorecard(tmp_path):
     test_client, data, extra = _client(tmp_path)
     with test_client as client:
         _run_workflow(client, data, extra)
+    _check_public_verdicts(tmp_path, data, extra)
+
+
+def _check_public_verdicts(tmp_path, data, extra):
+    """The public list and record carry the latest published verdict of each promise."""
+
+    from sqlalchemy import select
+
+    from backend.app.models import Proposal
+    from backend.app.services.public_proposal_service import PublicProposalQueryService
+
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'pledges-api.db'}")
+    with create_session_factory(engine)() as session:
+        proposals = list(session.scalars(select(Proposal)))
+        verdicts = PublicProposalQueryService(session)._verdicts(proposals)
+    engine.dispose()
+    assert verdicts[data.pledge_id] == "kept"
+    assert verdicts[extra[0]] == "broken"
+    assert verdicts[data.outcome_pledge_id] == "not_yet_rated"
+    assert data.bill_id not in verdicts
 
 
 def _run_workflow(client, data, extra):
