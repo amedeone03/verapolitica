@@ -45,6 +45,8 @@ class FeedItem(ImmutableSchema):
     municipality_name: str | None = None
     sources: tuple[FeedSource, ...] = ()
     label: str | None = None
+    # Card details for the feed layout: type, actors, institution, summary, stage.
+    card: dict[str, Any] | None = None
     # Present for news written with the nine-block model in the redazione console.
     blocks: dict[str, Any] | None = None
     written_by: str | None = None

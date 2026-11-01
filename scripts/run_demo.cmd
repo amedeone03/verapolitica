@@ -47,7 +47,7 @@ set "VERAPOLITICA_PORTRAITS_PATH=./data/demo/portraits.json"
 echo.
 echo Starting VeraPolitica in DEMO-ONLY mode.
 echo   Citizen site:     http://127.0.0.1:8000/app/
-echo   Editorial demo:   http://127.0.0.1:8000/demo/
+echo   Redazione:        http://127.0.0.1:8000/redazione/
 echo   API and Swagger:  http://127.0.0.1:8000/docs
 echo Close this window or press Ctrl+C to stop.
 echo.

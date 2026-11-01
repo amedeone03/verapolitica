@@ -23,6 +23,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
+    PoliticalParty,
+    PoliticalPartyAffiliation,
+    ProposalActor,
+    ProposalActorRole,
+    ProposalActorType,
     EditorialPost,
     EditorialPostStatus,
     FeedScope,
@@ -58,6 +63,44 @@ VERDICT_IT = {
     "broken": "non mantenuta",
     "not_yet_rated": "non ancora valutata",
 }
+
+
+TYPE_LABELS = {
+    "proposal": "Proposta",
+    "legislative_proposal": "Proposta di legge",
+    "government_initiative": "Disegno di legge del Governo",
+    "explicit_promise": "Promessa",
+}
+# Four steps of the legislative path, like a progress strip on the card.
+STAGE_STEPS = (
+    ("presentata", "Presentata"),
+    ("esame", "In esame"),
+    ("approvata", "Approvata"),
+    ("legge", "Legge"),
+)
+STAGE_OF_STATUS = {
+    "announced": 0, "introduced": 0, "assigned": 1, "under_review": 1, "returned": 1,
+    "approved": 2, "enacted": 3, "completed": 3,
+    "rejected": 1, "withdrawn": 0, "lapsed": 1, "superseded": 1,
+}
+STOPPED_STATUSES = {"rejected", "withdrawn", "lapsed", "superseded"}
+
+
+def stage_for(status: str | None) -> dict | None:
+    if status is None or status not in STAGE_OF_STATUS:
+        return None
+    current = STAGE_OF_STATUS[status]
+    stopped = status in STOPPED_STATUSES
+    steps = []
+    for index, (key, label) in enumerate(STAGE_STEPS):
+        if index < current or (index == current and status in {"enacted", "completed"}):
+            state = "done"
+        elif index == current:
+            state = "stopped" if stopped else "current"
+        else:
+            state = "todo"
+        steps.append({"key": key, "label": label, "state": state})
+    return {"steps": steps, "stopped": stopped}
 
 
 class FeedValidationError(RuntimeError):
@@ -148,6 +191,8 @@ class FeedService:
             .order_by(ProposalStatusEvent.effective_at.desc(), ProposalStatusEvent.id.desc())
             .limit(cap)
         )
+        rows = list(rows)
+        actors = self._actors([proposal.id for _event, proposal in rows])
         items = []
         for event, proposal in rows:
             status = event.normalized_status.value
@@ -162,18 +207,75 @@ class FeedService:
                     scope=FeedScope.NATIONAL,
                     sources=(FeedSource(title="Fonte ufficiale", url=event.source_url),),
                     label=status,
+                    card={
+                        "type_label": TYPE_LABELS.get(proposal.proposal_type.value, "Proposta"),
+                        "badge": "Nuovo passaggio",
+                        "actors": actors.get(proposal.id, {}).get("people", []),
+                        "institution": actors.get(proposal.id, {}).get("institution"),
+                        "summary": proposal.summary or proposal.exact_statement,
+                        "stage": stage_for(status),
+                        "stage_label": f"{PROPOSAL_STATUS_IT.get(status, status).capitalize()} · {event.source_status_label}",
+                        "since_label": "Presentata il" if proposal.introduced_at else None,
+                        "since": proposal.introduced_at.isoformat() if proposal.introduced_at else None,
+                    },
                 )
             )
         return items
 
+    def _actors(self, proposal_ids: list[int]) -> dict[int, dict]:
+        """People (with their current party) and institution behind each proposal."""
+
+        if not proposal_ids:
+            return {}
+        result: dict[int, dict] = {}
+        rows = self.session.scalars(
+            select(ProposalActor)
+            .where(ProposalActor.proposal_id.in_(proposal_ids))
+            .order_by(ProposalActor.proposal_id, ProposalActor.id)
+        ).all()
+        politician_ids = {row.politician_id for row in rows if row.politician_id}
+        parties: dict[int, str] = {}
+        if politician_ids:
+            for affiliation, party in self.session.execute(
+                select(PoliticalPartyAffiliation, PoliticalParty)
+                .join(PoliticalParty, PoliticalParty.id == PoliticalPartyAffiliation.political_party_id)
+                .where(
+                    PoliticalPartyAffiliation.politician_id.in_(politician_ids),
+                    PoliticalPartyAffiliation.end_date.is_(None),
+                )
+            ):
+                parties.setdefault(affiliation.politician_id, party.abbreviation or party.name)
+        roles = {
+            ProposalActorRole.PROPOSER, ProposalActorRole.SPONSOR, ProposalActorRole.GOVERNMENT,
+            ProposalActorRole.COMMITMENT_OWNER, ProposalActorRole.CO_SPONSOR,
+        }
+        for row in rows:
+            entry = result.setdefault(row.proposal_id, {"people": [], "institution": None})
+            if row.role not in roles:
+                continue
+            if row.actor_type is ProposalActorType.INSTITUTION:
+                entry["institution"] = entry["institution"] or row.institution_name or row.display_name
+            elif row.actor_type is ProposalActorType.POLITICIAN and len(entry["people"]) < 3:
+                if any(person["name"] == row.display_name for person in entry["people"]):
+                    continue
+                entry["people"].append(
+                    {
+                        "name": row.display_name,
+                        "politician_id": row.politician_id,
+                        "party": parties.get(row.politician_id) if row.politician_id else None,
+                    }
+                )
+        return result
+
     def _pledge_verdicts(self, cap: int) -> list[FeedItem]:
-        rows = self.session.execute(
+        rows = list(self.session.execute(
             select(PledgeAssessment, Proposal)
             .join(Proposal, Proposal.id == PledgeAssessment.proposal_id)
             .where(Proposal.published_at.is_not(None))
             .order_by(PledgeAssessment.created_at.desc(), PledgeAssessment.id.desc())
             .limit(cap)
-        )
+        ))
+        actors = self._actors([proposal.id for _assessment, proposal in rows])
         return [
             FeedItem(
                 key=f"pledge-verdict-{assessment.id}",
@@ -185,6 +287,20 @@ class FeedService:
                 scope=FeedScope.NATIONAL,
                 sources=(FeedSource(title="Atto ufficiale citato", url=assessment.source_url),),
                 label=assessment.verdict.value,
+                card={
+                    "type_label": "Promessa",
+                    "badge": "Nuova valutazione",
+                    "actors": actors.get(proposal.id, {}).get("people", []),
+                    "institution": None,
+                    "summary": f"«{proposal.exact_statement}»" if proposal.exact_statement else None,
+                    "verdict": assessment.verdict.value,
+                    "update": assessment.rationale,
+                    "stage_label": (
+                        f"Aggiornato al {_long_date(assessment.effective_at)}" if assessment.effective_at else None
+                    ),
+                    "since_label": "Promessa del" if proposal.introduced_at else None,
+                    "since": proposal.introduced_at.isoformat() if proposal.introduced_at else None,
+                },
             )
             for assessment, proposal in rows
         ]
@@ -206,7 +322,7 @@ class FeedService:
                 scope, region_id, province = FeedScope.REGION, referendum.region_id, None
             else:
                 scope, region_id, province = FeedScope.NATIONAL, None, None
-            vote = referendum.vote_date.strftime("%d/%m/%Y")
+            vote = _long_date(referendum.vote_date)
             synthetic = " (record dimostrativo)" if referendum.is_synthetic else ""
             items.append(
                 FeedItem(
@@ -224,6 +340,14 @@ class FeedService:
                     municipality_name=municipality.canonical_name if scope is FeedScope.MUNICIPALITY else None,
                     sources=(FeedSource(title="Fonte ufficiale", url=referendum.official_source_url),),
                     label=referendum.status.value,
+                    card={
+                        "type_label": "Referendum",
+                        "badge": "Nuova consultazione",
+                        "actors": [],
+                        "institution": None,
+                        "summary": None,
+                        "stage_label": f"Si vota il {vote}",
+                    },
                 )
             )
         return items
@@ -299,10 +423,25 @@ class FeedService:
                 sources=tuple(FeedSource(**item) for item in post.citations),
                 label="correction" if post.corrects_id else None,
                 blocks=_public_blocks(post.blocks),
+                card={
+                    "type_label": "Notizia",
+                    "badge": "Rettifica" if post.corrects_id else "Dalla redazione",
+                    "actors": [],
+                    "institution": None,
+                    "summary": (post.blocks or {}).get("sommario") or post.body[:280],
+                },
                 written_by=post.created_by if post.blocks and post.created_by in self.public_names else None,
                 verified_by=post.reviewed_by if post.blocks and post.reviewed_by in self.public_names else None,
             )
 
+
+
+_MONTHS = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
+           "agosto", "settembre", "ottobre", "novembre", "dicembre")
+
+
+def _long_date(value) -> str:
+    return f"{value.day} {_MONTHS[value.month - 1]} {value.year}"
 
 
 _PUBLIC_BLOCK_KEYS = (

@@ -2398,22 +2398,90 @@ function feedPlace(item) {
   return "Nazionale";
 }
 
+const SHORT_MONTHS = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+function shortDate(value) {
+  const [y, m, d] = String(value || "").slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const thisYear = new Date().getFullYear();
+  return `${d} ${SHORT_MONTHS[m - 1]}${y !== thisYear ? ` ${y}` : ""}`;
+}
+
+function renderStageStrip(stage) {
+  if (!stage?.steps?.length) return "";
+  const states = { done: "completato", current: "fase attuale", stopped: "iter fermo", todo: "da fare" };
+  return `<ol class="stage-strip${stage.stopped ? " is-stopped" : ""}" aria-label="Iter">${stage.steps.map((step) => `<li class="stage-step is-${escapeHtml(step.state)}"><span class="stage-dot" aria-hidden="true">${step.state === "done" ? icon("check", { size: 12 }) : ""}</span><span class="stage-name">${escapeHtml(step.label)}</span><span class="visually-hidden"> (${states[step.state] || step.state})</span></li>`).join("")}</ol>`;
+}
+
+// Feed card: type and badge, people, institution, title, summary, scope and
+// sources, stage, Info / Fonti / Chiedi, stage text and date, open and share.
+// No support/oppose buttons: VeraPolitica does not collect opinions on laws.
 export function renderFeedItem(item) {
+  const card = item.card || {};
+  const key = escapeHtml(item.key || item.url);
   const sources = (item.sources || []).map((source) => {
     const url = safeExternalUrl(source.url);
-    return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a>` : "";
-  }).filter(Boolean).join(" · ");
-  const meta = [FEED_KIND_LABELS[item.kind] || item.kind, feedPlace(item)];
-  if (item.label === "correction") meta.push("Rettifica");
-  const verdict = item.kind === "pledge_verdict" && item.label ? renderVerdictChip(item.label) : "";
-  const detail = item.kind === "pledge_verdict" ? "" : (item.kind === "editorial" && item.detail.length > 280 ? `${item.detail.slice(0, 277)}…` : item.detail);
-  return `<article class="feed-item">
-    <p class="feed-meta"><time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(formatDate(item.occurred_on))}</time> · ${meta.map(escapeHtml).join(" · ")}</p>
-    <h3><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
-    ${verdict}
-    ${detail ? `<p>${escapeHtml(detail)}</p>` : ""}
-    ${sources ? `<p class="feed-sources">${sources}</p>` : ""}
+    return url ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ${icon("external", { size: 14 })}</a></li>` : "";
+  }).filter(Boolean);
+  const typeLabel = card.type_label || FEED_KIND_LABELS[item.kind] || item.kind;
+  const badge = item.label === "correction" ? "Rettifica" : card.badge;
+  const people = (card.actors || []).map((person) => {
+    const name = person.politician_id ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${escapeHtml(person.name)}</a>` : escapeHtml(person.name);
+    return `<span class="feed-person">${name}${person.party ? ` <span class="feed-party">(${escapeHtml(person.party)})</span>` : ""}</span>`;
+  }).join("");
+  let summary = card.summary || (item.kind === "editorial" ? item.detail : "");
+  if (summary.length > 280) summary = `${summary.slice(0, 277)}…`;
+  const verdict = card.verdict || (item.kind === "pledge_verdict" ? item.label : null);
+  const question = item.kind === "editorial" ? `Spiegami: ${item.title}` : `Che cosa prevede «${item.title}»?`;
+  return `<article class="feed-card feed-item" data-feed-card="${key}">
+    <header class="feed-card-top">
+      <span class="feed-type">${escapeHtml(typeLabel)}</span>
+      <span class="feed-badge">${badge ? `${escapeHtml(badge)} · ` : ""}<time datetime="${escapeHtml(item.occurred_on)}">${escapeHtml(shortDate(item.occurred_on))}</time></span>
+    </header>
+    ${people ? `<p class="feed-people">${people}</p>` : ""}
+    ${card.institution ? `<p class="feed-institution">${escapeHtml(card.institution)}</p>` : ""}
+    <h3 class="feed-title"><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
+    ${summary ? `<p class="feed-summary">${escapeHtml(summary)}</p>` : ""}
+    <p class="feed-facts"><span class="feed-scope">${escapeHtml(feedPlace(item))}</span>${sources.length ? `<span>${sources.length === 1 ? "1 fonte" : `${sources.length} fonti`}</span>` : ""}</p>
+    ${verdict ? `<div class="feed-verdict">${renderVerdictChip(verdict)}${card.update ? `<p>${escapeHtml(card.update)}</p>` : ""}</div>` : renderStageStrip(card.stage)}
+    <div class="feed-tabs" role="group" aria-label="Dettagli">
+      <a class="feed-tab" href="${escapeHtml(item.url)}">Info</a>
+      ${sources.length ? `<button type="button" class="feed-tab" aria-expanded="false" aria-controls="sources-${key}" data-feed-sources>Fonti</button>` : ""}
+      <a class="feed-tab" href="./?view=ask&amp;prefill=${encodeURIComponent(question)}">Chiedi</a>
+    </div>
+    ${sources.length ? `<ul class="feed-source-list explanation-sources" id="sources-${key}" hidden>${sources.join("")}</ul>` : ""}
+    ${card.stage_label ? `<p class="feed-stage-text">${escapeHtml(card.stage_label)}</p>` : ""}
+    ${card.since ? `<p class="feed-since">${escapeHtml(card.since_label || "")} ${escapeHtml(formatDate(card.since))}</p>` : ""}
+    <footer class="feed-card-actions">
+      <a class="feed-action" href="${escapeHtml(item.url)}">${icon("arrowRight", { size: 16 })}Apri</a>
+      <button type="button" class="feed-action" data-feed-share="${escapeHtml(item.url)}" data-share-title="${escapeHtml(item.title)}">${icon("share", { size: 16 })}Condividi</button>
+    </footer>
   </article>`;
+}
+
+function bindFeedCards(list) {
+  if (list.dataset.bound) return;
+  list.dataset.bound = "1";
+  list.addEventListener("click", async (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const toggle = target?.closest("[data-feed-sources]");
+    if (toggle) {
+      const panel = document.getElementById(toggle.getAttribute("aria-controls"));
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(open));
+      if (panel) panel.hidden = !open;
+      return;
+    }
+    const share = target?.closest("[data-feed-share]");
+    if (!share) return;
+    const url = new URL(share.dataset.feedShare, window.location.href).href;
+    try {
+      if (navigator.share) await navigator.share({ title: share.dataset.shareTitle, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        share.lastChild.textContent = "Link copiato";
+      }
+    } catch { /* the reader cancelled */ }
+  });
 }
 
 async function showHome(api) {
@@ -2432,6 +2500,7 @@ async function showHome(api) {
   const filters = byId("feed-filters");
   const list = byId("feed-list");
   const more = byId("feed-more");
+  bindFeedCards(list);
   const render = () => {
     filters.innerHTML = FEED_FILTERS.map(([key, label]) => `<button type="button" class="filter-pill${key === scope ? " is-active" : ""}" data-feed-scope="${key}" aria-pressed="${key === scope}">${label}</button>`).join("");
   };
