@@ -1,4 +1,5 @@
 import { bindFeedCards, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { renderWelcome, runOnboarding } from "./onboarding.js";
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -1593,9 +1594,11 @@ export function createPublicApiClient(fetchImpl = fetch) {
       return request(`/proposals?${params}`);
     },
     listProposalTags: () => request("/proposals/tags"),
-    getFeed: ({ scope = "all", zone = {}, offset = 0, redazione = false } = {}) => {
+    getFeed: ({ scope = "all", zone = {}, offset = 0, redazione = false, follows = null } = {}) => {
       const params = new URLSearchParams({ scope, offset: String(offset), limit: "20" });
       if (redazione) params.set("redazione", "true");
+      if (follows?.politicians.length) params.set("politicians", follows.politicians.join(","));
+      if (follows?.parties.length) params.set("parties", follows.parties.join(","));
       if (zone.municipality_id) params.set("municipality", String(zone.municipality_id));
       else if (zone.province) params.set("province", zone.province);
       else if (zone.region_id) params.set("region", String(zone.region_id));
@@ -2232,15 +2235,20 @@ export function loadReaderProfile(storage = globalThis.localStorage) {
       zone: value && typeof value.zone === "object" && value.zone ? value.zone : null,
       favorites: Array.isArray(value?.favorites) ? value.favorites.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
       saved: Array.isArray(value?.saved) ? value.saved.filter((item) => item && typeof item.url === "string" && item.url.startsWith("./?post=")) : [],
+      parties: Array.isArray(value?.parties) ? value.parties.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
+      member: value && typeof value.member === "object" && value.member && typeof value.member.name === "string" ? { name: value.member.name.slice(0, 40), since: value.member.since || null } : null,
     };
   } catch {
-    return { zone: null, favorites: [], saved: [] };
+    return { zone: null, favorites: [], saved: [], parties: [], member: null };
   }
 }
 
 export function saveReaderProfile(profile, storage = globalThis.localStorage) {
   try {
-    storage?.setItem(PROFILE_KEY, JSON.stringify({ zone: profile.zone || null, favorites: profile.favorites || [], saved: profile.saved || [] }));
+    storage?.setItem(PROFILE_KEY, JSON.stringify({
+      zone: profile.zone || null, favorites: profile.favorites || [], saved: profile.saved || [],
+      parties: profile.parties || [], member: profile.member || null,
+    }));
     return true;
   } catch {
     return false;
@@ -2272,6 +2280,7 @@ document.addEventListener("click", (event) => {
   const button = event.target instanceof Element ? event.target.closest(".favorite-toggle") : null;
   if (!button) return;
   event.preventDefault();
+  if (!isMember()) return demoNotice();
   const profile = toggleFavorite(loadReaderProfile(), { id: button.dataset.favoriteId, name: button.dataset.favoriteName });
   saveReaderProfile(profile);
   const active = isFavorite(button.dataset.favoriteId);
@@ -2292,6 +2301,86 @@ export function zoneLabel(zone) {
   if (zone.municipality_name) return `${zone.municipality_name}${zone.province ? ` (${zone.province})` : ""} · ${zone.region_name || ""}`;
   if (zone.province_name) return `Provincia di ${zone.province_name} · ${zone.region_name || ""}`;
   return zone.region_name || "";
+}
+
+// ---------------------------------------------------------------------------
+// Reader mode: a registered profile on this device, or the read-only demo.
+const DEMO_KEY = "verapolitica.demo.v1";
+
+export function isMember(profile = loadReaderProfile()) {
+  return Boolean(profile.member);
+}
+
+function isDemo() {
+  try { return globalThis.sessionStorage?.getItem(DEMO_KEY) === "1"; } catch { return false; }
+}
+
+function enterDemo() {
+  try { globalThis.sessionStorage?.setItem(DEMO_KEY, "1"); } catch { /* the demo still opens */ }
+}
+
+export function followsOf(profile) {
+  const politicians = (profile.favorites || []).map((item) => Number(item.id)).filter(Number.isInteger).slice(0, 24);
+  const parties = (profile.parties || []).map((item) => Number(item.id)).filter(Number.isInteger).slice(0, 24);
+  return politicians.length || parties.length ? { politicians, parties } : null;
+}
+
+let noticeTimer = null;
+function demoNotice() {
+  let note = byId("demo-notice");
+  if (!note) {
+    document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
+    note = byId("demo-notice");
+  }
+  note.innerHTML = `Nella demo puoi solo consultare. <a href="./?view=registrati">Registrati</a> per salvare.`;
+  note.classList.add("is-visible");
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 4000);
+}
+
+function markReaderMode() {
+  const member = isMember();
+  document.body.classList.toggle("is-demo", !member);
+  const link = document.querySelector(".header-profile");
+  if (link && !member) {
+    link.href = "./?view=registrati";
+    link.querySelector(".header-profile-label").textContent = "Registrati";
+    link.insertAdjacentHTML("beforebegin", `<span class="demo-badge">Demo</span>`);
+  }
+}
+
+function openGate(render) {
+  document.body.classList.add("is-gate");
+  let root = byId("gate");
+  if (!root) {
+    document.body.insertAdjacentHTML("afterbegin", `<div id="gate"></div>`);
+    root = byId("gate");
+  }
+  render(root);
+}
+
+function showWelcome() {
+  document.title = "VeraPolitica";
+  openGate((root) => renderWelcome(root, {
+    onRegister: () => { window.location.href = "./?view=registrati"; },
+    onDemo: () => { enterDemo(); window.location.href = "./"; },
+  }));
+}
+
+async function showRegistration(api) {
+  document.title = "Registrati — VeraPolitica";
+  try { await loadPortraits(api); } catch { /* monograms instead */ }
+  const current = loadReaderProfile();
+  openGate((root) => runOnboarding(root, {
+    api,
+    portraitFor: resolvePortrait,
+    initial: current,
+    onClose: () => { window.location.href = current.member ? "./?view=profile" : isDemo() ? "./" : "./?view=benvenuto"; },
+    onDone: (patch) => {
+      saveReaderProfile({ ...loadReaderProfile(), ...patch });
+      window.location.href = "./";
+    },
+  }));
 }
 
 // iOS Safari applies :active press states only when a touch listener exists.
@@ -2407,6 +2496,8 @@ async function showHome(api) {
   const zone = profile.zone;
   const segments = byId("feed-choice");
   const choice = { value: "all" };
+  let forYouFallback = false;
+  if (!isMember()) segments.querySelector('[data-feed="all"]').textContent = "Tutte";
   const list = byId("feed-list");
   const more = byId("feed-more");
   const status = byId("feed-status");
@@ -2414,12 +2505,24 @@ async function showHome(api) {
   try { await loadPortraits(api); } catch { /* portraits are optional */ }
   bindFeedCards(list, {
     onSave: (url, title) => {
+      if (!isMember()) { demoNotice(); return false; }
       profile = toggleSavedPost(loadReaderProfile(), url, title);
       saveReaderProfile(profile);
       return profile.saved.some((item) => item.url === url);
     },
   });
   const zoneLine = () => {
+    if (choice.value === "all" && isMember(profile)) {
+      const people = profile.favorites.length;
+      const parties = (profile.parties || []).length;
+      const parts = [
+        people ? `${people} ${people === 1 ? "politico" : "politici"}` : "",
+        parties ? `${parties} ${parties === 1 ? "partito" : "partiti"}` : "",
+        zone ? escapeHtml(zoneLabel(zone)) : "",
+      ].filter(Boolean);
+      byId("home-zone").innerHTML = `Per te: ${parts.join(" · ")} · <a href="./?view=registrati">Modifica</a>`;
+      return;
+    }
     byId("home-zone").innerHTML = choice.value === "local"
       ? (zone ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>` : `<a href="./?view=profile">Imposta la tua zona</a> per vedere le notizie del tuo territorio.`)
       : "";
@@ -2453,7 +2556,16 @@ async function showHome(api) {
     more.disabled = true;
     if (!append) list.setAttribute("aria-busy", "true");
     try {
-      const page = await api.getFeed({ scope: scopeFor(), zone: zone || {}, offset, redazione: true });
+      const follows = choice.value === "all" && !forYouFallback ? followsOf(profile) : null;
+      let page = await api.getFeed({ scope: scopeFor(), zone: zone || {}, offset, redazione: true, follows });
+      if (follows && !append && !page.items.length) {
+        // Nothing yet about what the reader follows: show everything, and say so.
+        forYouFallback = true;
+        page = await api.getFeed({ scope: "all", zone: {}, offset, redazione: true });
+      }
+      if (forYouFallback && choice.value === "all") {
+        byId("home-zone").textContent = "Ancora nessuna notizia su chi segui o sulla tua zona: ecco tutte le notizie della redazione.";
+      }
       status.hidden = true;
       if (!append) list.innerHTML = "";
       if (!page.items.length && !append) {
@@ -2477,6 +2589,7 @@ async function showHome(api) {
     choice.value = button.dataset.feed;
     for (const item of segments.querySelectorAll("[data-feed]")) item.setAttribute("aria-pressed", String(item === button));
     offset = 0;
+    forYouFallback = false;
     load(false);
   });
   more.addEventListener("click", () => load(true));
@@ -2536,6 +2649,7 @@ async function showPost(api, postId) {
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     bindFeedCards(detail, {
       onSave: (url, title) => {
+        if (!isMember()) { demoNotice(); return false; }
         const profile = toggleSavedPost(loadReaderProfile(), url, title);
         saveReaderProfile(profile);
         return profile.saved.some((entry) => entry.url === url);
@@ -2885,6 +2999,20 @@ async function showProfile(api) {
   byId("profile-view").hidden = false;
   document.title = "Profilo — VeraPolitica";
   let profile = loadReaderProfile();
+  const member = isMember(profile);
+  byId("profile-demo").hidden = member;
+  byId("profile-member").hidden = !member;
+  for (const id of ["zone-section", "favorites-section"]) byId(id).hidden = !member;
+  if (!member) return;
+  byId("profile-title").textContent = profile.member.name;
+  byId("profile-copy").textContent = `Profilo su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}.`;
+  byId("profile-parties").innerHTML = (profile.parties || []).length
+    ? profile.parties.map((party) => `<a class="topic-chip" href="./?political_party=${encodeURIComponent(party.id)}">${escapeHtml(party.abbreviation || party.name)}</a>`).join("")
+    : `<p class="empty-note">Nessun partito.</p>`;
+  byId("profile-delete").addEventListener("click", () => {
+    try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
+    window.location.href = "./?view=benvenuto";
+  });
   const regionSelect = byId("zone-region");
   const provinceSelect = byId("zone-province");
   const municipalitySelect = byId("zone-municipality");
@@ -2991,7 +3119,15 @@ const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
 syncPageMeta(params);
-if (isId(proposalId)) {
+markReaderMode();
+// verapolitica.com opens on the welcome screen until the reader registers or enters the demo.
+// Shared links (a post, a profile...) open directly, read-only.
+const firstVisit = !isMember() && !isDemo() && ![...params.keys()].length;
+if (view === "registrati") {
+  showRegistration(api);
+} else if (view === "benvenuto" || firstVisit) {
+  showWelcome();
+} else if (isId(proposalId)) {
   showProposalDetail(api, proposalId);
 } else if (isId(politicianId)) {
   showDetail(api, politicianId);

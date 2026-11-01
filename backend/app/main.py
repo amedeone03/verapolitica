@@ -96,6 +96,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             StaticFiles(directory=DEMO_UI_DIRECTORY, html=True),
             name="demo-ui",
         )
+    @application.get("/", include_in_schema=False)
+    def site_home() -> RedirectResponse:
+        # verapolitica.com opens the app; the app shows the welcome screen first.
+        return RedirectResponse("/app/", status_code=307)
+
     application.mount(
         "/redazione",
         StaticFiles(directory=REDAZIONE_UI_DIRECTORY, html=True),

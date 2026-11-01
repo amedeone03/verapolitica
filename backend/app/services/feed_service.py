@@ -373,6 +373,8 @@ class FeedService:
         offset: int = 0,
         limit: int = 20,
         redazione_only: bool = False,
+        follow_politicians: frozenset[int] = frozenset(),
+        follow_parties: frozenset[int] = frozenset(),
     ) -> FeedPage:
         # Every source is newest-first, so its first offset+limit+1 rows can
         # fill this page. Zone filtering drops local rows, so those over-fetch.
@@ -386,6 +388,14 @@ class FeedService:
             candidates += self._referendums(local_cap)
         candidates += self._posts(local_cap)
         accepted = [item for item in candidates if self._accepts(feed_filter, zone, item)]
+        if follow_politicians or follow_parties:
+            # "Per te": news about the people and parties the reader follows,
+            # plus local news from the reader's own zone.
+            accepted = [
+                item for item in accepted
+                if _involves(item, follow_politicians, follow_parties)
+                or (item.scope is not FeedScope.NATIONAL and not zone.empty)
+            ]
         accepted.sort(key=lambda item: (item.occurred_on, item.key), reverse=True)
         window = accepted[offset : offset + limit + 1]
         return FeedPage(
@@ -445,6 +455,15 @@ class FeedService:
                 verified_by=post.reviewed_by if post.blocks and post.reviewed_by in self.public_names else None,
             )
 
+
+
+def _involves(item: FeedItem, politicians: frozenset[int], parties: frozenset[int]) -> bool:
+    card = item.card or {}
+    if any(person.get("politician_id") in politicians for person in card.get("people") or []):
+        return True
+    if any(party.get("id") in parties for party in card.get("parties") or []):
+        return True
+    return any(person.get("party_id") in parties for person in card.get("people") or [])
 
 
 _MONTHS = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",

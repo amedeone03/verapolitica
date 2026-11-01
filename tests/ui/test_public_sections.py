@@ -23,7 +23,9 @@ def test_bottom_bar_and_header():
     assert 'id="feed-choice"' in html and 'class="feed-timeline"' in html
     home = html.split('id="home-view"')[1].split("</section>")[0]
     assert "shortcut-grid" not in home and "home-hero" not in home
-    assert "Salvato solo su questo dispositivo, senza account." in html
+    assert "Salvato solo su questo dispositivo." in html
+    # Demo is read-only; registration builds the reader's "Per te" on this device.
+    assert 'id="profile-demo"' in html and 'href="./?view=registrati"' in html
     assert "trust-line" not in html
 
 

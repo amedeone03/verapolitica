@@ -171,9 +171,18 @@
       <section id="profile-view" aria-labelledby="profile-title" hidden>
         <div class="hero compact-hero">
           <h1 id="profile-title">Profilo</h1>
-          <p class="hero-copy">Salvato solo su questo dispositivo, senza account.</p>
+          <p id="profile-copy" class="hero-copy">Salvato solo su questo dispositivo.</p>
         </div>
-        <section class="detail-card" aria-labelledby="zone-title"><h2 id="zone-title">Zona</h2>
+        <section id="profile-demo" class="detail-card demo-card" hidden>
+          <h2>Stai consultando la demo</h2>
+          <p>Nella demo puoi leggere tutto, ma non salvare preferiti, post o zona. Con la registrazione scegli politici, partiti e territorio da seguire nel tuo Per te.</p>
+          <a class="button" href="./?view=registrati">Registrati</a>
+        </section>
+        <section id="profile-member" class="detail-card" aria-labelledby="follows-title" hidden><h2 id="follows-title">Partiti che segui</h2>
+          <div id="profile-parties" class="favorite-chips"></div>
+          <div class="zone-actions"><a class="button" href="./?view=registrati">Modifica le scelte</a><button type="button" id="profile-delete" class="ghost-button">Cancella il profilo</button></div>
+        </section>
+        <section id="zone-section" class="detail-card" aria-labelledby="zone-title"><h2 id="zone-title">Zona</h2>
           <form id="zone-form" class="zone-form">
             <label for="zone-region">Regione</label><select id="zone-region"><option value="">Scegli una regione</option></select>
             <label for="zone-province">Provincia</label><select id="zone-province" disabled><option value="">Scegli una provincia</option></select>
@@ -182,7 +191,7 @@
           </form>
           <p id="zone-saved" class="empty-note" role="status"></p>
         </section>
-        <section class="detail-card" aria-labelledby="favorites-title"><h2 id="favorites-title">Preferiti</h2>
+        <section id="favorites-section" class="detail-card" aria-labelledby="favorites-title"><h2 id="favorites-title">Politici che segui</h2>
           <p class="empty-note">Usa la stella sulla scheda di un politico.</p>
           <div id="profile-favorites" class="favorite-chips"></div>
         </section>

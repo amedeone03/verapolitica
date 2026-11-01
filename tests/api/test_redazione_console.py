@@ -432,6 +432,14 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     assert [party["abbreviation"] for party in card["parties"]] == ["AP", "PE"]
     assert card["badge"] == {"label": "Nuova pubblicazione", "tone": "navy", "date": "2026-10-30"}
     assert card["link"]["url"].startswith("https://www.senato.it/")
+    # "Per te": only news about followed politicians or parties (a person's party counts).
+    def for_you(**query):
+        return [item["key"] for item in client.get("/feed", params={"redazione": "true", **query}).json()["items"]]
+    assert for_you(politicians=str(politician_id)) == [timeline[0]["key"]]
+    assert for_you(parties=str(extra_party)) == [timeline[0]["key"]]
+    assert for_you(parties=str(own_party)) == [timeline[0]["key"]]
+    assert for_you(politicians="999999") == []
+    assert client.get("/feed", params={"politicians": "1,x"}).status_code == 422
     profile = client.get(f"/politicians/{politician_id}").json()
     assert [item["id"] for item in profile["editorial"]["related_posts"]] == [post["id"]]
     log = client.get("/redazione/api/registro", headers=ANNA).json()["items"]

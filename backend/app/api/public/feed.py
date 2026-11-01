@@ -23,6 +23,8 @@ def get_feed(
     offset: Annotated[int, Query(ge=0, le=500)] = 0,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
     redazione: bool = False,
+    politicians: Annotated[str | None, Query(pattern=r"^\d{1,9}(,\d{1,9}){0,23}$")] = None,
+    parties: Annotated[str | None, Query(pattern=r"^\d{1,9}(,\d{1,9}){0,23}$")] = None,
 ) -> FeedPage:
     """Verified facts, newest first. The zone is the reader's own territory."""
 
@@ -33,7 +35,16 @@ def get_feed(
         )
     except FeedValidationError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(error)) from error
-    return service.page(feed_filter=scope, zone=zone, offset=offset, limit=limit, redazione_only=redazione)
+    return service.page(
+        feed_filter=scope, zone=zone, offset=offset, limit=limit, redazione_only=redazione,
+        follow_politicians=_ids(politicians), follow_parties=_ids(parties),
+    )
+
+
+def _ids(value: str | None) -> frozenset[int]:
+    """The reader's follows ("Per te"); sent by the browser, never stored."""
+
+    return frozenset(int(part) for part in value.split(",")) if value else frozenset()
 
 
 @router.get("/posts/{post_id}", response_model=FeedItem)
