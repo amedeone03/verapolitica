@@ -1989,7 +1989,8 @@ async function showSearch(api, query, type) {
   byId("search-view").hidden = false;
   byId("search-page-q").value = query;
   byId("search-type").value = type;
-  byId("site-search-q").value = query;
+  const headerSearch = byId("site-search-q");
+  if (headerSearch) headerSearch.value = query;
   if (!query.trim()) {
     byId("search-count").textContent = "Pronto";
     byId("search-list").hidden = true;
@@ -2317,44 +2318,6 @@ function markSection(section) {
 }
 
 // Mobile menu: a modal dialog with focus trap, Escape, scroll lock and focus return.
-function bindMobileMenu() {
-  const toggle = document.querySelector(".menu-toggle");
-  const menu = byId("mobile-menu");
-  if (!toggle || !menu) return;
-  const close = menu.querySelector(".menu-close");
-  const focusable = () => [...menu.querySelectorAll("a[href], button, input, [tabindex]:not([tabindex='-1'])")]
-    .filter((node) => !node.hasAttribute("disabled"));
-  const setOpen = (open) => {
-    menu.hidden = !open;
-    toggle.setAttribute("aria-expanded", String(open));
-    document.documentElement.classList.toggle("menu-open", open);
-    if (open) focusable()[0]?.focus();
-    else toggle.focus();
-  };
-  toggle.addEventListener("click", () => setOpen(true));
-  close?.addEventListener("click", () => setOpen(false));
-  menu.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setOpen(false);
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const items = focusable();
-    const first = items[0];
-    const last = items.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  });
-  window.matchMedia("(min-width: 1024px)").addEventListener?.("change", (event) => {
-    if (event.matches && !menu.hidden) setOpen(false);
-  });
-}
 
 const VIEW_DESCRIPTIONS = {
   politics: "Partiti, politici e proposte, con promesse valutate secondo un metodo pubblico.",
@@ -3013,7 +2976,6 @@ const view = params.get("view");
 const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
-bindMobileMenu();
 syncPageMeta(params);
 if (isId(proposalId)) {
   showProposalDetail(api, proposalId);

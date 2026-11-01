@@ -1,16 +1,20 @@
-"""The public app is organised in four sections: Home, Politica, Archivio, Profilo."""
+"""The public app: logo and profile in the header, Feed / Politica / Archivio / Cerca in a bottom bar."""
 
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[2] / "frontend" / "app"
 
 
-def test_four_sections_in_header_and_mobile_menu():
+def test_bottom_bar_and_header():
     html = (APP / "index.html").read_text(encoding="utf-8")
-    for section, href in (("home", "./"), ("politics", "./?view=politics"), ("history", "./?view=history"), ("profile", "./?view=profile")):
-        assert html.count(f'href="{href}" data-section="{section}"') == 2  # header + mobile menu
-    assert 'aria-controls="mobile-menu"' in html and 'role="dialog" aria-modal="true"' in html
-    assert "tab-bar" not in html
+    header = html.split('<header class="site-header">')[1].split("</header>")[0]
+    bottom = html.split('<nav class="bottom-nav"')[1].split("</nav>")[0]
+    assert 'class="brand"' in header and 'href="./?view=profile" data-section="profile"' in header
+    for section, href in (("home", "./"), ("politics", "./?view=politics"), ("history", "./?view=history"), ("search", "./?view=search")):
+        assert html.count(f'href="{href}" data-section="{section}"') == 1
+        assert f'href="{href}" data-section="{section}"' in bottom
+    assert 'aria-label="Cerca"' in bottom and "<span>Cerca</span>" not in bottom  # magnifier only
+    assert "mobile-menu" not in html and "menu-toggle" not in html
     for view in ("home-view", "politics-view", "compare-view", "history-view", "legislature-view",
                  "parliamentarians-view", "provinces-view", "territory-history-view", "profile-view", "post-view"):
         assert f'id="{view}"' in html
@@ -56,8 +60,8 @@ def test_cambridge_classic_tokens_fonts_and_accessibility():
     assert "backdrop-filter" not in styles and "radial-gradient" not in styles
     assert "will-reveal" not in styles and "is-new" not in script
     assert "@media (prefers-reduced-motion: reduce)" in styles
-    # Accessible mobile menu: Escape, focus trap, focus return, scroll lock.
-    assert 'event.key === "Escape"' in script and 'classList.toggle("menu-open", open)' in script
+    # Navigation is a bottom bar on every page; no hamburger menu to trap focus in.
+    assert ".bottom-nav {" in styles and "bindMobileMenu" not in script
     assert 'class="skip-link"' in html
     # SEO essentials.
     assert 'property="og:image"' in html and "application/ld+json" in html

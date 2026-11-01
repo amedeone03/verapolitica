@@ -28,38 +28,19 @@
     <a class="skip-link" href="#main">Vai al contenuto</a>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="./" aria-label="VeraPolitica, home">
+        <a class="brand" href="./" aria-label="VeraPolitica, feed">
           <img class="brand-mark" src="./favicon.svg" alt="" width="36" height="36" />
           <span class="brand-name">VeraPolitica</span>
         </a>
-        <nav class="public-nav section-tabs" aria-label="Sezioni principali">
-          <a href="./" data-section="home">Feed</a>
-          <a href="./?view=politics" data-section="politics">Politica</a>
-          <a href="./?view=history" data-section="history">Archivio</a>
-          <a href="./?view=profile" data-section="profile">Profilo</a>
-          <a class="nav-search" href="./?view=search" data-section="search"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Cerca</span></a>
-        </nav>
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg><span>Menu</span></button>
+        <a class="header-profile" href="./?view=profile" data-section="profile"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg><span class="header-profile-label">Profilo</span></a>
       </div>
     </header>
-    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" hidden>
-      <div class="mobile-menu-head">
-        <span class="brand-name">VeraPolitica</span>
-        <button class="menu-close" type="button"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="visually-hidden">Chiudi il menu</span></button>
-      </div>
-      <form class="site-search" action="./" method="get" role="search">
-        <input type="hidden" name="view" value="search" />
-        <label class="visually-hidden" for="site-search-q">Cerca nell'archivio pubblico</label>
-        <input id="site-search-q" name="q" type="search" maxlength="200" placeholder="Cerca persone, luoghi, proposte" autocomplete="off" enterkeyhint="search" />
-        <button class="button button-primary" type="submit">Cerca</button>
-      </form>
-      <nav aria-label="Sezioni principali">
-        <a href="./" data-section="home">Feed</a>
-        <a href="./?view=politics" data-section="politics">Politica</a>
-        <a href="./?view=history" data-section="history">Archivio</a>
-        <a href="./?view=profile" data-section="profile">Profilo</a>
-      </nav>
-    </div>
+    <nav class="bottom-nav" aria-label="Sezioni principali">
+      <a href="./" data-section="home"><img class="bottom-nav-logo" src="./favicon.svg" alt="" width="24" height="24" /><span>Feed</span></a>
+      <a href="./?view=politics" data-section="politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 2 7h20Z"/></svg><span>Politica</span></a>
+      <a href="./?view=history" data-section="history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>Archivio</span></a>
+      <a href="./?view=search" data-section="search" aria-label="Cerca"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></a>
+    </nav>
 
     <main id="main" class="container" tabindex="-1">
       <section id="home-view" class="feed-view" aria-labelledby="home-title" hidden>
@@ -75,7 +56,6 @@
             </select>
           </label>
           <div class="feed-bar-actions">
-            <a class="feed-bar-icon" href="./?view=search" aria-label="Cerca"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></a>
             <a class="feed-bar-icon" href="./?view=methodology" aria-label="Come lavora la redazione"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
           </div>
         </div>

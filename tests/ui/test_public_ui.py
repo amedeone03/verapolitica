@@ -60,7 +60,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderSearchCard" in script.text
     assert "/search?" in script.text
     assert "view=search" in archive.text
-    assert "Cerca nell'archivio pubblico" in archive.text
+    assert "Cerca nell'archivio" in archive.text and 'aria-label="Cerca"' in archive.text
     assert "Referendum" in archive.text
     assert "Guide al voto" in archive.text
     assert "Glossario" in archive.text
