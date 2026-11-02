@@ -28,6 +28,8 @@ pytestmark = pytest.mark.postgres
 HEAD = ALEMBIC_CHAIN[-1]
 PRIOR = ALEMBIC_CHAIN[-2]
 INITIAL = ALEMBIC_CHAIN[0]
+# The revision just before feed tags and the archive (later heads already have them).
+BEFORE_FEED = ALEMBIC_CHAIN[ALEMBIC_CHAIN.index("a4d8c1e7f310") - 1]
 
 
 def _production_settings(url: str, tmp_path: Path) -> Settings:
@@ -143,8 +145,8 @@ def test_postgres_upgrade_from_previous_head_adds_feed_tags_and_archive():
         engine = create_db_engine(url)
         cfg = alembic_config(url)
         try:
-            command.upgrade(cfg, PRIOR)
-            assert current_revision(engine) == PRIOR
+            command.upgrade(cfg, BEFORE_FEED)
+            assert current_revision(engine) == BEFORE_FEED
             tables = inspect(engine).get_table_names()
             assert "politician_biographies" in tables
             assert not set(new_tables) & set(tables)
