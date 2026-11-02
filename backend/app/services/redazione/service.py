@@ -9,7 +9,8 @@ Everything an editor does goes through here, so three rules hold everywhere:
    scrittura": chi scrive non è chi verifica). "Non mantenuta" needs two
    approvers, neither of them the author.
 2. **Every change is logged.** One append-only ``EditorialLogEntry`` per write,
-   edit, approval, rejection, withdrawal and status assignment.
+   edit, approval, rejection, withdrawal, status assignment and discard of a
+   news draft that never reached the citizen.
 3. **The writing rules are checked.** ``style`` findings are attached to every
    draft; findings at level ``error`` (open square brackets, missing sources,
    no sources from both sides in a news item) block approval.
@@ -41,6 +42,7 @@ from backend.app.models import (
     EditorialPost,
     EditorialPostStatus,
     EditorialSymbol,
+    ImmutableEditorialPostError,
     FeedScope,
     Municipality,
     Region,
@@ -1377,6 +1379,7 @@ class RedazioneService:
             "words": style.words(post.body),
             "findings": findings,
             "can_approve": post.status is EditorialPostStatus.PENDING and post.created_by != member,
+            "can_discard": post.status is not EditorialPostStatus.PUBLISHED,
         }
 
     def _related_news(self, session: Session, politician_id: int) -> list[dict]:
@@ -1868,6 +1871,7 @@ class RedazioneService:
             "blocked": blocked,
             "own": author == member,
             "can_approve": author != member and not blocked,
+            "can_discard": kind == "news",
             "approvals": [],
             "approvals_required": 1,
         }
@@ -1994,6 +1998,48 @@ class RedazioneService:
             details={"note": note, "author": item["author"]},
         )
         return {"ok": True, "summary": summary}
+
+    def discard_news(self, post_id: int, *, member: str) -> dict:
+        """Remove a pending or rejected news draft. Published posts stay immutable."""
+
+        with self.session_factory.begin() as session:
+            post = session.get(EditorialPost, post_id)
+            if post is None:
+                raise RedazioneNotFound("notizia non trovata")
+            if post.status is EditorialPostStatus.PUBLISHED:
+                raise RedazioneConflict(
+                    "Una notizia pubblicata non si elimina: si pubblica una rettifica visibile."
+                )
+            title = post.title
+            status = post.status.value
+            author = post.created_by
+            politician_ids = (post.blocks or {}).get("politician_ids") or []
+            politician_id = politician_ids[0] if politician_ids else None
+            details = {
+                "title": title,
+                "status": status,
+                "author": author,
+                "blocks": _jsonable(post.blocks),
+            }
+            try:
+                session.delete(post)
+                session.flush()
+            except ImmutableEditorialPostError as error:
+                raise RedazioneConflict(
+                    "Una notizia pubblicata non si elimina: si pubblica una rettifica visibile."
+                ) from error
+            summary = f"Eliminata la notizia «{title}»."
+            self._log(
+                session,
+                actor=member,
+                action="eliminazione",
+                object_kind="news",
+                object_id=post_id,
+                politician_id=politician_id,
+                summary=summary,
+                details=details,
+            )
+            return {"ok": True, "summary": summary}
 
     def _apply_change(self, request_id: int, *, member: str, note: str | None) -> str:
         with self.session_factory.begin() as session:

@@ -55,7 +55,7 @@ then appears on the public home at `/app/`. Give tokens out of band.
 
 | Section | What it does |
 | --- | --- |
-| Da verificare | Everything waiting for a second person: profile blocks, promises, proposals, promise statuses, news, withdrawals and re-classifications. The verifier ticks the final checklist of the writing models, then approves or rejects (a rejection needs a note). |
+| Da verificare | Everything waiting for a second person: profile blocks, promises, proposals, promise statuses, news, withdrawals and re-classifications. The verifier ticks the final checklist of the writing models, then approves or rejects (a rejection needs a note). A pending or rejected news draft can be deleted by any member (`Elimina la notizia`); a published news item cannot. |
 | Politici | The "Modello Politico" in blocks 0–6: scheda rapida (from the official import), Chi è, Cosa ha fatto, Posizioni, Promesse (with status and classification), Procedimenti, Notizie collegate e fonti. |
 | Notizie | The "Modello Notizia" in nine blocks with live checks: word counts, right/left balance, sources from both sides plus an institutional or agency source. |
 | Registro modifiche | The append-only log: who, when, what, with before/after details. |
@@ -114,8 +114,10 @@ opinions, short dates such as «16/9».
   and the names of writer and verifier.
 - The scorecard counts only promises that are published, classified and have
   an approved status (see `docs/scoring-methodology.md`, section 2.1).
-- Published content is never rewritten: a correction is a new version that is
-  verified again; a withdrawal is a change request approved by another member.
+- Published content is never rewritten or deleted: a correction is a new
+  version that is verified again; a withdrawal is a change request approved
+  by another member. Pending or rejected news drafts can be removed from the
+  queue (`DELETE /notizie/{id}`); the action is logged.
 
 ## API
 
@@ -124,7 +126,7 @@ opinions, short dates such as «16/9».
 `POST /politici/{id}/blocchi/{kind}`, `POST /politici/{id}/promesse`,
 `POST /promesse/{id}/stato`, `POST /promesse/{id}/classificazione`,
 `POST /contenuti/{kind}/{id}/ritira`, `GET|POST /notizie`, `PUT /notizie/{id}`,
-`GET /registro`.
+`DELETE /notizie/{id}` (pending or rejected drafts only), `GET /registro`.
 
 ## What was removed
 
