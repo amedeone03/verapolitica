@@ -1,7 +1,7 @@
 // VeraPolitica — welcome screen and sign-up journey (story-style, one question per screen).
-// Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and two
+// Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and
 // pill buttons; one large question per screen; circular avatar grid with check badges;
-// floating "Avanti" pill. The profile stays on this device: no email, no password.
+// floating "Avanti" pill. Email and password are collected by the app, not here.
 
 const logo = (url, size = 28) => (typeof url === "string" && /^\/media\/\d+$/.test(url) ? `<img class="ob-logo" src="${url}" alt="" width="${size}" height="${size}" loading="lazy" />` : "");
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -21,7 +21,7 @@ function avatar(person, portraitFor, size = "") {
   return `<span class="ob-avatar${size}">${url ? `<img src="${escape(url)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escape(monogram(person.name))}</span>`}</span>`;
 }
 
-export function renderWelcome(root, { onRegister, onDemo }) {
+export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
   root.innerHTML = `
     <div class="gate welcome" role="main" aria-labelledby="welcome-title">
       <div class="welcome-center">
@@ -31,12 +31,47 @@ export function renderWelcome(root, { onRegister, onDemo }) {
       </div>
       <div class="welcome-actions">
         <button type="button" class="gate-pill is-solid" data-welcome="register">Registrati</button>
-        <button type="button" class="gate-pill is-outline" data-welcome="demo">Accedi alla demo</button>
+        <button type="button" class="gate-pill is-solid" data-welcome="login">Accedi</button>
+        <button type="button" class="gate-pill is-outline is-wide" data-welcome="demo">Consulta senza account</button>
       </div>
-      <p class="welcome-note">La demo è in sola lettura.</p>
+      <p class="welcome-note">Senza account puoi consultare le notizie pubblicate. Con l'account salvi ciò che segui.</p>
     </div>`;
   root.querySelector('[data-welcome="register"]').addEventListener("click", onRegister);
+  root.querySelector('[data-welcome="login"]').addEventListener("click", onLogin);
   root.querySelector('[data-welcome="demo"]').addEventListener("click", onDemo);
+}
+
+export function renderAccountForm(root, { mode = "register", error = "", onSubmit, onSwitch, onBack }) {
+  const register = mode === "register";
+  root.innerHTML = `
+    <div class="gate welcome account-gate" role="main" aria-labelledby="account-title">
+      <div class="welcome-center" style="place-content:start;padding-top:48px">
+        <p class="ob-kicker">${register ? "Crea il tuo account" : "Bentornato"}</p>
+        <h1 id="account-title" class="welcome-name" style="font-size:clamp(1.75rem,6vw,2.5rem)">${register ? "Registrati" : "Accedi"}</h1>
+        <form id="account-form" class="acc-form" novalidate>
+          <label class="ob-label" for="acc-email">Email</label>
+          <input id="acc-email" class="ob-input is-compact" type="email" name="email" autocomplete="username" required maxlength="254" />
+          <label class="ob-label" for="acc-password">Password</label>
+          <input id="acc-password" class="ob-input is-compact" type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" required minlength="10" maxlength="128" />
+          ${register ? `<p class="ob-note">Almeno 10 caratteri. Poi scegli chi seguire.</p>` : `<p class="ob-note">Usa l'email con cui ti sei registrato.</p>`}
+          ${error ? `<p class="ob-error" role="alert">${escape(error)}</p>` : ""}
+          <button type="submit" class="gate-pill is-solid acc-submit">${register ? "Continua" : "Entra"}</button>
+        </form>
+        <p class="welcome-note"><button type="button" class="acc-switch" data-account="switch">${register ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}</button></p>
+        <p class="welcome-note"><button type="button" class="acc-switch" data-account="back">Indietro</button></p>
+      </div>
+    </div>`;
+  const form = root.querySelector("#account-form");
+  const submit = root.querySelector(".acc-submit");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const email = root.querySelector("#acc-email").value.trim();
+    const password = root.querySelector("#acc-password").value;
+    submit.disabled = true;
+    Promise.resolve(onSubmit({ email, password })).catch(() => {}).finally(() => { submit.disabled = false; });
+  });
+  root.querySelector("[data-account=switch]").addEventListener("click", onSwitch);
+  root.querySelector("[data-account=back]").addEventListener("click", onBack);
 }
 
 const STEPS = ["name", "politicians", "parties", "zone", "summary"];
@@ -84,7 +119,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   const valid = () => {
     const key = STEPS[state.step];
     if (key === "name") return state.name.trim().length >= 2;
-    if (key === "politicians") return state.politicians.size > 0;
+    if (key === "politicians") return state.politicians.size > 0 || (Array.isArray(state.people) && !state.people.length);
     // Without the ISTAT list (not loaded yet, or not reachable) the zone can be set later.
     if (key === "zone") return Boolean(state.region && state.province) || (Array.isArray(state.regions) && !state.regions.length);
     return true;
@@ -94,6 +129,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     next.disabled = !valid();
     next.textContent = key === "summary" ? "Vai al tuo feed"
       : key === "politicians" && state.politicians.size ? `Avanti · ${state.politicians.size}`
+      : key === "politicians" && Array.isArray(state.people) && !state.people.length ? "Salta"
       : key === "parties" && !state.parties.size ? "Salta"
       : key === "parties" ? `Avanti · ${state.parties.size}`
       : "Avanti";
@@ -112,7 +148,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       <h1 id="ob-title" class="ob-title">Come ti chiamiamo?</h1>
       <label class="visually-hidden" for="ob-name">Nome</label>
       <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="Il tuo nome" />
-      <p class="ob-note">Il profilo resta su questo dispositivo: niente email, niente password. Lo modifichi o lo cancelli dal Profilo.</p>`,
+      <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
     politicians: () => `
       <p class="ob-kicker">1 di 3</p>
       <h1 id="ob-title" class="ob-title">Chi vuoi seguire?</h1>
@@ -136,6 +172,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
 
   function peopleGrid() {
     const q = state.query.trim().toLocaleLowerCase("it");
+    if (!state.people.length) return `<p class="ob-empty">L'elenco dei politici non è ancora disponibile: lo pubblica la redazione. Puoi andare avanti e sceglierli più tardi dal Profilo.</p>`;
     const people = state.people.filter((person) => !q || person.name.toLocaleLowerCase("it").includes(q));
     if (!people.length) return `<p class="ob-sub">Nessun politico trovato.</p>`;
     return people.map((person) => {

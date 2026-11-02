@@ -26,6 +26,8 @@ row.
 - [ ] `VERAPOLITICA_ENV=production`
 - [ ] `PUBLIC_BASE_URL` / CORS / trusted hosts match the real domain
 - [ ] Strong `VERAPOLITICA_ADMIN_API_KEY` (24+, not a placeholder)
+- [ ] Strong `VERAPOLITICA_SESSION_SECRET` (32+, not the admin key)
+- [ ] `VERAPOLITICA_REDAZIONE_MEMBERS` with at least two named 24+ character tokens
 - [ ] Strong `POSTGRES_PASSWORD` (not the example value)
 - [ ] Cron variables blank
 - [ ] LLM provider blank

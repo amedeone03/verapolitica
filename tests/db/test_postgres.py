@@ -195,6 +195,7 @@ def test_postgres_production_like_http_surface():
         env=AppEnvironment.PRODUCTION,
         database_url=url,
         admin_api_key="a-sufficiently-long-admin-token",
+        session_secret="a-sufficiently-long-session-secret",
         cors_origins="https://verapolitica.it",
         trusted_hosts="testserver,verapolitica.it",
         public_base_url="https://verapolitica.it",

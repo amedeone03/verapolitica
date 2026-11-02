@@ -21,6 +21,36 @@ sign-in page:
 Production refuses demo tokens and tokens shorter than 24 characters. The
 console is not linked from the public site and is `noindex`.
 
+You need **at least two named people**. One person cannot approve their own
+work, so a single token leaves every draft stuck in **Da verificare**.
+
+### Production VPS
+
+On the server, generate one token per editor (do not reuse the admin key):
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Put the names and tokens in `/opt/verapolitica/repo/.env.production` (mode
+`0600`, never commit the file):
+
+```bash
+VERAPOLITICA_REDAZIONE_MEMBERS="Nome Cognome=<token1>;Altro Nome=<token2>"
+```
+
+Recreate **only** `web` so Compose reloads the env file. Do not
+`docker compose down -v` and do not start the scheduler:
+
+```bash
+cd /opt/verapolitica/repo
+./scripts/run_production_compose.sh up -d web --force-recreate
+```
+
+Each editor opens `https://verapolitica.com/redazione/`, pastes their own
+codice, writes a notizia, and the other person approves it. Published news
+then appears on the public home at `/app/`. Give tokens out of band.
+
 ## Sections
 
 | Section | What it does |

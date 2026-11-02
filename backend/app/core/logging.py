@@ -14,7 +14,7 @@ _SECRET_PATTERNS = (
     (re.compile(r"(?i)(authorization:\s*bearer\s+)\S+"), r"\1[redacted]"),
     (
         re.compile(
-            r"(?i)(VERAPOLITICA_(?:ADMIN_API_KEY|LLM_API_KEY|DATABASE_URL)=)\S+"
+            r"(?i)(VERAPOLITICA_(?:ADMIN_API_KEY|LLM_API_KEY|SESSION_SECRET|DATABASE_URL)=)\S+"
         ),
         r"\1[redacted]",
     ),
@@ -44,7 +44,9 @@ SENSITIVE_KEYS = frozenset(
         "database_url",
         "verapolitica_admin_api_key",
         "verapolitica_llm_api_key",
+        "verapolitica_session_secret",
         "verapolitica_database_url",
+        "password_hash",
     }
 )
 

@@ -155,6 +155,8 @@ Fill at least:
 | `VERAPOLITICA_CORS_ORIGINS` | that origin (and `https://www.YOUR_DOMAIN` if used) |
 | `VERAPOLITICA_TRUSTED_HOSTS` | `YOUR_DOMAIN,www.YOUR_DOMAIN` |
 | `VERAPOLITICA_ADMIN_API_KEY` | 24+ random characters; **not** a demo/placeholder |
+| `VERAPOLITICA_SESSION_SECRET` | 32+ random characters; signs citizen session cookies; **not** the admin key |
+| `VERAPOLITICA_REDAZIONE_MEMBERS` | two or more `Nome Cognome=<24+ char token>` entries, `;`-separated |
 | `VERAPOLITICA_ADMIN_REVIEWER_IDENTITY` | operator label, e.g. `production-editor` |
 | `VERAPOLITICA_RAW_STORAGE_PATH` | `/var/lib/verapolitica/raw` (compose already forces this inside containers) |
 | `VERAPOLITICA_WEB_HOST` | `0.0.0.0` |
@@ -179,11 +181,17 @@ Compose **overrides** `VERAPOLITICA_DATABASE_URL` to
 The `HOST` in the template file is unused inside this stack. Settings
 reference: [production_configuration.md](production_configuration.md).
 
-Generate an admin key (example; do not commit the result):
+Generate an admin key, a session secret, and one redazione token per editor
+(example; do not commit the results):
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
+
+After filling `VERAPOLITICA_REDAZIONE_MEMBERS` on a running stack, recreate
+only `web` (`./scripts/run_production_compose.sh up -d web --force-recreate`).
+Do not `down -v`. Citizen login also needs `VERAPOLITICA_SESSION_SECRET` and
+a migrate that includes `civic_accounts`.
 
 ---
 

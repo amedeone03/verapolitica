@@ -10,15 +10,17 @@ reverse-proxy responsibilities are in
 
 VeraPolitica publishes reviewed official political and civic records. V1 assumes:
 
-- Citizen visitors are unauthenticated and read-only.
-- Editorial writes use a shared admin API key, not per-user accounts.
+- Citizen visitors may register with email and password. That account only
+  stores follows, zone and saved posts; it cannot write editorial content.
+- Editorial writes use per-member redazione tokens plus a shared admin API key.
 - Official source endpoints may be slow or unavailable; the public site must
   still serve already published data.
-- Attackers may probe `/admin`, forge `Host`/`Origin`/`X-Forwarded-*`, and try
-  to read stack traces or secrets from errors and logs.
+- Attackers may probe `/admin`, `/auth`, `/redazione`, forge
+  `Host`/`Origin`/`X-Forwarded-*`, and try to read stack traces or secrets from
+  errors and logs.
 
-Out of scope for V1: OAuth, citizen accounts, billing, analytics trackers,
-recommendation, and enterprise IAM.
+Out of scope for V1: OAuth, email verification, password-reset mail, billing,
+analytics trackers, recommendation, and enterprise IAM.
 
 ## Admin API-key model
 
