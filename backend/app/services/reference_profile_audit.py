@@ -7,6 +7,7 @@ commentary into pledge-assessment evidence.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
@@ -86,7 +87,29 @@ def is_complete_source_url(url: str | None) -> bool:
     if not raw:
         return False
     parsed = urlsplit(raw)
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+    return not is_index_page(parsed)
+
+
+_INDEX_SEGMENTS = frozenset({"home", "elenco", "index", "index.html", "index.htm", "index.php"})
+
+
+def is_index_page(parsed) -> bool:
+    """A home or section page is where a source lives, not a citation of the fact.
+
+    ``https://www.ansa.it/`` or ``.../politica/politica.shtml`` cannot back a
+    specific claim; a reviewer needs the article, the act or the record.
+    """
+
+    path = parsed.path.strip("/")
+    if not path:
+        return not parsed.query
+    last = path.rsplit("/", 1)[-1].casefold()
+    if last in _INDEX_SEGMENTS:
+        return True
+    # Section indexes such as ANSA's ``politica/politica.shtml``.
+    return bool(re.fullmatch(r"[a-z]+\.shtml", last)) and last.removesuffix(".shtml") in path.split("/")[:-1]
 
 
 def proceeding_nature(types: tuple[ProceedingType, ...] | list[str] | None) -> ProceedingNature | None:
@@ -632,17 +655,58 @@ def format_report_text(audit: ReferenceProfileAudit) -> str:
     )
 
 
-def resolve_politician(session: Session, slug: str) -> Politician:
+REFERENCE_FIXTURE_DIR = DEFAULT_FIXTURE.parent
+
+
+def fixture_slug(fixture: dict[str, Any]) -> str:
+    """``slug`` when the fixture declares one, else derived from ``fixture_id``."""
+
+    if fixture.get("slug"):
+        return str(fixture["slug"])
+    return re.sub(r"[-_]v\d+$", "", str(fixture["fixture_id"])).replace("_", "-")
+
+
+def fixture_for_slug(slug: str, directory: Path | None = None) -> Path:
     folded = slug.strip().casefold().replace("_", "-")
-    given, family = "Giorgia", "Meloni"
-    if folded not in {"giorgia-meloni", "giorgia-meloni-v1", "giorgia"}:
-        parts = [part for part in folded.split("-") if part]
-        if len(parts) >= 2:
-            given, family = parts[0].title(), parts[-1].title()
+    folded = re.sub(r"-v\d+$", "", folded)
+    for path in sorted((directory or REFERENCE_FIXTURE_DIR).glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        names = {fixture_slug(data), fixture_slug(data).split("-")[0]}
+        if folded in names:
+            return path
+    raise LookupError(f"no reference fixture for {slug!r}")
+
+
+def politician_query(spec: dict[str, Any]):
+    """Match on family name and birth date, accepting the fixture's given-name aliases.
+
+    Official registries do not agree on given names (Camera "Elly", civil
+    registry "Elena Ethel"); the birth date keeps the match unambiguous.
+    """
+
+    given = [spec["given_name"], *(spec.get("given_name_aliases") or [])]
     query = select(Politician).where(
-        Politician.canonical_given_name == given,
-        Politician.canonical_family_name == family,
+        Politician.canonical_family_name == spec["family_name"],
+        Politician.canonical_given_name.in_(list(dict.fromkeys(given))),
     )
+    if spec.get("birth_date"):
+        query = query.where(Politician.birth_date == date.fromisoformat(spec["birth_date"]))
+    return query
+
+
+def resolve_politician(session: Session, slug: str, fixture_path: Path | None = None) -> Politician:
+    try:
+        path = fixture_path or fixture_for_slug(slug)
+        spec = json.loads(path.read_text(encoding="utf-8"))["politician"]
+        query = politician_query(spec)
+    except LookupError:
+        parts = [part for part in slug.strip().casefold().replace("_", "-").split("-") if part]
+        if len(parts) < 2:
+            raise
+        query = select(Politician).where(
+            Politician.canonical_given_name == parts[0].title(),
+            Politician.canonical_family_name == parts[-1].title(),
+        )
     rows = list(session.scalars(query))
     if len(rows) != 1:
         raise LookupError(f"expected one politician for {slug!r}, found {len(rows)}")
@@ -686,8 +750,10 @@ def audit_from_factory(
     *,
     fixture_path: Path = DEFAULT_FIXTURE,
 ) -> ReferenceProfileAudit:
+    if fixture_path == DEFAULT_FIXTURE:
+        fixture_path = fixture_for_slug(slug)
     with session_factory() as session:
-        politician = resolve_politician(session, slug)
+        politician = resolve_politician(session, slug, fixture_path)
         return audit_politician(session, politician, fixture_path=fixture_path)
 
 
@@ -745,7 +811,7 @@ def _reference_pledge_drafts(session: Session) -> dict[str, ProposalDraft]:
         payload = draft.proposed_data or {}
         metadata = payload.get("metadata") or {}
         identifier = str(payload.get("proposal_identifier") or "")
-        if metadata.get("fixture") != "giorgia_meloni_v1" and "reference-profile:" not in identifier:
+        if not metadata.get("fixture") and "reference-profile:" not in identifier:
             continue
         key = identifier.rsplit(":", 1)[-1] if "pledge:" in identifier else ""
         if key:

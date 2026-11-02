@@ -28,7 +28,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert archive.status_code == 200
     assert detail.status_code == 200
     assert 'lang="it"' in archive.text
-    assert "Sai chi ti rappresenta" in archive.text
+    assert "Feed della redazione" in archive.text
     assert "Caricamento dei profili verificati" in archive.text
     assert styles.status_code == 200
     assert ".politician-grid" in styles.text
@@ -60,7 +60,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderSearchCard" in script.text
     assert "/search?" in script.text
     assert "view=search" in archive.text
-    assert "Cerca nell'archivio pubblico" in archive.text
+    assert 'id="search-title" class="politics-title">Cerca<' in archive.text and 'aria-label="Cerca"' in archive.text
     assert "Referendum" in archive.text
     assert "Guide al voto" in archive.text
     assert "Glossario" in archive.text
@@ -90,7 +90,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "In carica dal" in script.text
     assert "Cosa ha fatto" in script.text
     assert 'DateTimeFormat("it-IT"' in script.text
-    assert "Nessun risultato trovato" in script.text
+    assert "Nessun risultato per «" in script.text
     assert "Caricamento delle promesse" in script.text
     assert "Presentata" in script.text
     assert "Come funziona il punteggio delle promesse" in script.text
@@ -151,12 +151,15 @@ def test_public_ui_has_separate_proposal_archive_and_detail_timeline(tmp_path):
         detail = client.get("/proposals/1")
 
     assert page.status_code == 200
-    assert "Proposte e promesse esplicite" in page.text
+    assert 'id="proposals-title"' in page.text
     assert proposals.status_code == 200
     assert proposals.json()["total"] == 1
     assert detail.json()["status_history"][0]["status"] == "introduced"
     assert "Promessa esplicita" in script
-    assert "legislative_proposal" not in page.text
+    # Enum values only in links and data attributes, never as visible text.
+    import re
+    visible = re.sub(r"<[^>]+>", " ", page.text)
+    assert "legislative_proposal" not in visible
 
 
 def test_public_ui_assets_are_strictly_public(tmp_path):
@@ -253,7 +256,7 @@ def test_public_ui_search_and_click_through(tmp_path):
         unpublished_referendum = client.get("/search", params={"q": "Unpublished synthetic civic"})
 
     assert page.status_code == 200
-    assert "Cerca nell'archivio" in page.text
+    assert 'id="search-title" class="politics-title">Cerca<' in page.text
     assert "renderSearchCard" in script
     assert anna.json()["items"][0]["url"] == "/app/?politician=1"
     assert luca.json()["total"] == 0
@@ -266,7 +269,7 @@ def test_public_ui_search_and_click_through(tmp_path):
     assert carlo.json()["total"] == 0
     assert referendum.json()["items"][0]["entity_type"] == "referendum"
     assert glossary.json()["items"][0]["title"] == "Quorum"
-    assert "Referendum e consultazioni" in referendums_page.text
+    assert 'id="referendums-title">Referendum<' in referendums_page.text
     assert "Guide al voto" in guide_page.text
-    assert "Termini chiave" in glossary_page.text
+    assert 'id="glossary-title">Glossario<' in glossary_page.text
     assert unpublished_referendum.json()["total"] == 0

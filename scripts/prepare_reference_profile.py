@@ -5,7 +5,7 @@ records. Derived fixtures require editorial verification before anything is
 public.
 
   python -m scripts.prepare_reference_profile --dry-run
-  python -m scripts.prepare_reference_profile --apply
+  python -m scripts.prepare_reference_profile --slug giuseppe-conte --apply
 """
 
 from __future__ import annotations
@@ -56,6 +56,7 @@ from backend.app.models import ProposalActorRole as ActorRole
 from backend.app.models import ProposalStatus, ProposalType as ProposalTypeEnum
 from backend.app.services import ProposalService
 from backend.app.services.politician_profile_service import PoliticianProfileService
+from backend.app.services.reference_profile_audit import fixture_for_slug, politician_query
 from scripts.prepare_demo import DemoSafetyError
 from scripts.unified_demo import assert_settings_are_unified
 
@@ -139,17 +140,12 @@ def _load_fixture(path: Path) -> dict[str, Any]:
 
 
 def _find_politician(session: Session, spec: dict[str, Any]) -> Politician:
-    birth = date.fromisoformat(spec["birth_date"]) if spec.get("birth_date") else None
-    query = select(Politician).where(
-        Politician.canonical_given_name == spec["given_name"],
-        Politician.canonical_family_name == spec["family_name"],
-    )
-    if birth is not None:
-        query = query.where(Politician.birth_date == birth)
-    rows = list(session.scalars(query))
+    rows = list(session.scalars(politician_query(spec)))
     if len(rows) != 1:
         raise DemoSafetyError(
-            f"expected one published politician matching {spec['given_name']} {spec['family_name']}"
+            f"expected one politician matching {spec['given_name']} {spec['family_name']}"
+            f" born {spec.get('birth_date') or '?'}, found {len(rows)}: import the official"
+            " Camera/Senato/Governo record first"
         )
     politician = rows[0]
     if politician.current_version_id is None:
@@ -185,7 +181,8 @@ def _ensure_document(
         session.flush()
     marker = hashlib.sha256(fixture["fixture_id"].encode()).hexdigest()
     text = "\n".join(
-        f"{item['title']}\n{item['exact_statement']}" for item in fixture["pledges"]
+        [f"{item['title']}\n{item['exact_statement']}" for item in fixture.get("pledges", [])]
+        + [f"{item['title']}\n{item.get('summary') or ''}" for item in fixture.get("proposals", [])]
     )
     document = session.scalar(
         select(RawDocument).where(RawDocument.storage_key == f"reference-profiles/{fixture['fixture_id']}.txt")
@@ -304,8 +301,14 @@ def prepare_reference_profile(
     actions.extend(("position", item) for item in fixture.get("positions", []))
     actions.extend(("proceeding", item) for item in fixture.get("proceedings", []))
 
+    report["blocked"] = []
     for kind, item in actions:
         identity = item["identity_key"]
+        if kind == "position" and not (item.get("verifiable_statement") or "").strip():
+            report["blocked"].append(
+                {"kind": kind, "identity_key": identity, "reason": "no dated, verifiable statement"}
+            )
+            continue
         if dry_run:
             report["left_pending"].append({"kind": kind, "identity_key": identity})
             continue
@@ -398,7 +401,7 @@ def prepare_reference_profile(
                 )
             )
         proposals = ProposalService(session_factory)
-        for pledge in fixture["pledges"]:
+        for pledge in fixture.get("pledges", []):
             match = _match_existing(pledge, existing)
             current_verdict = None
             if match is not None:
@@ -496,6 +499,57 @@ def prepare_reference_profile(
             row["proposal_id"] = detail.proposal_id
             row["draft_id"] = detail.draft_id
 
+        for item in fixture.get("proposals", []):
+            row = {"kind": "proposal", "identity_key": item["identity_key"], "title": item["title"]}
+            if dry_run:
+                report["left_pending"].append(row)
+                report["left_unpublished"].append(row)
+                continue
+            url = _strip_tracking(item["url"])
+            status = ProposalStatus(item["status"])
+            identifier = item.get("official_identifier") or (
+                f"reference-profile:{fixture['fixture_id']}:proposal:{item['identity_key']}"
+            )
+            values = [
+                ("title", "reference-profile:titolo", item["title"]),
+                ("proposal_type", "reference-profile:tipo", item["proposal_type"]),
+                ("current_status", "reference-profile:stato", item["status_label"]),
+            ]
+            if item.get("introduced_at"):
+                values.append(("introduced_at", "reference-profile:data", item["introduced_at"]))
+            observation = ProposalObservation(
+                source_key=SOURCE_KEY,
+                raw_document_id=document_id or 0,
+                proposal_identifier=identifier,
+                title=item["title"],
+                summary=item.get("summary"),
+                proposal_type=ProposalTypeEnum(item["proposal_type"]),
+                introduced_at=date.fromisoformat(item["introduced_at"]) if item.get("introduced_at") else None,
+                source_status_label=item["status_label"][:500],
+                normalized_status=status,
+                official_url=url,
+                source_field="reference-profile:proposal",
+                observed_at=NOW,
+                actors=(actor.model_copy(update={"role": ActorRole(item.get("actor_role") or "proposer")}),),
+                evidence=tuple(
+                    ProposalEvidenceObservation(
+                        field_path=path, source_url=url, source_field=field, source_value=value
+                    )
+                    for path, field, value in values
+                ),
+                metadata={
+                    "fixture": fixture["fixture_id"],
+                    "disclaimer": fixture["disclaimer"],
+                    "cap_topic_code": item.get("cap_topic_code"),
+                },
+            )
+            detail = proposals.sync((observation,)).details[0]
+            created = detail.disposition.value == "draft_created"
+            row.update(proposal_id=detail.proposal_id, draft_id=detail.draft_id, status="pending")
+            report["created" if created else "skipped"].append(row)
+            report["left_pending"].append(row)
+            report["left_unpublished"].append(row)
+
     report["notes"] = [
         "No records were auto-published.",
         "No pledge assessment drafts were created: the fixture explanations are not verbatim official excerpts stored in RawDocument.",
@@ -509,12 +563,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prepare a reference politician profile as drafts")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--apply", action="store_true")
-    parser.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+    parser.add_argument("--fixture", type=Path, default=None)
+    parser.add_argument("--slug", help="e.g. giuseppe-conte; picks the fixture in data/fixtures/reference_profiles")
     args = parser.parse_args(argv)
     if args.apply and args.dry_run:
         raise SystemExit("choose either --dry-run or --apply")
     dry_run = not args.apply
-    report = prepare_reference_profile(fixture_path=args.fixture, dry_run=dry_run)
+    fixture = args.fixture or (fixture_for_slug(args.slug) if args.slug else DEFAULT_FIXTURE)
+    report = prepare_reference_profile(fixture_path=fixture, dry_run=dry_run)
     print(json.dumps(report, indent=2, default=str))
     return 0
 

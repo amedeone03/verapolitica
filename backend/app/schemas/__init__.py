@@ -141,6 +141,8 @@ from backend.app.schemas.political_party import (
     PoliticalPartySyncResult,
 )
 from backend.app.schemas.proposal import (
+    ProposalTagsRequest,
+    PublicProposalTag,
     AIProposalAssistanceResponse,
     AIProposalEvidenceResponse,
     ObservedActorType,
@@ -215,6 +217,8 @@ from backend.app.schemas.civic import (
 )
 
 __all__ = [
+    "ProposalTagsRequest",
+    "PublicProposalTag",
     "AI_EXTRACTION_SCHEMA_VERSION",
     "AIProposalAssistanceResponse",
     "AIProposalEvidenceResponse",

@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload
 
+from backend.app.services import symbols
 from backend.app.models import (
     Municipality,
     Politician,
@@ -45,9 +46,10 @@ class PublicTerritoryQueryService:
             TerritorialOffice.REGIONAL_PRESIDENT,
             region_ids=tuple(region.id for region in regions),
         )
+        logos = symbols.logo_urls(self.session, "region")
         return PublicRegionList(
             items=tuple(
-                self._region_summary(region, presidents.get(region.id))
+                self._region_summary(region, presidents.get(region.id), logos)
                 for region in regions
             ),
             total=total,
@@ -72,7 +74,7 @@ class PublicTerritoryQueryService:
             .where(Municipality.region_id == region.id)
         ) or 0
         return PublicRegion(
-            **self._region_summary(region, president).model_dump(),
+            **self._region_summary(region, president, symbols.logo_urls(self.session, "region")).model_dump(),
             municipality_count=municipality_count,
             source=self._source(region),
         )
@@ -83,6 +85,7 @@ class PublicTerritoryQueryService:
         offset: int,
         limit: int,
         region_id: int | None = None,
+        province: str | None = None,
     ) -> PublicMunicipalityList:
         query: Select[tuple[Municipality, Region]] = select(Municipality, Region).join(
             Region, Region.id == Municipality.region_id
@@ -91,6 +94,9 @@ class PublicTerritoryQueryService:
         if region_id is not None:
             query = query.where(Municipality.region_id == region_id)
             count_query = count_query.where(Municipality.region_id == region_id)
+        if province is not None:
+            query = query.where(Municipality.province_abbreviation == province)
+            count_query = count_query.where(Municipality.province_abbreviation == province)
         total = self.session.scalar(count_query) or 0
         rows = list(
             self.session.execute(
@@ -196,7 +202,7 @@ class PublicTerritoryQueryService:
 
     @staticmethod
     def _region_summary(
-        region: Region, president: PublicOfficeHolder | None
+        region: Region, president: PublicOfficeHolder | None, logos: dict[str, str] | None = None
     ) -> PublicRegionSummary:
         return PublicRegionSummary(
             id=region.id,
@@ -204,6 +210,7 @@ class PublicTerritoryQueryService:
             name=region.canonical_name,
             status=region.status.value,
             current_president=president,
+            logo_url=(logos or {}).get(str(region.id)),
         )
 
     @staticmethod

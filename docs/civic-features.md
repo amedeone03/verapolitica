@@ -56,3 +56,31 @@ reminder row produced by the `civic-reminders` job.
 
 No party positions, campaign arguments, recommendations, popularity ranking, or
 news. Synthetic records must remain labelled as demo-only in public JSON and UI.
+
+## Home feed (`/feed`)
+
+The home feed lists records that were already reviewed elsewhere, newest first:
+status changes of published proposals, published pledge verdicts, published
+referendums and newsroom posts. It is not a news wire and imports no articles.
+
+Proposals and verdicts are national. Referendums and posts carry a territory.
+The reader's zone (municipality, province or region) comes from the browser and
+is sent only as a query parameter; nothing about the reader is stored. With a
+zone, "all" shows national items plus the items inside that zone, never another
+territory's local items.
+
+### Newsroom posts ("carica la redazione")
+
+`/admin/editorial/posts` creates a post with a scope and at least one https
+citation. A different person must publish it (`/publish`); a rejection needs a
+note. Published posts are immutable at the model level; a correction is a new
+post with `corrects_id`. Names are attestations next to the shared admin
+credential, as for pledge approvals, until per-user accounts exist.
+
+## Proposal tags
+
+`PUT /admin/proposals/{id}/tags` sets controlled tags: CAP major topic codes and
+editorial dossiers (`legge_bilancio`, `pnrr`, `riforme_costituzionali`).
+A pledge's classification CAP code is surfaced as a topic tag too.
+`/proposals?topic=…`, `?dossier=…` and `?introduced_from/introduced_to` filter
+the public list; `/proposals/tags` returns the vocabularies.

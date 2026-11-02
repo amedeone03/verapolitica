@@ -5,6 +5,8 @@ from backend.app.api.public.civic import (
     referendums_router,
     voting_guides_router,
 )
+from backend.app.api.public.archive import router as archive_router
+from backend.app.api.public.feed import media_router, router as feed_router
 from backend.app.api.public.municipalities import router as municipalities_router
 from backend.app.api.public.organizations import (
     groups_router,
@@ -17,10 +19,15 @@ from backend.app.api.public.regions import router as regions_router
 from backend.app.api.public.scorecards import router as scorecards_router
 from backend.app.api.public.ask import router as ask_router
 from backend.app.api.public.search import router as search_router
+from backend.app.api.public.site import router as site_router
 
 
 router = APIRouter()
 router.include_router(ask_router)
+router.include_router(site_router)
+router.include_router(feed_router)
+router.include_router(media_router)
+router.include_router(archive_router)
 router.include_router(search_router)
 router.include_router(portraits_router)
 router.include_router(politicians_router)

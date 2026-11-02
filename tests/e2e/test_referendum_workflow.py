@@ -89,7 +89,7 @@ def test_referendum_editorial_and_reminder_e2e(tmp_path, session_factory):
         assert client.get(f"/referendums/{referendum_id}").status_code == 404
         page = client.get("/app/?view=referendums")
         assert page.status_code == 200
-        assert "Referendum e consultazioni" in page.text
+        assert 'id="referendums-title">Referendum<' in page.text
         started = client.post(
             f"/admin/referendums/drafts/{draft_id}/start-review",
             headers=ADMIN,
@@ -107,7 +107,7 @@ def test_referendum_editorial_and_reminder_e2e(tmp_path, session_factory):
         script = client.get("/app/app.js").text
         assert "renderReferendumCard" in script
         assert "Guide al voto" in client.get("/app/?view=voting-guide").text
-        assert "Termini chiave" in client.get("/app/?view=glossary").text
+        assert 'id="glossary-title">Glossario<' in client.get("/app/?view=glossary").text
     first = NotificationService(session_factory).generate_reminder_candidates(
         as_of=date(2026, 11, 8)
     )

@@ -1,0 +1,842 @@
+{
+  "fixture_id": "elly_schlein_v1",
+  "disclaimer": "Scheda scritta dalla redazione VeraPolitica (Elly_Schlein.docx, aggiornata al 17 ottobre 2026); requires editorial verification before publication. Testi copiati senza riscrittura; link ripuliti dai parametri di tracciamento.",
+  "source_document": "Elly_Schlein.docx",
+  "created_by": "redazione",
+  "slug": "elly-schlein",
+  "politician": {
+    "given_name": "Elly",
+    "family_name": "Schlein",
+    "birth_date": "1985-05-04",
+    "given_name_aliases": [
+      "Elena Ethel",
+      "Elena",
+      "Elly"
+    ]
+  },
+  "biography": {
+    "identity_key": "primary",
+    "body": "Elena Ethel Schlein (Lugano, 4 maggio 1985) è una politica italiana, segretaria nazionale del Partito Democratico dal 2023 e deputata della Repubblica italiana dal 2022. È la prima donna a ricoprire la carica di segretaria del PD. Possiede la cittadinanza italiana, statunitense e svizzera.\n\nNata in Svizzera da padre statunitense e madre italiana, cresce in un ambiente familiare legato al mondo accademico. Si trasferisce in Italia per frequentare l'Università di Bologna, dove consegue la laurea in Giurisprudenza nel 2011. Durante gli studi si avvicina all'attivismo politico e partecipa come volontaria alle campagne presidenziali statunitensi di Barack Obama nel 2008 e nel 2012.\n\nNel 2013 aderisce al Partito Democratico e, alle elezioni europee del 2014, viene eletta al Parlamento europeo nella circoscrizione Italia nord-orientale. Durante il mandato, conclusosi nel 2019, aderisce al gruppo dell'Alleanza Progressista dei Socialisti e Democratici (S&D), occupandosi principalmente di immigrazione, diritti civili, cooperazione internazionale e politiche sociali.\n\nNel 2015 abbandona il Partito Democratico, in polemica con la linea politica dell'allora segretario e presidente del Consiglio Matteo Renzi, criticando in particolare le politiche economiche e del lavoro adottate dal governo.\n\nNel 2020 si candida alle elezioni regionali in Emilia-Romagna con la lista progressista Emilia-Romagna Coraggiosa, a sostegno del presidente uscente Stefano Bonaccini. Ottiene oltre 22.000 preferenze, risultando la candidata più votata nella circoscrizione di Bologna. Dopo la vittoria della coalizione di centrosinistra, viene nominata vicepresidente della Regione Emilia-Romagna e assessora con deleghe al contrasto alle disuguaglianze e alla transizione ecologica.\n\nAlle elezioni politiche del settembre 2022 viene eletta alla Camera dei deputati nelle liste del Partito Democratico, come indipendente, e lascia gli incarichi regionali. Dopo la sconfitta elettorale del centrosinistra e le dimissioni di Enrico Letta dalla segreteria del PD, annuncia la propria candidatura alla guida del partito.\n\nIl 26 febbraio 2023 vince le primarie aperte del Partito Democratico, ottenendo il 53,75% dei voti contro il 46,25% di Stefano Bonaccini. Il 12 marzo successivo viene proclamata ufficialmente segretaria nazionale del partito.\n\nLa sua elezione segna un cambiamento nella direzione politica del PD, con una maggiore attenzione alle politiche redistributive, alla tutela del lavoro, alla sanità pubblica, alla transizione ecologica e ai diritti civili. Durante la segreteria si colloca all'opposizione del governo guidato da Giorgia Meloni, sostenendo iniziative parlamentari e politiche su salario minimo, contrasto alla precarietà, finanziamento del Servizio sanitario nazionale e riconoscimento dei diritti delle persone LGBTQ+.\n\nAlle elezioni europee del giugno 2024 guida il Partito Democratico, che ottiene il 24,11% dei voti a livello nazionale, consolidando la propria posizione come principale forza parlamentare di opposizione al governo Meloni.\n\nLa sua impostazione politica si colloca nell'area progressista e socialdemocratica, con particolare attenzione alla riduzione delle disuguaglianze economiche e sociali, alla tutela dei servizi pubblici e al rafforzamento dell'integrazione europea.",
+    "sources": [
+      {
+        "name": "Treccani",
+        "kind": "other",
+        "url": "https://www.treccani.it/"
+      },
+      {
+        "name": "Camera dei deputati — Elenco deputati XIX legislatura",
+        "kind": "official",
+        "url": "https://www.camera.it/deputati/elenco?leg=19"
+      },
+      {
+        "name": "Parlamento europeo — Deputati",
+        "kind": "official",
+        "url": "https://www.europarl.europa.eu/meps/it/home"
+      },
+      {
+        "name": "Partito Democratico",
+        "kind": "party_politician",
+        "url": "https://www.partitodemocratico.it/"
+      },
+      {
+        "name": "Ministero dell'Interno — Archivio storico delle elezioni",
+        "kind": "official",
+        "url": "https://elezionistorico.interno.gov.it/"
+      }
+    ]
+  },
+  "career_entries": [
+    {
+      "identity_key": "europarlamentare-2014",
+      "start_date": "2014-05-01",
+      "end_date": "2019-07-01",
+      "start_precision": "month",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Europarlamentare (circoscrizione Italia nord-orientale)",
+      "institution": "Parlamento europeo",
+      "party_or_group": "Alleanza Progressista dei Socialisti e Democratici (S&D)",
+      "sources": [
+        {
+          "name": "Parlamento europeo — Deputati",
+          "kind": "official",
+          "url": "https://www.europarl.europa.eu/meps/it/home"
+        }
+      ]
+    },
+    {
+      "identity_key": "vicepresidente-emilia-romagna-2020",
+      "start_date": "2020-02-01",
+      "end_date": "2022-10-01",
+      "start_precision": "month",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Vicepresidente della Regione Emilia-Romagna e assessora (welfare, contrasto alle disuguaglianze, politiche abitative, transizione ecologica)",
+      "institution": "Regione Emilia-Romagna",
+      "party_or_group": "Emilia-Romagna Coraggiosa",
+      "sources": [
+        {
+          "name": "Regione Emilia-Romagna",
+          "kind": "institutional",
+          "url": "https://www.regione.emilia-romagna.it/"
+        }
+      ]
+    },
+    {
+      "identity_key": "deputata-xix",
+      "start_date": "2022-10-13",
+      "end_date": null,
+      "start_precision": "day",
+      "end_precision": null,
+      "is_current": true,
+      "role": "Deputata della Repubblica italiana (circoscrizione Emilia-Romagna)",
+      "institution": "Camera dei deputati",
+      "party_or_group": "Partito Democratico – Italia Democratica e Progressista",
+      "sources": [
+        {
+          "name": "Camera dei deputati — Elenco deputati XIX legislatura",
+          "kind": "official",
+          "url": "https://www.camera.it/deputati/elenco?leg=19"
+        }
+      ]
+    },
+    {
+      "identity_key": "segretaria-pd-2023",
+      "start_date": "2023-03-12",
+      "end_date": null,
+      "start_precision": "day",
+      "end_precision": null,
+      "is_current": true,
+      "role": "Segretaria nazionale del Partito Democratico (eletta alle primarie del 26 febbraio 2023)",
+      "institution": "Partito Democratico",
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        }
+      ]
+    }
+  ],
+  "positions": [
+    {
+      "identity_key": "economia-lavoro",
+      "topic": "Economia e lavoro",
+      "position_statement": "Favorevole al salario minimo e alla riduzione della precarietà. Elly Schlein sostiene l'introduzione di un salario minimo legale di almeno 9 euro lordi all'ora, con l'obiettivo di contrastare il lavoro povero e garantire retribuzioni adeguate. È favorevole al rafforzamento della contrattazione collettiva, alla limitazione dei contratti precari e all'introduzione di misure per ridurre l'orario lavorativo a parità di salario. Si oppone inoltre alle forme di lavoro caratterizzate da bassi salari e scarse tutele.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "sanita",
+      "topic": "Sanità",
+      "position_statement": "Favorevole al rafforzamento del Servizio sanitario nazionale. Schlein sostiene un aumento strutturale dei finanziamenti alla sanità pubblica, con particolare attenzione alla riduzione delle liste d'attesa, all'assunzione di personale sanitario e al miglioramento delle condizioni lavorative di medici e infermieri. Critica il progressivo ricorso alla sanità privata e propone di rafforzare il sistema pubblico per garantire un accesso alle cure indipendente dalle condizioni economiche dei cittadini.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "politica-estera-ucraina",
+      "topic": "Politica estera e Ucraina",
+      "position_statement": "Favorevole al sostegno all'Ucraina e alla difesa europea. Schlein condanna l'invasione russa dell'Ucraina e sostiene il diritto del Paese a difendere la propria sovranità territoriale. Il Partito Democratico sotto la sua guida ha mantenuto il sostegno politico all'Ucraina, pur manifestando la necessità di intensificare le iniziative diplomatiche per raggiungere una soluzione negoziata del conflitto. È favorevole al rafforzamento di una politica estera e di difesa comune europea, distinguendo tale obiettivo da un aumento indiscriminato delle spese militari nazionali.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "israele-palestina",
+      "topic": "Conflitto israelo-palestinese",
+      "position_statement": "Favorevole al riconoscimento dello Stato di Palestina. Schlein sostiene il riconoscimento dello Stato di Palestina nell'ambito di una soluzione fondata sulla coesistenza di due Stati. Ha condannato gli attacchi terroristici di Hamas del 7 ottobre 2023 e ha criticato le operazioni militari israeliane nella Striscia di Gaza, chiedendo un cessate il fuoco, la protezione della popolazione civile e il rispetto del diritto internazionale umanitario. Ha inoltre sostenuto iniziative politiche e parlamentari per il riconoscimento della Palestina da parte dell'Italia.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "immigrazione-cittadinanza",
+      "topic": "Immigrazione e cittadinanza",
+      "position_statement": "Favorevole allo ius scholae e contraria all'esternalizzazione delle procedure di asilo. Schlein sostiene una riforma della cittadinanza che faciliti l'accesso alla cittadinanza italiana per i minori stranieri cresciuti e formati nel Paese. È favorevole allo ius scholae e alla riduzione degli ostacoli burocratici per l'acquisizione della cittadinanza. In materia migratoria, sostiene un sistema europeo di accoglienza fondato sulla condivisione delle responsabilità tra gli Stati membri. Si oppone al modello dei centri per migranti realizzati dall'Italia in Albania, contestandone i costi, l'efficacia e le implicazioni giuridiche.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "ambiente-energia",
+      "topic": "Ambiente ed energia",
+      "position_statement": "Favorevole alla transizione ecologica e alle energie rinnovabili. Schlein sostiene la progressiva decarbonizzazione dell'economia, l'espansione delle fonti energetiche rinnovabili e il rafforzamento delle politiche europee di contrasto al cambiamento climatico. È favorevole agli investimenti pubblici nella mobilità sostenibile, nell'efficienza energetica e nella riconversione industriale. Promuove una transizione ecologica accompagnata da misure sociali per tutelare lavoratori e famiglie economicamente vulnerabili.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "diritti-civili",
+      "topic": "Diritti civili",
+      "position_statement": "Favorevole al matrimonio egualitario e alle adozioni omogenitoriali. Schlein sostiene il riconoscimento del matrimonio civile tra persone dello stesso sesso, il rafforzamento delle tutele contro le discriminazioni basate sull'orientamento sessuale e sull'identità di genere e il riconoscimento dei diritti delle famiglie omogenitoriali. È favorevole all'approvazione di una legge contro l'omolesbobitransfobia, sul modello del disegno di legge Zan. Sostiene inoltre il diritto all'autodeterminazione delle donne, l'accesso all'interruzione volontaria di gravidanza e una disciplina legislativa sul fine vita.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "istruzione-universita",
+      "topic": "Istruzione e università",
+      "position_statement": "Favorevole a maggiori investimenti nella scuola e nell'università pubblica. Schlein sostiene l'aumento dei finanziamenti alla scuola pubblica, il miglioramento delle condizioni contrattuali degli insegnanti e il contrasto alla precarietà del personale scolastico. È favorevole all'ampliamento dell'accesso all'istruzione universitaria attraverso borse di studio, sostegno agli studenti fuori sede e investimenti negli alloggi universitari. Considera l'istruzione uno strumento fondamentale per ridurre le disuguaglianze sociali e territoriali.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "politiche-abitative",
+      "topic": "Politiche abitative",
+      "position_statement": "Favorevole a un piano pubblico per la casa e alla regolamentazione degli affitti brevi. Schlein sostiene il rafforzamento dell'edilizia residenziale pubblica e l'introduzione di misure per contrastare l'aumento dei canoni di locazione, soprattutto nelle grandi città e nei centri universitari. È favorevole a una maggiore regolamentazione degli affitti turistici brevi e all'incremento delle risorse destinate al sostegno abitativo delle famiglie a basso reddito e degli studenti.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "giustizia-riforme",
+      "topic": "Giustizia e riforme istituzionali",
+      "position_statement": "Contraria al premierato e alla separazione delle carriere proposta dal centrodestra. Schlein si oppone alla riforma costituzionale del premierato promossa dal governo Meloni, sostenendo che l'elezione diretta del Presidente del Consiglio rischierebbe di alterare gli equilibri tra Parlamento, Governo e Presidente della Repubblica. È inoltre contraria alla riforma costituzionale sulla separazione delle carriere dei magistrati proposta dalla maggioranza, ritenendo necessario preservare l'autonomia e l'indipendenza della magistratura. Sostiene invece interventi per migliorare l'efficienza della giustizia e ridurre la durata dei procedimenti.",
+      "verifiable_statement": "",
+      "statement_date": null,
+      "statement_precision": null,
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        },
+        {
+          "name": "Camera dei deputati",
+          "kind": "official",
+          "url": "https://www.camera.it/"
+        },
+        {
+          "name": "Senato della Repubblica",
+          "kind": "official",
+          "url": "https://www.senato.it/"
+        },
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    }
+  ],
+  "pledges": [],
+  "proposals": [
+    {
+      "number": 1,
+      "identity_key": "ac-1275",
+      "title": "Salario minimo di 9 €/ora",
+      "summary": "Introduzione di una retribuzione minima legale di 9 euro lordi all'ora.",
+      "proposal_type": "legislative_proposal",
+      "status": "superseded",
+      "status_label": "Il testo originario dell'A.C. 1275 è stato modificato. La legge n. 144/2025 non introduce la soglia proposta.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 1275",
+      "url": "https://www.camera.it/leg19/126?idDocumento=1275&leg=19",
+      "cap_topic_code": "5"
+    },
+    {
+      "number": 2,
+      "identity_key": "ac-2067",
+      "title": "Settimana lavorativa corta",
+      "summary": "Riduzione dell'orario di lavoro, anche a 32 ore settimanali, senza riduzione della retribuzione.",
+      "proposal_type": "legislative_proposal",
+      "status": "rejected",
+      "status_label": "A.C. 2067, abbinata ad altre proposte. Respinta dalla Camera il 3 marzo 2026.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2067",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2067&leg=19",
+      "cap_topic_code": "5"
+    },
+    {
+      "number": 3,
+      "identity_key": "ac-1741",
+      "title": "Finanziamento della sanità pubblica",
+      "summary": "Incremento delle risorse destinate al Servizio sanitario nazionale per garantire l'accesso universale alle cure.",
+      "proposal_type": "legislative_proposal",
+      "status": "rejected",
+      "status_label": "A.C. 1741, prima firmataria Schlein. Respinta dalla Camera il 26 giugno 2024.",
+      "introduced_at": null,
+      "actor_role": "proposer",
+      "official_identifier": "A.C. 1741",
+      "url": "https://www.camera.it/leg19/126?idDocumento=1741&leg=19",
+      "cap_topic_code": "3"
+    },
+    {
+      "number": 4,
+      "identity_key": "ac-2228",
+      "title": "Congedo parentale paritario",
+      "summary": "Maggiori tutele economiche per la maternità e introduzione di un congedo paritario per i padri.",
+      "proposal_type": "legislative_proposal",
+      "status": "rejected",
+      "status_label": "A.C. 2228, prima firmataria Schlein. Respinta dalla Camera il 24 febbraio 2026.",
+      "introduced_at": null,
+      "actor_role": "proposer",
+      "official_identifier": "A.C. 2228",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2228&leg=19",
+      "cap_topic_code": "13"
+    },
+    {
+      "number": 5,
+      "identity_key": "ac-2032",
+      "title": "Riforma della cittadinanza",
+      "summary": "Ampliamento delle possibilità di acquisire la cittadinanza italiana per i minori stranieri nati o cresciuti in Italia.",
+      "proposal_type": "legislative_proposal",
+      "status": "assigned",
+      "status_label": "A.C. 2032, cofirmata da Schlein. Assegnata alla Commissione Affari costituzionali; esito successivo non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2032",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2032&leg=19",
+      "cap_topic_code": "9"
+    },
+    {
+      "number": 6,
+      "identity_key": "ac-479",
+      "title": "Matrimonio egualitario e famiglie omogenitoriali",
+      "summary": "Riconoscimento dei diritti familiari delle coppie dello stesso sesso e tutela dei figli delle famiglie omogenitoriali.",
+      "proposal_type": "legislative_proposal",
+      "status": "assigned",
+      "status_label": "A.C. 479, cofirmata da Schlein. Assegnata alla Commissione Giustizia; esito successivo non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 479",
+      "url": "https://www.camera.it/leg19/126?idDocumento=479&leg=19",
+      "cap_topic_code": "2"
+    },
+    {
+      "number": 7,
+      "identity_key": "ac-1169",
+      "title": "Edilizia residenziale pubblica",
+      "summary": "Potenziamento degli alloggi pubblici e misure per contrastare il disagio abitativo.",
+      "proposal_type": "legislative_proposal",
+      "status": "under_review",
+      "status_label": "A.C. 1169, cofirmata da Schlein. Esame avviato in Commissione; esito successivo non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 1169",
+      "url": "https://www.camera.it/leg19/126?idDocumento=1169&leg=19",
+      "cap_topic_code": "14"
+    },
+    {
+      "number": 8,
+      "identity_key": "ac-1504",
+      "title": "Regolamentazione degli affitti brevi",
+      "summary": "Introduzione di regole per le locazioni turistiche nei comuni ad alta tensione abitativa.",
+      "proposal_type": "legislative_proposal",
+      "status": "assigned",
+      "status_label": "A.C. 1504, cofirmata da Schlein. Assegnata alle Commissioni Ambiente e Attività produttive; esito successivo non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 1504",
+      "url": "https://www.camera.it/leg19/126?idDocumento=1504&leg=19",
+      "cap_topic_code": "14"
+    },
+    {
+      "number": 9,
+      "identity_key": "ac-2517",
+      "title": "Sviluppo delle aree interne",
+      "summary": "Interventi per lo sviluppo economico e sociale dei territori interni e valorizzazione dei servizi ecosistemici.",
+      "proposal_type": "legislative_proposal",
+      "status": "assigned",
+      "status_label": "A.C. 2517, prima firmataria Schlein. Assegnata alla Commissione Bilancio; esito successivo non accertato.",
+      "introduced_at": null,
+      "actor_role": "proposer",
+      "official_identifier": "A.C. 2517",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2517&leg=19",
+      "cap_topic_code": "14"
+    },
+    {
+      "number": 10,
+      "identity_key": "ac-2360",
+      "title": "Agenzia per il cinema e l'audiovisivo",
+      "summary": "Istituzione di un'Agenzia per lo sviluppo e il sostegno del settore cinematografico e audiovisivo.",
+      "proposal_type": "legislative_proposal",
+      "status": "under_review",
+      "status_label": "A.C. 2360, prima firmataria Schlein. Confluita in un testo unificato approvato dalla Camera il 10 settembre 2026 e trasmesso al Senato come S. 2035.",
+      "introduced_at": null,
+      "actor_role": "proposer",
+      "official_identifier": "A.C. 2360",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2360&leg=19",
+      "cap_topic_code": "23"
+    },
+    {
+      "number": 11,
+      "identity_key": "ac-505",
+      "title": "Utilizzo degli impianti sportivi scolastici",
+      "summary": "Agevolazione dell'utilizzo degli impianti sportivi scolastici da parte delle associazioni sportive.",
+      "proposal_type": "legislative_proposal",
+      "status": "enacted",
+      "status_label": "A.C. 505, cofirmata da Schlein. Approvata come legge n. 53 del 7 aprile 2026.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 505",
+      "url": "https://www.camera.it/leg19/126?idDocumento=505&leg=19",
+      "cap_topic_code": "6"
+    },
+    {
+      "number": 12,
+      "identity_key": "ac-115",
+      "title": "Voto fuori sede",
+      "summary": "Facilitazione dell'esercizio del voto per cittadini temporaneamente domiciliati lontano dal comune di residenza.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 115, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 115",
+      "url": "https://www.camera.it/leg19/126?idDocumento=115&leg=19",
+      "cap_topic_code": "20"
+    },
+    {
+      "number": 13,
+      "identity_key": "ac-357",
+      "title": "Parità di genere nelle discipline STEM",
+      "summary": "Misure per favorire la partecipazione femminile agli studi e alle professioni scientifiche e tecnologiche.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 357, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 357",
+      "url": "https://www.camera.it/leg19/126?idDocumento=357&leg=19",
+      "cap_topic_code": "6"
+    },
+    {
+      "number": 14,
+      "identity_key": "ac-572",
+      "title": "Tutela dei tirocinanti",
+      "summary": "Introduzione di maggiori tutele per i tirocini curriculari ed extracurriculari.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 572, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 572",
+      "url": "https://www.camera.it/leg19/126?idDocumento=572&leg=19",
+      "cap_topic_code": "5"
+    },
+    {
+      "number": 15,
+      "identity_key": "ac-1179",
+      "title": "Contrasto al consumo di suolo",
+      "summary": "Misure per limitare il consumo di suolo e favorire la rigenerazione urbana.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 1179, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 1179",
+      "url": "https://www.camera.it/leg19/126?idDocumento=1179&leg=19",
+      "cap_topic_code": "7"
+    },
+    {
+      "number": 16,
+      "identity_key": "ac-2135",
+      "title": "Tutela dei consumatori vulnerabili nel settore energetico",
+      "summary": "Rafforzamento delle protezioni per i clienti domestici vulnerabili nel mercato dell'energia.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2135, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2135",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2135&leg=19",
+      "cap_topic_code": "8"
+    },
+    {
+      "number": 17,
+      "identity_key": "ac-2503",
+      "title": "Mobilità degli studenti universitari",
+      "summary": "Agevolazioni per gli spostamenti degli studenti tra residenza e sede di studio.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2503, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2503",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2503&leg=19",
+      "cap_topic_code": "6"
+    },
+    {
+      "number": 18,
+      "identity_key": "ac-2626",
+      "title": "Tutela previdenziale dei liberi professionisti",
+      "summary": "Rafforzamento delle tutele previdenziali e assicurative dei professionisti.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2626, cofirmata da Schlein. Esito legislativo aggiornato non accertato.",
+      "introduced_at": null,
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2626",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2626&leg=19",
+      "cap_topic_code": "13"
+    },
+    {
+      "number": 19,
+      "identity_key": "ac-2916",
+      "title": "Divieto di importazione di prodotti dagli insediamenti israeliani",
+      "summary": "Divieto di importazione di beni provenienti dagli insediamenti israeliani nei territori palestinesi occupati.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2916, cofirmata da Schlein, presentata il 4 maggio 2026. Esito successivo non accertato.",
+      "introduced_at": "2026-05-04",
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2916",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2916&leg=19",
+      "cap_topic_code": "18"
+    },
+    {
+      "number": 20,
+      "identity_key": "ac-2927",
+      "title": "Contrasto ai deepfake",
+      "summary": "Tutela dell'identità personale contro l'utilizzo non autorizzato di immagini e contenuti audiovisivi manipolati mediante intelligenza artificiale.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2927, cofirmata da Schlein, presentata l'11 maggio 2026. Esito successivo non accertato.",
+      "introduced_at": "2026-05-11",
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2927",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2927&leg=19",
+      "cap_topic_code": "17"
+    },
+    {
+      "number": 21,
+      "identity_key": "ac-2949",
+      "title": "Occupazione giovanile e diritto alla casa",
+      "summary": "Misure per favorire l'occupazione dei giovani, l'accesso all'abitazione e il contrasto all'emigrazione giovanile.",
+      "proposal_type": "legislative_proposal",
+      "status": "introduced",
+      "status_label": "A.C. 2949, cofirmata da Schlein, presentata il 4 giugno 2026. Esito successivo non accertato.",
+      "introduced_at": "2026-06-04",
+      "actor_role": "co_sponsor",
+      "official_identifier": "A.C. 2949",
+      "url": "https://www.camera.it/leg19/126?idDocumento=2949&leg=19",
+      "cap_topic_code": "5"
+    }
+  ],
+  "proceedings": [
+    {
+      "identity_key": "divisioni-interne-pd",
+      "title": "Le divisioni interne al Partito Democratico (2023–2026)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2023-02-01",
+      "event_precision": "month",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "L'elezione di Schlein alla segreteria del Partito Democratico, nel febbraio 2023, ha segnato un cambiamento nella linea politica del partito, con una maggiore attenzione al lavoro, alla redistribuzione economica e ai diritti sociali. La nuova direzione ha alimentato tensioni con alcune componenti moderate e riformiste, soprattutto sulle politiche economiche, sulle alleanze e sulla gestione delle candidature. Schlein ha sostenuto la necessità di mantenere unito il partito, rivendicando al contempo il mandato politico ricevuto attraverso le primarie.",
+      "outcome_summary": "Politica interna, senza implicazioni giudiziarie note.",
+      "sources": [
+        {
+          "name": "Partito Democratico",
+          "kind": "party_politician",
+          "url": "https://www.partitodemocratico.it/"
+        }
+      ]
+    },
+    {
+      "identity_key": "candidatura-europee-2024",
+      "title": "La candidatura alle elezioni europee del 2024",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2024-06-08",
+      "event_precision": "day",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "In occasione delle elezioni europee dell'8 e 9 giugno 2024, Schlein ha deciso di candidarsi come capolista del Partito Democratico nelle circoscrizioni Centro e Isole, pur dichiarando che avrebbe mantenuto il proprio incarico di deputata italiana e di segretaria del partito. La scelta ha suscitato critiche sull'utilizzo delle cosiddette candidature di traino, nelle quali un leader politico si presenta alle elezioni senza prevedere di assumere il mandato in caso di vittoria. Schlein ha difeso la candidatura come una forma di responsabilità politica nei confronti del partito e degli elettori.",
+      "outcome_summary": "Politica ed elettorale; non costituisce un illecito.",
+      "sources": [
+        {
+          "name": "Ministero dell'Interno — Archivio storico delle elezioni",
+          "kind": "official",
+          "url": "https://elezionistorico.interno.gov.it/"
+        }
+      ]
+    },
+    {
+      "identity_key": "armocromia-2023",
+      "title": "Il caso dell'armocromia (2023)",
+      "proceeding_types": [
+        "media_controversy"
+      ],
+      "event_date": "2023-04-01",
+      "event_precision": "month",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "Nell'aprile 2023, durante un'intervista alla rivista Vogue Italia, Schlein ha raccontato di affidarsi a una consulente di armocromia per la scelta dei colori del proprio abbigliamento. La dichiarazione ha suscitato un ampio dibattito mediatico, anche per il costo della consulenza riportato nell'intervista, pari a circa 300 euro l'ora. Alcuni commentatori hanno criticato il contrasto percepito tra questa scelta personale e l'attenzione politica della segretaria alle disuguaglianze economiche.",
+      "outcome_summary": "Mediatica, relativa all'immagine pubblica. La vicenda non ha avuto conseguenze istituzionali o giudiziarie.",
+      "sources": [
+        {
+          "name": "Vogue Italia",
+          "kind": "news",
+          "url": "https://www.vogue.it/"
+        }
+      ]
+    },
+    {
+      "identity_key": "ucraina-sostegno-militare",
+      "title": "Le divergenze sul sostegno militare all'Ucraina (2023–2026)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2023-01-01",
+      "event_precision": "year",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "Durante la segreteria di Schlein, la posizione del Partito Democratico sul sostegno militare all'Ucraina ha rappresentato un tema di confronto interno e nei rapporti con le altre forze di opposizione. Schlein ha condannato l'invasione russa, riconoscendo il diritto dell'Ucraina alla difesa, ma ha contemporaneamente sostenuto la necessità di rafforzare le iniziative diplomatiche per raggiungere una soluzione negoziata. Questa posizione ha generato divergenze con il Movimento 5 Stelle, maggiormente critico nei confronti della prosecuzione delle forniture militari, e discussioni tra le diverse componenti del PD.",
+      "outcome_summary": "Divergenza politica sulla politica estera e di difesa.",
+      "sources": [
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    },
+    {
+      "identity_key": "alleanza-m5s",
+      "title": "Le difficoltà nella costruzione dell'alleanza con il Movimento 5 Stelle (2023–2026)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2023-01-01",
+      "event_precision": "year",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "Uno degli obiettivi politici di Schlein è stato favorire la costruzione di una coalizione di centrosinistra alternativa al governo Meloni. I rapporti con il Movimento 5 Stelle di Giuseppe Conte sono stati tuttavia caratterizzati da divergenze programmatiche, soprattutto sulla politica estera, sulle strategie elettorali e sulle candidature alle elezioni regionali. Le difficoltà sono emerse anche nella costruzione delle coalizioni territoriali, dove PD e M5S hanno alternato collaborazioni e contrapposizioni. Schlein ha continuato a sostenere la necessità di costruire alleanze sulla base di programmi condivisi.",
+      "outcome_summary": "Politica, relativa alla strategia delle alleanze.",
+      "sources": [
+        {
+          "name": "ANSA — Politica",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/politica.shtml"
+        }
+      ]
+    }
+  ],
+  "judicial_note": "Non risultano, dalle informazioni pubblicamente note, condanne penali definitive a carico di Elly Schlein né procedimenti giudiziari personali di particolare rilevanza pubblica. Questo dato non costituisce una certificazione giudiziaria: non è stata effettuata una verifica presso gli uffici giudiziari competenti.",
+  "not_imported": [
+    {
+      "section": "2. Cosa ha fatto — paragrafi descrittivi",
+      "items": [
+        "Iniziativa parlamentare sul salario minimo (2023–2024)",
+        "Elezioni europee 2024",
+        "Referendum sul lavoro e sulla cittadinanza (2024–2025)",
+        "Opposizione al governo Meloni (2023–2026)"
+      ],
+      "reason": "Non sono incarichi: la carriera registra ruolo, istituzione e date. Il salario minimo è già tra le proposte (A.C. 1275)."
+    }
+  ],
+  "editorial_issues": [
+    "Quasi tutte le fonti sono home page (partitodemocratico.it, treccani.it, camera.it, senato.it, ansa.it/politica, vogue.it, regione.emilia-romagna.it, europarl.europa.eu): non sono citazioni del fatto. Biografia, posizioni e controversie restano bloccate finché ogni voce non ha il link al documento specifico.",
+    "Le 10 posizioni non hanno una dichiarazione datata né un atto verificabile: il formato le richiede (vedi le schede Meloni e Conte).",
+    "Cortedicassazione.it è citata tra le fonti della carriera ma nessuna voce la usa: non l'ho collegata.",
+    "Le proposte di legge hanno link ufficiali della Camera e sono pronte; manca la data di presentazione per 18 atti su 21.",
+    "Ruolo nelle proposte: «prima firmataria» → proponente; «cofirmata» → cofirmataria. Per l'A.C. 1275 e 2067 la scheda non lo indica: ho usato cofirmataria."
+  ]
+}

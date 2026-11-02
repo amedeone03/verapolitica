@@ -120,6 +120,7 @@ Then start it:
 ```
 
 - Public app: http://127.0.0.1:8000/app/
+- Redazione (editorial console): http://127.0.0.1:8000/redazione/ — demo members on the sign-in page, see [redazione.md](docs/redazione.md)
 - Example profile: http://127.0.0.1:8000/app/?politician=206
 - Health: http://127.0.0.1:8000/health/live
 
@@ -169,6 +170,7 @@ Do not follow README snippets as the deploy procedure. Use:
 | Public / admin API | [docs/api-contract.md](docs/api-contract.md) |
 | Search | [docs/search.md](docs/search.md) |
 | Scoring and pledges | [docs/scoring-methodology.md](docs/scoring-methodology.md) |
+| Redazione console | [docs/redazione.md](docs/redazione.md) |
 | Civic records | [docs/civic-features.md](docs/civic-features.md) |
 | Territorial sources | [docs/territorial-sources.md](docs/territorial-sources.md) |
 | Scheduled jobs | [docs/scheduled-jobs.md](docs/scheduled-jobs.md) |

@@ -57,7 +57,7 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "Questa sezione non contiene ancora elementi pubblicati." in script
     assert "Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo." in script
     assert "Non ancora valutata" in script
-    assert "Apri la fonte" in script
+    assert "class=\"source-name\"" in script
     assert "view=ask" in script
     assert "sono ancora in corso?" in script
     assert "non sono ancora valutate?" in script
@@ -85,7 +85,7 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "scroll-padding-top: var(--profile-scroll-pad, 11rem)" in styles
     assert ".career-entry" in styles
     assert ".career-marker" in styles
-    assert ".will-reveal" in styles
+    assert ".will-reveal" not in styles  # no entrance animation (Cambridge Classic)
     assert ".pledge-details" in styles
     assert "--profile-nav-top" in styles
     assert "prefers-reduced-motion: reduce" in styles
@@ -100,24 +100,29 @@ def test_profile_section_nav_omits_missing_optional_blocks(tmp_path):
     with public_demo_client(tmp_path) as client:
         script = client.get("/app/app.js").text
 
-    assert 'who ? { href: "#profilo", label: "Chi è" }' in script
-    assert 'hasCareer ? { href: "#carriera", label: "Cosa ha fatto" }' in script
+    # Tabs (profile layout): the overview is always there, optional blocks only when present.
+    assert '{ href: "#profilo", label: "Panoramica" }' in script
+    assert 'hasCareer ? { href: "#carriera", label: "Carriera" }' in script
     assert 'sourcesMarkup ? { href: "#fonti", label: "Fonti" }' in script
     assert 'href: "#posizioni"' in script
     assert 'href: "#promesse"' in script
-    assert 'href: "#procedimenti"' in script
-    assert '{ href: "#procedimenti", label: "Procedimenti e controversie" }' in script
+    assert '{ href: "#procedimenti", label: "Procedimenti" }' in script
     assert "bindProfileSectionNav" in script
-    assert "IntersectionObserver" in script
+    assert '"tablist"' in script and '"tabpanel"' in script and "aria-selected" in script
     assert "bindProfileMotion" in script
     assert "bindProfileTabs" not in script
-    assert 'aria-current="location"' in script
+    # Cover: back, share, verified mark, follow (favourites), sticky question.
+    assert 'class="cover-button cover-back"' in script
+    assert "bindProfileShare" in script
+    assert 'class="verified-mark"' in script
+    assert 'data-follow="1"' in script
+    assert 'class="profile-cta-bar"' in script
     assert 'class="career-entry' in script
     assert "career-marker" in script
     assert "Dettagli e fonti" in script
     assert 'class="pledge-details"' in script
     assert "data-count-to" in script
-    assert "will-reveal" in script
+    assert "will-reveal" not in script
     assert "prefersReducedMotion" in script
     assert "form.requestSubmit()" in script
     assert 'href="./?view=ask&amp;prefill=' in script

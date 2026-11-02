@@ -1,0 +1,1282 @@
+{
+  "fixture_id": "giuseppe_conte_v1",
+  "disclaimer": "Scheda scritta dalla redazione VeraPolitica (Giuseppe_Conte.docx, aggiornata al 16 ottobre 2026); requires editorial verification before publication. Testi copiati senza riscrittura; link ripuliti dai parametri di tracciamento.",
+  "source_document": "Giuseppe_Conte.docx",
+  "created_by": "redazione",
+  "slug": "giuseppe-conte",
+  "politician": {
+    "given_name": "Giuseppe",
+    "family_name": "Conte",
+    "birth_date": "1964-08-08",
+    "given_name_aliases": []
+  },
+  "biography": {
+    "identity_key": "primary",
+    "body": "Giuseppe Conte, laureato in Giurisprudenza presso l'Università La Sapienza di Roma nel 1988, è un avvocato e professore universitario di diritto privato. Prima dell'ingresso in politica ha svolto attività accademica e ricoperto incarichi in organismi pubblici, tra cui il Consiglio di presidenza della giustizia amministrativa.\n\nNel 2018 viene indicato come Presidente del Consiglio nell'ambito dell'accordo tra Movimento 5 Stelle e Lega. Guida due governi consecutivi: il primo sostenuto da M5S e Lega (2018–2019), il secondo da M5S, Partito Democratico, Liberi e Uguali e altre forze parlamentari (2019–2021). Durante il secondo mandato affronta l'emergenza sanitaria da COVID-19 e partecipa ai negoziati europei per il programma Next Generation EU.\n\nTerminata l'esperienza di governo, nell'agosto 2021 assume la presidenza del Movimento 5 Stelle. Eletto deputato nel 2022, guida il partito all'opposizione del governo Meloni. Nell'ottobre 2025 viene riconfermato presidente del Movimento.",
+    "sources": [
+      {
+        "name": "Treccani — Giuseppe Conte",
+        "kind": "other",
+        "url": "https://www.treccani.it/enciclopedia/giuseppe-conte/"
+      },
+      {
+        "name": "Movimento 5 Stelle — Curriculum",
+        "kind": "party_politician",
+        "url": "https://portale.movimento5stelle.eu/web/content/?field=resume_file&filename_field=filename&id=575628&model=res.partner"
+      }
+    ]
+  },
+  "career_entries": [
+    {
+      "identity_key": "cpga-2013",
+      "start_date": "2013-01-01",
+      "end_date": "2018-12-31",
+      "start_precision": "year",
+      "end_precision": "year",
+      "is_current": false,
+      "role": "Componente del Consiglio di presidenza della giustizia amministrativa, di cui ricopre anche la vicepresidenza",
+      "institution": "Consiglio di presidenza della giustizia amministrativa",
+      "sources": []
+    },
+    {
+      "identity_key": "pdc-conte-i",
+      "start_date": "2018-06-01",
+      "end_date": "2019-09-04",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Presidente del Consiglio dei ministri (governo Conte I)",
+      "institution": "Presidenza del Consiglio dei ministri",
+      "party_or_group": "sostenuto da Movimento 5 Stelle e Lega",
+      "sources": [
+        {
+          "name": "Senato della Repubblica — Scheda attività XVIII legislatura",
+          "kind": "official",
+          "url": "https://www.senato.it/legislature/18/composizione/senatori/elenco-alfabetico/scheda-attivita?did=33749"
+        }
+      ]
+    },
+    {
+      "identity_key": "pdc-conte-ii",
+      "start_date": "2019-09-05",
+      "end_date": "2021-02-12",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Presidente del Consiglio dei ministri (governo Conte II)",
+      "institution": "Presidenza del Consiglio dei ministri",
+      "party_or_group": "sostenuto inizialmente da Movimento 5 Stelle, Partito Democratico, Liberi e Uguali e successivamente anche da Italia Viva",
+      "sources": [
+        {
+          "name": "Senato della Repubblica — Scheda attività XVIII legislatura",
+          "kind": "official",
+          "url": "https://www.senato.it/legislature/18/composizione/senatori/elenco-alfabetico/scheda-attivita?did=33749"
+        }
+      ]
+    },
+    {
+      "identity_key": "miur-interim-2019",
+      "start_date": "2019-12-30",
+      "end_date": "2020-01-10",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Ministro ad interim dell'Istruzione, dell'Università e della Ricerca",
+      "institution": "Governo della Repubblica",
+      "sources": [
+        {
+          "name": "Senato della Repubblica — Scheda attività XVIII legislatura",
+          "kind": "official",
+          "url": "https://www.senato.it/legislature/18/composizione/senatori/elenco-alfabetico/scheda-attivita?did=33749"
+        }
+      ]
+    },
+    {
+      "identity_key": "mipaaf-interim-2021",
+      "start_date": "2021-01-14",
+      "end_date": "2021-02-12",
+      "start_precision": "day",
+      "end_precision": "day",
+      "is_current": false,
+      "role": "Ministro ad interim delle Politiche agricole alimentari e forestali",
+      "institution": "Governo della Repubblica",
+      "sources": [
+        {
+          "name": "Senato della Repubblica — Scheda attività XVIII legislatura",
+          "kind": "official",
+          "url": "https://www.senato.it/legislature/18/composizione/senatori/elenco-alfabetico/scheda-attivita?did=33749"
+        }
+      ]
+    },
+    {
+      "identity_key": "presidente-m5s-2021",
+      "start_date": "2021-08-06",
+      "end_date": null,
+      "start_precision": "day",
+      "end_precision": null,
+      "is_current": true,
+      "role": "Presidente del Movimento 5 Stelle (confermato nel marzo 2022 e il 26 ottobre 2025)",
+      "institution": "Movimento 5 Stelle",
+      "sources": []
+    },
+    {
+      "identity_key": "deputato-xix",
+      "start_date": "2022-10-13",
+      "end_date": null,
+      "start_precision": "day",
+      "end_precision": null,
+      "is_current": true,
+      "role": "Deputato della Repubblica italiana nella XIX legislatura",
+      "institution": "Camera dei deputati",
+      "sources": []
+    }
+  ],
+  "positions": [
+    {
+      "identity_key": "economia-lavoro",
+      "topic": "Economia e lavoro",
+      "position_statement": "Favorevole all'introduzione di un salario minimo legale di 9 euro lordi all'ora, per contrastare il lavoro povero e garantire una retribuzione minima ai lavoratori.",
+      "verifiable_statement": "Il 18 maggio 2026, le opposizioni hanno ripresentato un emendamento che riprendeva la proposta di legge sul salario minimo a prima firma Conte. La proposta prevedeva una soglia minima di 9 euro lordi orari, successivamente eliminata dal testo modificato dalla maggioranza parlamentare.",
+      "statement_date": "2026-05-18",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "ANSA",
+          "title": "18 maggio 2026",
+          "kind": "news",
+          "url": "https://www.ansa.it/amp/sito/notizie/economia/2026/05/18/opposizioni-presentano-emendamento-sul-salario-minimo-al-dl-lavoro_69ac2721-e307-4538-a61c-a5ad24a0ef42.html"
+        }
+      ]
+    },
+    {
+      "identity_key": "politica-estera-ucraina",
+      "topic": "Politica estera e Ucraina",
+      "position_statement": "Favorevole al sostegno diplomatico ed economico all'Ucraina, ma contrario alla prosecuzione dell'invio di armamenti, sostenendo la necessità di una soluzione negoziale del conflitto.",
+      "verifiable_statement": "Il 2 agosto 2026, Conte ha dichiarato che il M5S non avrebbe votato a favore di ulteriori aiuti militari, pur continuando a sostenere gli aiuti economici e le sanzioni contro la Russia. Il 20 settembre 2026 ha ribadito questa posizione dopo una consultazione degli iscritti al Movimento.",
+      "statement_date": "2026-08-02",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "ANSA",
+          "title": "2 agosto 2026",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/topnews/2026/08/02/conte-non-votiamo-il-sostegno-militare-allucraina_b6affd9c-729c-41ae-b0cc-239bc185558d.html"
+        },
+        {
+          "name": "ANSA",
+          "title": "20 settembre 2026",
+          "kind": "news",
+          "url": "https://www.ansa.it/amp/sito/notizie/politica/2026/09/20/m5s-il-917-e-contro-le-armi.-conte-al-governo-faremo-tabula-rasa_ca10f9cf-b895-48ab-9ef5-d76d72d5f3ea.html"
+        }
+      ]
+    },
+    {
+      "identity_key": "giustizia",
+      "topic": "Giustizia",
+      "position_statement": "Contrario alla riforma costituzionale sulla separazione delle carriere dei magistrati promossa dal governo Meloni, ritenendo che possa compromettere l'autonomia della magistratura rispetto al potere politico.",
+      "verifiable_statement": "Il 24 marzo 2026, dopo la vittoria del No al referendum costituzionale, Conte ha dichiarato che la riforma era stata concepita per alterare l'equilibrio dei poteri dello Stato.",
+      "statement_date": "2026-03-24",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "Sky TG24",
+          "title": "24 marzo 2026",
+          "kind": "news",
+          "url": "https://tg24.sky.it/politica/2026/03/24/giuseppe-conte-intervista-referendum"
+        }
+      ]
+    },
+    {
+      "identity_key": "immigrazione-cittadinanza",
+      "topic": "Immigrazione e cittadinanza",
+      "position_statement": "Favorevole all'introduzione dello ius scholae, che consentirebbe ai minori stranieri di ottenere la cittadinanza italiana attraverso un percorso scolastico, ma contrario allo ius soli basato esclusivamente sulla nascita nel territorio nazionale.",
+      "verifiable_statement": "Il 28 gennaio 2024, durante un'intervista a Che tempo che fa, Conte ha sostenuto lo ius scholae e lo ius culturae, proponendo il riconoscimento della cittadinanza dopo un ciclo scolastico di almeno cinque anni.",
+      "statement_date": "2024-01-28",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "Il Fatto Quotidiano",
+          "title": "29 gennaio 2024",
+          "kind": "news",
+          "url": "https://www.ilfattoquotidiano.it/2024/01/29/ius-soli-giuseppe-conte-a-che-tempo-che-fa-non-sono-favorevole-serve-lo-ius-scholae-e-lo-ius-culturae/7425636/"
+        }
+      ]
+    },
+    {
+      "identity_key": "difesa-riarmo",
+      "topic": "Difesa e riarmo europeo",
+      "position_statement": "Contrario all'aumento generalizzato della spesa militare e ai programmi di riarmo dei singoli Stati europei, pur dichiarandosi favorevole a una difesa comune europea.",
+      "verifiable_statement": "Il 9 luglio 2026, durante un'intervista a In Onda su La7, Conte ha contestato gli impegni di aumento della spesa militare motivati dalla minaccia russa. Il 20 settembre 2026 ha ribadito l'opposizione al piano di riarmo europeo, richiamando il voto degli iscritti al M5S.",
+      "statement_date": "2026-07-09",
+      "statement_precision": "day",
+      "sources": [
+        {
+          "name": "ANSA",
+          "title": "9 luglio 2026",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/topnews/2026/07/09/conte-io-da-subito-per-ucraina-ma-no-al-riarmo-per-minaccia-russa_f5caf7c6-eaab-448d-b513-23434d56382f.html"
+        },
+        {
+          "name": "ANSA",
+          "title": "20 settembre 2026",
+          "kind": "news",
+          "url": "https://www.ansa.it/amp/sito/notizie/politica/2026/09/20/m5s-il-917-e-contro-le-armi.-conte-al-governo-faremo-tabula-rasa_ca10f9cf-b895-48ab-9ef5-d76d72d5f3ea.html"
+        }
+      ]
+    }
+  ],
+  "pledges": [
+    {
+      "number": 1,
+      "identity_key": "reddito-cittadinanza",
+      "title": "Introdurre il Reddito di cittadinanza",
+      "exact_statement": "Introdurre il Reddito di cittadinanza",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Istituito con il D.L. 4/2019, convertito nella legge 26/2019. La successiva abolizione non cancella l'attuazione dell'impegno originario. La scheda cita https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "introdurre il reddito di cittadinanza"
+      ]
+    },
+    {
+      "number": 2,
+      "identity_key": "quota-100",
+      "title": "Introdurre Quota 100",
+      "exact_statement": "Introdurre Quota 100",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Istituita dal D.L. 4/2019 per il triennio 2019–2021, con requisiti di 62 anni di età e 38 di contributi. La scheda cita https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "introdurre quota 100"
+      ]
+    },
+    {
+      "number": 3,
+      "identity_key": "pensione-cittadinanza",
+      "title": "Introdurre la Pensione di cittadinanza",
+      "exact_statement": "Introdurre la Pensione di cittadinanza",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Istituita dal D.L. 4/2019. La scheda cita https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "introdurre la pensione di cittadinanza"
+      ]
+    },
+    {
+      "number": 4,
+      "identity_key": "flat-tax",
+      "title": "Introdurre la Flat Tax",
+      "exact_statement": "Introdurre la Flat Tax",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/id/2018/12/31/18G00172/CONSOLIDATED",
+      "cap_topic_code": "1",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Ampliato il regime forfettario al 15% fino a 65.000 euro; non realizzato il sistema generale di aliquote al 15% e 20% previsto dal contratto. La scheda cita https://www.normattiva.it/eli/id/2018/12/31/18G00172/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "introdurre la flat tax"
+      ]
+    },
+    {
+      "number": 5,
+      "identity_key": "superare-fornero",
+      "title": "Superare la legge Fornero",
+      "exact_statement": "Superare la legge Fornero",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED",
+      "cap_topic_code": "13",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Quota 100 ha introdotto una deroga temporanea, senza abrogare la disciplina generale della riforma Fornero. La scheda cita https://www.normattiva.it/eli/stato/DECRETO-LEGGE/2019/01/28/4/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "superare la legge fornero"
+      ]
+    },
+    {
+      "number": 6,
+      "identity_key": "pensioni-elevate",
+      "title": "Ridurre le pensioni elevate",
+      "exact_statement": "Ridurre le pensioni elevate",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.cortecostituzionale.it/scheda-pronuncia/2020/234",
+      "cap_topic_code": "13",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Introdotto un contributo temporaneo sulle pensioni superiori a 100.000 euro lordi annui. La Corte costituzionale, con sentenza 234/2020, ne ha ridotto la durata da cinque a tre anni. La scheda cita https://www.cortecostituzionale.it/scheda-pronuncia/2020/234 come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "ridurre le pensioni elevate"
+      ]
+    },
+    {
+      "number": 7,
+      "identity_key": "legittima-difesa",
+      "title": "Riformare la legittima difesa",
+      "exact_statement": "Riformare la legittima difesa",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.normattiva.it/eli/id/2019/05/03/19G00042/CONSOLIDATED",
+      "cap_topic_code": "12",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Approvata la legge 36/2019 sulla legittima difesa domiciliare. La scheda cita https://www.normattiva.it/eli/id/2019/05/03/19G00042/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte I: da confermare in redazione.",
+      "match_phrases": [
+        "riformare la legittima difesa"
+      ]
+    },
+    {
+      "number": 8,
+      "identity_key": "vincolo-mandato",
+      "title": "Introdurre il vincolo di mandato",
+      "exact_statement": "Introdurre il vincolo di mandato",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "cap_topic_code": "20",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "Verifica della redazione: Nessuna revisione costituzionale approvata che introduca il vincolo di mandato parlamentare.",
+      "match_phrases": [
+        "introdurre il vincolo di mandato"
+      ]
+    },
+    {
+      "number": 9,
+      "identity_key": "abolire-cnel",
+      "title": "Abolire il CNEL",
+      "exact_statement": "Abolire il CNEL",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "cap_topic_code": "20",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "Verifica della redazione: Il Consiglio nazionale dell'economia e del lavoro non è stato abolito.",
+      "match_phrases": [
+        "abolire il cnel"
+      ]
+    },
+    {
+      "number": 10,
+      "identity_key": "conflitto-interessi",
+      "title": "Riformare la disciplina del conflitto di interessi",
+      "exact_statement": "Riformare la disciplina del conflitto di interessi",
+      "introduced_at": "2018-05-18",
+      "origin_label": "18 maggio 2018, contratto per il governo del cambiamento (M5S–Lega)",
+      "declaration_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "evidence_url": "https://www.ilblogdellestelle.it/2018/05/ecco_la_sintesi_del_contratto_per_il_governo_del_cambiamento.html",
+      "cap_topic_code": "20",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2018-06-01",
+      "suggested_mandate_end": "2019-09-04",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "Verifica della redazione: Non è stata approvata durante il governo Conte I la riforma organica prevista dal contratto.",
+      "match_phrases": [
+        "riformare la disciplina del conflitto di interessi"
+      ]
+    },
+    {
+      "number": 11,
+      "identity_key": "taglio-parlamentari",
+      "title": "Ridurre il numero dei parlamentari",
+      "exact_statement": "Ridurre il numero dei parlamentari",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2020/10/21/20G00151/CONSOLIDATED",
+      "cap_topic_code": "20",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Approvata la legge costituzionale 1/2020, che ha ridotto i deputati da 630 a 400 e i senatori elettivi da 315 a 200. La scheda cita https://www.normattiva.it/eli/id/2020/10/21/20G00151/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "ridurre il numero dei parlamentari"
+      ]
+    },
+    {
+      "number": 12,
+      "identity_key": "cuneo-fiscale",
+      "title": "Ridurre il cuneo fiscale sui lavoratori",
+      "exact_statement": "Ridurre il cuneo fiscale sui lavoratori",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2020/02/05/20G00013/CONSOLIDATED",
+      "cap_topic_code": "1",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Il D.L. 3/2020 ha introdotto una riduzione del carico fiscale sui redditi da lavoro dipendente dal luglio 2020. La scheda cita https://www.normattiva.it/eli/id/2020/02/05/20G00013/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "ridurre il cuneo fiscale sui lavoratori"
+      ]
+    },
+    {
+      "number": 13,
+      "identity_key": "salario-minimo",
+      "title": "Introdurre il salario minimo",
+      "exact_statement": "Introdurre il salario minimo",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "5",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta",
+      "assessment_note": "Verifica della redazione: Durante il governo Conte II non è stata approvata una legge nazionale sul salario minimo.",
+      "match_phrases": [
+        "introdurre il salario minimo"
+      ]
+    },
+    {
+      "number": 14,
+      "identity_key": "asili-nido",
+      "title": "Azzerare le rette degli asili nido per le famiglie con redditi bassi e medi",
+      "exact_statement": "Azzerare le rette degli asili nido per le famiglie con redditi bassi e medi",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2019/12/30/19G00165/CONSOLIDATED",
+      "cap_topic_code": "13",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Il bonus asilo nido è stato aumentato fino a 3.000 euro annui per le famiglie con ISEE inferiore a 25.000 euro. Non è stata introdotta la gratuità generale annunciata. La scheda cita https://www.normattiva.it/eli/id/2019/12/30/19G00165/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "azzerare le rette degli asili nido per le famiglie con redditi bassi e medi"
+      ]
+    },
+    {
+      "number": 15,
+      "identity_key": "parita-retributiva",
+      "title": "Introdurre una legge sulla parità retributiva tra uomini e donne",
+      "exact_statement": "Introdurre una legge sulla parità retributiva tra uomini e donne",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2021/11/18/21G00175/CONSOLIDATED",
+      "cap_topic_code": "2",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: La legge 162/2021 ha rafforzato la disciplina della parità retributiva, ma è stata approvata dopo la fine del governo Conte II. La scheda cita https://www.normattiva.it/eli/id/2021/11/18/21G00175/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "introdurre una legge sulla parità retributiva tra uomini e donne"
+      ]
+    },
+    {
+      "number": 16,
+      "identity_key": "ambiente-costituzione",
+      "title": "Inserire la tutela dell'ambiente nella Costituzione",
+      "exact_statement": "Inserire la tutela dell'ambiente nella Costituzione",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2022/02/22/22G00019/CONSOLIDATED",
+      "cap_topic_code": "7",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": null,
+      "pdf_implied_verdict_label": "Obiettivo realizzato dopo il mandato",
+      "assessment_note": "Verifica della redazione: La legge costituzionale 1/2022 ha modificato gli articoli 9 e 41 della Costituzione. L'approvazione definitiva è avvenuta durante il governo Draghi. La scheda cita https://www.normattiva.it/eli/id/2022/02/22/22G00019/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione. Lo stato «Obiettivo realizzato dopo il mandato» non esiste nella metodologia pledge-score/v1: decidere in redazione.",
+      "match_phrases": [
+        "inserire la tutela dell'ambiente nella costituzione"
+      ]
+    },
+    {
+      "number": 17,
+      "identity_key": "trivellazioni",
+      "title": "Vietare nuove concessioni per trivellazioni",
+      "exact_statement": "Vietare nuove concessioni per trivellazioni",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "8",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta durante il mandato",
+      "assessment_note": "Verifica della redazione: Non risulta introdotto durante il governo Conte II il divieto generale annunciato. Occorre completare il controllo della normativa successiva. Lo stato della scheda specifica «durante il mandato»: in pledge-score/v1 equivale a non mantenuta.",
+      "match_phrases": [
+        "vietare nuove concessioni per trivellazioni"
+      ]
+    },
+    {
+      "number": 18,
+      "identity_key": "acqua-pubblica",
+      "title": "Approvare una legge sull'acqua pubblica",
+      "exact_statement": "Approvare una legge sull'acqua pubblica",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "7",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta durante il mandato",
+      "assessment_note": "Verifica della redazione: La riforma organica annunciata non è stata approvata dal governo Conte II. Lo stato della scheda specifica «durante il mandato»: in pledge-score/v1 equivale a non mantenuta.",
+      "match_phrases": [
+        "approvare una legge sull'acqua pubblica"
+      ]
+    },
+    {
+      "number": 19,
+      "identity_key": "concessioni-autostradali",
+      "title": "Rivedere le concessioni autostradali",
+      "exact_statement": "Rivedere le concessioni autostradali",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "10",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Nel luglio 2020 è stato raggiunto un accordo per il riassetto di Autostrade per l'Italia; il trasferimento del controllo è stato completato successivamente.",
+      "match_phrases": [
+        "rivedere le concessioni autostradali"
+      ]
+    },
+    {
+      "number": 20,
+      "identity_key": "decreti-sicurezza",
+      "title": "Modificare i decreti sicurezza",
+      "exact_statement": "Modificare i decreti sicurezza",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2020/10/21/20G00154/CONSOLIDATED",
+      "cap_topic_code": "9",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Il D.L. 130/2020, convertito nella legge 173/2020, ha modificato la disciplina introdotta dai precedenti decreti sicurezza. La scheda cita https://www.normattiva.it/eli/id/2020/10/21/20G00154/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "modificare i decreti sicurezza"
+      ]
+    },
+    {
+      "number": 21,
+      "identity_key": "rappresentanza-sindacale",
+      "title": "Approvare una legge sulla rappresentanza sindacale",
+      "exact_statement": "Approvare una legge sulla rappresentanza sindacale",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "5",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta durante il mandato",
+      "assessment_note": "Verifica della redazione: Non è stata approvata una legge organica sulla rappresentanza sindacale. Lo stato della scheda specifica «durante il mandato»: in pledge-score/v1 equivale a non mantenuta.",
+      "match_phrases": [
+        "approvare una legge sulla rappresentanza sindacale"
+      ]
+    },
+    {
+      "number": 22,
+      "identity_key": "riforma-giustizia",
+      "title": "Riformare la giustizia civile e penale",
+      "exact_statement": "Riformare la giustizia civile e penale",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "12",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Sono stati avviati interventi e disegni di legge; le principali riforme processuali organiche sono state approvate durante il governo Draghi.",
+      "match_phrases": [
+        "riformare la giustizia civile e penale"
+      ]
+    },
+    {
+      "number": 23,
+      "identity_key": "riforma-csm",
+      "title": "Riformare il sistema elettorale del CSM",
+      "exact_statement": "Riformare il sistema elettorale del CSM",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.gazzettaufficiale.it/eli/id/2022/06/20/22G00084/SG",
+      "cap_topic_code": "12",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": null,
+      "pdf_implied_verdict_label": "Obiettivo realizzato dopo il mandato",
+      "assessment_note": "Verifica della redazione: Il governo Conte II ha presentato il disegno di legge Bonafede nel settembre 2020. La riforma è stata approvata con la legge 71/2022, durante il governo Draghi, dopo modifiche parlamentari. La scheda cita https://www.gazzettaufficiale.it/eli/id/2022/06/20/22G00084/SG come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione. Lo stato «Obiettivo realizzato dopo il mandato» non esiste nella metodologia pledge-score/v1: decidere in redazione.",
+      "match_phrases": [
+        "riformare il sistema elettorale del csm"
+      ]
+    },
+    {
+      "number": 24,
+      "identity_key": "grandi-evasori",
+      "title": "Inasprire le pene per i grandi evasori fiscali",
+      "exact_statement": "Inasprire le pene per i grandi evasori fiscali",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.normattiva.it/eli/id/2019/10/26/19G00134/CONSOLIDATED",
+      "cap_topic_code": "1",
+      "specificity": "high",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "kept",
+      "pdf_implied_verdict_label": "Mantenuta",
+      "assessment_note": "Verifica della redazione: Il D.L. 124/2019, convertito nella legge 157/2019, ha aumentato le sanzioni per diversi reati tributari. La scheda cita https://www.normattiva.it/eli/id/2019/10/26/19G00134/CONSOLIDATED come fonte: è un atto di attuazione, non la dichiarazione. La data della dichiarazione è quella del programma del governo Conte II: da confermare in redazione.",
+      "match_phrases": [
+        "inasprire le pene per i grandi evasori fiscali"
+      ]
+    },
+    {
+      "number": 25,
+      "identity_key": "identita-digitale",
+      "title": "Fornire a tutti un'identità digitale entro un anno",
+      "exact_statement": "Fornire a tutti un'identità digitale entro un anno",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "17",
+      "specificity": "high",
+      "commitment_type": "outcome",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: È stata ampliata la diffusione di SPID e CIE, ma non è documentato il raggiungimento dell'obiettivo universale entro settembre 2020.",
+      "match_phrases": [
+        "fornire a tutti un'identità digitale entro un anno"
+      ]
+    },
+    {
+      "number": 26,
+      "identity_key": "legge-elettorale",
+      "title": "Riformare la legge elettorale",
+      "exact_statement": "Riformare la legge elettorale",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "20",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "broken",
+      "pdf_implied_verdict_label": "Non mantenuta durante il mandato",
+      "assessment_note": "Verifica della redazione: Non è stata approvata una nuova legge elettorale nazionale durante il governo Conte II. Lo stato della scheda specifica «durante il mandato»: in pledge-score/v1 equivale a non mantenuta.",
+      "match_phrases": [
+        "riformare la legge elettorale"
+      ]
+    },
+    {
+      "number": 27,
+      "identity_key": "assunzioni-sanita",
+      "title": "Realizzare assunzioni straordinarie di medici e infermieri",
+      "exact_statement": "Realizzare assunzioni straordinarie di medici e infermieri",
+      "introduced_at": "2019-09-09",
+      "origin_label": "9 settembre 2019, dichiarazioni programmatiche al Senato",
+      "declaration_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "evidence_url": "https://www.senato.it/show-doc?id=1123318&idoggetto=0&leg=18&part=doc_dc-allegatob_ab&tipodoc=Resaula",
+      "cap_topic_code": "3",
+      "specificity": "medium",
+      "commitment_type": "action",
+      "suggested_holder_role": "government_coalition",
+      "suggested_mandate_start": "2019-09-05",
+      "suggested_mandate_end": "2021-02-12",
+      "suggested_verdict": "partially_kept",
+      "pdf_implied_verdict_label": "Mantenuta parzialmente",
+      "assessment_note": "Verifica della redazione: Durante l'emergenza Covid-19 sono state autorizzate assunzioni straordinarie. Resta da verificare se il piano annunciato corrispondesse, per dimensioni e durata, agli interventi effettivamente realizzati.",
+      "match_phrases": [
+        "realizzare assunzioni straordinarie di medici e infermieri"
+      ]
+    }
+  ],
+  "proposals": [
+    {
+      "number": 1,
+      "identity_key": "nova-2027-sanita",
+      "title": "Sanità: Aumentare stabilmente i finanziamenti alla sanità pubblica, assumere personale, rafforzare il coordinamento nazionale del SSN e istituire un fondo finanziato dalla sanità privata per ridurre le liste d'attesa.",
+      "summary": "Aumentare stabilmente i finanziamenti alla sanità pubblica, assumere personale, rafforzare il coordinamento nazionale del SSN e istituire un fondo finanziato dalla sanità privata per ridurre le liste d'attesa.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "3"
+    },
+    {
+      "number": 2,
+      "identity_key": "nova-2027-lavoro-e-salari",
+      "title": "Lavoro e salari: Introdurre un salario minimo legale, ridurre l'orario lavorativo a parità di retribuzione e rafforzare le tutele contro la precarietà.",
+      "summary": "Introdurre un salario minimo legale, ridurre l'orario lavorativo a parità di retribuzione e rafforzare le tutele contro la precarietà.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "5"
+    },
+    {
+      "number": 3,
+      "identity_key": "nova-2027-congedi-e-lavoratori-autonomi",
+      "title": "Congedi e lavoratori autonomi: Introdurre congedi paritari e ampliare le protezioni per malattia e maternità ad artigiani, commercianti e lavoratori autonomi.",
+      "summary": "Introdurre congedi paritari e ampliare le protezioni per malattia e maternità ad artigiani, commercianti e lavoratori autonomi.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "5"
+    },
+    {
+      "number": 4,
+      "identity_key": "nova-2027-pensioni",
+      "title": "Pensioni: Rafforzare la tutela previdenziale, sostenere i giovani lavoratori e favorire il ricambio generazionale attraverso forme di staffetta tra lavoratori prossimi alla pensione e nuovi assunti.",
+      "summary": "Rafforzare la tutela previdenziale, sostenere i giovani lavoratori e favorire il ricambio generazionale attraverso forme di staffetta tra lavoratori prossimi alla pensione e nuovi assunti.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "13"
+    },
+    {
+      "number": 5,
+      "identity_key": "nova-2027-disabilita",
+      "title": "Disabilità: Rafforzare l'autonomia delle persone con disabilità e le tutele per familiari e caregiver.",
+      "summary": "Rafforzare l'autonomia delle persone con disabilità e le tutele per familiari e caregiver.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "13"
+    },
+    {
+      "number": 6,
+      "identity_key": "nova-2027-reddito-di-cittadinanza",
+      "title": "Reddito di cittadinanza: Introdurre un nuovo sistema di sostegno al reddito, denominato nel dibattito politico «Reddito 2.0», attraverso la revisione dell'Assegno di inclusione e del Supporto per la formazione e il lavoro.",
+      "summary": "Introdurre un nuovo sistema di sostegno al reddito, denominato nel dibattito politico «Reddito 2.0», attraverso la revisione dell'Assegno di inclusione e del Supporto per la formazione e il lavoro.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "13"
+    },
+    {
+      "number": 7,
+      "identity_key": "nova-2027-fisco",
+      "title": "Fisco: Ridurre il carico fiscale sui redditi da lavoro bassi e medi, rafforzare il contrasto all'evasione e spostare progressivamente parte della tassazione verso le rendite finanziarie speculative.",
+      "summary": "Ridurre il carico fiscale sui redditi da lavoro bassi e medi, rafforzare il contrasto all'evasione e spostare progressivamente parte della tassazione verso le rendite finanziarie speculative.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "1"
+    },
+    {
+      "number": 8,
+      "identity_key": "nova-2027-agricoltura",
+      "title": "Agricoltura: Promuovere prezzi equi per i produttori, filiere corte e maggiori controlli contro illegalità e sfruttamento nel settore agricolo.",
+      "summary": "Promuovere prezzi equi per i produttori, filiere corte e maggiori controlli contro illegalità e sfruttamento nel settore agricolo.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "4"
+    },
+    {
+      "number": 9,
+      "identity_key": "nova-2027-imprese",
+      "title": "Imprese: Ridurre gli adempimenti burocratici, migliorare l'accesso al credito delle PMI, rilanciare gli incentivi di Transizione 4.0 e introdurre uno statuto delle imprese.",
+      "summary": "Ridurre gli adempimenti burocratici, migliorare l'accesso al credito delle PMI, rilanciare gli incentivi di Transizione 4.0 e introdurre uno statuto delle imprese.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "15"
+    },
+    {
+      "number": 10,
+      "identity_key": "nova-2027-pubblica-amministrazione",
+      "title": "Pubblica amministrazione: Rafforzare controlli e trasparenza e reintrodurre il reato di abuso d'ufficio, abrogato nel 2024.",
+      "summary": "Rafforzare controlli e trasparenza e reintrodurre il reato di abuso d'ufficio, abrogato nel 2024.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "20"
+    },
+    {
+      "number": 11,
+      "identity_key": "nova-2027-energia",
+      "title": "Energia: Ridurre il costo delle bollette, sostenere la transizione energetica e investire nella ricerca sulla fusione nucleare.",
+      "summary": "Ridurre il costo delle bollette, sostenere la transizione energetica e investire nella ricerca sulla fusione nucleare.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "8"
+    },
+    {
+      "number": 12,
+      "identity_key": "nova-2027-casa-e-affitti",
+      "title": "Casa e affitti: Realizzare un piano pubblico per l'abitazione, contrastare il caro affitti e favorire il recupero degli immobili inutilizzati.",
+      "summary": "Realizzare un piano pubblico per l'abitazione, contrastare il caro affitti e favorire il recupero degli immobili inutilizzati.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "14"
+    },
+    {
+      "number": 13,
+      "identity_key": "nova-2027-scuola",
+      "title": "Scuola: Rafforzare l'edilizia scolastica e destinare alla scuola 13,5 miliardi di euro che il Movimento propone di sottrarre al progetto del Ponte sullo Stretto.",
+      "summary": "Rafforzare l'edilizia scolastica e destinare alla scuola 13,5 miliardi di euro che il Movimento propone di sottrarre al progetto del Ponte sullo Stretto.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "6"
+    },
+    {
+      "number": 14,
+      "identity_key": "nova-2027-ambiente",
+      "title": "Ambiente: Rafforzare la tutela del territorio, dell'acqua e dell'aria, contrastare il consumo di suolo e aumentare gli spazi verdi urbani.",
+      "summary": "Rafforzare la tutela del territorio, dell'acqua e dell'aria, contrastare il consumo di suolo e aumentare gli spazi verdi urbani.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "7"
+    },
+    {
+      "number": 15,
+      "identity_key": "nova-2027-informazione-e-digitale",
+      "title": "Informazione e digitale: Ridurre progressivamente i finanziamenti pubblici diretti all'editoria, sottrarre la Rai all'influenza dei partiti e sviluppare un'intelligenza artificiale pubblica.",
+      "summary": "Ridurre progressivamente i finanziamenti pubblici diretti all'editoria, sottrarre la Rai all'influenza dei partiti e sviluppare un'intelligenza artificiale pubblica.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "17"
+    },
+    {
+      "number": 16,
+      "identity_key": "nova-2027-antimafia-e-legalita",
+      "title": "Antimafia e legalità: Rafforzare la lotta alle mafie, introdurre una disciplina organica sul conflitto di interessi e regolamentare le attività di lobbying.",
+      "summary": "Rafforzare la lotta alle mafie, introdurre una disciplina organica sul conflitto di interessi e regolamentare le attività di lobbying.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "12"
+    },
+    {
+      "number": 17,
+      "identity_key": "nova-2027-cannabis",
+      "title": "Cannabis: Depenalizzare la coltivazione domestica di cannabis destinata all'uso personale.",
+      "summary": "Depenalizzare la coltivazione domestica di cannabis destinata all'uso personale.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "12"
+    },
+    {
+      "number": 18,
+      "identity_key": "nova-2027-sicurezza",
+      "title": "Sicurezza: Rafforzare la sicurezza nei quartieri attraverso interventi territoriali e politiche di prevenzione.",
+      "summary": "Rafforzare la sicurezza nei quartieri attraverso interventi territoriali e politiche di prevenzione.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "12"
+    },
+    {
+      "number": 19,
+      "identity_key": "nova-2027-politica-estera-e-difesa",
+      "title": "Politica estera e difesa: Opporsi all'aumento della spesa militare al 5% del PIL e al piano europeo di riarmo; promuovere una soluzione negoziale alla guerra in Ucraina anziché proseguire l'invio di armamenti.",
+      "summary": "Opporsi all'aumento della spesa militare al 5% del PIL e al piano europeo di riarmo; promuovere una soluzione negoziale alla guerra in Ucraina anziché proseguire l'invio di armamenti.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "16"
+    },
+    {
+      "number": 20,
+      "identity_key": "nova-2027-palestina",
+      "title": "Palestina: Sostenere il riconoscimento dello Stato di Palestina.",
+      "summary": "Sostenere il riconoscimento dello Stato di Palestina.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "19"
+    },
+    {
+      "number": 21,
+      "identity_key": "nova-2027-immigrazione",
+      "title": "Immigrazione: Superare il modello dei centri per migranti in Albania, istituire un Ministero delle politiche migratorie e dell'integrazione e introdurre lo ius scholae.",
+      "summary": "Superare il modello dei centri per migranti in Albania, istituire un Ministero delle politiche migratorie e dell'integrazione e introdurre lo ius scholae.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "9"
+    },
+    {
+      "number": 22,
+      "identity_key": "nova-2027-partecipazione-democratica",
+      "title": "Partecipazione democratica: Estendere il diritto di voto ai sedicenni e garantire il voto ai cittadini fuori sede in tutte le consultazioni elettorali.",
+      "summary": "Estendere il diritto di voto ai sedicenni e garantire il voto ai cittadini fuori sede in tutte le consultazioni elettorali.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "20"
+    },
+    {
+      "number": 23,
+      "identity_key": "nova-2027-diritti-civili",
+      "title": "Diritti civili: Introdurre il matrimonio egualitario, riconoscere le adozioni omogenitoriali e approvare una legge contro l'omolesbobitransfobia.",
+      "summary": "Introdurre il matrimonio egualitario, riconoscere le adozioni omogenitoriali e approvare una legge contro l'omolesbobitransfobia.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "2"
+    },
+    {
+      "number": 24,
+      "identity_key": "nova-2027-fine-vita",
+      "title": "Fine vita: Approvare una disciplina legislativa sul fine vita.",
+      "summary": "Approvare una disciplina legislativa sul fine vita.",
+      "proposal_type": "proposal",
+      "status": "announced",
+      "status_label": "Proposta per il 2027 (programma «Nova» del Movimento 5 Stelle)",
+      "introduced_at": "2026-09-18",
+      "actor_role": "proposer",
+      "url": "https://www.movimento5stelle.eu/nova-20-punti-una-alleanza-per-la-costituzione/",
+      "cap_topic_code": "2"
+    }
+  ],
+  "proceedings": [
+    {
+      "identity_key": "covid-val-seriana",
+      "title": "Inchiesta Covid-19: mancata zona rossa in Val Seriana (2020–2023)",
+      "proceeding_types": [
+        "investigation"
+      ],
+      "event_date": "2020-01-01",
+      "event_precision": "year",
+      "outcome": "archived",
+      "outcome_date": "2023-06-07",
+      "summary": "Giuseppe Conte è stato indagato dalla Procura di Bergamo per epidemia colposa e omicidio colposo plurimo, in relazione alla mancata istituzione della zona rossa nei comuni di Alzano Lombardo e Nembro durante la prima ondata di Covid-19.",
+      "outcome_summary": "Il 7 giugno 2023 il Tribunale dei ministri di Brescia ha archiviato la sua posizione perché il fatto non sussiste. Non è stato quindi rinviato a giudizio.",
+      "sources": [
+        {
+          "name": "RaiNews (TGR Lombardia)",
+          "kind": "news",
+          "url": "https://www.rainews.it/tgr/lombardia/articoli/2023/06/covid-giuseppe-conte-roberto-speranza-archiviazione-tribunale-ministri-8481eedf-5e7d-4d65-8f73-0b645c8cbe64.html"
+        }
+      ]
+    },
+    {
+      "identity_key": "denunce-emergenza-sanitaria",
+      "title": "Denunce sulla gestione dell'emergenza sanitaria (2020–2023)",
+      "proceeding_types": [
+        "judicial_proceeding"
+      ],
+      "event_date": "2020-01-01",
+      "event_precision": "year",
+      "outcome": "archived",
+      "outcome_date": "2023-03-08",
+      "summary": "Conte e alcuni ministri del suo governo sono stati destinatari di denunce riguardanti le decisioni adottate durante l'emergenza sanitaria.",
+      "outcome_summary": "L'8 marzo 2023 il Tribunale dei ministri di Roma ha disposto l'archiviazione delle posizioni esaminate, non ravvisando elementi sufficienti per procedere.",
+      "sources": [
+        {
+          "name": "Sky TG24",
+          "kind": "news",
+          "url": "https://tg24.sky.it/cronaca/2023/03/08/inchiesta-covid-tribunale-ministri-archiviazione-conte-speranza"
+        }
+      ]
+    },
+    {
+      "identity_key": "consulenze-acqua-marcia",
+      "title": "Consulenze legali per il gruppo Acqua Marcia (2021–2022)",
+      "proceeding_types": [
+        "investigation"
+      ],
+      "event_date": "2022-02-01",
+      "event_precision": "month",
+      "outcome": "unknown",
+      "outcome_date": null,
+      "summary": "Nel febbraio 2022 la Guardia di Finanza ha acquisito documentazione presso l'abitazione di Conte e lo studio del professor Guido Alpa, nell'ambito di accertamenti della Procura di Roma sulle consulenze legali per il gruppo Acqua Marcia. Secondo le notizie dell'epoca, il fascicolo risultava senza indagati.",
+      "outcome_summary": "Non è stato accertato un successivo procedimento penale nei confronti di Conte.",
+      "sources": [
+        {
+          "name": "Il Fatto Quotidiano",
+          "kind": "news",
+          "url": "https://www.ilfattoquotidiano.it/2022/02/02/domani-la-finanza-a-casa-di-conte-e-nello-studio-di-alpa-per-acquisire-documenti-sulle-consulenze-per-il-gruppo-acqua-marcia/6477502/"
+        }
+      ]
+    },
+    {
+      "identity_key": "commissione-covid",
+      "title": "Commissione parlamentare d'inchiesta sulla gestione del Covid-19 (2024–2026)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2026-08-06",
+      "event_precision": "day",
+      "outcome": "ongoing",
+      "outcome_date": null,
+      "summary": "La Commissione parlamentare d'inchiesta sulla gestione dell'emergenza Covid-19 ha esaminato le decisioni adottate durante la pandemia. Il 6 agosto 2026 Conte è stato ascoltato in qualità di ex presidente del Consiglio.",
+      "outcome_summary": "L'audizione rientra nell'attività di controllo parlamentare e non costituisce un procedimento penale.",
+      "sources": [
+        {
+          "name": "Senato della Repubblica — Resoconto della Commissione",
+          "kind": "official",
+          "url": "https://www.senato.it/show-doc?id=1518815&leg=19&part=doc_dc-sedetit_pi-genbl_addgcgpdcdm&tipodoc=SommComm"
+        }
+      ]
+    },
+    {
+      "identity_key": "superbonus",
+      "title": "Superbonus 110% e impatto sui conti pubblici (2020–2026)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2020-05-19",
+      "event_precision": "day",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "Il Superbonus 110%, introdotto durante il governo Conte II, ha suscitato controversie per il costo delle agevolazioni fiscali, gli effetti sui conti pubblici e le frodi emerse nel sistema dei bonus edilizi. Conte ha difeso il provvedimento sostenendone gli effetti positivi sull'economia, sull'occupazione e sull'efficienza energetica.",
+      "outcome_summary": "La controversia riguarda le scelte economiche del suo governo e non implica, di per sé, responsabilità penali personali.",
+      "sources": [
+        {
+          "name": "Normattiva — D.L. 34/2020",
+          "kind": "official",
+          "url": "https://www.normattiva.it/eli/id/2020/05/19/20G00052/CONSOLIDATED"
+        }
+      ]
+    },
+    {
+      "identity_key": "mes-giuri-onore",
+      "title": "Riforma del MES e scontro con Giorgia Meloni (2020–2024)",
+      "proceeding_types": [
+        "political_controversy"
+      ],
+      "event_date": "2023-12-01",
+      "event_precision": "month",
+      "outcome": null,
+      "outcome_date": null,
+      "summary": "Nel dicembre 2023 Giorgia Meloni ha contestato le modalità con cui il governo Conte II aveva gestito la riforma del Meccanismo europeo di stabilità (MES), sostenendo che il Parlamento non fosse stato adeguatamente coinvolto. Conte ha respinto le accuse e richiesto l'istituzione di un Giurì d'onore parlamentare, la cui costituzione è stata accolta dal presidente della Camera, Lorenzo Fontana.",
+      "outcome_summary": "La vicenda riguarda uno scontro politico-istituzionale, non un procedimento penale.",
+      "sources": [
+        {
+          "name": "ANSA",
+          "kind": "news",
+          "url": "https://www.ansa.it/sito/notizie/politica/2023/12/28/fontana-giuri-donore-chiesto-da-conte-su-meloni-si-fara_8fd2bdfb-da51-40e6-825d-75d379eccc23.html"
+        }
+      ]
+    }
+  ],
+  "not_imported": [
+    {
+      "section": "2. Cosa ha fatto — Principali iniziative politiche e legislative",
+      "items": [
+        "Reddito di cittadinanza (2019)",
+        "Quota 100 (2019)",
+        "Riduzione del numero dei parlamentari (2019–2020)",
+        "Gestione dell'emergenza COVID-19 (2020–2021)",
+        "Superbonus 110% (2020)",
+        "Next Generation EU e PNRR (2020–2021)",
+        "Riorganizzazione del Movimento 5 Stelle (2021–2025)"
+      ],
+      "reason": "Il modello dati non ha un tipo «iniziativa»: tre voci coincidono con le promesse 1, 2 e 11, il Superbonus è già nei procedimenti, le altre non hanno una fonte nella scheda."
+    }
+  ],
+  "editorial_issues": [
+    "Cronologia incarichi (sezione 2): la scheda non indica fonti. Ho collegato la scheda attività del Senato (citata nell'anagrafica) solo agli incarichi di governo; gli altri restano senza fonte e non sono pubblicabili finché la redazione non la aggiunge.",
+    "Promesse 1–7, 11, 12, 14–16, 20, 23, 24: la scheda cita la legge che le attua, non la dichiarazione. Come data e fonte della dichiarazione uso il programma del governo (contratto del 18/05/2018 per Conte I, dichiarazioni programmatiche del 09/09/2019 per Conte II): da confermare.",
+    "Promesse 16 e 23 («obiettivo realizzato dopo il mandato»): stato non previsto dalla metodologia; il verdetto resta da decidere.",
+    "Le promesse del contratto M5S–Lega (2018) sono attribuite a Conte, che non ne era firmatario: confermare l'attribuzione.",
+    "Le 24 proposte per il 2027 sono il programma «Nova» votato dagli iscritti M5S: le attribuisco a Conte come proponente; valutare se attribuirle al partito."
+  ]
+}

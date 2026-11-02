@@ -48,6 +48,7 @@ from backend.app.services.proposal_review_service import (
     ProposalReviewService,
     ProposalReviewServiceError,
 )
+from backend.app.services.redazione.service import RedazioneService
 from backend.app.storage import StorageError
 
 
@@ -506,11 +507,11 @@ def _page(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b0b0c" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0F2747" />
     <title>{escape(title)}</title>
     <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/demo/styles.css?v=glass-1" />
+    <link rel="stylesheet" href="/demo/styles.css?v=cambridge-1" />
   </head>
   <body>
     <div class="page-shell">
@@ -524,11 +525,9 @@ def _page(
         </a>
         <div class="status-cluster">
           <nav class="demo-local-nav" aria-label="Local demo shortcuts">
-            <a href="/app/">Citizen app</a>
-            <a href="/demo/video">Recording guide</a>
-            <a href="/demo/ai-upload">AI demo</a>
-            <a href="/demo/pledge-review">Pledge review</a>
-            <a href="/demo/profile-review">Profile review</a>
+            <a href="/app/">Sito pubblico</a>
+            <a href="/redazione/">Redazione</a>
+            <a href="/demo/ai-upload">Bozza AI da documento</a>
           </nav>
           <span class="mode-pill">{escape(mode_label)}</span>
         </div>
@@ -812,48 +811,6 @@ def _render_draft(
     )
 
 
-@router.get("/video", response_class=HTMLResponse)
-def video_recording_guide() -> HTMLResponse:
-    body = """
-        <section class="hero">
-          <div>
-            <p class="eyebrow">Local recording only</p>
-            <h1>CEO demo recording shortcuts</h1>
-            <p class="hero-copy">
-              These links exist only on the local demo. They are not part of the
-              public citizen archive. Approval stays a manual human step.
-            </p>
-          </div>
-        </section>
-        <section class="card proposal-review-card">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Open in order</p>
-              <h2>Storyboard pages</h2>
-            </div>
-          </div>
-          <div class="card-body">
-            <ol class="recording-links">
-              <li><a href="/app/">Citizen app</a> — search, politicians, proposals, territories</li>
-              <li><a href="/app/?view=search&amp;q=Sbrollini">Politician example</a> — search Daniela Sbrollini</li>
-              <li><a href="/app/?politician=26">Daniela Sbrollini profile</a> — published official profile</li>
-              <li><a href="/app/?view=search&amp;q=Milano&amp;type=municipality">Milano search</a></li>
-              <li><a href="/app/?municipality=1772">Milano</a> — ISTAT municipality page</li>
-              <li><a href="/app/?view=proposals">Published proposals</a></li>
-              <li><a href="/app/?proposal=97">Published proposal example</a> — budget assestamento 2026</li>
-              <li><a href="/demo/ai-upload">AI demo</a> — real local extraction, unpublished draft</li>
-            </ol>
-            <p class="hero-copy">Follow <code>docs/CEO_DEMO_VIDEO.md</code>. Do not auto-approve. Do not open <code>/demo/</code> — that is a different synthetic editorial walkthrough.</p>
-          </div>
-        </section>
-    """
-    return _page(
-        body,
-        title="CEO demo recording shortcuts",
-        mode_label=LOCAL_MODE_LABEL,
-    )
-
-
 @router.get("/ai-upload", response_class=HTMLResponse)
 def upload_page(
     settings: Annotated[Settings, Depends(get_api_settings)],
@@ -1073,11 +1030,23 @@ def _finalize(
     reviewer = settings.admin_reviewer_identity
     try:
         if action == "approve":
-            service.approve(draft_id, reviewer=reviewer, note=note)
+            result = service.approve(draft_id, reviewer=reviewer, note=note)
             message = "Approved and published. Citizen view still hides internal AI metadata."
         else:
-            service.reject(draft_id, reviewer=reviewer, note=note)
+            result = service.reject(draft_id, reviewer=reviewer, note=note)
             message = "Rejected. The draft remains unpublished."
+        # Same append-only log as the redazione console.
+        RedazioneService(session_factory).log(
+            actor=reviewer,
+            action="approvazione" if action == "approve" else "rifiuto",
+            object_kind="proposal",
+            object_id=draft_id,
+            summary=(
+                f"{'Pubblicata' if action == 'approve' else 'Respinta'} la bozza AI {draft_id} "
+                f"(proposta {result.proposal_id}) dalla pagina «Bozza AI da documento»."
+            ),
+            details={"note": note},
+        )
     except ProposalDraftNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ProposalReviewServiceError as exc:

@@ -71,10 +71,38 @@ Publication rules:
 * a draft dated before the currently published verdict cannot be published;
 * `PledgeAssessment` rows are append-only; the current verdict is the latest row.
 
-> **Current limitation.** The admin API uses one shared bearer credential. The
-> `reviewer` / `coder` name sent with an approval or audit code is recorded as
-> `<credential identity>/<name>` and is an attestation, not an authenticated
-> identity. Real four-eyes control requires per-user editorial accounts.
+### 2.1 Verdicts assigned by the redazione (`/redazione`)
+
+The redazione console is where editors assign a status to a promise. Each
+member signs in with their own token (`VERAPOLITICA_REDAZIONE_MEMBERS`), so the
+names in `approved_by` are authenticated identities, not attestations. On top
+of the rules above, the console enforces the "Modelli di scrittura":
+
+* **a promise is tracked only with a date and a source link** to the page that
+  reports the declaration (home and section pages are refused);
+* **a promise must be classified before it gets a status**: unclassified
+  promises are not in the scorecard (`unclassified_pledges`), so the verifier
+  fills the classification when approving a promise that has none;
+* **the author never approves their own work**, not even as the second
+  approver of a `broken` verdict (stricter than the service rule above).
+  `broken` therefore needs two members other than the author;
+* **`broken` needs a reason**: the declared deadline passed without result
+  (the deadline must precede the date of the fact), the mandate ended, or an
+  explicit renunciation. The reason is prefixed to the rationale the citizen
+  reads;
+* **the excerpt is the passage copied from the source** (news agency,
+  institutional page, Gazzetta Ufficiale). It is stored with its URL as a
+  `RawDocument` (`collector_version = redazione/v1`), so it is verbatim in a
+  stored document; that the page really says it is what the second member
+  checks before approving. Unlike the evidence matcher, editors may cite
+  agencies and newspapers, as the writing models require;
+* re-classifying a published promise and withdrawing published profile
+  content are change requests that another member approves;
+* every write, approval, rejection, withdrawal and status assignment is a row
+  in the append-only `editorial_log_entries` table (the "Registro modifiche").
+
+The admin API (`/admin/*`) and the CLI scripts still use one shared operator
+credential; they are operator tools, not the editorial workflow.
 
 ## 3. Evidence matching (job `pledge-evidence`, matcher `pledge-evidence/v2`)
 
@@ -125,6 +153,31 @@ with three corrections:
 Presentation order (Naurin 2011, voters underestimate kept pledges): the API
 returns the list of pledges, then each stratum's composition, then the rate.
 The public scorecard links to `/methodology/scoring`.
+
+### 4.1 Party scorecard (`/political-parties/{id}/scorecard`)
+
+A party score is **not** an average of its members' rates. Averaging gives a
+member with two closed pledges the same weight as one with forty and hides how
+little evidence sits behind the number. Instead the party's pledges are pooled
+and the ordinary scorer above runs on the pooled counts, stratum by stratum, so
+the same intervals and the same 8-pledge minimum apply. Pooling is a weighted
+mean of member rates with weights equal to closed pledges.
+
+A pledge counts for a party when the party is a `commitment_owner`, or when a
+published politician is the `commitment_owner` and was affiliated with the
+party on the pledge date (`introduced_at`, else the classification's
+`mandate_start`). Member pledges without a usable date are not attributed and
+are reported as `unattributed_member_pledges`. Each pledge counts once.
+
+`window=current` keeps pledges whose mandate window contains `as_of` ("attuale");
+`window=all` keeps every pledge ("storica").
+
+### 4.2 Comparison (`/compare/politicians?ids=…&role=…`)
+
+Comparison requires one role and returns each person's stratum for that role
+only; there is no cross-role ranking. The response says whether the credible
+intervals overlap; when they do, the public page states that the difference is
+not distinguishable with the data available.
 
 ## 5. Validation
 

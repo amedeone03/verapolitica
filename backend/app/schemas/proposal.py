@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 from backend.app.models import (
+    ProposalTagKind,
     ProposalActorRole,
     ProposalActorType,
     ProposalDraftKind,
@@ -14,6 +15,7 @@ from backend.app.models import (
     ProposalType,
 )
 from backend.app.schemas.candidate_profile import ImmutableSchema
+from backend.app.scoring.types import FulfillmentVerdict
 from backend.app.schemas.ai_extraction import (
     AbstentionReason,
     ModelConfidence,
@@ -242,6 +244,17 @@ class PublicProposalStatusEvent(ImmutableSchema):
     source: PublicProposalSource
 
 
+class PublicProposalTag(ImmutableSchema):
+    kind: ProposalTagKind
+    value: str
+    label: str
+
+
+class ProposalTagsRequest(ImmutableSchema):
+    topics: tuple[str, ...] = Field(default=(), max_length=5)
+    dossiers: tuple[str, ...] = Field(default=(), max_length=5)
+
+
 class PublicProposalSummary(ImmutableSchema):
     id: int = Field(gt=0)
     title: str
@@ -250,6 +263,9 @@ class PublicProposalSummary(ImmutableSchema):
     current_status: ProposalStatus
     actors: tuple[PublicProposalActor, ...]
     source: PublicProposalSource
+    tags: tuple[PublicProposalTag, ...] = ()
+    # Explicit promises only: the latest published assessment, or not_yet_rated.
+    verdict: FulfillmentVerdict | None = None
 
 
 class PublicProposal(PublicProposalSummary):

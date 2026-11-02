@@ -1,7 +1,11 @@
+from collections.abc import Sequence
+from datetime import date
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
+    PledgeAssessment,
     Politician,
     PoliticianVersion,
     Proposal,
@@ -12,6 +16,8 @@ from backend.app.models import (
     ProposalType,
     Source,
 )
+from backend.app.scoring.types import FulfillmentVerdict
+from backend.app.services.proposal_tag_service import filter_by_tags, tags_for
 from backend.app.services.official_source_display import (
     citizen_source_label,
     citizen_source_url,
@@ -24,6 +30,7 @@ from backend.app.schemas import (
     PublicProposalSource,
     PublicProposalStatusEvent,
     PublicProposalSummary,
+    PublicProposalTag,
 )
 
 
@@ -42,11 +49,29 @@ class PublicProposalQueryService:
         proposal_type: ProposalType | None = None,
         politician_id: int | None = None,
         source_key: str | None = None,
+        topic: str | None = None,
+        dossier: str | None = None,
+        introduced_from: date | None = None,
+        introduced_to: date | None = None,
     ) -> PublicProposalList:
-        query = select(Proposal).where(Proposal.published_at.is_not(None))
-        count_query = select(func.count(func.distinct(Proposal.id))).where(
-            Proposal.published_at.is_not(None)
+        query = filter_by_tags(
+            select(Proposal).where(Proposal.published_at.is_not(None)),
+            topic=topic,
+            dossier=dossier,
         )
+        count_query = filter_by_tags(
+            select(func.count(func.distinct(Proposal.id))).where(
+                Proposal.published_at.is_not(None)
+            ),
+            topic=topic,
+            dossier=dossier,
+        )
+        if introduced_from is not None:
+            query = query.where(Proposal.introduced_at >= introduced_from)
+            count_query = count_query.where(Proposal.introduced_at >= introduced_from)
+        if introduced_to is not None:
+            query = query.where(Proposal.introduced_at <= introduced_to)
+            count_query = count_query.where(Proposal.introduced_at <= introduced_to)
         if proposal_status is not None:
             query = query.where(Proposal.current_status == proposal_status)
             count_query = count_query.where(Proposal.current_status == proposal_status)
@@ -81,8 +106,14 @@ class PublicProposalQueryService:
                 .limit(limit)
             )
         )
+        ids = [proposal.id for proposal in proposals]
+        tags = tags_for(self.session, ids)
+        verdicts = self._verdicts(proposals)
         return PublicProposalList(
-            items=tuple(self._summary(proposal) for proposal in proposals),
+            items=tuple(
+                self._summary(proposal, tags.get(proposal.id, ()), verdicts.get(proposal.id))
+                for proposal in proposals
+            ),
             total=self.session.scalar(count_query) or 0,
             offset=offset,
             limit=limit,
@@ -97,7 +128,11 @@ class PublicProposalQueryService:
         )
         if proposal is None or proposal.published_at is None:
             return None
-        summary = self._summary(proposal)
+        summary = self._summary(
+            proposal,
+            tags_for(self.session, [proposal.id])[proposal.id],
+            self._verdicts([proposal]).get(proposal.id),
+        )
         history = tuple(
             PublicProposalStatusEvent(
                 status=event.normalized_status,
@@ -166,7 +201,27 @@ class PublicProposalQueryService:
             if proposal.current_status is not None
         )
 
-    def _summary(self, proposal: Proposal) -> PublicProposalSummary:
+    def _verdicts(self, proposals: "Sequence[Proposal]") -> dict[int, FulfillmentVerdict]:
+        """Latest published assessment of each explicit promise (append-only log)."""
+
+        ids = [p.id for p in proposals if p.proposal_type == ProposalType.EXPLICIT_PROMISE]
+        if not ids:
+            return {}
+        verdicts = {proposal_id: FulfillmentVerdict.NOT_YET_RATED for proposal_id in ids}
+        for proposal_id, verdict in self.session.execute(
+            select(PledgeAssessment.proposal_id, PledgeAssessment.verdict)
+            .where(PledgeAssessment.proposal_id.in_(ids))
+            .order_by(PledgeAssessment.proposal_id, PledgeAssessment.created_at, PledgeAssessment.id)
+        ):
+            verdicts[proposal_id] = verdict
+        return verdicts
+
+    def _summary(
+        self,
+        proposal: Proposal,
+        tags: tuple[PublicProposalTag, ...] = (),
+        verdict: FulfillmentVerdict | None = None,
+    ) -> PublicProposalSummary:
         if proposal.current_status is None:
             raise ValueError("published proposal is missing a current status")
         identifier, source = self.session.execute(
@@ -191,6 +246,8 @@ class PublicProposalQueryService:
             introduced_at=proposal.introduced_at,
             current_status=proposal.current_status,
             actors=actors,
+            tags=tags,
+            verdict=verdict,
             source=PublicProposalSource(
                 name=citizen_source_label(source.name),
                 url=citizen_source_url(

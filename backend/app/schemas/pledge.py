@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -211,6 +212,69 @@ class PublicScorecard(_Frozen):
     min_closed_for_rate: int
     mandate_progress: MandateProgressResponse | None
     strata: tuple[ScorecardStratumResponse, ...]
+
+
+class ScorecardWindow(StrEnum):
+    """``current``: pledges whose mandate window contains ``as_of``. ``all``: every pledge."""
+
+    CURRENT = "current"
+    ALL = "all"
+
+
+class PledgeAttribution(StrEnum):
+    PARTY = "party"
+    MEMBER = "member"
+
+
+class PartyScorecardPledge(PublicScorecardPledge):
+    attribution: PledgeAttribution
+    member_politician_id: int | None = None
+
+
+class PartyContributor(_Frozen):
+    politician_id: int
+    name: str
+    pledges: int
+
+
+class PublicPartyScorecard(_Frozen):
+    """Pooled counts per role stratum; never an average of member rates."""
+
+    political_party_id: int
+    name: str
+    window: ScorecardWindow
+    methodology_version: str
+    methodology_url: str
+    aggregation: str
+    as_of: date
+    pledges: tuple[PartyScorecardPledge, ...]
+    contributors: tuple[PartyContributor, ...]
+    unattributed_member_pledges: int
+    tracked_pledges: int
+    unclassified_pledges: int
+    excluded_vague_pledges: int
+    credible_level: float
+    min_closed_for_rate: int
+    strata: tuple[ScorecardStratumResponse, ...]
+
+
+class ComparisonEntry(_Frozen):
+    politician_id: int
+    name: str
+    stratum: ScorecardStratumResponse | None
+
+
+class PublicComparison(_Frozen):
+    """Comparison is only defined inside one role stratum."""
+
+    role: HolderRole
+    methodology_version: str
+    methodology_url: str
+    as_of: date
+    credible_level: float
+    min_closed_for_rate: int
+    entries: tuple[ComparisonEntry, ...]
+    overlapping_intervals: bool
 
 
 class AuditSampleRequest(_Frozen):

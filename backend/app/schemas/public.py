@@ -20,6 +20,15 @@ class PublicCitation(ImmutableSchema):
     source_field: str | None = None
 
 
+class PublicPartyMark(ImmutableSchema):
+    """The party of a current, source-supported affiliation (logo once approved)."""
+
+    id: int
+    name: str
+    abbreviation: str | None = None
+    logo_url: str | None = None
+
+
 class PublicPoliticianSummary(ImmutableSchema):
     id: int = Field(gt=0)
     given_name: str
@@ -30,6 +39,7 @@ class PublicPoliticianSummary(ImmutableSchema):
     published_at: datetime
     profile: PoliticianVersionProfile
     citation_count: int = Field(ge=0)
+    current_party: PublicPartyMark | None = None
 
 
 class PublicParliamentaryGroupSource(ImmutableSchema):
@@ -63,6 +73,21 @@ class PublicPoliticalPartyAffiliation(ImmutableSchema):
     source: PublicPoliticalPartySource
 
 
+class PublicRelatedPost(ImmutableSchema):
+    id: int
+    title: str
+    published_on: date | None = None
+
+
+class PublicEditorialInfo(ImmutableSchema):
+    """Rule 8 of the "Modelli di scrittura": date, writers and verifiers."""
+
+    updated_at: datetime | None = None
+    written_by: tuple[str, ...] = ()
+    verified_by: tuple[str, ...] = ()
+    related_posts: tuple[PublicRelatedPost, ...] = ()
+
+
 class PublicPolitician(PublicPoliticianSummary):
     citations: tuple[PublicCitation, ...]
     parliamentary_groups: tuple[PublicParliamentaryGroupMembership, ...] = ()
@@ -73,6 +98,7 @@ class PublicPolitician(PublicPoliticianSummary):
     career_entries: tuple[PublicCareerEntry, ...] = ()
     positions: tuple[PublicPosition, ...] = ()
     proceedings: tuple[PublicProceeding, ...] = ()
+    editorial: PublicEditorialInfo | None = None
 
 
 class PublicPoliticianList(ImmutableSchema):
@@ -100,6 +126,7 @@ class PublicRegionSummary(ImmutableSchema):
     name: str
     status: str
     current_president: PublicOfficeHolder | None = None
+    logo_url: str | None = None
 
 
 class PublicRegion(PublicRegionSummary):

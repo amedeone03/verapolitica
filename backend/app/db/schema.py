@@ -60,6 +60,29 @@ def prepare_sqlite_schema(engine: Engine) -> None:
     """Create missing tables for lightweight SQLite test/demo/local use."""
 
     Base.metadata.create_all(engine)
+    _add_missing_sqlite_columns(engine)
+    # Migrations seed the legislature reference table; create_all does not.
+    from backend.app.services.archive_service import ArchiveService
+    from sqlalchemy.orm import sessionmaker
+
+    ArchiveService(sessionmaker(engine, expire_on_commit=False)).load_legislature_fixture()
+
+
+# Columns added to existing tables after a local demo database was built.
+# create_all creates missing tables but never alters existing ones.
+_LATE_SQLITE_COLUMNS = (("editorial_posts", "blocks", "JSON"),)
+
+
+def _add_missing_sqlite_columns(engine: Engine) -> None:
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    with engine.begin() as connection:
+        for table, column, sql_type in _LATE_SQLITE_COLUMNS:
+            if table not in tables:
+                continue
+            names = {item["name"] for item in inspector.get_columns(table)}
+            if column not in names:
+                connection.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
 
 
 def prepare_runtime_schema(engine: Engine, settings: Settings) -> None:

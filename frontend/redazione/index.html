@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0F2747" />
+    <title>Redazione — VeraPolitica</title>
+    <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/app/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/app/feed-card.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#view">Vai al contenuto</a>
+    <header class="console-bar">
+      <div class="console-bar-inner">
+        <a class="console-brand" href="#/coda">
+          <img src="/app/favicon.svg" alt="" width="30" height="30" />
+          <span>VeraPolitica <small>Redazione</small></span>
+        </a>
+        <nav class="console-nav" id="console-nav" aria-label="Sezioni della redazione" hidden>
+          <a href="#/coda" data-section="coda">Da verificare <span class="count" id="queue-count" hidden></span></a>
+          <a href="#/politici" data-section="politici">Politici</a>
+          <a href="#/notizie" data-section="notizie">Notizie</a>
+          <a href="#/simboli" data-section="simboli">Partiti e territori</a>
+          <a href="#/registro" data-section="registro">Registro modifiche</a>
+          <a href="#/regole" data-section="regole">Regole</a>
+        </nav>
+        <div class="console-user" id="console-user" hidden>
+          <span>Accesso: <strong id="member-name"></strong></span>
+          <a href="/app/" target="_blank" rel="noopener">Vedi il sito</a>
+          <button type="button" id="sign-out">Esci</button>
+        </div>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"></main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
