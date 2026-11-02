@@ -11,6 +11,7 @@ _PRODUCTION = {
     "env": AppEnvironment.PRODUCTION,
     "database_url": "postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
     "admin_api_key": "a-sufficiently-long-admin-token",
+    "session_secret": "a-sufficiently-long-session-secret",
     "cors_origins": "https://verapolitica.it",
     "trusted_hosts": "verapolitica.it",
     "public_base_url": "https://verapolitica.it",
@@ -101,6 +102,20 @@ def test_production_rejects_demo_ui_and_placeholder_admin_key():
             **{
                 **_PRODUCTION,
                 "admin_api_key": "replace-with-a-long-random-secret",
+            }
+        )
+
+
+def test_production_requires_session_secret():
+    with pytest.raises((ProductionConfigError, ValidationError), match="SESSION_SECRET"):
+        Settings(**{**_PRODUCTION, "session_secret": None})
+    with pytest.raises((ProductionConfigError, ValidationError), match="SESSION_SECRET"):
+        Settings(**{**_PRODUCTION, "session_secret": "short"})
+    with pytest.raises((ProductionConfigError, ValidationError), match="SESSION_SECRET"):
+        Settings(
+            **{
+                **_PRODUCTION,
+                "session_secret": "a-sufficiently-long-admin-token",
             }
         )
 

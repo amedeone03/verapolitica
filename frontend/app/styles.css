@@ -906,7 +906,12 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .welcome-line { margin: 0; color: rgba(255, 255, 255, .78); font-size: 1.0625rem; }
 .welcome-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(440px, 100%); margin: 0 auto; }
 .welcome-actions .gate-pill { padding: 0 16px; }
+.welcome-actions .gate-pill.is-wide { grid-column: 1 / -1; }
 .welcome-note { margin: 14px 0 0; color: rgba(255, 255, 255, .6); font-size: .8125rem; }
+.acc-form { width: min(440px, 100%); margin: 24px auto 0; text-align: left; }
+.acc-submit { width: 100%; margin-top: 28px; }
+.acc-switch { border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.ob-input.is-compact { margin-top: 6px; font-size: 1.125rem; font-weight: 600; }
 
 .ob { display: grid; grid-template-rows: auto 1fr auto; min-height: 100%; transition: background-color 400ms ease; }
 .ob.tone-navy { background: var(--color-primary); }

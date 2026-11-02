@@ -38,6 +38,9 @@ DEMO_REDAZIONE_MEMBERS: dict[str, str] = {
     "demo-caporedattore": "Caporedattore demo",
 }
 
+# Used only when VERAPOLITICA_SESSION_SECRET is blank outside production.
+_DEV_SESSION_SECRET = "dev-session-secret-not-for-production-use!!"
+
 _DEMO_STORAGE_MARKERS = ("/ceo_demo/", "/unified_demo/", "/data/demo/")
 
 
@@ -109,6 +112,9 @@ class Settings(BaseSettings):
     # Redazione members: "Nome Cognome=token;Nome Cognome=token". Each member
     # signs in with their own token, so the log knows who wrote and who verified.
     redazione_members: SecretStr | None = None
+    # Signs citizen session cookies. Required in production; a local fallback
+    # is used only outside production when this is blank.
+    session_secret: SecretStr | None = None
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_api_key: SecretStr | None = None
@@ -237,6 +243,13 @@ class Settings(BaseSettings):
         return bool(key)
 
     @property
+    def session_signing_key(self) -> str:
+        raw = self.session_secret.get_secret_value() if self.session_secret else ""
+        if raw.strip():
+            return raw.strip()
+        return "" if self.is_production else _DEV_SESSION_SECRET
+
+    @property
     def redazione_member_tokens(self) -> dict[str, str]:
         """Token -> member name. Local demos get three documented demo members."""
 
@@ -311,6 +324,16 @@ class Settings(BaseSettings):
             )
         if self.enable_demo_ui is True:
             errors.append("production must not enable VERAPOLITICA_ENABLE_DEMO_UI")
+        session = self.session_secret.get_secret_value() if self.session_secret else ""
+        if (
+            len(session) < 32
+            or session.casefold() in _WEAK_ADMIN_KEYS
+            or session == _DEV_SESSION_SECRET
+            or (key and session == key)
+        ):
+            errors.append(
+                "production requires VERAPOLITICA_SESSION_SECRET of at least 32 characters"
+            )
         for token in self.redazione_member_tokens:
             if len(token) < 24 or token in DEMO_REDAZIONE_MEMBERS:
                 errors.append(

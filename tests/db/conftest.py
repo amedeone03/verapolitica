@@ -80,6 +80,7 @@ EXPECTED_TABLES = frozenset(
         "editorial_posts",
         "legislatures",
         "historical_parliament_mandates",
+        "civic_accounts",
     }
 )
 

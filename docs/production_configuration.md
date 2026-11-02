@@ -5,8 +5,9 @@ It is not a deployment runbook. Copy `.env.production.example` to a gitignored
 `.env.production` (or export the same names in the process environment) and fill
 in real values when the server is available.
 
-All application settings use the `VERAPOLITICA_` prefix. There is no separate
-`SECRET_KEY`; admin authentication is `VERAPOLITICA_ADMIN_API_KEY`.
+All application settings use the `VERAPOLITICA_` prefix. Admin authentication
+is `VERAPOLITICA_ADMIN_API_KEY`. Citizen session cookies are signed with
+`VERAPOLITICA_SESSION_SECRET`. Do not reuse one secret for the other.
 
 Local development continues to use `.env.example`. Demo launchers use
 gitignored `.env.unified-demo` / `.env.ceo-demo` and must not be copied to the
@@ -23,6 +24,8 @@ required values raise `ProductionConfigError` at process start.
 | `VERAPOLITICA_PUBLIC_BASE_URL` | `https://example.com` | production validator; public site origin | Absolute `http(s)` URL. Its origin must appear in CORS and its host in trusted hosts. Prefer HTTPS. |
 | `VERAPOLITICA_DATABASE_URL` | `postgresql+psycopg://USER:PASSWORD@HOST:5432/verapolitica` | SQLAlchemy, Alembic, jobs | PostgreSQL required. `postgres://` and `postgresql://` are rewritten to `postgresql+psycopg://`. SQLite is rejected. Alembic owns schema: run `alembic upgrade head` on a fresh or existing database before web start; never rely on `create_all`. Backup first. |
 | `VERAPOLITICA_ADMIN_API_KEY` | long random string, 24+ characters | `/admin/*` Bearer auth | Required. Short, well-known, demo, CI, and documentation placeholder values are rejected. Never commit the real value. |
+| `VERAPOLITICA_SESSION_SECRET` | long random string, 32+ characters | `/auth/*` signed HttpOnly cookie | Required. Signs citizen sessions. Must not be the admin key, a demo placeholder, or shorter than 32 characters. |
+| `VERAPOLITICA_REDAZIONE_MEMBERS` | `Nome Cognome=token;…` | `/redazione` console | Optional to boot, but the console stays closed until set. Production tokens must be 24+ characters and not the documented demo tokens. At least two members are needed for dual approval. |
 | `VERAPOLITICA_CORS_ORIGINS` | `https://example.com` | FastAPI CORS middleware | Comma-separated allowlist. `*` is rejected. Must include the public base URL origin. |
 | `VERAPOLITICA_TRUSTED_HOSTS` | `example.com,www.example.com` | TrustedHost middleware | Comma-separated allowlist. `*` is rejected. Must include the public base URL host. |
 | `VERAPOLITICA_RAW_STORAGE_PATH` | `/var/lib/verapolitica/raw` | collectors, provenance artifacts | Absolute path on a persistent volume. Relative paths and demo trees (`ceo_demo`, `unified_demo`, `data/demo`) are rejected. |
@@ -140,4 +143,5 @@ These have public institutional defaults and are optional to override.
 - Demo UI is off and cannot be turned on.
 - API docs are off unless explicitly enabled.
 - CORS and hosts are explicit allowlists; wildcards fail startup.
-- SQLite, relative demo storage paths, and weak admin keys fail startup.
+- SQLite, relative demo storage paths, weak admin keys, and a missing or weak
+  session secret fail startup.

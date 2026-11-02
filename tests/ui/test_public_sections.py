@@ -23,9 +23,10 @@ def test_bottom_bar_and_header():
     assert 'id="feed-choice"' in html and 'class="feed-timeline"' in html
     home = html.split('id="home-view"')[1].split("</section>")[0]
     assert "shortcut-grid" not in home and "home-hero" not in home
-    assert "Salvato solo su questo dispositivo." in html
-    # Demo is read-only; registration builds the reader's "Per te" on this device.
+    assert "Il tuo profilo." in html
+    # Guest consult is read-only; registration/login build the reader's Per te.
     assert 'id="profile-demo"' in html and 'href="./?view=registrati"' in html
+    assert 'href="./?view=accedi"' in html
     assert "trust-line" not in html
 
 
@@ -34,7 +35,7 @@ def test_routes_and_privacy_of_the_reader_profile():
     for route in ('view === "politics"', 'view === "history"', 'view === "profile"', 'view === "compare"',
                   "showLegislature(api", "showTerritoryHistory(api", "showParty(api", "showPost(api"):
         assert route in script
-    assert "showHome(api);\n}" in script
+    assert "showHome(api);" in script and "start();" in script
     # Zone and favourites stay in browser storage, wrapped so private mode still works.
     assert 'const PROFILE_KEY = "verapolitica.profile.v1"' in script
     assert "storage?.setItem(PROFILE_KEY" in script

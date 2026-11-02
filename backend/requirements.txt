@@ -1,4 +1,5 @@
 alembic==1.16.5
+argon2-cffi==25.1.0
 annotated-doc==0.0.5
 APScheduler==3.10.4
 annotated-types==0.8.0
@@ -8,6 +9,7 @@ click==8.5.0
 fastapi==0.142.2
 h11==0.16.0
 httpcore==1.0.9
+itsdangerous==2.2.0
 httpx==0.28.1
 idna==3.20
 iniconfig==2.3.0

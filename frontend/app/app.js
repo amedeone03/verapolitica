@@ -1,5 +1,5 @@
 import { bindFeedCards, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
-import { renderWelcome, runOnboarding } from "./onboarding.js";
+import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -1678,6 +1678,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        credentials: "include",
         ...(signal ? { signal } : {}),
       });
     } catch (error) {
@@ -1685,8 +1686,18 @@ export function createPublicApiClient(fetchImpl = fetch) {
       throw new Error("api_unavailable");
     }
     if (!response.ok) {
+      let detail = "";
+      try {
+        const payload = await response.json();
+        detail = typeof payload?.detail === "string"
+          ? payload.detail
+          : typeof payload?.error?.message === "string"
+            ? payload.error.message
+            : "";
+      } catch { /* no JSON body */ }
       const error = new Error(response.status === 404 ? "not_found" : response.status === 422 ? "invalid_question" : "api_error");
       error.status = response.status;
+      error.detail = detail;
       throw error;
     }
     return response.json();
@@ -1762,6 +1773,18 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getVotingGuide: (id) => request(`/voting-guides/${encodeURIComponent(id)}`),
     listGlossary: () => request("/glossary?offset=0&limit=50"),
     getGlossaryTerm: (slug) => request(`/glossary/${encodeURIComponent(slug)}`),
+    me: async () => {
+      try {
+        return await request("/auth/me");
+      } catch (error) {
+        if (error.status === 401) return null;
+        throw error;
+      }
+    },
+    register: (body) => request("/auth/register", { method: "POST", body }),
+    login: (body) => request("/auth/login", { method: "POST", body }),
+    logout: () => request("/auth/logout", { method: "POST", body: {} }),
+    saveAccountProfile: (profile) => request("/auth/profile", { method: "PUT", body: profile }),
   };
 }
 
@@ -2729,6 +2752,28 @@ export function saveReaderProfile(profile, storage = globalThis.localStorage) {
   }
 }
 
+let civicAccount = null;
+
+function persistReaderProfile(profile) {
+  const ok = saveReaderProfile(profile);
+  if (civicAccount) {
+    api.saveAccountProfile({
+      ...profile,
+      display_name: profile.member?.name || civicAccount.display_name,
+    }).then((account) => { civicAccount = account; }).catch(() => {});
+  }
+  return ok;
+}
+
+function accountErrorMessage(error) {
+  if (error?.status === 409) return "Questa email è già registrata.";
+  if (error?.status === 429) return "Troppi tentativi. Riprova più tardi.";
+  if (error?.status === 401) return "Email o password non corretti.";
+  if (error?.status === 422) return "Controlla email e password (almeno 10 caratteri).";
+  if (typeof error?.detail === "string" && error.detail) return error.detail;
+  return "Operazione non riuscita. Riprova.";
+}
+
 export function toggleFavorite(profile, person) {
   const id = String(person.id);
   const exists = profile.favorites.some((item) => String(item.id) === id);
@@ -2756,7 +2801,7 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   if (!isMember()) return demoNotice();
   const profile = toggleFavorite(loadReaderProfile(), { id: button.dataset.favoriteId, name: button.dataset.favoriteName });
-  saveReaderProfile(profile);
+  persistReaderProfile(profile);
   const active = isFavorite(button.dataset.favoriteId);
   for (const twin of document.querySelectorAll(`.favorite-toggle[data-favorite-id="${CSS.escape(button.dataset.favoriteId)}"]`)) {
     twin.classList.toggle("is-active", active);
@@ -2806,7 +2851,7 @@ function demoNotice() {
     document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
     note = byId("demo-notice");
   }
-  note.innerHTML = `Nella demo puoi solo consultare. <a href="./?view=registrati">Registrati</a> per salvare.`;
+  note.innerHTML = `Senza account puoi solo consultare. <a href="./?view=registrati">Registrati</a> per salvare.`;
   note.classList.add("is-visible");
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 4000);
@@ -2817,9 +2862,8 @@ function markReaderMode() {
   document.body.classList.toggle("is-demo", !member);
   const link = document.querySelector(".header-profile");
   if (link && !member) {
-    link.href = "./?view=registrati";
-    link.querySelector(".header-profile-label").textContent = "Registrati";
-    link.insertAdjacentHTML("beforebegin", `<span class="demo-badge">Demo</span>`);
+    link.href = "./?view=accedi";
+    link.querySelector(".header-profile-label").textContent = "Accedi";
   }
 }
 
@@ -2837,11 +2881,35 @@ function showWelcome() {
   document.title = "VeraPolitica";
   openGate((root) => renderWelcome(root, {
     onRegister: () => { window.location.href = "./?view=registrati"; },
+    onLogin: () => { window.location.href = "./?view=accedi"; },
     onDemo: () => { enterDemo(); window.location.href = "./"; },
   }));
 }
 
-async function showRegistration(api) {
+function showAccountForm(api, mode, error) {
+  document.title = mode === "login" ? "Accedi — VeraPolitica" : "Registrati — VeraPolitica";
+  openGate((root) => renderAccountForm(root, {
+    mode,
+    error,
+    onSubmit: async ({ email, password }) => {
+      try {
+        civicAccount = mode === "login" ? await api.login({ email, password }) : await api.register({ email, password });
+        if (civicAccount.profile) saveReaderProfile(civicAccount.profile);
+        if (mode === "login" && isMember(civicAccount.profile || {})) {
+          window.location.href = "./";
+          return;
+        }
+        showOnboarding(api);
+      } catch (failure) {
+        showAccountForm(api, mode, accountErrorMessage(failure));
+      }
+    },
+    onSwitch: () => { window.location.href = mode === "login" ? "./?view=registrati" : "./?view=accedi"; },
+    onBack: () => { window.location.href = "./?view=benvenuto"; },
+  }));
+}
+
+async function showOnboarding(api) {
   document.title = "Registrati — VeraPolitica";
   try { await loadPortraits(api); } catch { /* monograms instead */ }
   const current = loadReaderProfile();
@@ -2851,10 +2919,24 @@ async function showRegistration(api) {
     initial: current,
     onClose: () => { window.location.href = current.member ? "./?view=profile" : isDemo() ? "./" : "./?view=benvenuto"; },
     onDone: (patch) => {
-      saveReaderProfile({ ...loadReaderProfile(), ...patch });
+      const profile = { ...loadReaderProfile(), ...patch };
+      persistReaderProfile(profile);
       window.location.href = "./";
     },
   }));
+}
+
+async function showRegistration(api) {
+  if (civicAccount) return showOnboarding(api);
+  showAccountForm(api, "register");
+}
+
+function showLogin(api) {
+  if (civicAccount) {
+    window.location.href = "./";
+    return;
+  }
+  showAccountForm(api, "login");
 }
 
 // Keep the reader's followed parties in step with the redazione's list: names,
@@ -2870,7 +2952,7 @@ async function syncFollows(api) {
         const item = current.get(String(party.id));
         return { id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null };
       });
-    if (JSON.stringify(parties) !== JSON.stringify(profile.parties)) saveReaderProfile({ ...loadReaderProfile(), parties });
+    if (JSON.stringify(parties) !== JSON.stringify(profile.parties)) persistReaderProfile({ ...loadReaderProfile(), parties });
   } catch { /* offline: keep what is saved */ }
 }
 
@@ -2998,7 +3080,7 @@ async function showHome(api) {
     onSave: (url, title) => {
       if (!isMember()) { demoNotice(); return false; }
       profile = toggleSavedPost(loadReaderProfile(), url, title);
-      saveReaderProfile(profile);
+      persistReaderProfile(profile);
       return profile.saved.some((item) => item.url === url);
     },
   });
@@ -3131,7 +3213,7 @@ async function showPost(api, postId) {
       onSave: (url, title) => {
         if (!isMember()) { demoNotice(); return false; }
         const profile = toggleSavedPost(loadReaderProfile(), url, title);
-        saveReaderProfile(profile);
+        persistReaderProfile(profile);
         return profile.saved.some((entry) => entry.url === url);
       },
     });
@@ -3600,12 +3682,19 @@ async function showProfile(api) {
   for (const id of ["zone-section", "favorites-section"]) byId(id).hidden = !member;
   if (!member) return;
   byId("profile-title").textContent = profile.member.name;
-  byId("profile-copy").textContent = `Profilo su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}.`;
+  byId("profile-copy").textContent = civicAccount
+    ? `Account ${civicAccount.email}${profile.member.since ? ` · dal ${formatDate(profile.member.since)}` : ""}.`
+    : `Profilo su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}.`;
   byId("profile-parties").innerHTML = (profile.parties || []).length
     ? profile.parties.map((party) => `<a class="topic-chip" href="./?political_party=${encodeURIComponent(party.id)}">${partyLogo(party)}${escapeHtml(party.abbreviation || party.name)}</a>`).join("")
     : `<p class="empty-note">Nessun partito.</p>`;
-  byId("profile-delete").addEventListener("click", () => {
+  byId("profile-delete").textContent = civicAccount ? "Esci" : "Cancella il profilo";
+  byId("profile-delete").addEventListener("click", async () => {
     try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
+    if (civicAccount) {
+      try { await api.logout(); } catch { /* cookie still expires on the next visit */ }
+      civicAccount = null;
+    }
     window.location.href = "./?view=benvenuto";
   });
   const regionSelect = byId("zone-region");
@@ -3665,13 +3754,13 @@ async function showProfile(api) {
         municipality_name: municipalitySelect.value ? text(municipalitySelect) : null,
       },
     };
-    saved.textContent = saveReaderProfile(profile)
+    saved.textContent = persistReaderProfile(profile)
       ? `Zona salvata: ${zoneLabel(profile.zone)}`
       : "Questo browser non permette di salvare la zona.";
   });
   byId("zone-clear").addEventListener("click", () => {
     profile = { ...profile, zone: null };
-    saveReaderProfile(profile);
+    persistReaderProfile(profile);
     regionSelect.value = "";
     fillProvinces("", null);
     saved.textContent = "Zona rimossa.";
@@ -3679,7 +3768,7 @@ async function showProfile(api) {
   byId("profile-favorites").addEventListener("click", (event) => {
     if (!(event.target instanceof Element) || event.target.id !== "favorites-clear") return;
     profile = { ...profile, favorites: [] };
-    saveReaderProfile(profile);
+    persistReaderProfile(profile);
     renderFavorites();
   });
 }
@@ -3714,16 +3803,26 @@ const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
 syncPageMeta(params);
-markReaderMode();
-syncFollows(api);
-// verapolitica.com opens on the welcome screen until the reader registers or enters the demo.
-// Shared links (a post, a profile...) open directly, read-only.
-const firstVisit = !isMember() && !isDemo() && ![...params.keys()].length;
-if (view === "registrati") {
-  showRegistration(api);
-} else if (view === "benvenuto" || firstVisit) {
-  showWelcome();
-} else if (isId(proposalId)) {
+
+async function start() {
+  try {
+    const account = await api.me();
+    if (account?.profile) {
+      civicAccount = account;
+      saveReaderProfile(account.profile);
+    }
+  } catch { /* offline: keep the local cache */ }
+  markReaderMode();
+  syncFollows(api);
+  // Shared links (a post, a profile...) open directly, read-only.
+  const firstVisit = !isMember() && !isDemo() && ![...params.keys()].length;
+  if (view === "registrati") {
+    showRegistration(api);
+  } else if (view === "accedi") {
+    showLogin(api);
+  } else if (view === "benvenuto" || firstVisit) {
+    showWelcome();
+  } else if (isId(proposalId)) {
   showProposalDetail(api, proposalId);
 } else if (isId(politicianId)) {
   showDetail(api, politicianId);
@@ -3779,8 +3878,11 @@ if (view === "registrati") {
   showMethodology(api);
 } else if (view === "ask") {
   showAsk(api);
-} else if (view === "search") {
-  showSearch(api, params.get("q") || "", params.get("type") || "");
-} else {
-  showHome(api);
+  } else if (view === "search") {
+    showSearch(api, params.get("q") || "", params.get("type") || "");
+  } else {
+    showHome(api);
+  }
 }
+
+start();

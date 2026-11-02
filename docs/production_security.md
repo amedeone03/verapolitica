@@ -15,21 +15,25 @@ and request rate limits belong at the proxy in a later VPS step.
 
 Assumed:
 
-- Citizen visitors are unauthenticated and read-only.
-- Editorial writes use one shared bearer token.
-- Attackers probe `/admin`, forge `Host` / `Origin` / `X-Forwarded-*`, try
-  path traversal, oversized bodies, and secret leakage in errors.
+- Citizen visitors may register with email and password. That account only
+  stores follows, zone and saved posts. It cannot write editorial content.
+- Editorial writes use per-member redazione tokens
+  (`VERAPOLITICA_REDAZIONE_MEMBERS`) plus the shared admin Bearer key.
+- Attackers probe `/admin`, `/auth`, `/redazione`, forge `Host` / `Origin` /
+  `X-Forwarded-*`, try path traversal, oversized bodies, and secret leakage
+  in errors.
 - Official source endpoints may be slow; already-published data must still
   serve.
 
-Out of scope for V1: OAuth, citizen accounts, Redis/distributed rate limiting,
-WAF product selection, and paid cloud IAM.
+Out of scope for V1: OAuth, email verification, password-reset mail,
+Redis/distributed rate limiting, WAF product selection, and paid cloud IAM.
 
 ## Public vs admin surfaces
 
 | Class | Routes | Production |
 | --- | --- | --- |
 | **public** | `GET /politicians`, `/proposals`, `/search`, `/regions`, `/municipalities`, `/parliamentary-groups`, `/political-parties`, `/referendums`, `/voting-guides`, `/glossary`, `/portraits`, scorecards/methodology, citizen UI `/app/` | Mounted. Read-only published records. Pagination and search length are capped. |
+| **citizen account** | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `PUT /auth/profile` | Mounted. Email + password. HttpOnly cookie signed with `VERAPOLITICA_SESSION_SECRET`. In-process rate limit on register/login. Cannot call `/admin` or `/redazione/api`. |
 | **admin/editor protected** | `/admin/drafts`, `/admin/identity-resolution`, `/admin/proposals/drafts`, `/admin/referendums/drafts`, `/admin/jobs`, `/admin/pledges` | Mounted. HTTP Bearer `VERAPOLITICA_ADMIN_API_KEY` on the whole `/admin` router. |
 | **internal/operator** | `python -m scripts.run_web`, `run_scheduler`, `backup_postgres`, `restore_postgres`, `release_check`, `smoke_test`, `alembic`, ingestion CLIs | Not HTTP. Run on the host/container with env access. |
 | **demo-only** | `/demo/*` (AI upload and AI draft pages), demo uploads; demo members of `/redazione` | **Not mounted** when `env=production` or `ENABLE_DEMO_UI=false`. Production validation rejects `ENABLE_DEMO_UI=true`. |

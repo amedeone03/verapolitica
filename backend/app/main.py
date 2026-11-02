@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from backend.app.api.admin import router as admin_router
+from backend.app.api.civic_auth import router as civic_auth_router
 from backend.app.api.demo_editorial import router as demo_editorial_router
 from backend.app.api.redazione import router as redazione_router
 from backend.app.api.errors import register_exception_handlers
@@ -81,6 +82,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     register_exception_handlers(application)
     application.include_router(public_router)
+    application.include_router(civic_auth_router)
     application.include_router(admin_router)
     application.include_router(redazione_router)
     if runtime_settings.demo_ui_enabled and not runtime_settings.is_production:

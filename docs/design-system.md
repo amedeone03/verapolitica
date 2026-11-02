@@ -72,8 +72,8 @@ These are lab numbers on a local server, not field data at the 75th percentile.
 
 ## Benvenuto, demo e registrazione
 
-- `verapolitica.com/` reindirizza a `/app/`. Alla prima visita (nessun profilo, nessuna demo attiva, nessun link diretto) l'app mostra la schermata di benvenuto: sfondo navy, logo centrale, in basso **Registrati** e **Accedi alla demo**. Un link condiviso (post, politico…) si apre direttamente, in sola lettura.
-- **Demo**: sola lettura per la sessione del browser. Preferiti, post salvati e zona non si salvano; un avviso invita a registrarsi.
-- **Registrazione** (`?view=registrati`): una domanda per schermata, stile story, con barre di avanzamento: nome → politici da seguire (griglia di avatar rotondi) → partiti (facoltativi) → regione e provincia → **La tua scheda** (riepilogo di ciò che si segue). Riferimenti: welcome e onboarding di Spotify (metadati Appllama).
-- Il profilo resta sul dispositivo (`localStorage`): niente email, niente password. Si modifica o si cancella dal Profilo. La scheda descrive solo le scelte del lettore: non c'è classificazione ideologica né indicazione di voto.
+- `verapolitica.com/` reindirizza a `/app/`. Alla prima visita (nessun profilo, nessuna sessione, nessun link diretto) l'app mostra la schermata di benvenuto: sfondo navy, logo centrale, in basso **Registrati**, **Accedi** e **Consulta senza account**. Un link condiviso (post, politico…) si apre direttamente, in sola lettura.
+- **Consulta senza account**: sola lettura per la sessione del browser. Preferiti, post salvati e zona non si salvano; un avviso invita a registrarsi.
+- **Registrazione** (`?view=registrati`): email e password (account sul server), poi una domanda per schermata: nome → politici da seguire (si può saltare se l'elenco è vuoto) → partiti (facoltativi) → regione e provincia → **La tua scheda**. **Accedi** (`?view=accedi`) riapre lo stesso account. Riferimenti: welcome e onboarding di Spotify (metadati Appllama).
+- L'account salva segue, zona e post sul server (cookie HttpOnly). Una copia locale resta sul dispositivo come cache. La scheda descrive solo le scelte del lettore: non c'è classificazione ideologica né indicazione di voto.
 - **Per te**: il feed riceve `politicians` e `parties` (massimo 24 id ciascuno) più la zona; mostra le notizie che coinvolgono quei politici (o i loro partiti) e quelle locali della zona. Se non c'è ancora nulla, mostra tutte le notizie e lo dice.

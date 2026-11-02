@@ -65,6 +65,7 @@ def test_production_defaults_keep_demo_and_docs_off():
         env=AppEnvironment.PRODUCTION,
         database_url="postgresql+psycopg://verapolitica:x@localhost:5432/verapolitica",
         admin_api_key="a-sufficiently-long-admin-token",
+        session_secret="a-sufficiently-long-session-secret",
         cors_origins="https://verapolitica.it",
         trusted_hosts="verapolitica.it",
         public_base_url="https://verapolitica.it",
