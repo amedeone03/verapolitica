@@ -18,7 +18,15 @@ __pycache__
 htmlcov
 .ci
 tests
-data
+# Keep versioned fixtures in the image (Alembic seeds /app/data/fixtures/...).
+# Exclude local/generated trees only — not data/fixtures.
+data/ceo_demo
+data/demo
+data/raw
+data/smoke
+data/tmp-alembic
+data/unified_demo
+data/profile_ui_preview
 evaluation
 frontend/demo
 frontend/node_modules

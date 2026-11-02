@@ -26,14 +26,24 @@ def test_compose_is_production_like_and_scheduler_is_opt_in():
     assert 'CMD ["python", "-m", "scripts.run_web"]' in dockerfile
     assert "/health/live" in dockerfile
     assert "/var/lib/verapolitica/raw" in dockerfile
+    assert "COPY data /app/data" in dockerfile
     assert "chown -R verapolitica:verapolitica /app" not in dockerfile
     assert "privileged" not in compose
     assert "docker.sock" not in compose
     assert "5432:5432" not in compose
 
+    ignored = {
+        line.strip()
+        for line in dockerignore.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    }
     assert "frontend/demo" in dockerignore
     assert "tests" in dockerignore
     assert ".env.*" in dockerignore
+    assert "data" not in ignored
+    assert "data/unified_demo" in ignored
+    assert "data/fixtures/archive/legislatures.json" not in ignored
+    assert "data/fixtures" not in ignored
 
 
 def test_production_compose_helper_requires_env_file(tmp_path, monkeypatch):

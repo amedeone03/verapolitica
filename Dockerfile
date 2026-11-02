@@ -19,6 +19,7 @@ COPY alembic /app/alembic
 COPY backend /app/backend
 COPY scripts /app/scripts
 COPY frontend /app/frontend
+COPY data /app/data
 
 RUN mkdir -p /var/lib/verapolitica/raw \
     && chown -R verapolitica:verapolitica /var/lib/verapolitica
