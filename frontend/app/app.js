@@ -15,6 +15,15 @@ const ICON_PATHS = {
   badgeCheck: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   ask: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  mapPin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  map: '<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+  vote: '<path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z"/><path d="M22 19H2"/>',
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
   star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
 };
 
@@ -1660,7 +1669,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
 }
 
 export function createPublicApiClient(fetchImpl = fetch) {
-  async function request(path, { method = "GET", body } = {}) {
+  async function request(path, { method = "GET", body, signal } = {}) {
     let response;
     const headers = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -1669,8 +1678,10 @@ export function createPublicApiClient(fetchImpl = fetch) {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        ...(signal ? { signal } : {}),
       });
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
       throw new Error("api_unavailable");
     }
     if (!response.ok) {
@@ -1738,10 +1749,10 @@ export function createPublicApiClient(fetchImpl = fetch) {
       return request(`/municipalities?${params}`);
     },
     getMunicipality: (id) => request(`/municipalities/${encodeURIComponent(id)}`),
-    search: ({ q, type = "", offset = 0 } = {}) => {
-      const params = new URLSearchParams({ q, offset: String(offset), limit: "20" });
+    search: ({ q, type = "", offset = 0, limit = 20, signal } = {}) => {
+      const params = new URLSearchParams({ q, offset: String(offset), limit: String(limit) });
       if (type) params.set("type", type);
-      return request(`/search?${params}`);
+      return request(`/search?${params}`, { signal });
     },
     getParliamentaryGroup: (id) => request(`/parliamentary-groups/${encodeURIComponent(id)}`),
     getPoliticalParty: (id) => request(`/political-parties/${encodeURIComponent(id)}`),
@@ -2123,57 +2134,375 @@ function showAsk(api) {
   if (preset) form.requestSubmit();
 }
 
-export function renderSearchCard(item, query) {
-  return `<article class="search-card">
-    <span class="search-type">${escapeHtml(searchTypeLabel(item.entity_type))}</span>
-    <h3><a href="${escapeHtml(item.url)}">${highlight(item.title, query)}</a></h3>
-    <p>${highlight(item.subtitle, query)}</p>
-    ${item.snippet ? `<p>${highlight(item.snippet, query)}</p>` : ""}
-  </article>`;
+// Search ----------------------------------------------------------------------
+// Pattern: grouped results by kind with a best match on top (Spotify/Apple
+// search), scope chips with counts, recent searches kept on this device only.
+
+export const SEARCH_SCOPES = [
+  { type: "politician", label: "Politici", icon: "users" },
+  { type: "political_party", label: "Partiti", icon: "flag" },
+  { type: "proposal", label: "Promesse e proposte", icon: "proposal" },
+  { type: "referendum", label: "Referendum", icon: "vote" },
+  { type: "region", label: "Regioni", icon: "map" },
+  { type: "municipality", label: "Comuni", icon: "mapPin" },
+  { type: "parliamentary_group", label: "Gruppi parlamentari", icon: "users" },
+  { type: "glossary_term", label: "Glossario", icon: "book" },
+];
+const SEARCH_RECENT_KEY = "verapolitica.search.recent.v1";
+const SEARCH_GROUP_SIZE = 4;
+const searchParties = new Map();
+
+export function readRecentSearches() {
+  try {
+    const items = JSON.parse(localStorage.getItem(SEARCH_RECENT_KEY) || "[]");
+    return Array.isArray(items) ? items.filter((item) => typeof item === "string").slice(0, 8) : [];
+  } catch {
+    return [];
+  }
 }
 
-async function showSearch(api, query, type) {
+function writeRecentSearches(items) {
+  try { localStorage.setItem(SEARCH_RECENT_KEY, JSON.stringify(items.slice(0, 8))); } catch { /* private mode */ }
+}
+
+export function rememberSearch(query) {
+  const value = query.trim();
+  if (value.length < 2) return;
+  writeRecentSearches([value, ...readRecentSearches().filter((item) => item.toLocaleLowerCase("it") !== value.toLocaleLowerCase("it"))]);
+}
+
+function searchScope(type) {
+  return SEARCH_SCOPES.find((scope) => scope.type === type);
+}
+
+function searchLeading(item) {
+  const id = item.metadata?.id;
+  if (item.entity_type === "politician" && id) {
+    const words = item.title.trim().split(/\s+/);
+    const photo = resolvePortrait(id);
+    const mono = initials({ given_name: words[0] || "", family_name: words.length > 1 ? words[words.length - 1] : "" });
+    return `<span class="search-lead is-person" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : escapeHtml(mono)}</span>`;
+  }
+  if (item.entity_type === "political_party") {
+    const logo = partyLogo(searchParties.get(String(id)), 40);
+    if (logo) return `<span class="search-lead is-logo" aria-hidden="true">${logo}</span>`;
+  }
+  return `<span class="search-lead" aria-hidden="true">${icon(searchScope(item.entity_type)?.icon || "search", { size: 20 })}</span>`;
+}
+
+export function renderSearchCard(item, query) {
+  return `<li><a class="row-link search-row" href="${escapeHtml(item.url)}">
+    ${searchLeading(item)}
+    <span class="row-text">
+      <strong>${highlight(item.title, query)}</strong>
+      <small>${highlight(item.subtitle, query)}</small>
+      ${item.snippet ? `<span class="search-snippet">${highlight(item.snippet, query)}</span>` : ""}
+    </span>
+    <span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span>
+  </a></li>`;
+}
+
+function normalizeSearch(value) {
+  return String(value ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("it").trim();
+}
+
+// Best match: how well the title matches (exact, starts with, a word starts
+// with), with a small preference for people and parties over places.
+export function bestSearchMatch(groups, query) {
+  const target = normalizeSearch(query);
+  let best = null;
+  let bestScore = Infinity;
+  groups.forEach((group) => {
+    const order = SEARCH_SCOPES.findIndex((scope) => scope.type === group.type);
+    for (const item of group.items) {
+      const title = normalizeSearch(item.title);
+      const quality = title === target ? 0
+        : title.startsWith(target) ? 1
+        : title.split(/[\s'’-]+/).some((word) => word.startsWith(target)) ? 2
+        : null;
+      if (quality === null) continue;
+      const score = quality + Math.max(order, 0) * 0.4;
+      if (score < bestScore) { best = item; bestScore = score; }
+    }
+  });
+  return best;
+}
+
+function renderBestMatch(item, query) {
+  return `<section class="search-best" aria-labelledby="search-best-title">
+    <h2 id="search-best-title" class="search-section-title">Risultato migliore</h2>
+    <a class="search-best-card" href="${escapeHtml(item.url)}">
+      ${searchLeading(item).replace('class="search-lead', 'class="search-lead is-large')}
+      <span class="search-best-text">
+        <strong>${highlight(item.title, query)}</strong>
+        <span class="search-best-kind">${escapeHtml(searchTypeLabel(item.entity_type))}</span>
+        <small>${highlight(String(item.subtitle || "").replace(new RegExp(`^${searchTypeLabel(item.entity_type)}\\s*·\\s*`, "i"), ""), query)}</small>
+      </span>
+      <span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 20 })}</span>
+    </a>
+  </section>`;
+}
+
+function scopeHref(query, type) {
+  const params = new URLSearchParams({ view: "search" });
+  if (query) params.set("q", query);
+  if (type) params.set("type", type);
+  return `./?${params}`;
+}
+
+export function renderSearchGroups(groups, query) {
+  const best = bestSearchMatch(groups, query);
+  const sections = groups.filter((group) => group.items.length).map((group) => {
+    const scope = searchScope(group.type);
+    const items = group.items.filter((item) => item !== best);
+    if (!items.length) return "";
+    const more = group.total > group.items.length
+      ? `<a class="block-link" href="${escapeHtml(scopeHref(query, group.type))}" data-scope="${escapeHtml(group.type)}">Vedi tutti ${group.total}</a>`
+      : "";
+    return `<section class="search-group" aria-labelledby="search-group-${escapeHtml(group.type)}">
+      <div class="block-head"><h2 id="search-group-${escapeHtml(group.type)}" class="search-section-title">${escapeHtml(scope.label)}</h2>${more}</div>
+      <ul class="row-list">${items.map((item) => renderSearchCard(item, query)).join("")}</ul>
+    </section>`;
+  }).join("");
+  return `${best ? renderBestMatch(best, query) : ""}${sections}`;
+}
+
+function renderSearchScopes(query, type, counts = null) {
+  const chip = (scopeType, label) => {
+    const active = scopeType === type;
+    const count = counts && scopeType ? counts[scopeType] : null;
+    if (counts && scopeType && !count && !active) return "";
+    return `<a class="topic-chip${active ? " is-active" : ""}" href="${escapeHtml(scopeHref(query, scopeType))}" data-scope="${escapeHtml(scopeType)}"${active ? ' aria-current="true"' : ""}>${escapeHtml(label)}${count ? ` <small>${count}</small>` : ""}</a>`;
+  };
+  return chip("", "Tutto") + SEARCH_SCOPES.map((scope) => chip(scope.type, scope.label)).join("");
+}
+
+function renderSearchStart() {
+  const recent = readRecentSearches();
+  const recentBlock = recent.length
+    ? `<section class="politics-block" aria-labelledby="search-recent-title">
+        <div class="block-head"><h2 id="search-recent-title" class="search-section-title">Ricerche recenti</h2><button class="block-link link-button" type="button" data-clear-recent>Cancella</button></div>
+        <ul class="row-list">${recent.map((query) => `<li class="recent-row"><a class="row-link" href="${escapeHtml(scopeHref(query, ""))}" data-recent="${escapeHtml(query)}"><span class="search-lead is-plain" aria-hidden="true">${icon("clock", { size: 18 })}</span><span class="row-text"><strong>${escapeHtml(query)}</strong></span></a><button class="recent-remove" type="button" data-remove-recent="${escapeHtml(query)}" aria-label="${escapeHtml(`Rimuovi «${query}» dalle ricerche recenti`)}">${icon("x", { size: 16 })}</button></li>`).join("")}</ul>
+        <p class="search-privacy">Restano solo su questo dispositivo.</p>
+      </section>`
+    : "";
+  const browse = [
+    ["./?view=politicians", "users", "Politici", "Tutti i profili verificati"],
+    ["./?view=politics", "flag", "Partiti e Governo", "Chi governa e i partiti nell'elenco"],
+    ["./?view=proposals", "proposal", "Promesse e proposte", "Cosa è stato promesso, e a che punto è"],
+    ["./?view=regions", "map", "Regioni e comuni", "Territori ISTAT ufficiali"],
+    ["./?view=glossary", "book", "Glossario", "Le parole delle istituzioni"],
+  ];
+  return `${recentBlock}<section class="politics-block" aria-labelledby="search-browse-title">
+      <div class="block-head"><h2 id="search-browse-title" class="search-section-title">Esplora</h2></div>
+      <ul class="row-list">${browse.map(([href, iconName, title, text]) => `<li><a class="row-link" href="${href}"><span class="row-icon" aria-hidden="true">${icon(iconName, { size: 20 })}</span><span class="row-text"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(text)}</small></span><span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`).join("")}</ul>
+    </section>`;
+}
+
+function renderSearchSkeleton() {
+  return `<ul class="row-list search-skeleton" aria-hidden="true">${Array.from({ length: 5 }, () => `<li><span class="row-link"><span class="search-lead"></span><span class="row-text"><span class="skeleton-line"></span><span class="skeleton-line is-short"></span></span><span></span></span></li>`).join("")}</ul>`;
+}
+
+async function showSearch(api, initialQuery, initialType) {
   byId("archive-view").hidden = true;
   byId("search-view").hidden = false;
-  byId("search-page-q").value = query;
-  byId("search-type").value = type;
-  const headerSearch = byId("site-search-q");
-  if (headerSearch) headerSearch.value = query;
-  const heading = byId("search-heading")?.closest(".archive-heading");
-  if (!query.trim()) {
-    // Nothing to report before a search: no heading, no "ready" badge, no empty card.
-    if (heading) heading.hidden = true;
-    byId("search-list").hidden = true;
-    byId("search-status").hidden = true;
-    byId("search-page-q").focus({ preventScroll: true });
-    return;
-  }
-  if (heading) heading.hidden = false;
-  byId("search-heading").textContent = "Risultati";
-  byId("search-status").hidden = false;
-  byId("search-status").className = "state-card loading-state";
-  byId("search-status").innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Ricerca in corso…</strong></div>`;
-  try {
-    const payload = await api.search({ q: query, type });
-    byId("search-count").textContent = countLabel(payload.total, "risultato", "risultati");
-    if (!payload.items.length) {
-      byId("search-list").hidden = true;
-      showState(byId("search-status"), "Nessun risultato trovato.", "Prova un'altra grafia o un tipo di record diverso.");
+  const form = byId("search-form");
+  const field = byId("search-page-q");
+  const clear = byId("search-clear");
+  const scopes = byId("search-scopes");
+  const list = byId("search-list");
+  const status = byId("search-status");
+  const start = byId("search-start");
+  const count = byId("search-count");
+  const state = { query: initialQuery, type: SEARCH_SCOPES.some((scope) => scope.type === initialType) ? initialType : "", seq: 0, controller: null, offset: 0 };
+  field.value = state.query;
+
+  // Party logos for party rows (cached once; optional).
+  api.listParties({ all: true }).then((payload) => {
+    for (const party of payload.items) searchParties.set(String(party.id), party);
+  }).catch(() => {});
+  const portraitsReady = loadPortraits(api).catch(() => {});
+
+  const syncUrl = () => {
+    const url = scopeHref(state.query.trim(), state.type);
+    if (`${window.location.pathname}${window.location.search}`.endsWith(url.slice(1))) return;
+    window.history.replaceState(null, "", url);
+  };
+
+  // Keep the active scope chip in view (the row scrolls on phones).
+  const focusActiveScope = () => {
+    const active = scopes.querySelector(".is-active");
+    if (!active || !active.dataset.scope) { scopes.scrollLeft = 0; return; }
+    scopes.scrollLeft = Math.max(0, active.offsetLeft - scopes.clientWidth / 2 + active.offsetWidth / 2);
+  };
+
+  const showStart = () => {
+    list.hidden = true;
+    status.hidden = true;
+    start.hidden = false;
+    start.innerHTML = renderSearchStart();
+    scopes.innerHTML = renderSearchScopes("", state.type);
+    focusActiveScope();
+    count.textContent = "";
+    document.title = "Cerca — VeraPolitica";
+  };
+
+  const run = async ({ remember = false } = {}) => {
+    const query = state.query.trim();
+    clear.hidden = !state.query;
+    syncUrl();
+    if (query.length < 2) {
+      showStart();
       return;
     }
-    byId("search-status").hidden = true;
-    byId("search-list").hidden = false;
-    byId("search-list").innerHTML = payload.items.map((item) => renderSearchCard(item, query)).join("");
-    document.title = `${query} — Ricerca — VeraPolitica`;
-  } catch (error) {
-    byId("search-count").textContent = "Non disponibile";
-    showState(
-      byId("search-status"),
-      error.status === 422 ? "Questa ricerca non può essere eseguita." : "Non è stato possibile completare la ricerca.",
-      error.status === 422 ? "Controlla la lunghezza della query o il tipo selezionato." : PUBLIC_UNAVAILABLE,
-      true,
-    );
-  }
+    const seq = ++state.seq;
+    state.controller?.abort();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    state.controller = controller;
+    const signal = controller?.signal;
+    start.hidden = true;
+    status.hidden = true;
+    list.hidden = false;
+    list.setAttribute("aria-busy", "true");
+    if (!list.querySelector(".row-list")) list.innerHTML = renderSearchSkeleton();
+    try {
+      let html;
+      let total;
+      await portraitsReady;
+      const grouped = async () => {
+        const groups = await Promise.all(SEARCH_SCOPES.map((scope) => api.search({ q: query, type: scope.type, limit: SEARCH_GROUP_SIZE, signal })
+          .then((payload) => ({ type: scope.type, items: payload.items, total: payload.total }))
+          .catch((error) => { if (error.name === "AbortError") throw error; return { type: scope.type, items: [], total: 0 }; })));
+        return { groups, total: groups.reduce((sum, group) => sum + group.total, 0), counts: Object.fromEntries(groups.map((group) => [group.type, group.total])) };
+      };
+      let notice = "";
+      if (state.type) {
+        const payload = await api.search({ q: query, type: state.type, limit: 50, signal });
+        if (seq !== state.seq) return;
+        if (!payload.items.length) {
+          // Nothing in this kind: show where the words do appear instead of a dead end.
+          const all = await grouped();
+          if (seq !== state.seq) return;
+          if (all.total) {
+            notice = `<p class="search-notice">Nessun risultato in ${escapeHtml(searchScope(state.type).label.toLocaleLowerCase("it"))}. Ecco cosa c'è nel resto dell'archivio.</p>`;
+            state.type = "";
+            syncUrl();
+            scopes.innerHTML = renderSearchScopes(query, "", all.counts);
+            list.innerHTML = notice + renderSearchGroups(all.groups, query);
+            list.removeAttribute("aria-busy");
+            count.textContent = countLabel(all.total, "risultato", "risultati");
+            if (remember) rememberSearch(query);
+            focusActiveScope();
+            return;
+          }
+        }
+        total = payload.total;
+        scopes.innerHTML = renderSearchScopes(query, state.type);
+        html = payload.items.length
+          ? `<section class="search-group"><div class="block-head"><h2 class="search-section-title">${escapeHtml(searchScope(state.type).label)}</h2><span class="search-total">${escapeHtml(countLabel(payload.total, "risultato", "risultati"))}</span></div>
+              <ul class="row-list">${payload.items.map((item) => renderSearchCard(item, query)).join("")}</ul>
+              ${payload.total > payload.items.length ? `<p class="search-more-note">Mostrati i primi ${payload.items.length}. Aggiungi una parola per restringere.</p>` : ""}</section>`
+          : "";
+      } else {
+        const all = await grouped();
+        if (seq !== state.seq) return;
+        total = all.total;
+        scopes.innerHTML = renderSearchScopes(query, "", all.counts);
+        html = total ? renderSearchGroups(all.groups, query) : "";
+      }
+      list.removeAttribute("aria-busy");
+      focusActiveScope();
+      count.textContent = countLabel(total, "risultato", "risultati");
+      document.title = `${query} — Cerca — VeraPolitica`;
+      if (remember && total) rememberSearch(query);
+      if (!html) {
+        list.hidden = true;
+        list.innerHTML = "";
+        status.hidden = false;
+        status.className = "state-card search-empty";
+        status.innerHTML = `<div><strong>Nessun risultato per «${escapeHtml(query)}»${state.type ? ` in ${escapeHtml(searchScope(state.type).label.toLocaleLowerCase("it"))}` : ""}.</strong>
+          <small>Controlla la grafia o prova con meno parole.</small>
+          <p class="search-empty-actions">${state.type ? `<a class="topic-chip" href="${escapeHtml(scopeHref(query, ""))}" data-scope="">Cerca in tutto</a>` : ""}<a class="topic-chip" href="./?view=ask&amp;prefill=${encodeURIComponent(query)}">Chiedi a VeraPolitica</a></p></div>`;
+        return;
+      }
+      list.innerHTML = html;
+    } catch (error) {
+      if (error.name === "AbortError" || seq !== state.seq) return;
+      list.hidden = true;
+      list.removeAttribute("aria-busy");
+      showState(
+        status,
+        error.status === 422 ? "Questa ricerca non può essere eseguita." : "Non è stato possibile completare la ricerca.",
+        error.status === 422 ? "Usa al massimo 200 caratteri." : PUBLIC_UNAVAILABLE,
+        true,
+      );
+    }
+  };
+
+  let timer = null;
+  field.addEventListener("input", () => {
+    state.query = field.value;
+    clear.hidden = !field.value;
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => run(), 220);
+  });
+  field.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && field.value) {
+      event.preventDefault();
+      field.value = "";
+      state.query = "";
+      run();
+    }
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    window.clearTimeout(timer);
+    state.query = field.value;
+    run({ remember: true });
+    field.blur();
+  });
+  clear.addEventListener("click", () => {
+    field.value = "";
+    state.query = "";
+    run();
+    field.focus();
+  });
+  // Scope chips and "Vedi tutti" switch in place, without a page load.
+  byId("search-view").addEventListener("click", (event) => {
+    const scope = event.target.closest("[data-scope]");
+    if (scope) {
+      event.preventDefault();
+      state.type = scope.dataset.scope;
+      list.innerHTML = "";
+      run();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const recent = event.target.closest("[data-recent]");
+    if (recent) {
+      event.preventDefault();
+      field.value = recent.dataset.recent;
+      state.query = field.value;
+      run({ remember: true });
+      return;
+    }
+    const remove = event.target.closest("[data-remove-recent]");
+    if (remove) {
+      writeRecentSearches(readRecentSearches().filter((item) => item !== remove.dataset.removeRecent));
+      start.innerHTML = renderSearchStart();
+      return;
+    }
+    if (event.target.closest("[data-clear-recent]")) {
+      writeRecentSearches([]);
+      start.innerHTML = renderSearchStart();
+      return;
+    }
+    // Opening a result counts as a search worth remembering.
+    if (event.target.closest(".search-row, .search-best-card")) rememberSearch(state.query);
+  });
+
+  run({ remember: Boolean(initialQuery) });
+  if (!initialQuery) field.focus({ preventScroll: true });
 }
 
 async function showOrganization(api, kind, entityId) {

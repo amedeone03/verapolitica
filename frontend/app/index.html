@@ -401,37 +401,21 @@
         <article id="ask-result" class="ask-result" hidden></article>
       </section>
 
-      <section id="search-view" aria-labelledby="search-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="search-title">Cerca nell'archivio</h1>
-          <p class="hero-copy">Politici, proposte, territori, gruppi e partiti.</p>
-        </div>
-        <form class="search-panel" action="./" method="get">
+      <section id="search-view" class="politics search-page" aria-labelledby="search-title" hidden>
+        <h1 id="search-title" class="politics-title">Cerca</h1>
+        <form id="search-form" class="politics-search search-field" action="./" method="get" role="search">
           <input type="hidden" name="view" value="search" />
-          <label class="visually-hidden" for="search-page-q">Testo di ricerca</label>
-          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Nome, comune o proposta" autocomplete="off" autocorrect="off" enterkeyhint="search" />
-          <label class="visually-hidden" for="search-type">Tipo di record</label>
-          <select id="search-type" name="type">
-            <option value="">Tutti i tipi</option>
-            <option value="politician">Politici</option>
-            <option value="proposal">Proposte</option>
-            <option value="referendum">Referendum</option>
-            <option value="municipality">Comuni</option>
-            <option value="region">Regioni</option>
-            <option value="parliamentary_group">Gruppi parlamentari</option>
-            <option value="political_party">Partiti politici</option>
-            <option value="glossary_term">Glossario</option>
-          </select>
-          <button type="submit">Cerca</button>
+          <input id="search-type" type="hidden" name="type" value="" />
+          <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <label class="visually-hidden" for="search-page-q">Cerca politici, partiti, proposte, territori</label>
+          <input id="search-page-q" name="q" type="search" maxlength="200" placeholder="Politici, partiti, proposte, comuni" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" />
+          <button id="search-clear" class="search-clear" type="button" aria-label="Cancella il testo" hidden><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
         </form>
-        <div class="archive-heading">
-          <div><h2 id="search-heading">Record pubblici corrispondenti</h2></div>
-          <span id="search-count" class="count-pill" aria-live="polite">Pronto</span>
-        </div>
-        <div id="search-status" class="state-card" role="status">
-          <div><strong>Inserisci un termine di ricerca.</strong></div>
-        </div>
-        <div id="search-list" class="search-grid" hidden></div>
+        <nav id="search-scopes" class="chip-scroller search-scopes" aria-label="Filtra per tipo"></nav>
+        <p id="search-count" class="visually-hidden" aria-live="polite"></p>
+        <div id="search-status" class="state-card" role="status" hidden></div>
+        <div id="search-list" class="search-results" hidden></div>
+        <div id="search-start" class="search-start"></div>
       </section>
 
       <section id="organization-detail-view" aria-labelledby="organization-detail-title" hidden>

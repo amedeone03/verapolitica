@@ -1150,3 +1150,70 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .authority-cloud.is-static .authority-node { position: static; width: 96px; transform: none !important; }
 @keyframes authority-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .authority-node { transition: none; animation: none; } .authority-node:active .authority-photo { transform: none; } }
+
+/* ---------------------------------------------------------------------------
+   Cerca. Pattern: Spotify/Apple search (best match on top, results grouped by
+   kind, scope chips with counts, recent searches) on Kowalski grouped rows.
+   The lens stays in the field and in the navigation. */
+.search-field { position: relative; margin-bottom: var(--space-4); }
+.search-field input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.search-clear { display: grid; place-items: center; width: 32px; height: 32px; margin-right: -6px; border: 0; border-radius: 50%; background: var(--color-background); color: var(--color-text-muted); cursor: pointer; transition: transform 100ms ease-out, background-color 150ms ease; }
+.search-clear:hover { background: var(--color-accent-light); color: var(--color-primary); }
+.search-clear:active { transform: scale(.92); }
+.search-clear[hidden] { display: none; }
+.search-scopes { margin-bottom: var(--space-5); }
+.search-scopes .topic-chip small { margin-left: 2px; color: inherit; opacity: .7; font-variant-numeric: tabular-nums; }
+.search-section-title { margin: 0; font-size: 1.125rem; font-weight: 800; letter-spacing: -.01em; }
+.search-group, .search-best { margin-bottom: var(--space-6); }
+.search-group .block-head, .search-best .search-section-title { margin-bottom: var(--space-3); }
+.search-total, .search-more-note, .search-privacy { color: var(--color-text-muted); font-size: .875rem; }
+.search-more-note, .search-privacy { margin: var(--space-2) 0 0; }
+
+.search-lead { display: grid; place-items: center; width: 40px; height: 40px; flex: none; overflow: hidden; border-radius: 12px; background: var(--color-accent-light); color: var(--color-accent-strong); font-size: .8125rem; font-weight: 800; }
+.search-lead.is-person { border-radius: 50%; color: var(--color-primary); }
+.search-lead.is-logo { background: transparent; }
+.search-lead.is-logo .vp-logo { width: 40px; height: 40px; margin: 0; border-radius: 10px; object-fit: contain; }
+.search-lead.is-plain { background: transparent; color: var(--color-text-muted); width: 24px; }
+.search-lead img { width: 100%; height: 100%; object-fit: cover; }
+.search-lead.is-large { width: 72px; height: 72px; font-size: 1.375rem; border-radius: 18px; }
+.search-lead.is-large.is-person { border-radius: 50%; }
+.search-lead.is-large .vp-logo { width: 72px; height: 72px; }
+.search-lead.is-large .icon { width: 30px; height: 30px; }
+.search-row .row-text strong { font-weight: 700; }
+.search-row .row-text small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.search-snippet { color: var(--color-text-muted); font-size: .8125rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.search-hit { padding: 0 1px; border-radius: 3px; background: var(--color-accent-light); color: inherit; font-weight: inherit; box-shadow: inset 0 -2px 0 var(--color-accent); }
+
+.search-best-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4); border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); color: var(--color-text); text-decoration: none; box-shadow: 0 1px 2px rgba(15, 39, 71, .05); transition: transform 100ms ease-out, border-color 150ms ease, box-shadow 150ms ease; }
+.search-best-card:hover { border-color: var(--color-border-strong); box-shadow: 0 6px 18px rgba(15, 39, 71, .08); }
+.search-best-card:active { transform: scale(.985); }
+.search-best-text { display: grid; gap: 4px; min-width: 0; }
+.search-best-text strong { color: var(--color-primary); font-size: clamp(1.25rem, 4vw, 1.5rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
+.search-best-kind { justify-self: start; padding: 2px 9px; border-radius: 999px; background: var(--color-primary); color: #fff; font-size: .75rem; font-weight: 700; }
+.search-best-text small { color: var(--color-text-muted); font-size: .875rem; }
+
+.recent-row { position: relative; }
+.recent-row .row-link { grid-template-columns: auto 1fr; padding-right: 52px; min-height: 52px; }
+.recent-remove { position: absolute; top: 50%; right: 10px; display: grid; place-items: center; width: 32px; height: 32px; transform: translateY(-50%); border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.recent-remove:hover { background: var(--color-background); color: var(--color-primary); }
+.link-button { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; cursor: pointer; }
+
+.search-empty { display: block; }
+.search-empty strong { display: block; color: var(--color-primary); font-size: 1.0625rem; }
+.search-empty small { display: block; margin-top: 4px; color: var(--color-text-muted); }
+.search-empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0 0; }
+
+.search-skeleton .search-lead { background: var(--color-background); }
+.skeleton-line { display: block; height: 12px; width: 70%; border-radius: 6px; background: linear-gradient(90deg, var(--color-background) 25%, var(--color-accent-light) 50%, var(--color-background) 75%); background-size: 200% 100%; animation: search-shimmer 1.2s ease-in-out infinite; }
+.skeleton-line.is-short { width: 40%; margin-top: 6px; }
+.search-results[aria-busy="true"] .row-list:not(.search-skeleton) { opacity: .55; transition: opacity 150ms ease; }
+@keyframes search-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (min-width: 900px) {
+  .search-page { max-width: 820px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line { animation: none; }
+  .search-best-card:active, .search-clear:active { transform: none; }
+}
+.search-row .row-text strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.search-notice { margin: 0 0 var(--space-5); padding: 12px 16px; border-radius: 14px; background: var(--color-accent-light); color: var(--color-primary); font-size: .9375rem; }
