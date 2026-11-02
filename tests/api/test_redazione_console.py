@@ -16,6 +16,7 @@ from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.main import create_app
 from backend.app.models import (
     EditorialLogEntry,
+    EditorialPost,
     PoliticalParty,
     PoliticalPartyAffiliation,
     RawDocument,
@@ -306,6 +307,67 @@ def test_news_follows_the_nine_block_model(console):
 
     assert client.post(f"/redazione/api/coda/news/{post['id']}/rifiuta", headers=CARLA, json={"note": "x"}).status_code == 404
     assert client.put(f"/redazione/api/notizie/{post['id']}", headers=ANNA, json=one_source).status_code == 409
+    assert client.get(f"/redazione/api/notizie/{post['id']}", headers=ANNA).json()["can_discard"] is False
+    locked = client.delete(f"/redazione/api/notizie/{post['id']}", headers=ANNA)
+    assert locked.status_code == 409
+    assert "non si elimina" in locked.json()["detail"]
+
+
+def test_pending_news_can_be_discarded_even_when_blocked(console):
+    client, politician_id, factory = console
+    created = client.post(
+        "/redazione/api/notizie",
+        headers=ANNA,
+        json={
+            "title": "prova",
+            "blocks": {"sommario": "Bozza di prova da togliere dalla coda."},
+            "sources": [
+                {
+                    "name": "ANSA",
+                    "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html",
+                    "area": "agenzia",
+                }
+            ],
+            "politician_ids": [politician_id],
+        },
+    )
+    assert created.status_code == 200, created.text
+    post = created.json()
+    assert post["can_discard"] is True
+    queued = _queue_item(client, BRUNO, "news", id=post["id"])
+    assert queued["blocked"] and queued["can_discard"] and not queued["can_approve"]
+    assert queued["own"] is False
+
+    missing = client.delete("/redazione/api/notizie/99999", headers=BRUNO)
+    assert missing.status_code == 404
+
+    removed = client.delete(f"/redazione/api/notizie/{post['id']}", headers=BRUNO)
+    assert removed.status_code == 200, removed.text
+    assert "prova" in removed.json()["summary"]
+    assert client.get(f"/redazione/api/notizie/{post['id']}", headers=ANNA).status_code == 404
+    assert all(
+        item["kind"] != "news" or item["id"] != post["id"]
+        for item in client.get("/redazione/api/coda", headers=BRUNO).json()
+    )
+    log = client.get("/redazione/api/registro", headers=ANNA).json()["items"]
+    assert log[0]["action"] == "eliminazione"
+    assert log[0]["actor"] == "Bruno Verificatore"
+    assert log[0]["details"]["title"] == "prova"
+    with factory() as session:
+        assert session.get(EditorialPost, post["id"]) is None
+
+
+def test_author_can_discard_own_pending_news(console):
+    client, _, _ = console
+    post = client.post(
+        "/redazione/api/notizie",
+        headers=ANNA,
+        json={"title": "bozza mia", "blocks": {"sommario": "La tolgo io."}, "sources": []},
+    ).json()
+    queued = _queue_item(client, ANNA, "news", id=post["id"])
+    assert queued["own"] and queued["can_discard"]
+    assert client.delete(f"/redazione/api/notizie/{post['id']}", headers=ANNA).status_code == 200
+    assert client.get("/redazione/api/notizie", headers=ANNA).json() == []
 
 
 def test_rejection_needs_a_reason_and_is_logged(console):

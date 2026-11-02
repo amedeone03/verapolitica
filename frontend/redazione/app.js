@@ -285,7 +285,7 @@ async function showQueue() {
   const kinds = [...new Map(items.map((item) => [item.kind, item.kind_label])).entries()];
   const shown = items.filter((item) => queueFilter === "all" || (queueFilter === "verify" ? item.can_approve : queueFilter === "mine" ? item.own : item.kind === queueFilter));
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Ciclo di lavoro</p><h1>Da verificare</h1>
-    <p>Scrive il redattore, verifica un'altra persona, poi si pubblica. Nulla di quello che vedi qui è visibile al cittadino finché non viene approvato. Se manca una fonte, il contenuto resta in attesa.</p></div></div>
+    <p>Scrive il redattore, verifica un'altra persona, poi si pubblica. Nulla di quello che vedi qui è visibile al cittadino finché non viene approvato. Se manca una fonte, il contenuto resta in attesa. Una notizia in bozza si può eliminare: non è ancora pubblica. Una notizia già pubblicata non si cancella.</p></div></div>
     <div class="summary-strip">
       <div class="tile"><strong>${toVerify.length}</strong><span>da verificare da te</span></div>
       <div class="tile"><strong>${mine.length}</strong><span>scritti da te, in attesa di un'altra persona</span></div>
@@ -321,6 +321,7 @@ function queueCard(item) {
           <span class="small muted" data-checklist-hint>Spunta la checklist per approvare.</span>
         </div>
       </form>` : item.blocked ? `<p class="own-note">Bloccato: va corretto da chi scrive prima della verifica.</p>` : `<p class="own-note">Hai già dato la tua approvazione: serve un'altra persona.</p>`}
+    ${item.can_discard ? `<div class="actions"><button type="button" class="button button-danger" data-discard="${item.id}" data-title="${esc(item.title)}">Elimina la notizia</button><span class="small muted">Toglie la bozza dalla coda. Non arriva al cittadino.</span></div>` : ""}
   </article>`;
 }
 
@@ -385,6 +386,29 @@ function bindQueueActions(root, reload) {
         reload();
         refreshCount();
       } catch (error) { toast(error.message, true); }
+    });
+  });
+  bindDiscardButtons(root, reload);
+}
+
+async function discardNews(id, title) {
+  if (!confirm(`Eliminare definitivamente «${title}»? Scompare dalla coda e non sarà visibile a nessuno.`)) return false;
+  try {
+    const result = await api(`/notizie/${id}`, { method: "DELETE" });
+    toast(result.summary);
+    refreshCount();
+    return true;
+  } catch (error) {
+    toast(error.message, true);
+    return false;
+  }
+}
+
+function bindDiscardButtons(root, onDone) {
+  root.querySelectorAll("[data-discard]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!await discardNews(button.dataset.discard, button.dataset.title)) return;
+      onDone();
     });
   });
 }
@@ -689,9 +713,10 @@ async function showNews() {
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Notizia</p><h1>Notizie</h1>
     <p>Una sintesi imparziale di un fatto politico che incide sulla vita delle persone. Nove blocchi, sempre nello stesso ordine. Obiettivo: 2–4 sintesi a settimana.</p></div>
     <a class="button button-primary" href="#/notizie/nuova">Nuova notizia</a></div>
-    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Redattore</th><th>Verificatore</th><th>Data</th></tr></thead><tbody>
-    ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td></tr>`).join("")}
+    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Redattore</th><th>Verificatore</th><th>Data</th><th></th></tr></thead><tbody>
+    ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="empty">Nessuna notizia. <a href="#/notizie/nuova">Scrivi la prima</a>.</div>`}`;
+  bindDiscardButtons(view, showNews);
 }
 
 const NEWS_HINTS = {
@@ -718,7 +743,7 @@ async function showNewsEditor(postId) {
   const blocks = state.rules.news_blocks;
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a> · Modello Notizia</p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
       ${postId ? `<p>Scritta da ${esc(post.created_by)}${post.reviewed_by ? ` · verificata da ${esc(post.reviewed_by)}` : ""} · <span class="chip ${post.status === "published" ? "chip-published" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa di verifica" }[post.status]}</span></p>` : ""}</div>
-      ${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}</div>
+      ${post.public_url || post.can_discard ? `<div class="actions" style="margin-top:0">${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}${post.can_discard ? `<button type="button" class="button button-danger" id="n-discard">Elimina la notizia</button>` : ""}</div>` : ""}</div>
     ${!editable ? `<p class="own-note" style="margin-bottom:16px">Una notizia pubblicata non si modifica: un errore si corregge in modo visibile con una rettifica («Corretto il [data]: …»).</p>` : ""}
     <div class="layout-side"><form id="news-form" class="stack">
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo e sommario</h2></div>
@@ -827,6 +852,10 @@ async function showNewsEditor(postId) {
       location.hash = `#/notizie/${saved.id}`;
       if (postId) showNewsEditor(saved.id);
     } catch (error) { toast(error.message, true); }
+  });
+  view.querySelector("#n-discard")?.addEventListener("click", async () => {
+    if (!await discardNews(post.id, post.title)) return;
+    location.hash = "#/notizie";
   });
 }
 
@@ -1187,7 +1216,7 @@ async function showLog(offset = 0) {
   if (logFilter.utente) params.set("utente", logFilter.utente);
   const log = await api(`/registro?${params}`);
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Trasparenza interna</p><h1>Registro modifiche</h1>
-    <p>Ogni scrittura, modifica, approvazione, rifiuto, ritiro e assegnazione di stato, con chi l'ha fatta e quando. Il registro non si può modificare né cancellare.</p></div></div>
+    <p>Ogni scrittura, modifica, approvazione, rifiuto, ritiro, assegnazione di stato ed eliminazione di una bozza, con chi l'ha fatta e quando. Il registro non si può modificare né cancellare.</p></div></div>
     <form id="log-filter" class="card" style="margin-bottom:16px"><div class="field-row">
       <div class="field"><label for="lf-user">Persona</label><select id="lf-user"><option value="">Tutte</option>${state.me.members.map((m) => `<option${m === logFilter.utente ? " selected" : ""}>${esc(m)}</option>`).join("")}</select></div>
       <div class="field"><label for="lf-pol">Politico (id)</label><input id="lf-pol" type="number" min="1" value="${esc(logFilter.politico || "")}" /></div>

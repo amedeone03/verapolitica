@@ -274,6 +274,11 @@ def news_update(
     return _run(service.save_news, payload, member=member, post_id=post_id)
 
 
+@router.delete("/notizie/{post_id}")
+def news_discard(post_id: Annotated[int, Path(gt=0)], member: Member, service: Service) -> Any:
+    return _run(service.discard_news, post_id, member=member)
+
+
 @router.post("/controlla/notizia")
 def check_news(member: Member, payload: Annotated[dict, Body()]) -> dict:
     del member
