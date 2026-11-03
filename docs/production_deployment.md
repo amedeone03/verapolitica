@@ -419,6 +419,13 @@ in `web` so they see `db` and raw storage:
 # ./scripts/run_production_compose.sh exec web \
 #   python -m scripts.bootstrap_politicians --apply --source-key senato-repubblica
 
+# Governo pages usually lack a birth date. After Camera/Senato identities exist:
+./scripts/run_production_compose.sh exec -T web \
+  python -m scripts.attach_governo_identities --dry-run
+# only then, to link unique names already in the archive and publish those offices:
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.attach_governo_identities --apply
+
 ./scripts/run_production_compose.sh exec web \
   python -m scripts.run_proposal_ingestion
 ```
