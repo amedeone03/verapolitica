@@ -92,6 +92,8 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
 
     assert scorecard["methodology_version"] == "pledge-score/v1"
     assert "Tasso di mantenimento" in script
+    assert "export function renderCoverMeter" in script
+    assert 'span>Mantenute</span>' in script
     assert "Spiegami questa promessa" in script
     assert "/explanation" in script
 

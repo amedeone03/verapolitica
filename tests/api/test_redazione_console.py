@@ -302,6 +302,13 @@ def test_news_follows_the_nine_block_model(console):
     assert public["blocks"]["fatto"].startswith("Il Consiglio dei ministri")
     assert [source["title"] for source in public["sources"]] == ["ANSA", "Il Giornale", "Domani"]
     assert public["written_by"] == "Anna Redattrice" and public["verified_by"] == "Bruno Verificatore"
+    listed = next(
+        item
+        for item in client.get("/feed?redazione=true").json()["items"]
+        if item["key"] == public["key"]
+    )
+    assert listed["written_by"] == "Anna Redattrice"
+    assert listed["verified_by"] == "Bruno Verificatore"
     profile = client.get(f"/politicians/{politician_id}").json()
     assert [item["id"] for item in profile["editorial"]["related_posts"]] == [post["id"]]
 

@@ -7,7 +7,7 @@ from backend.app.services import normalize_person_name
 from scripts.seed_official_portraits import seed
 
 
-def test_official_portraits_use_governo_image_url_only(tmp_path):
+def test_official_portraits_use_published_image_urls(tmp_path):
     engine = create_db_engine(f"sqlite:///{tmp_path / 'portraits.db'}")
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
@@ -77,8 +77,10 @@ def test_official_portraits_use_governo_image_url_only(tmp_path):
 
     path = tmp_path / "portraits.json"
     report = seed(factory, path)
-    assert report.official == 1
+    assert report.official == 2
     assert report.commons == 0
-    assert str(minister_id) in path.read_text(encoding="utf-8")
-    assert "rossi.jpg" not in path.read_text(encoding="utf-8")
+    stored = path.read_text(encoding="utf-8")
+    assert str(minister_id) in stored
+    assert "https://www.governo.it/meloni.jpg" in stored
+    assert "https://documenti.camera.it/rossi.jpg" in stored
     engine.dispose()

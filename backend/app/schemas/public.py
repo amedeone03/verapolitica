@@ -118,6 +118,7 @@ class PublicOfficeHolder(ImmutableSchema):
     given_name: str
     family_name: str
     start_date: date | None = None
+    image_url: AnyHttpUrl | None = None
 
 
 class PublicRegionSummary(ImmutableSchema):

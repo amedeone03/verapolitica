@@ -34,6 +34,9 @@ def test_welcome_and_registration_flow() -> None:
     assert "Come ti chiamiamo?" not in onboarding
     assert 'class="ob-faces-slot"' in onboarding and "function nameFaces" in onboarding
     assert "item.profile?.image_url" in onboarding
+    assert "displayPersonName" in onboarding
+    assert "photographed.length >= 8 ? photographed : [...photographed, ...rest]" in onboarding
+    assert "loaders.zone()" in onboarding and "loaders.parties()" in onboarding
     assert 'class="ob-label" for="ob-name">Il tuo nome' in onboarding
     assert '["name", "email", "password"].includes(key) ? " is-centered"' in onboarding
     assert "Scrivi almeno due lettere" in onboarding
@@ -54,6 +57,9 @@ def test_logos_reach_every_view() -> None:
     script = (APP / "app.js").read_text(encoding="utf-8")
     # Only logos served by VeraPolitica itself (/media/{id}) are drawn.
     assert "export function partyLogo" in card and "/^\\/media\\/\\d+$/" in card
+    assert "export function displayPersonName" in card
+    assert "class=\"vp-byline\"" in card
+    assert "officialImageUrl" in card
     assert "/^\\/media\\/\\d+$/" in onboarding and "listParties({ all: true })" in onboarding
     assert 'section === "simboli"' in console and "partyLogo(party)" in console
     assert 'api("/simboli", { method: "POST"' in console

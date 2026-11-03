@@ -24,6 +24,7 @@ from backend.app.schemas import (
     PublicRegionSummary,
     PublicTerritorialSource,
 )
+from backend.app.services.official_images import official_https_image_url
 
 
 class PublicTerritoryQueryService:
@@ -155,8 +156,12 @@ class PublicTerritoryQueryService:
         if not ids:
             return {}
         query = (
-            select(TerritorialOfficeMandate, Politician)
+            select(TerritorialOfficeMandate, Politician, PoliticianVersion)
             .join(Politician, Politician.id == TerritorialOfficeMandate.politician_id)
+            .outerjoin(
+                PoliticianVersion,
+                PoliticianVersion.id == Politician.current_version_id,
+            )
             .where(
                 TerritorialOfficeMandate.office == office,
                 TerritorialOfficeMandate.end_date.is_(None),
@@ -166,18 +171,8 @@ class PublicTerritoryQueryService:
             query = query.where(TerritorialOfficeMandate.municipality_id.in_(ids))
         else:
             query = query.where(TerritorialOfficeMandate.region_id.in_(ids))
-        published_ids = set(
-            self.session.scalars(
-                select(Politician.id)
-                .join(
-                    PoliticianVersion,
-                    PoliticianVersion.id == Politician.current_version_id,
-                )
-                .where(PoliticianVersion.published_at.is_not(None))
-            )
-        )
-        holders: dict[int, tuple[TerritorialOfficeMandate, Politician]] = {}
-        for mandate, politician in self.session.execute(query):
+        holders: dict[int, tuple[TerritorialOfficeMandate, Politician, PoliticianVersion | None]] = {}
+        for mandate, politician, version in self.session.execute(query):
             territory_id = (
                 mandate.municipality_id
                 if office is TerritorialOffice.MAYOR
@@ -187,18 +182,19 @@ class PublicTerritoryQueryService:
                 continue
             current = holders.get(territory_id)
             if current is None or mandate.start_date > current[0].start_date:
-                holders[territory_id] = (mandate, politician)
-        return {
-            territory_id: PublicOfficeHolder(
-                politician_id=(
-                    politician.id if politician.id in published_ids else None
-                ),
+                holders[territory_id] = (mandate, politician, version)
+        result: dict[int, PublicOfficeHolder] = {}
+        for territory_id, (mandate, politician, version) in holders.items():
+            published = version is not None and version.published_at is not None
+            profile = version.profile_data if published and isinstance(version.profile_data, dict) else {}
+            result[territory_id] = PublicOfficeHolder(
+                politician_id=politician.id if published else None,
                 given_name=politician.canonical_given_name,
                 family_name=politician.canonical_family_name,
                 start_date=mandate.start_date,
+                image_url=official_https_image_url(profile.get("image_url")),
             )
-            for territory_id, (mandate, politician) in holders.items()
-        }
+        return result
 
     @staticmethod
     def _region_summary(

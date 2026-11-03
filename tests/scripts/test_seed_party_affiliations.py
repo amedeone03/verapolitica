@@ -108,6 +108,25 @@ def test_affiliations_land_on_published_schede(tmp_path):
     engine.dispose()
 
 
+def test_affiliations_match_camera_civil_name_for_schlein(tmp_path):
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'schlein.db'}")
+    Base.metadata.create_all(engine)
+    factory = create_session_factory(engine)
+    _publish(
+        factory,
+        "Elena Ethel",
+        "Schlein",
+        party_name="Partito Democratico",
+        identifier="https://www.camera.it/leg19/29?shadow_deputato=307427",
+    )
+
+    report = seed(factory)
+
+    assert "Elly Schlein → Partito Democratico" in report.created
+    assert report.errors == []
+    engine.dispose()
+
+
 def test_affiliations_skip_when_the_catalog_party_is_missing(tmp_path):
     engine = create_db_engine(f"sqlite:///{tmp_path / 'empty.db'}")
     Base.metadata.create_all(engine)

@@ -58,12 +58,21 @@
           </div>
         </div>
         <p id="home-zone" class="feed-zone"></p>
-        <div id="feed-status" class="state-card loading-state" role="status">
-          <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Caricamento del feed…</strong></div>
+        <div class="feed-layout">
+          <div class="feed-main">
+            <div id="feed-status" class="state-card loading-state" role="status">
+              <span class="loading-mark" aria-hidden="true"></span>
+              <div><strong>Caricamento del feed…</strong></div>
+            </div>
+            <div id="feed-list" class="feed-timeline" hidden></div>
+            <button id="feed-more" class="ghost-button feed-more" type="button" hidden>Carica altri</button>
+          </div>
+          <aside class="feed-rail" aria-label="Come lavora la redazione">
+            <h2>Come si scrive</h2>
+            <p>Ogni notizia pubblica ha un redattore e un verificatore diversi. Le fonti restano in vista.</p>
+            <a href="./?view=methodology">Il metodo</a>
+          </aside>
         </div>
-        <div id="feed-list" class="feed-timeline" hidden></div>
-        <button id="feed-more" class="ghost-button feed-more" type="button" hidden>Carica altri</button>
       </section>
 
       <section id="post-view" aria-labelledby="post-title" hidden>

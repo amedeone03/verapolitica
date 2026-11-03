@@ -1,3 +1,5 @@
+import { displayPersonName, officialImageUrl } from "./feed-card.js";
+
 // VeraPolitica — welcome screen and sign-up journey (story-style, one question per screen).
 // Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and
 // pill buttons; one large question per screen; circular avatar grid with check badges;
@@ -19,9 +21,7 @@ function monogram(name) {
 function personPhoto(person, portraitFor) {
   const hosted = portraitFor?.(person.id);
   if (hosted) return hosted;
-  const url = person.image_url;
-  if (typeof url === "string" && (/^https?:\/\//.test(url) || /^\/portraits\/\d+\/image$/.test(url))) return url;
-  return "";
+  return officialImageUrl(person.image_url) || "";
 }
 
 function avatar(person, portraitFor, size = "") {
@@ -212,7 +212,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   function nameFaces() {
     if (!Array.isArray(state.people) || !state.people.length) return "";
     const photographed = state.people.filter((person) => personPhoto(person, portraitFor));
-    const pool = photographed.length ? photographed : state.people;
+    const rest = state.people.filter((person) => !personPhoto(person, portraitFor));
+    const pool = photographed.length >= 8 ? photographed : [...photographed, ...rest];
     const limit = 12;
     const picked = pool.length <= limit ? pool
       : Array.from({ length: limit }, (_, index) => pool[Math.floor((index * pool.length) / limit)]);
@@ -291,37 +292,53 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   }
 
   // ---------------------------------------------------------------- data
+  const inflight = {};
   const loaders = {
     name: () => loaders.politicians().catch(() => {}),
-    politicians: async () => {
-      if (state.people !== null) return;
-      const items = [];
-      for (let offset = 0; offset < 20000; offset += 100) {
-        const payload = await api.listPoliticians({ offset, limit: 100 });
-        items.push(...(payload.items || []));
-        if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
+    politicians: () => {
+      if (state.people !== null) return Promise.resolve();
+      if (!inflight.people) {
+        inflight.people = (async () => {
+          const items = [];
+          for (let offset = 0; offset < 20000; offset += 100) {
+            const payload = await api.listPoliticians({ offset, limit: 100 });
+            items.push(...(payload.items || []));
+            if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
+          }
+          state.people = items
+            .map((item) => ({
+              id: String(item.id),
+              name: displayPersonName(item.given_name, item.family_name),
+              image_url: item.profile?.image_url || item.image_url || null,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "it"));
+        })().finally(() => { delete inflight.people; });
       }
-      state.people = items
-        .map((item) => ({
-          id: String(item.id),
-          name: `${item.given_name} ${item.family_name}`.trim(),
-          image_url: item.profile?.image_url || item.image_url || null,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name, "it"));
+      return inflight.people;
     },
-    parties: async () => {
-      if (state.partyList !== null) return;
-      const payload = await api.listParties({ all: true });
-      state.partyList = payload.items
-        .map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null }))
-        .sort((a, b) => a.name.localeCompare(b.name, "it"));
-    },
-    zone: async () => {
-      if (state.regions === null) {
-        const payload = await api.listRegions();
-        state.regions = payload.items.map((item) => ({ id: item.id, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+    parties: () => {
+      if (state.partyList !== null) return Promise.resolve();
+      if (!inflight.parties) {
+        inflight.parties = (async () => {
+          const payload = await api.listParties({ all: true });
+          state.partyList = payload.items
+            .map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null }))
+            .sort((a, b) => a.name.localeCompare(b.name, "it"));
+        })().finally(() => { delete inflight.parties; });
       }
-      if (state.region) await loadProvinces(state.region.id);
+      return inflight.parties;
+    },
+    zone: () => {
+      if (!inflight.zone) {
+        inflight.zone = (async () => {
+          if (state.regions === null) {
+            const payload = await api.listRegions();
+            state.regions = payload.items.map((item) => ({ id: item.id, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+          }
+          if (state.region) await loadProvinces(state.region.id);
+        })().finally(() => { delete inflight.zone; });
+      }
+      return inflight.zone;
     },
   };
   async function loadProvinces(regionId) {
@@ -461,5 +478,13 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   back.addEventListener("click", () => go(-1));
   root.querySelector(".ob-close").addEventListener("click", onClose);
   shell.addEventListener("keydown", (event) => { if (event.key === "Escape") onClose(); });
+  Promise.all([
+    loaders.politicians().catch(() => { if (state.people === null) state.people = []; }),
+    loaders.parties().catch(() => { if (state.partyList === null) state.partyList = []; }),
+    loaders.zone().catch(() => { if (state.regions === null) state.regions = []; }),
+  ]).then(() => {
+    const key = STEPS[state.step];
+    if (["name", "zone", "politicians", "parties"].includes(key)) refresh(key);
+  });
   render({ focusTitle: false });
 }

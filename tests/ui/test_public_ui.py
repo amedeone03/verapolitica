@@ -73,6 +73,10 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "renderVotingGuide" in script.text
     assert "renderGlossaryTerm" in script.text
     assert "renderScorecard" in script.text
+    assert "export function displayPersonName" in script.text or "displayPersonName" in script.text
+    assert "export function renderCoverMeter" in script.text
+    assert "Mantenute" in script.text and "Non mantenute" in script.text
+    assert "renderOfficeHolderCard" in script.text
     assert "renderCompositionBar" in script.text
     assert "renderVerdictLegend" in script.text
     assert "countPledgeVerdicts" in script.text

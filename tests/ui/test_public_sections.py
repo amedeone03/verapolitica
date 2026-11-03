@@ -21,6 +21,7 @@ def test_bottom_bar_and_header():
     assert '<section id="archive-view" aria-labelledby="archive-title" hidden>' in html
     # The home is only the redazione's timeline.
     assert 'id="feed-choice"' in html and 'class="feed-timeline"' in html
+    assert 'class="feed-rail"' in html and "Come si scrive" in html
     home = html.split('id="home-view"')[1].split("</section>")[0]
     assert "shortcut-grid" not in home and "home-hero" not in home
     assert "Il tuo profilo." in html

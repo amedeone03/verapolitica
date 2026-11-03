@@ -58,7 +58,7 @@ def test_opposition_showcase_uses_only_complete_fixture_urls(tmp_path):
     engine = create_db_engine(f"sqlite:///{tmp_path / 'opp.db'}")
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
-    schlein_id = _publish(factory, "Elly", "Schlein", "deputato:schlein")
+    schlein_id = _publish(factory, "Elena Ethel", "Schlein", "deputato:schlein")
     conte_id = _publish(factory, "Giuseppe", "Conte", "deputato:conte")
     service = RedazioneService(factory, clock=lambda: datetime(2026, 11, 3, tzinfo=timezone.utc))
 
