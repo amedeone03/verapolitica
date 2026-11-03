@@ -341,6 +341,7 @@ function previewFor(item) {
   if (item.kind === "change" && p.kind === "simbolo") return `<div class="preview symbol-preview"><img src="${esc(p.payload.image_url)}" alt="" width="96" height="96" /><div><p><strong>${esc(p.payload.name)}</strong></p><p class="small">${esc(p.payload.credit)} · ${esc(p.payload.license_label)}<br />Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div></div>`;
   if (item.kind === "change" && p.kind === "partito_modifica") return `<div class="preview"><dl>${["name", "abbreviation", "website"].filter((k) => p.payload.before[k] !== p.payload.after[k]).map((k) => `<dt>${{ name: "Nome", abbreviation: "Sigla", website: "Sito" }[k]}</dt><dd><s>${esc(p.payload.before[k] || "—")}</s> → <strong>${esc(p.payload.after[k] || "—")}</strong></dd>`).join("")}${p.payload.remove_logo ? "<dt>Logo</dt><dd>rimosso</dd>" : ""}<dt>Motivo</dt><dd>${esc(p.payload.reason)}</dd></dl></div>`;
   if (item.kind === "change" && p.kind === "partito") return `<div class="preview"><p><strong>${esc(p.payload.name)}</strong>${p.payload.abbreviation ? ` (${esc(p.payload.abbreviation)})` : ""}</p><p class="small">${p.payload.website ? `Sito: ${sourceLink({ url: p.payload.website })}<br />` : ""}Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div>`;
+  if (item.kind === "change" && p.kind === "politico") return `<div class="preview"><dl><dt>Persona</dt><dd>${esc(p.payload.given_name)} ${esc(p.payload.family_name)}</dd>${p.payload.birth_date ? `<dt>Nascita</dt><dd>${longDate(p.payload.birth_date)}</dd>` : ""}${p.payload.office_label ? `<dt>Incarico</dt><dd>${esc(p.payload.office_label)}${p.payload.start_date ? ` dal ${longDate(p.payload.start_date)}` : ""}</dd>` : ""}<dt>Fonte</dt><dd>${sourceLink({ url: p.payload.source_url })}</dd></dl></div>`;
   if (item.kind === "change") return `<div class="preview"><p>${esc(p.summary)}</p>${p.payload?.classification ? `<p class="small"><strong>Nuova classificazione:</strong> ${esc(classificationText(p.payload.classification))}${p.payload.before ? `<br /><strong>Prima:</strong> ${esc(classificationText(p.payload.before))}` : ""}</p>` : ""}</div>`;
   return "";
 }
@@ -445,18 +446,80 @@ function readClassification(form, prefix) {
 
 // ---------------------------------------------------------------- politicians
 async function showPoliticians(query = "") {
-  const list = await api(`/politici?q=${encodeURIComponent(query)}&limit=60`);
+  const [list, queue] = await Promise.all([
+    api(`/politici?q=${encodeURIComponent(query)}&limit=60`),
+    api("/coda"),
+  ]);
+  const pending = queue.filter((item) => item.kind === "change" && item.preview?.kind === "politico");
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Politico</p><h1>Politici</h1>
     <p>La scheda di una persona con un ruolo pubblico. Si scrive solo da fonti pubbliche: il politico non scrive mai la propria scheda.</p></div></div>
+    ${newPoliticianForm(pending)}
     <form id="politician-search" class="card" role="search" style="margin-bottom:16px"><label for="pq">Cerca per nome o cognome</label>
       <div class="actions" style="margin-top:4px"><input id="pq" type="search" value="${esc(query)}" style="flex:1 1 260px" /><button class="button button-primary" type="submit">Cerca</button></div></form>
     ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Nome</th><th>Nascita</th><th>Profilo pubblico</th><th>In attesa</th></tr></thead><tbody>
       ${list.map((p) => `<tr><td><a href="#/politici/${p.id}"><strong>${esc(p.name)}</strong></a></td><td>${longDate(p.birth_date) || "—"}</td><td>${p.public ? `<span class="chip chip-published">Pubblico</span>` : `<span class="chip chip-muted">Non pubblicato</span>`}</td><td>${p.pending ? `<span class="chip chip-pending">${p.pending} in attesa</span>` : "—"}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">Nessun politico trovato. I politici arrivano dall'importazione ufficiale (Camera, Senato, Governo).</div>`}`;
+    </tbody></table></div>` : `<div class="empty">Nessun politico in elenco. Aggiungine uno qui sopra, oppure carica l'archivio ufficiale (Camera, Senato, Governo) sul server.</div>`}`;
   view.querySelector("#politician-search").addEventListener("submit", (event) => {
     event.preventDefault();
     showPoliticians(view.querySelector("#pq").value);
   });
+  view.querySelector("#politician-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await api("/politici", { method: "POST", body: Object.fromEntries(new FormData(form)) });
+      toast("Politico proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      showPoliticians(query);
+      refreshCount();
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+    }
+  });
+  view.querySelectorAll("[data-review]").forEach((form) => form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    const id = form.dataset.review;
+    try {
+      if (action === "approva") await api(`/coda/change/${id}/approva`, { method: "POST", body: {} });
+      else await api(`/coda/change/${id}/rifiuta`, { method: "POST", body: { note: form.reason.value } });
+      toast(action === "approva" ? "Approvato e pubblicato." : "Respinto.");
+      showPoliticians(query);
+      refreshCount();
+    } catch (error) { toast(error.message, true); }
+  }));
+}
+
+const GOVERNMENT_OFFICES = [
+  ["", "Nessun incarico di Governo (solo scheda)"],
+  ["presidente del consiglio", "Presidente del Consiglio"],
+  ["vice presidente del consiglio", "Vicepresidente del Consiglio"],
+  ["ministro", "Ministro"],
+  ["ministro senza portafoglio", "Ministro senza portafoglio"],
+  ["sottosegretario", "Sottosegretario"],
+];
+
+function newPoliticianForm(pending) {
+  return `<details class="card new-party"><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
+    <form id="politician-form" class="stack" style="margin-top:12px">
+      <div class="grid-2">
+        <div class="field"><label for="pol-given">Nome</label><input id="pol-given" name="given_name" type="text" required minlength="2" maxlength="200" /></div>
+        <div class="field"><label for="pol-family">Cognome</label><input id="pol-family" name="family_name" type="text" required minlength="2" maxlength="200" /></div>
+        <div class="field"><label for="pol-birth">Data di nascita <span class="hint">facoltativa, aiuta a non duplicare</span></label><input id="pol-birth" name="birth_date" type="date" /></div>
+        <div class="field"><label for="pol-source">Fonte <span class="hint">scheda Camera, Senato, Governo o pagina ufficiale</span></label><input id="pol-source" name="source_url" type="url" required placeholder="https://" /></div>
+        <div class="field"><label for="pol-office">Incarico di Governo</label><select id="pol-office" name="office">${GOVERNMENT_OFFICES.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}</select></div>
+        <div class="field"><label for="pol-start">Inizio incarico</label><input id="pol-start" name="start_date" type="date" /><span class="hint">Obbligatorio solo se scegli un incarico di Governo.</span></div>
+      </div>
+      <div class="actions"><button class="button button-primary" type="submit">Proponi il politico</button></div>
+    </form>
+  </details>
+  ${pending.length ? `<section class="card pending-parties"><h2>Politici proposti <span class="count">${pending.length}</span></h2>
+    <p class="small muted">Il cittadino li vede solo dopo l'approvazione di un'altra persona.</p>
+    <ul class="symbol-list">${pending.map((item) => `<li>
+      <span class="symbol-thumb is-empty" aria-hidden="true">${esc(`${item.preview.payload.given_name} ${item.preview.payload.family_name}`.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2).toUpperCase())}</span>
+      <div class="symbol-text"><strong>${esc(item.preview.payload.given_name)} ${esc(item.preview.payload.family_name)}</strong>
+        <p class="small muted">Proposto da ${esc(item.author)} · fonte ${sourceLink({ url: item.preview.payload.source_url })}${item.preview.payload.office_label ? ` · ${esc(item.preview.payload.office_label)}` : ""}</p></div>
+      ${reviewControls({ id: item.id, created_by: item.author })}
+    </li>`).join("")}</ul></section>` : ""}`;
 }
 
 const BLOCK_GUIDE = {

@@ -56,7 +56,7 @@ then appears on the public home at `/app/`. Give tokens out of band.
 | Section | What it does |
 | --- | --- |
 | Da verificare | Everything waiting for a second person: profile blocks, promises, proposals, promise statuses, news, withdrawals and re-classifications. The verifier ticks the final checklist of the writing models, then approves or rejects (a rejection needs a note). A pending or rejected news draft can be deleted by any member (`Elimina la notizia`); a published news item cannot. |
-| Politici | The "Modello Politico" in blocks 0–6: scheda rapida (from the official import), Chi è, Cosa ha fatto, Posizioni, Promesse (with status and classification), Procedimenti, Notizie collegate e fonti. |
+| Politici | The "Modello Politico" in blocks 0–6: scheda rapida (from the official import), Chi è, Cosa ha fatto, Posizioni, Promesse (with status and classification), Procedimenti, Notizie collegate e fonti. **Aggiungi un politico** proposes a new public identity (name, official https source, optional Governo office); another member must approve it. |
 | Notizie | The "Modello Notizia" in nine blocks with live checks: word counts, right/left balance, sources from both sides plus an institutional or agency source. |
 | Registro modifiche | The append-only log: who, when, what, with before/after details. |
 | Regole | The eight rules, the conventions and the checklist. |
@@ -123,7 +123,7 @@ opinions, short dates such as «16/9».
 
 `/redazione/api/*`, bearer token of a member. Main routes: `GET /coda`,
 `POST /coda/{kind}/{id}/approva|rifiuta`, `GET /politici/{id}`,
-`POST /politici/{id}/blocchi/{kind}`, `POST /politici/{id}/promesse`,
+`POST /politici` (new identity, second-person approval), `POST /politici/{id}/blocchi/{kind}`, `POST /politici/{id}/promesse`,
 `POST /promesse/{id}/stato`, `POST /promesse/{id}/classificazione`,
 `POST /contenuti/{kind}/{id}/ritira`, `GET|POST /notizie`, `PUT /notizie/{id}`,
 `DELETE /notizie/{id}` (pending or rejected drafts only), `GET /registro`.
