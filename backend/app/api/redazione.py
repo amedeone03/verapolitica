@@ -157,6 +157,11 @@ def politicians(
     return _run(service.search_politicians, q, limit=limit)
 
 
+@router.post("/politici")
+def propose_politician(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
+    return _run(service.propose_politician, payload, member=member)
+
+
 @router.get("/politici/{politician_id}")
 def scheda(politician_id: Annotated[int, Path(gt=0)], member: Member, service: Service) -> Any:
     return _run(service.scheda, politician_id, member=member)

@@ -15,14 +15,17 @@ def test_welcome_and_registration_flow() -> None:
     assert "export function renderAccountForm" in onboarding
     assert 'request("/auth/register"' in script and 'request("/auth/login"' in script
     assert 'credentials: "include"' in script
-    # Sign-up asks for politicians, parties, region and province, then shows the summary.
-    assert onboarding.count('const STEPS = ["name", "politicians", "parties", "zone", "summary"]') == 1
+    # Sign-up stays in the wrap: name, zone, follows, then email and password.
+    assert 'const EDIT_STEPS = ["name", "zone", "politicians", "parties", "summary"]' in onboarding
+    assert 'const REGISTER_STEPS = ["name", "zone", "politicians", "parties", "email", "password"]' in onboarding
+    assert "collectAccount" in onboarding and "onCreateAccount" in onboarding
+    assert "Qual è la tua email?" in onboarding and "Scegli una password" in onboarding
     assert "api.listPoliticians()" in onboarding and "api.listParties(" in onboarding
     assert "api.listRegions()" in onboarding and "api.listProvinces(" in onboarding
     assert "Array.isArray(state.people) && !state.people.length" in onboarding
-    # Neutral: no voting advice. Email/password live in app.js, not in the story screens.
     assert "non dà indicazioni di voto" in onboarding
     assert "fetch(" not in onboarding and "localStorage" not in onboarding
+    assert "collectAccount: true" in script
     # The demo cannot save; the "Per te" sends follows to the feed.
     assert script.count("if (!isMember())") >= 3 and "demoNotice()" in script
     assert 'params.set("politicians"' in script and 'params.set("parties"' in script

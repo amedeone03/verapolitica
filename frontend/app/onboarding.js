@@ -1,7 +1,7 @@
 // VeraPolitica — welcome screen and sign-up journey (story-style, one question per screen).
 // Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and
 // pill buttons; one large question per screen; circular avatar grid with check badges;
-// floating "Avanti" pill. Email and password are collected by the app, not here.
+// floating "Avanti" pill. New accounts stay in this wrap through email and password.
 
 const logo = (url, size = 28) => (typeof url === "string" && /^\/media\/\d+$/.test(url) ? `<img class="ob-logo" src="${url}" alt="" width="${size}" height="${size}" loading="lazy" />` : "");
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -74,14 +74,19 @@ export function renderAccountForm(root, { mode = "register", error = "", onSubmi
   root.querySelector("[data-account=back]").addEventListener("click", onBack);
 }
 
-const STEPS = ["name", "politicians", "parties", "zone", "summary"];
-const TONES = { name: "tone-navy", politicians: "tone-blue", parties: "tone-green", zone: "tone-navy", summary: "tone-light" };
+const EDIT_STEPS = ["name", "zone", "politicians", "parties", "summary"];
+const REGISTER_STEPS = ["name", "zone", "politicians", "parties", "email", "password"];
+const TONES = { name: "tone-navy", zone: "tone-navy", politicians: "tone-blue", parties: "tone-green", email: "tone-navy", password: "tone-navy", summary: "tone-light" };
+const EMAIL_OK = /[^@\s]+@[^@\s]+\.[^@\s]+/;
 
 /**
  * Story-style sign-up. `initial` pre-fills the answers when the reader edits them later.
+ * New accounts stay in this wrap through email and password (`collectAccount`).
  * `onDone(profilePatch)` receives { member, favorites, parties, zone }.
+ * `onCreateAccount({ email, password, profile })` creates the account at the end.
  */
-export function runOnboarding(root, { api, portraitFor = () => null, initial = {}, onDone, onClose }) {
+export function runOnboarding(root, { api, portraitFor = () => null, initial = {}, collectAccount = false, onDone, onCreateAccount, onClose }) {
+  const STEPS = collectAccount ? REGISTER_STEPS : EDIT_STEPS;
   const state = {
     step: 0,
     name: initial.member?.name || "",
@@ -94,6 +99,9 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     regions: null,
     provinces: new Map(),
     query: "",
+    email: "",
+    password: "",
+    accountError: "",
   };
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -122,12 +130,15 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     if (key === "politicians") return state.politicians.size > 0 || (Array.isArray(state.people) && !state.people.length);
     // Without the ISTAT list (not loaded yet, or not reachable) the zone can be set later.
     if (key === "zone") return Boolean(state.region && state.province) || (Array.isArray(state.regions) && !state.regions.length);
+    if (key === "email") return EMAIL_OK.test(state.email.trim());
+    if (key === "password") return state.password.length >= 10 && state.password.length <= 128;
     return true;
   };
   const syncBar = () => {
     const key = STEPS[state.step];
     next.disabled = !valid();
     next.textContent = key === "summary" ? "Vai al tuo feed"
+      : key === "password" ? "Crea l'account"
       : key === "politicians" && state.politicians.size ? `Avanti · ${state.politicians.size}`
       : key === "politicians" && Array.isArray(state.people) && !state.people.length ? "Salta"
       : key === "parties" && !state.parties.size ? "Salta"
@@ -149,24 +160,37 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       <label class="visually-hidden" for="ob-name">Nome</label>
       <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="Il tuo nome" />
       <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
-    politicians: () => `
-      <p class="ob-kicker">1 di 3</p>
-      <h1 id="ob-title" class="ob-title">Chi vuoi seguire?</h1>
-      <p class="ob-sub">Scegli almeno un politico. Le notizie che li riguardano arrivano nel tuo Per te.</p>
-      <div class="ob-search">${SEARCH}<label class="visually-hidden" for="ob-q">Cerca un politico</label><input id="ob-q" type="search" placeholder="Cerca" value="${escape(state.query)}" autocomplete="off" /></div>
-      <div class="ob-people" role="group" aria-label="Politici">${state.people === null ? `<p class="ob-sub">Caricamento…</p>` : peopleGrid()}</div>`,
-    parties: () => `
-      <p class="ob-kicker">2 di 3</p>
-      <h1 id="ob-title" class="ob-title">Quali partiti ti interessano?</h1>
-      <p class="ob-sub">Facoltativo. Vedrai le notizie che li coinvolgono, di qualunque area.</p>
-      <div class="ob-chips" role="group" aria-label="Partiti">${state.partyList === null ? `<p class="ob-sub">Caricamento…</p>` : partyChips()}</div>`,
     zone: () => `
-      <p class="ob-kicker">3 di 3</p>
+      <p class="ob-kicker">Di dove sei</p>
       <h1 id="ob-title" class="ob-title">Dove sei?</h1>
       <p class="ob-sub">Regione e provincia: le notizie del tuo territorio entrano nel Per te.</p>
       <h2 class="ob-label">Regione</h2>
       <div class="ob-chips is-compact" role="group" aria-label="Regione">${state.regions === null ? `<p class="ob-sub">Caricamento…</p>` : regionChips()}</div>
       <div class="ob-provinces">${provinceBlock()}</div>`,
+    politicians: () => `
+      <p class="ob-kicker">Chi segui</p>
+      <h1 id="ob-title" class="ob-title">Chi vuoi seguire?</h1>
+      <p class="ob-sub">Scegli almeno un politico. Le notizie che li riguardano arrivano nel tuo Per te.</p>
+      <div class="ob-search">${SEARCH}<label class="visually-hidden" for="ob-q">Cerca un politico</label><input id="ob-q" type="search" placeholder="Cerca" value="${escape(state.query)}" autocomplete="off" /></div>
+      <div class="ob-people" role="group" aria-label="Politici">${state.people === null ? `<p class="ob-sub">Caricamento…</p>` : peopleGrid()}</div>`,
+    parties: () => `
+      <p class="ob-kicker">Chi segui</p>
+      <h1 id="ob-title" class="ob-title">Quali partiti ti interessano?</h1>
+      <p class="ob-sub">Facoltativo. Vedrai le notizie che li coinvolgono, di qualunque area.</p>
+      <div class="ob-chips" role="group" aria-label="Partiti">${state.partyList === null ? `<p class="ob-sub">Caricamento…</p>` : partyChips()}</div>`,
+    email: () => `
+      <p class="ob-kicker">Il tuo account</p>
+      <h1 id="ob-title" class="ob-title">Qual è la tua email?</h1>
+      <label class="visually-hidden" for="ob-email">Email</label>
+      <input id="ob-email" class="ob-input" name="email" type="email" autocomplete="username" maxlength="254" value="${escape(state.email)}" placeholder="la tua migliore email" />
+      <p class="ob-note">Serve per accedere da un altro telefono. Non la mostriamo nel profilo pubblico.</p>`,
+    password: () => `
+      <p class="ob-kicker">Il tuo account</p>
+      <h1 id="ob-title" class="ob-title">Scegli una password</h1>
+      <label class="visually-hidden" for="ob-password">Password</label>
+      <input id="ob-password" class="ob-input" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" value="${escape(state.password)}" />
+      <p class="ob-note">Almeno 10 caratteri.</p>
+      ${state.accountError ? `<p class="ob-error" role="alert">${escape(state.accountError)}</p>` : ""}`,
     summary: () => summary(),
   };
 
@@ -278,6 +302,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     syncBar();
     live.textContent = `Passo ${state.step + 1} di ${STEPS.length}`;
     if (key === "name") body.querySelector("#ob-name").focus();
+    else if (key === "email") body.querySelector("#ob-email").focus();
+    else if (key === "password") body.querySelector("#ob-password").focus();
     else if (focusTitle) {
       const title = body.querySelector(".ob-title");
       title?.setAttribute("tabindex", "-1");
@@ -304,6 +330,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   // ---------------------------------------------------------------- events
   body.addEventListener("input", (event) => {
     if (event.target.id === "ob-name") { state.name = event.target.value; syncBar(); }
+    if (event.target.id === "ob-email") { state.email = event.target.value; syncBar(); }
+    if (event.target.id === "ob-password") { state.password = event.target.value; syncBar(); }
     if (event.target.id === "ob-q") { state.query = event.target.value; body.querySelector(".ob-people").innerHTML = state.people ? peopleGrid() : ""; }
   });
   body.addEventListener("submit", (event) => { event.preventDefault(); if (valid()) go(1); });
@@ -351,22 +379,38 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     }
   });
 
+  function profilePatch() {
+    return {
+      member: { name: state.name.trim(), since: initial.member?.since || new Date().toISOString().slice(0, 10) },
+      favorites: [...state.politicians.values()].map((item) => ({ id: String(item.id), name: item.name })),
+      parties: [...state.parties.values()].map((item) => ({ id: Number(item.id), name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null })),
+      zone: state.region && state.province ? {
+        region_id: Number(state.region.id),
+        region_name: state.region.name,
+        province: state.province.code,
+        province_name: state.province.name,
+        municipality_id: null,
+        municipality_name: null,
+      } : null,
+    };
+  }
+
   function go(delta) {
     const nextStep = state.step + delta;
     if (nextStep >= STEPS.length) {
-      onDone({
-        member: { name: state.name.trim(), since: initial.member?.since || new Date().toISOString().slice(0, 10) },
-        favorites: [...state.politicians.values()].map((item) => ({ id: String(item.id), name: item.name })),
-        parties: [...state.parties.values()].map((item) => ({ id: Number(item.id), name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null })),
-        zone: state.region && state.province ? {
-          region_id: Number(state.region.id),
-          region_name: state.region.name,
-          province: state.province.code,
-          province_name: state.province.name,
-          municipality_id: null,
-          municipality_name: null,
-        } : null,
-      });
+      const profile = profilePatch();
+      if (collectAccount) {
+        next.disabled = true;
+        Promise.resolve(onCreateAccount({ email: state.email.trim(), password: state.password, profile })).catch((error) => {
+          state.accountError = error?.message && error.message !== "api_error"
+            ? error.message
+            : "Non è stato possibile creare l'account.";
+          next.disabled = false;
+          render();
+        });
+        return;
+      }
+      onDone(profile);
       return;
     }
     if (nextStep < 0) return;

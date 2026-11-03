@@ -2928,7 +2928,23 @@ async function showOnboarding(api) {
 
 async function showRegistration(api) {
   if (civicAccount) return showOnboarding(api);
-  showAccountForm(api, "register");
+  document.title = "Registrati — VeraPolitica";
+  try { await loadPortraits(api); } catch { /* monograms instead */ }
+  openGate((root) => runOnboarding(root, {
+    api,
+    portraitFor: resolvePortrait,
+    collectAccount: true,
+    onClose: () => { window.location.href = "./?view=benvenuto"; },
+    onCreateAccount: async ({ email, password, profile }) => {
+      try {
+        civicAccount = await api.register({ email, password });
+      } catch (failure) {
+        throw new Error(accountErrorMessage(failure));
+      }
+      persistReaderProfile({ ...loadReaderProfile(), ...profile });
+      window.location.href = "./";
+    },
+  }));
 }
 
 function showLogin(api) {

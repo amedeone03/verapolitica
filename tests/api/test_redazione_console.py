@@ -555,6 +555,63 @@ def test_parties_and_symbols_go_public_after_a_second_member(console):
     assert any("Aggiunto all'elenco: Nuovo Partito Civico" in line for line in log)
 
 
+def test_redazione_can_add_a_politician_after_a_second_member(console):
+    client, _, _ = console
+    missing = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={"given_name": "Giorgia", "family_name": "Meloni", "source_url": "http://governo.it"},
+    )
+    assert missing.status_code == 422
+    office_without_date = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Giorgia",
+            "family_name": "Meloni",
+            "source_url": "https://www.governo.it/it/presidente",
+            "office": "presidente del consiglio",
+        },
+    )
+    assert office_without_date.status_code == 422
+    proposed = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Giorgia",
+            "family_name": "Meloni",
+            "birth_date": "1977-01-15",
+            "source_url": "https://www.governo.it/it/presidente",
+            "office": "presidente del consiglio",
+            "start_date": "2022-10-22",
+        },
+    )
+    assert proposed.status_code == 200, proposed.text
+    item = proposed.json()
+    queued = _queue_item(client, BRUNO, "change", id=item["id"])
+    assert queued["preview"]["kind"] == "politico"
+    assert queued["preview"]["payload"]["office_label"] == "Presidente del Consiglio dei ministri"
+    assert not any(row["family_name"] == "Meloni" for row in client.get("/politicians").json()["items"])
+    assert client.post(f"/redazione/api/coda/change/{item['id']}/approva", headers=ANNA, json={}).status_code == 409
+    assert client.post(f"/redazione/api/coda/change/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    public = client.get("/politicians").json()["items"]
+    person = next(row for row in public if row["family_name"] == "Meloni")
+    assert person["given_name"] == "Giorgia"
+    assert person["profile"]["mandates"][0]["office"] == "presidente del consiglio"
+    assert client.get(f"/politicians/{person['id']}").status_code == 200
+    again = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Giorgia",
+            "family_name": "Meloni",
+            "birth_date": "1977-01-15",
+            "source_url": "https://www.governo.it/it/presidente",
+        },
+    )
+    assert again.status_code == 409
+
+
 def test_the_redazione_can_always_edit_a_party(console):
     client, politician_id, factory = console
     party_id = _party(factory, politician_id, "Partito Esempio", "PE")

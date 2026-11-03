@@ -80,9 +80,11 @@ from backend.app.models.politician_profile import (
     ProfileSourceKind,
 )
 from backend.app.core.text import normalize_search_text
+from backend.app.services.matching_service import normalize_person_name
 from backend.app.schemas import ProposalObservation
 from backend.app.services import symbols as symbols_module
 from backend.app.schemas.feed import Citation, EditorialPostRequest
+from backend.app.schemas.politician import PoliticianVersionProfile
 from backend.app.schemas.pledge import PledgeAssessmentProposal, PledgeClassificationRequest
 from backend.app.schemas.politician_profile import (
     BiographyDraftInput,
@@ -207,6 +209,13 @@ SOURCE_KIND_BY_AREA = {
 }
 SYSTEM_AUTHOR = "Importazione"
 COLLECTOR = "redazione/v1"
+GOVERNMENT_OFFICES = {
+    "presidente del consiglio": "Presidente del Consiglio dei ministri",
+    "vice presidente del consiglio": "Vicepresidente del Consiglio dei ministri",
+    "ministro": "Ministro",
+    "ministro senza portafoglio": "Ministro senza portafoglio",
+    "sottosegretario": "Sottosegretario",
+}
 
 
 def _utc_now() -> datetime:
@@ -384,6 +393,73 @@ class RedazioneService:
                 }
                 for row in rows
             ]
+
+    def propose_politician(self, payload: dict, *, member: str) -> dict:
+        """A new public identity. Another member must approve it before the citizen sees it."""
+
+        given = _clean(payload.get("given_name"))[:200]
+        family = _clean(payload.get("family_name"))[:200]
+        birth = _parse_date(payload.get("birth_date"), "Data di nascita")
+        source_url = _clean(payload.get("source_url"))
+        office = _clean(payload.get("office"))
+        institution = _clean(payload.get("institution")) or "Governo della Repubblica"
+        start = _parse_date(payload.get("start_date"), "Inizio incarico")
+        errors: dict[str, str] = {}
+        if len(given) < 2:
+            errors["given_name"] = "Scrivi il nome."
+        if len(family) < 2:
+            errors["family_name"] = "Scrivi il cognome."
+        if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
+            errors["source_url"] = "Indica una fonte https (scheda Camera, Senato, Governo o pagina ufficiale)."
+        if office:
+            if office not in GOVERNMENT_OFFICES:
+                errors["office"] = "Scegli un incarico di Governo, o lascialo vuoto."
+            if start is None:
+                errors["start_date"] = "Indica da quando ricopre l'incarico."
+        if errors:
+            raise RedazioneValidation(
+                "Controlla i campi del politico.",
+                [{"level": "error", "field": field, "message": message} for field, message in errors.items()],
+            )
+        folded = normalize_person_name(given, family)
+        with self.session_factory.begin() as session:
+            for row in session.scalars(select(Politician)):
+                if row.normalized_name != folded:
+                    continue
+                if birth and row.birth_date and row.birth_date != birth:
+                    continue
+                raise RedazioneConflict(f"«{row.canonical_given_name} {row.canonical_family_name}» è già nell'elenco.")
+            request = EditorialChangeRequest(
+                kind="politico",
+                target_kind="politician",
+                target_id=0,
+                politician_id=None,
+                summary=f"Nuovo politico: {given} {family}",
+                payload={
+                    "given_name": given,
+                    "family_name": family,
+                    "birth_date": birth.isoformat() if birth else None,
+                    "source_url": source_url,
+                    "office": office or None,
+                    "institution": institution if office else None,
+                    "start_date": start.isoformat() if office and start else None,
+                    "office_label": GOVERNMENT_OFFICES.get(office) if office else None,
+                },
+                created_by=member,
+                created_at=self.clock(),
+            )
+            session.add(request)
+            session.flush()
+            self._log(
+                session,
+                actor=member,
+                action="proposta",
+                object_kind="change",
+                object_id=request.id,
+                summary=f"Proposto: {request.summary}.",
+                details=request.payload,
+            )
+            return {"id": request.id, "summary": request.summary}
 
     def _pending_by_politician(self, session: Session) -> dict[int, int]:
         counts: dict[int, int] = {}
@@ -2108,6 +2184,59 @@ class RedazioneService:
                 session.flush()
                 row.target_id = party.id
                 summary = f"Aggiunto all'elenco: {row.summary.removeprefix('Nuovo partito: ')}"
+            elif row.kind == "politico":
+                payload = row.payload
+                folded = normalize_person_name(payload["given_name"], payload["family_name"])
+                birth = date.fromisoformat(payload["birth_date"]) if payload.get("birth_date") else None
+                for existing in session.scalars(select(Politician)):
+                    if existing.normalized_name != folded:
+                        continue
+                    if birth and existing.birth_date and existing.birth_date != birth:
+                        continue
+                    raise RedazioneConflict("Il politico è già nell'elenco.")
+                politician = Politician(
+                    canonical_given_name=payload["given_name"],
+                    canonical_family_name=payload["family_name"],
+                    normalized_name=folded,
+                    birth_date=birth,
+                )
+                session.add(politician)
+                session.flush()
+                mandates = []
+                if payload.get("office") and payload.get("start_date"):
+                    mandates.append(
+                        {
+                            "institution": payload.get("institution") or "Governo della Repubblica",
+                            "office": payload["office"],
+                            "legislature": "Governo",
+                            "mandate_type": "government",
+                            "start_date": payload["start_date"],
+                            "end_date": None,
+                        }
+                    )
+                profile = PoliticianVersionProfile.model_validate(
+                    {
+                        "given_name": payload["given_name"],
+                        "family_name": payload["family_name"],
+                        "birth_date": payload.get("birth_date"),
+                        "official_homepage_url": payload["source_url"],
+                        "mandates": mandates,
+                    }
+                )
+                version = PoliticianVersion(
+                    politician_id=politician.id,
+                    version_number=1,
+                    profile_schema_version=1,
+                    profile_data=profile.model_dump(mode="json"),
+                    published_at=self.clock(),
+                    created_at=self.clock(),
+                )
+                session.add(version)
+                session.flush()
+                politician.current_version_id = version.id
+                row.target_id = politician.id
+                row.politician_id = politician.id
+                summary = f"Aggiunto all'elenco: {payload['given_name']} {payload['family_name']}"
             else:
                 raise RedazioneConflict("Tipo di richiesta sconosciuto.")
             row.status = ChangeRequestStatus.APPROVED

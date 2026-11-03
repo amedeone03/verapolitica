@@ -36,6 +36,7 @@ def test_console_is_self_contained_and_in_cambridge_colours(tmp_path):
         assert text in script or text in page
     assert "Approva e pubblica" in script and "data-check" in script
     assert "Elimina la notizia" in script and "data-discard" in script
+    assert "Aggiungi un politico" in script and 'api("/politici", { method: "POST"' in script
     assert 'method: "DELETE"' in script
     assert demo.status_code == 307 and demo.headers["location"] == "/redazione/"
     assert [m["name"] for m in access["demo_members"]] == ["Redattore demo", "Verificatore demo", "Caporedattore demo"]
