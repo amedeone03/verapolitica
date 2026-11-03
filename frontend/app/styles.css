@@ -963,6 +963,14 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .ob.is-centered .ob-body { display: flex; flex-direction: column; justify-content: center; width: min(560px, 100%); }
 .ob.is-centered .ob-title { margin-bottom: 4px; }
 .ob.is-centered .ob-label { margin-top: 28px; }
+.ob-faces-slot:empty { display: none; }
+.ob-faces { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 24px; }
+.ob-avatar.is-face { width: 56px; height: 56px; font-size: .9375rem; box-shadow: 0 0 0 2px rgba(255, 255, 255, .22); }
+.ob-avatar.is-face img { width: 100%; height: 100%; object-fit: cover; }
+@media (min-width: 720px) {
+  .ob-faces { gap: 10px; margin-bottom: 32px; }
+  .ob-avatar.is-face { width: 64px; height: 64px; }
+}
 .tone-light .gate-pill.is-solid:disabled { color: var(--color-primary); box-shadow: inset 0 0 0 1.5px rgba(15, 39, 71, .35); }
 .ob-screen.is-entering { animation: ob-in 320ms cubic-bezier(.2, .8, .2, 1); }
 @keyframes ob-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }

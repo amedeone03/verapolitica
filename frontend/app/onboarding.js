@@ -16,9 +16,17 @@ function monogram(name) {
   return letters.toLocaleUpperCase();
 }
 
+function personPhoto(person, portraitFor) {
+  const hosted = portraitFor?.(person.id);
+  if (hosted) return hosted;
+  const url = person.image_url;
+  if (typeof url === "string" && (/^https?:\/\//.test(url) || /^\/portraits\/\d+\/image$/.test(url))) return url;
+  return "";
+}
+
 function avatar(person, portraitFor, size = "") {
-  const url = portraitFor(person.id);
-  return `<span class="ob-avatar${size}">${url ? `<img src="${escape(url)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escape(monogram(person.name))}</span>`}</span>`;
+  const url = personPhoto(person, portraitFor);
+  return `<span class="ob-avatar${size}">${url ? `<img src="${escape(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escape(monogram(person.name))}</span>`}</span>`;
 }
 
 export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
@@ -161,11 +169,12 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   // ---------------------------------------------------------------- screens
   const screens = {
     name: () => `
+      <div class="ob-faces-slot">${nameFaces()}</div>
       <p class="ob-kicker">Benvenuto</p>
-      <h1 id="ob-title" class="ob-title">Come ti chiamiamo?</h1>
+      <h1 id="ob-title" class="ob-title">Come ti chiami?</h1>
       <label class="ob-label" for="ob-name">Il tuo nome</label>
       <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="es. Anna" />
-      <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`
+      <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
     zone: () => `
       <p class="ob-kicker">Di dove sei</p>
       <h1 id="ob-title" class="ob-title">Dove sei?</h1>
@@ -199,6 +208,16 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       ${state.accountError ? `<p class="ob-error" role="alert">${escape(state.accountError)}</p>` : ""}`,
     summary: () => summary(),
   };
+
+  function nameFaces() {
+    if (!Array.isArray(state.people) || !state.people.length) return "";
+    const photographed = state.people.filter((person) => personPhoto(person, portraitFor));
+    const pool = photographed.length ? photographed : state.people;
+    const limit = 12;
+    const picked = pool.length <= limit ? pool
+      : Array.from({ length: limit }, (_, index) => pool[Math.floor((index * pool.length) / limit)]);
+    return `<div class="ob-faces" aria-hidden="true">${picked.map((person) => avatar(person, portraitFor, " is-face")).join("")}</div>`;
+  }
 
   function peopleGrid() {
     const q = state.query.trim().toLocaleLowerCase("it");
@@ -273,6 +292,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
 
   // ---------------------------------------------------------------- data
   const loaders = {
+    name: () => loaders.politicians().catch(() => {}),
     politicians: async () => {
       if (state.people !== null) return;
       const items = [];
@@ -282,7 +302,11 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
         if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
       }
       state.people = items
-        .map((item) => ({ id: String(item.id), name: `${item.given_name} ${item.family_name}`.trim() }))
+        .map((item) => ({
+          id: String(item.id),
+          name: `${item.given_name} ${item.family_name}`.trim(),
+          image_url: item.profile?.image_url || item.image_url || null,
+        }))
         .sort((a, b) => a.name.localeCompare(b.name, "it"));
     },
     parties: async () => {
@@ -329,6 +353,10 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     }
   }
   function refresh(key) {
+    if (key === "name") {
+      const slot = body.querySelector(".ob-faces-slot");
+      if (slot) slot.innerHTML = nameFaces();
+    }
     if (key === "politicians") body.querySelector(".ob-people").innerHTML = peopleGrid();
     if (key === "parties") body.querySelector(".ob-chips").innerHTML = partyChips();
     if (key === "zone") {

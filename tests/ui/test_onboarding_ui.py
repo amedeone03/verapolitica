@@ -30,11 +30,15 @@ def test_welcome_and_registration_flow() -> None:
     assert 'class="account-brand"' in onboarding and 'class="account-panel"' in onboarding
     assert 'id="account-title" class="account-title"' in onboarding
     assert "place-content:start" not in onboarding
+    assert 'class="ob-title">Come ti chiami?' in onboarding
+    assert "Come ti chiamiamo?" not in onboarding
+    assert 'class="ob-faces-slot"' in onboarding and "function nameFaces" in onboarding
+    assert "item.profile?.image_url" in onboarding
     assert 'class="ob-label" for="ob-name">Il tuo nome' in onboarding
     assert '["name", "email", "password"].includes(key) ? " is-centered"' in onboarding
     assert "Scrivi almeno due lettere" in onboarding
     assert ".account-gate" in styles and ".ob.is-centered .ob-body" in styles
-    assert ".account-title" in styles
+    assert ".account-title" in styles and ".ob-faces" in styles and ".ob-avatar.is-face" in styles
     # The demo cannot save; the "Per te" sends follows to the feed.
     assert script.count("if (!isMember())") >= 3 and "demoNotice()" in script
     assert 'params.set("politicians"' in script and 'params.set("parties"' in script
