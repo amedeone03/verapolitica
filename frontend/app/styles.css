@@ -544,6 +544,11 @@ a.topic-chip:hover { background: var(--color-accent-light); color: var(--color-p
 
 .era-card > h2 { margin-bottom: var(--space-2); }
 .legislature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-2); margin-top: var(--space-5); }
+.archive-search-hint { margin: 0 0 var(--space-4); color: var(--color-text-muted); font-size: .875rem; }
+.office-holder { font-weight: 600; }
+.legislature-card.is-current { border-color: var(--color-accent); background: var(--color-accent-light); }
+.legislature-now { color: var(--color-primary); font-weight: 600; }
+.legislature-walk .filter-pills { margin-top: var(--space-3); }
 .legislature-card { display: flex; align-items: center; gap: var(--space-4); min-height: 64px; padding: var(--space-3) var(--space-4); color: var(--color-text); background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-md); text-decoration: none; transition: border-color var(--transition-fast), background-color var(--transition-fast); }
 .legislature-card:hover { background: var(--color-accent-light); border-color: var(--color-accent); color: var(--color-text); }
 .legislature-card strong, .legislature-card small { display: block; }

@@ -144,6 +144,8 @@
         <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Territori e consultazioni</h2>
           <div class="shortcut-grid">
             <a class="shortcut-card" href="./?view=regions">Regioni</a>
+            <a class="shortcut-card" href="./?view=search&amp;q=Lazio&amp;type=region">Lazio</a>
+            <a class="shortcut-card" href="./?view=search&amp;q=Roma&amp;type=municipality">Roma</a>
             <a class="shortcut-card" href="./?view=provinces">Province</a>
             <a class="shortcut-card" href="./?view=referendum-archive">Referendum</a>
             <a class="shortcut-card" href="./?view=proposals&amp;status=enacted">Leggi promulgate</a>
@@ -224,6 +226,13 @@
           <p class="hero-copy">Verificato significa controllato sulle fonti ufficiali, non un giudizio politico.</p>
         </div>
 
+        <form id="archive-search" class="search-panel archive-search" action="./" method="get">
+          <input type="hidden" name="view" value="search" />
+          <label class="visually-hidden" for="archive-q">Cerca un profilo, un partito o una promessa</label>
+          <input id="archive-q" name="q" type="search" maxlength="100" placeholder="Cerca un profilo, un partito o una promessa" autocomplete="off" />
+          <button type="submit">Cerca</button>
+        </form>
+        <p class="archive-search-hint">La ricerca apre la scheda, il partito o la promessa. Filtra anche l'elenco sotto mentre scrivi.</p>
         <div class="archive-heading">
           <span id="archive-count" class="count-pill" aria-live="polite">Caricamento</span>
         </div>

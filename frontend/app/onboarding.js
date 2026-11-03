@@ -269,8 +269,13 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   const loaders = {
     politicians: async () => {
       if (state.people !== null) return;
-      const payload = await api.listPoliticians();
-      state.people = payload.items
+      const items = [];
+      for (let offset = 0; offset < 20000; offset += 100) {
+        const payload = await api.listPoliticians({ offset, limit: 100 });
+        items.push(...(payload.items || []));
+        if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
+      }
+      state.people = items
         .map((item) => ({ id: String(item.id), name: `${item.given_name} ${item.family_name}`.trim() }))
         .sort((a, b) => a.name.localeCompare(b.name, "it"));
     },

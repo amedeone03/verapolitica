@@ -199,6 +199,11 @@ async function refreshCount() {
     const badge = document.getElementById("queue-count");
     badge.textContent = overview.to_verify;
     badge.hidden = !overview.to_verify;
+    const identities = document.getElementById("identity-count");
+    if (identities) {
+      identities.textContent = overview.pending_identities || "";
+      identities.hidden = !overview.pending_identities;
+    }
   } catch { /* ignore */ }
 }
 
@@ -216,6 +221,8 @@ async function route() {
     else if (section === "registro") await showLog();
     else if (section === "simboli") await showSymbols(id || "party");
     else if (section === "regole") showRules();
+    else if (section === "identita" && id) await showIdentity(Number(id));
+    else if (section === "identita") await showIdentities();
     else await showQueue();
   } catch (error) {
     if (error instanceof StaleRoute) return;
@@ -410,6 +417,86 @@ function bindDiscardButtons(root, onDone) {
     button.addEventListener("click", async () => {
       if (!await discardNews(button.dataset.discard, button.dataset.title)) return;
       onDone();
+    });
+  });
+}
+
+// ---------------------------------------------------------- identities
+function identityStatusLabel(status) {
+  return {
+    pending: "In attesa",
+    resolved_existing: "Collegata a una persona già in archivio",
+    resolved_new: "Nuova identità",
+    ignored: "Ignorata",
+  }[status] || status;
+}
+
+async function showIdentities() {
+  const payload = await api("/identita?status=pending&limit=100");
+  const items = payload.items || [];
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Coda quotidiana</p><h1>Identità da risolvere</h1>
+    <p>governo.it e l'elenco DAIT dei sindaci spesso non hanno la data di nascita. Il bootstrap automatico non crea quelle persone. Qui una persona della redazione collega il nome all'archivio, crea una nuova identità o lascia il caso in attesa. Il nome di chi decide finisce nel registro.</p></div></div>
+    <div class="summary-strip">
+      <div class="tile"><strong>${payload.total || 0}</strong><span>casi in attesa</span></div>
+    </div>
+    ${items.length ? items.map((item) => `<article class="card">
+      <div class="card-head"><div>
+        <div class="item-meta"><span class="chip chip-kind">${esc(item.source?.name || item.source?.key || "Fonte")}</span>
+          ${item.current_role ? `<span>${esc(item.current_role)}</span>` : ""}
+          ${item.birth_date ? `<span>Nato il ${esc(item.birth_date)}</span>` : `<span>Data di nascita assente</span>`}
+        </div>
+        <h3><a href="#/identita/${item.id}">${esc(item.candidate_display_name)}</a></h3>
+        ${item.official_source_url ? `<p class="small">Fonte: ${sourceLink({ url: item.official_source_url, name: item.source_identifier || item.official_source_url })}</p>` : ""}
+      </div></div>
+    </article>`).join("") : `<div class="empty">Nessun caso in attesa. Dopo un ingest Governo o DAIT i nomi senza data di nascita arrivano qui.</div>`}`;
+}
+
+async function showIdentity(caseId) {
+  const item = await api(`/identita/${caseId}`);
+  const matches = item.possible_matches || [];
+  const pending = item.status === "pending";
+  view.innerHTML = `<p class="small"><a href="#/identita">← Tutte le identità</a></p>
+    <div class="page-head"><div>
+      <p class="eyebrow">${esc(item.source?.name || "Fonte ufficiale")}</p>
+      <h1>${esc(item.candidate_display_name)}</h1>
+      <p class="muted">${esc(identityStatusLabel(item.status))}${item.birth_date ? ` · nato il ${esc(item.birth_date)}` : " · data di nascita assente sulla pagina ufficiale"}</p>
+      ${item.official_source_url ? `<p>Pagina ufficiale: ${sourceLink({ url: item.official_source_url })}</p>` : ""}
+    </div></div>
+    <article class="card"><h2>Persone già in archivio con lo stesso nome</h2>
+      ${matches.length ? `<ul class="plain-list">${matches.map((match) => `<li>
+        <strong>${esc(match.politician.given_name)} ${esc(match.politician.family_name)}</strong>
+        ${match.politician.birth_date ? ` · ${esc(match.politician.birth_date)}` : ""}
+        ${match.signals?.length ? ` · ${esc(match.signals.join(", "))}` : ""}
+        ${pending ? `<form class="stack identity-form" data-action="collega" data-id="${item.id}">
+          <input type="hidden" name="politician_id" value="${match.politician.id}" />
+          <div class="field"><label>Nota</label><textarea name="note" rows="2" placeholder="Perché è la stessa persona."></textarea></div>
+          <button class="button button-approve" type="submit">Collega a questa scheda</button>
+        </form>` : ""}
+      </li>`).join("")}</ul>` : `<p class="muted">Nessun omonimo in archivio. Se il nome è unico sulla fonte, puoi creare una nuova identità.</p>`}
+    </article>
+    ${pending ? `<article class="card"><h2>Altre decisioni</h2>
+      <form class="stack identity-form" data-action="nuova" data-id="${item.id}">
+        <p class="small muted">Crea una persona nuova solo se non c'è già in archivio con un nome ufficiale diverso.</p>
+        <div class="field"><label>Nota</label><textarea name="note" rows="2" required placeholder="Perché è una persona distinta."></textarea></div>
+        <button class="button button-primary" type="submit">Crea una nuova identità</button>
+      </form>
+      <form class="stack identity-form" data-action="ignora" data-id="${item.id}" style="margin-top:16px">
+        <div class="field"><label>Nota</label><textarea name="note" rows="2" required placeholder="Perché il caso resta chiuso senza identità."></textarea></div>
+        <button class="button button-danger" type="submit">Ignora il caso</button>
+      </form>
+    </article>` : item.reviewer_identity ? `<p class="muted">Deciso da ${esc(item.reviewer_identity)}${item.resolution_note ? `: ${esc(item.resolution_note)}` : ""}.</p>` : ""}`;
+  view.querySelectorAll("form.identity-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const action = form.dataset.action;
+      const body = { note: form.note?.value || "" };
+      if (form.politician_id) body.politician_id = Number(form.politician_id.value);
+      try {
+        const result = await api(`/identita/${form.dataset.id}/${action}`, { method: "POST", body });
+        toast(`Identità: ${identityStatusLabel(result.status)}`);
+        location.hash = "#/identita";
+        refreshCount();
+      } catch (error) { toast(error.message, true); }
     });
   });
 }

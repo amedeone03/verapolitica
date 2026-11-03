@@ -976,16 +976,24 @@ export function renderMunicipalityCard(municipality) {
 
 export function renderRegionDetail(region, municipalities = []) {
   const sourceUrl = safeExternalUrl(region.source?.url);
+  const ordered = [...municipalities].sort((left, right) => {
+    if (left.name === "Roma") return -1;
+    if (right.name === "Roma") return 1;
+    return left.name.localeCompare(right.name, "it");
+  });
+  const office = region.current_president
+    ? `<p class="office-holder">Presidente in carica: ${holderLabel(region.current_president)}</p>`
+    : `<p class="office-holder">Presidente: non ancora collegato a una scheda pubblicata. Serve un mandato ufficiale e la verifica della redazione.</p>`;
   return `<section class="proposal-detail-hero">
       <p class="eyebrow">Regione ISTAT ${escapeHtml(region.istat_code)}</p>
       <h1 id="region-detail-title">${escapeHtml(region.name)}</h1>
-      <p>Presidente: ${holderLabel(region.current_president)}</p>
+      ${office}
       <p>${region.municipality_count} ${region.municipality_count === 1 ? "comune" : "comuni"} nei dati ufficiali di riferimento.</p>
       <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>
     <section class="detail-card"><h2>Comuni in questa regione</h2>
-      ${municipalities.length ? `<div class="proposal-grid">${municipalities.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
+      ${ordered.length ? `<div class="proposal-grid">${ordered.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
     </section>`;
 }
 
@@ -995,7 +1003,9 @@ export function renderMunicipalityDetail(municipality) {
       <p class="eyebrow">Comune ISTAT ${escapeHtml(municipality.istat_code)}</p>
       <h1 id="municipality-detail-title">Comune di ${escapeHtml(municipality.name)}</h1>
       <p>Regione: <a href="./?region=${encodeURIComponent(municipality.region_id)}">${escapeHtml(municipality.region_name)}</a></p>
-      <p>Sindaco: ${holderLabel(municipality.current_mayor)}</p>
+      ${municipality.current_mayor
+        ? `<p class="office-holder">Sindaco in carica: ${holderLabel(municipality.current_mayor)}</p>`
+        : `<p class="office-holder">Sindaco: non ancora collegato a una scheda pubblicata. Serve l'elenco DAIT e la verifica della redazione.</p>`}
       <p>Provincia/UTS: <a href="./?province=${encodeURIComponent(municipality.province_abbreviation)}">${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>`;
@@ -1842,21 +1852,73 @@ async function loadPortraits(api) {
   }
 }
 
+export async function listAllPoliticians(api, { role = "" } = {}) {
+  const items = [];
+  let total = 0;
+  for (let offset = 0; offset < 20000; offset += 100) {
+    const page = await api.listPoliticians({ role, offset, limit: 100 });
+    total = page.total || 0;
+    items.push(...(page.items || []));
+    if (items.length >= total || !(page.items || []).length) break;
+  }
+  return { items, total };
+}
+
+function archiveQuery() {
+  return (byId("archive-q")?.value || "").trim();
+}
+
+function filterArchivePeople(people, query) {
+  const tokens = query.toLocaleLowerCase("it").split(/\s+/).filter((token) => token.length >= 2);
+  if (!tokens.length) return people;
+  return people.filter((person) => {
+    const hay = `${person.given_name} ${person.family_name} ${currentParty(person)?.name || ""} ${person.current_office || ""}`.toLocaleLowerCase("it");
+    return tokens.every((token) => hay.includes(token));
+  });
+}
+
+function paintArchive(api, people, total) {
+  const query = archiveQuery();
+  const shown = filterArchivePeople(people, query);
+  byId("archive-count").textContent = query
+    ? `${countLabel(shown.length, "risultato", "risultati")} su ${countLabel(total, "profilo", "profili")}`
+    : countLabel(total, "profilo verificato", "profili verificati");
+  if (!shown.length) {
+    showState(
+      byId("archive-status"),
+      query ? "Nessun profilo corrisponde a questa ricerca." : "Nessun profilo verificato è al momento disponibile.",
+      query ? "Apri Cerca per partito o promessa, oppure prova un altro cognome." : "I profili pubblicati compariranno qui dopo la verifica editoriale.",
+    );
+    byId("politician-list").hidden = true;
+    return;
+  }
+  byId("archive-status").hidden = true;
+  byId("politician-list").hidden = false;
+  byId("politician-list").innerHTML = shown.map(renderPoliticianCard).join("");
+  fillCardRecords(api, shown);
+}
+
 async function showArchive(api) {
   byId("archive-view").hidden = false;
+  const form = byId("archive-search");
   try {
-    const [payload] = await Promise.all([api.listPoliticians(), loadPortraits(api)]);
+    const [payload] = await Promise.all([listAllPoliticians(api), loadPortraits(api)]);
     payload.items.sort((left, right) => officeRank(left) - officeRank(right)
       || `${left.family_name} ${left.given_name}`.localeCompare(`${right.family_name} ${right.given_name}`, "it"));
-    byId("archive-count").textContent = countLabel(payload.total, "profilo verificato", "profili verificati");
-    if (!payload.items.length) {
-      showState(byId("archive-status"), "Nessun profilo verificato è al momento disponibile.", "I profili pubblicati compariranno qui dopo la verifica editoriale.");
-      return;
+    paintArchive(api, payload.items, payload.total);
+    if (form && !form.dataset.bound) {
+      form.dataset.bound = "1";
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const query = archiveQuery();
+        if (query.length >= 2) {
+          window.location.href = `./?view=search&q=${encodeURIComponent(query)}`;
+          return;
+        }
+        paintArchive(api, payload.items, payload.total);
+      });
+      byId("archive-q")?.addEventListener("input", () => paintArchive(api, payload.items, payload.total));
     }
-    byId("archive-status").hidden = true;
-    byId("politician-list").hidden = false;
-    byId("politician-list").innerHTML = payload.items.map(renderPoliticianCard).join("");
-    fillCardRecords(api, payload.items);
   } catch {
     byId("archive-count").textContent = "Non disponibile";
     showState(byId("archive-status"), "Non è stato possibile caricare i profili verificati. Riprova.", PUBLIC_UNAVAILABLE, true);
@@ -2342,6 +2404,7 @@ function renderSearchStart() {
     ["./?view=politicians", "users", "Politici", "Tutti i profili verificati"],
     ["./?view=politics", "flag", "Partiti e Governo", "Chi governa e i partiti nell'elenco"],
     ["./?view=proposals", "proposal", "Promesse e proposte", "Cosa è stato promesso, e a che punto è"],
+    ["./?legislature=19", "users", "Legislatura XIX", "Deputati e senatori in carica"],
     ["./?view=regions", "map", "Regioni e comuni", "Territori ISTAT ufficiali"],
     ["./?view=glossary", "book", "Glossario", "Le parole delle istituzioni"],
   ];
@@ -3506,7 +3569,7 @@ async function showCompare(api) {
   const chosen = new Set(params.getAll("id").filter((value) => /^\d+$/.test(value)));
   byId("compare-role").innerHTML = Object.entries(ROLE_LABELS).filter(([key]) => key !== "unknown").map(([key, label]) => `<option value="${key}"${key === role ? " selected" : ""}>${escapeHtml(label)}</option>`).join("");
   try {
-    const people = await api.listPoliticians();
+    const people = await listAllPoliticians(api);
     byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</label>`).join("");
   } catch {
     byId("compare-people").innerHTML = `<p class="empty-note">${escapeHtml(PUBLIC_UNAVAILABLE)}</p>`;
@@ -3534,10 +3597,26 @@ function dateRange(start, end) {
 
 export function renderLegislatureCard(item) {
   const total = item.camera_mandates + item.senato_mandates;
-  return `<a class="legislature-card" href="./?legislature=${encodeURIComponent(item.number)}">
+  const current = !item.end_date;
+  return `<a class="legislature-card${current ? " is-current" : ""}" href="./?legislature=${encodeURIComponent(item.number)}">
     <span class="legislature-roman">${escapeHtml(item.roman)}</span>
-    <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(formatYear(item.start_date))}–${item.end_date ? escapeHtml(formatYear(item.end_date)) : "oggi"}${total ? ` · ${total} mandati in archivio` : ""}</small></span>
+    <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(formatYear(item.start_date))}–${item.end_date ? escapeHtml(formatYear(item.end_date)) : "oggi"}${total ? ` · ${total} mandati in archivio` : ""}</small>${current ? `<small class="legislature-now">In corso · apri l'archivio</small>` : ""}</span>
   </a>`;
+}
+
+export function renderCurrentLegislatureWalk(item) {
+  if (!item) return "";
+  return `<section class="detail-card legislature-walk" aria-labelledby="legislature-walk-title">
+    <h2 id="legislature-walk-title">Legislatura ${escapeHtml(item.roman)} in corso</h2>
+    <p class="empty-note">Elenco ufficiale Camera e Senato. Apri la legislatura, poi una camera, poi la scheda.</p>
+    <div class="filter-pills">
+      <a class="filter-pill is-active" href="./?legislature=${encodeURIComponent(item.number)}">Apri la ${escapeHtml(item.roman)}</a>
+      <a class="filter-pill" href="./?legislature=${encodeURIComponent(item.number)}&amp;chamber=camera">Deputati</a>
+      <a class="filter-pill" href="./?legislature=${encodeURIComponent(item.number)}&amp;chamber=senato">Senatori</a>
+      <a class="filter-pill" href="./?view=proposals&amp;legislature=${encodeURIComponent(item.number)}">Promesse e proposte</a>
+      <a class="filter-pill" href="./?view=parliamentarians&amp;legislature=${encodeURIComponent(item.number)}">Cerca nei mandati</a>
+    </div>
+  </section>`;
 }
 
 async function showHistory(api) {
@@ -3547,11 +3626,12 @@ async function showHistory(api) {
     const payload = await api.listLegislatures();
     byId("history-status").hidden = true;
     byId("era-list").hidden = false;
-    byId("era-list").innerHTML = payload.eras.map((era) => `<section class="detail-card era-card">
+    const current = payload.eras.flatMap((era) => era.legislatures).find((item) => !item.end_date) || null;
+    byId("era-list").innerHTML = `${renderCurrentLegislatureWalk(current)}${payload.eras.map((era) => `<section class="detail-card era-card">
       <h2>${escapeHtml(era.label)}</h2>
       <p class="empty-note">${escapeHtml(era.note)}</p>
       <div class="legislature-grid">${era.legislatures.map(renderLegislatureCard).join("")}</div>
-    </section>`).join("");
+    </section>`).join("")}`;
   } catch {
     showState(byId("history-status"), "Non è stato possibile caricare l'archivio storico.", PUBLIC_UNAVAILABLE, true);
   } finally {
@@ -3637,17 +3717,20 @@ async function showParliamentarians(api) {
   byId("parliamentarians-view").hidden = false;
   const params = new URLSearchParams(window.location.search);
   const q = (params.get("q") || "").trim();
+  const legislature = params.get("legislature") || (!q ? "19" : "");
   const offset = Number.parseInt(params.get("offset") || "0", 10) || 0;
-  byId("history-q").value = q;
-  document.title = `${q ? `${q} — ` : ""}Parlamentari dal 1948 — VeraPolitica`;
+  if (byId("history-q")) byId("history-q").value = q;
+  document.title = `${q ? `${q} — ` : legislature ? `Legislatura ${legislature} — ` : ""}Parlamentari dal 1948 — VeraPolitica`;
   if (q && q.length < 2) {
     showState(byId("parliamentarians-status"), "Scrivi almeno due lettere.", "Cerca per nome o cognome.");
     return;
   }
+  const title = byId("parliamentarians-title");
+  if (title) title.textContent = legislature && !q ? `Parlamentari della legislatura ${legislature}` : "Parlamentari dal 1948";
   await renderRoster(api, {
-    q, offset,
+    q, offset, legislature: legislature || null,
     target: byId("parliamentarians-list"), status: byId("parliamentarians-status"), pagination: byId("parliamentarians-pagination"),
-    baseHref: `./?view=parliamentarians&amp;q=${encodeURIComponent(q)}`,
+    baseHref: `./?view=parliamentarians${legislature ? `&amp;legislature=${encodeURIComponent(legislature)}` : ""}${q ? `&amp;q=${encodeURIComponent(q)}` : ""}`,
   });
 }
 

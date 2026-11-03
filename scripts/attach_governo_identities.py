@@ -93,14 +93,18 @@ def _candidate(case: IdentityResolutionCase) -> CandidateProfile:
     return CandidateProfile.model_validate(case.candidate_snapshot)
 
 
-def plan_attachments(session_factory: sessionmaker[Session]) -> tuple[CasePlan, ...]:
+def plan_attachments(
+    session_factory: sessionmaker[Session],
+    *,
+    source_key: str = SOURCE_KEY,
+) -> tuple[CasePlan, ...]:
     with session_factory() as session:
         cases = list(
             session.scalars(
                 select(IdentityResolutionCase)
                 .join(Source)
                 .where(
-                    Source.key == SOURCE_KEY,
+                    Source.key == source_key,
                     IdentityResolutionCase.status == IdentityResolutionStatus.PENDING,
                 )
                 .order_by(IdentityResolutionCase.id)
@@ -157,7 +161,9 @@ def plan_attachments(session_factory: sessionmaker[Session]) -> tuple[CasePlan, 
                     display_name=display,
                     normalized_name=normalized,
                     action=Action.LEAVE_PENDING,
-                    reason="two Governo pages share this normalized name",
+                    reason="two Governo pages share this normalized name"
+                        if source_key == SOURCE_KEY
+                        else f"two {source_key} pages share this normalized name",
                     existing_politician_ids=existing,
                 )
             )
@@ -200,6 +206,35 @@ def plan_attachments(session_factory: sessionmaker[Session]) -> tuple[CasePlan, 
             )
         )
     return tuple(plans)
+
+
+def finish(
+    session_factory: sessionmaker[Session],
+    *,
+    reviewer: str,
+    create_new: bool = False,
+    dry_run: bool = False,
+    skip_publish: bool = False,
+    source_key: str = SOURCE_KEY,
+) -> AttachmentReport:
+    """Link unique pending cases, then publish matched Governo profiles."""
+
+    plans = plan_attachments(session_factory, source_key=source_key)
+    report = apply_attachments(
+        session_factory,
+        plans,
+        reviewer=reviewer,
+        create_new=create_new,
+        dry_run=dry_run,
+    )
+    if (
+        source_key == SOURCE_KEY
+        and not dry_run
+        and not skip_publish
+        and not report.errors
+    ):
+        publish_governo_profiles(session_factory, reviewer=reviewer, report=report)
+    return report
 
 
 def apply_attachments(
@@ -345,20 +380,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         prepare_runtime_schema(engine, settings)
         factory = create_session_factory(engine)
-        plans = plan_attachments(factory)
-        report = apply_attachments(
+        report = finish(
             factory,
-            plans,
             reviewer=settings.admin_reviewer_identity,
             create_new=args.also_create_new,
             dry_run=args.dry_run,
+            skip_publish=args.skip_publish or args.dry_run,
         )
-        if args.apply and not args.skip_publish and not report.errors:
-            publish_governo_profiles(
-                factory,
-                reviewer=settings.admin_reviewer_identity,
-                report=report,
-            )
         print(report.to_json())
         if report.errors:
             return 2

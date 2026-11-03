@@ -14,11 +14,21 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Security, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.app.api.deps import get_api_settings, get_session_factory
+from backend.app.api.admin import identity_resolution as identity_admin
+from backend.app.api.deps import get_api_settings, get_db_session, get_session_factory
 from backend.app.core.config import DEMO_REDAZIONE_MEMBERS, Settings
-from backend.app.models import CAP_MAJOR_TOPICS
+from backend.app.models import CAP_MAJOR_TOPICS, IdentityResolutionCase, IdentityResolutionStatus
+from backend.app.schemas import (
+    IdentityResolutionDecisionResult,
+    IdentityResolutionDetailResponse,
+    IdentityResolutionListResponse,
+    IdentityResolutionNoteRequest,
+    ResolveExistingIdentityRequest,
+)
+from backend.app.services import IdentityResolutionService
 from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
 from backend.app.services.redazione.service import RedazioneError, RedazioneService
@@ -92,8 +102,18 @@ def me(member: Member, settings: Annotated[Settings, Depends(get_api_settings)])
 
 
 @router.get("/panoramica")
-def overview(member: Member, service: Service) -> Any:
-    return _run(service.overview, member=member)
+def overview(
+    member: Member,
+    service: Service,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> Any:
+    payload = service.overview(member=member)
+    payload["pending_identities"] = session.scalar(
+        select(func.count(IdentityResolutionCase.id)).where(
+            IdentityResolutionCase.status == IdentityResolutionStatus.PENDING
+        )
+    ) or 0
+    return payload
 
 
 @router.get("/regole")
@@ -300,6 +320,82 @@ def check_block(kind: Annotated[str, Path(max_length=20)], member: Member, paylo
     else:
         findings = style.profile_findings(kind, payload)
     return {"findings": [item.as_dict() for item in findings]}
+
+
+@router.get("/identita", response_model=IdentityResolutionListResponse)
+def list_identities(
+    member: Member,
+    session: Annotated[Session, Depends(get_db_session)],
+    case_status: Annotated[
+        IdentityResolutionStatus | None,
+        Query(alias="status"),
+    ] = None,
+    source_key: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> IdentityResolutionListResponse:
+    del member
+    return identity_admin.list_identity_resolution_cases(
+        session,
+        case_status=case_status,
+        source_key=source_key,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.get("/identita/{case_id}", response_model=IdentityResolutionDetailResponse)
+def get_identity(
+    case_id: Annotated[int, Path(gt=0)],
+    member: Member,
+    session: Annotated[Session, Depends(get_db_session)],
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> IdentityResolutionDetailResponse:
+    del member
+    return identity_admin.get_identity_resolution_case(case_id, session, factory)
+
+
+@router.post("/identita/{case_id}/collega", response_model=IdentityResolutionDecisionResult)
+def resolve_identity_existing(
+    case_id: Annotated[int, Path(gt=0)],
+    member: Member,
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    payload: Annotated[ResolveExistingIdentityRequest, Body()],
+) -> IdentityResolutionDecisionResult:
+    return IdentityResolutionService(factory).resolve_to_existing(
+        case_id,
+        payload.politician_id,
+        reviewer_identity=member,
+        note=payload.note,
+    )
+
+
+@router.post("/identita/{case_id}/nuova", response_model=IdentityResolutionDecisionResult)
+def resolve_identity_new(
+    case_id: Annotated[int, Path(gt=0)],
+    member: Member,
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    payload: Annotated[IdentityResolutionNoteRequest, Body()] = IdentityResolutionNoteRequest(),
+) -> IdentityResolutionDecisionResult:
+    return IdentityResolutionService(factory).resolve_as_new(
+        case_id,
+        reviewer_identity=member,
+        note=payload.note,
+    )
+
+
+@router.post("/identita/{case_id}/ignora", response_model=IdentityResolutionDecisionResult)
+def ignore_identity(
+    case_id: Annotated[int, Path(gt=0)],
+    member: Member,
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    payload: Annotated[IdentityResolutionNoteRequest, Body()] = IdentityResolutionNoteRequest(),
+) -> IdentityResolutionDecisionResult:
+    return IdentityResolutionService(factory).ignore(
+        case_id,
+        reviewer_identity=member,
+        note=payload.note,
+    )
 
 
 @router.get("/registro")

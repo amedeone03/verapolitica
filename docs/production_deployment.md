@@ -448,11 +448,31 @@ in `web` so they see `db` and raw storage:
 # ./scripts/run_production_compose.sh exec -T web \
 #   python -m scripts.seed_meloni_showcase --author "Amedeo" --approver "Verificatore"
 
+# Remaining Governo cases (unique names already in the archive):
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.attach_governo_identities --apply
+
+# Schlein + Conte (complete URLs only) and party affiliations on the schede.
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_opposition_showcase --author "Amedeo" --approver "Verificatore"
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_party_affiliations
+
+# RDC verdict from the Gazzetta excerpt already in the repo.
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_rdc_verdict --author "Amedeo" --approver "Verificatore"
+
+# One four-eyes notizia (Senato + Sky + Il Fatto, URLs already in fixtures).
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_official_notizia --author "Amedeo" --approver "Verificatore"
+
 # Official Governo portraits from the published profile image_url.
 # ./scripts/run_production_compose.sh exec -T web \
 #   python -m scripts.seed_official_portraits
 
-# Publish pending Lazio territorial drafts, if DAIT offices were ingested.
+# DAIT mayor identity cases, then publish pending Lazio drafts.
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.attach_territorial_identities --dry-run
 # ./scripts/run_production_compose.sh exec -T web \
 #   python -m scripts.publish_territorial_profiles --dry-run --region Lazio
 

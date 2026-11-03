@@ -59,6 +59,11 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "/municipalities?" in script.text
     assert "renderSearchCard" in script.text
     assert "/search?" in script.text
+    assert "listAllPoliticians" in script.text
+    assert 'id="archive-search"' in archive.text
+    assert "Cerca un profilo, un partito o una promessa" in archive.text
+    assert "legislature-walk" in script.text
+    assert "./?legislature=19" in script.text
     assert "view=search" in archive.text
     assert 'id="search-title" class="politics-title">Cerca<' in archive.text and 'aria-label="Cerca"' in archive.text
     assert "Referendum" in archive.text
