@@ -40,11 +40,18 @@ class AffiliationSpec:
     family_name: str
     party_name: str
     source_field: str
+    aliases: tuple[tuple[str, str], ...] = ()
 
 
 SPECS = (
     AffiliationSpec("Giorgia", "Meloni", "Fratelli d'Italia", "scheda.partito_esplicito"),
-    AffiliationSpec("Elly", "Schlein", "Partito Democratico", "scheda.partito_esplicito"),
+    AffiliationSpec(
+        "Elly",
+        "Schlein",
+        "Partito Democratico",
+        "scheda.partito_esplicito",
+        aliases=(("Elena Ethel", "Schlein"), ("Elena", "Schlein")),
+    ),
     AffiliationSpec("Giuseppe", "Conte", "Movimento 5 Stelle", "scheda.partito_esplicito"),
 )
 
@@ -57,13 +64,19 @@ class Report:
     errors: list[str] = field(default_factory=list)
 
 
-def _published(session: Session, given: str, family: str) -> Politician | None:
-    return session.scalar(
-        select(Politician).where(
-            Politician.normalized_name == normalize_person_name(given, family),
-            Politician.current_version_id.is_not(None),
+def _published(
+    session: Session, given: str, family: str, aliases: tuple[tuple[str, str], ...] = ()
+) -> Politician | None:
+    for first, last in ((given, family), *aliases):
+        found = session.scalar(
+            select(Politician).where(
+                Politician.normalized_name == normalize_person_name(first, last),
+                Politician.current_version_id.is_not(None),
+            )
         )
-    )
+        if found is not None:
+            return found
+    return None
 
 
 def _party(session: Session, name: str) -> PoliticalParty | None:
@@ -124,7 +137,9 @@ def seed(
     with session_factory() as session:
         for spec in specs:
             label = f"{spec.given_name} {spec.family_name} → {spec.party_name}"
-            politician = _published(session, spec.given_name, spec.family_name)
+            politician = _published(
+                session, spec.given_name, spec.family_name, spec.aliases
+            )
             if politician is None:
                 report.skipped.append(f"{label} (scheda pubblica assente)")
                 continue

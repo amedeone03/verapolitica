@@ -33,6 +33,7 @@ from backend.app.schemas.search import (
     PublicSearchResultList,
     SearchEntityType,
 )
+from backend.app.services.official_images import official_https_image_url
 from backend.app.services.public_territory_service import PublicTerritoryQueryService
 
 
@@ -178,6 +179,7 @@ class SearchService:
             institution = str(mandate.get("institution") or "")
             area = str(mandate.get("election_area") or "")
             subtitle = " · ".join(part for part in (office.title() if office else "", institution, area) if part) or "Rappresentante pubblicato"
+            image_url = official_https_image_url(profile.get("image_url"))
             family = normalize_search_text(politician.canonical_family_name)
             given = normalize_search_text(politician.canonical_given_name)
             primary = politician.normalized_name
@@ -208,9 +210,12 @@ class SearchService:
                         url=f"/app/?politician={politician.id}",
                         metadata={
                             "id": politician.id,
+                            "given_name": politician.canonical_given_name,
+                            "family_name": politician.canonical_family_name,
                             "office": office or None,
                             "institution": institution or None,
                             "citation_count": citation_counts.get(version.id, 0),
+                            "image_url": image_url,
                         },
                     ),
                 )

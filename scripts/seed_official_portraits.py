@@ -1,8 +1,8 @@
-"""Write credited official portraits for published Government holders.
+"""Write credited official portraits for published politicians.
 
 Prefers the institutional ``image_url`` already stored on the published
-profile (governo.it / Camera). Does not invent photos. Does not look up
-Wikidata unless ``--also-commons`` is set.
+profile (governo.it / Camera / Senato). Does not invent photos. Does not
+look up Wikidata unless ``--also-commons`` is set.
 
     python -m scripts.seed_official_portraits
     python -m scripts.seed_official_portraits --download
@@ -24,7 +24,7 @@ from backend.app.core.config import get_settings
 from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.models import Politician, PoliticianVersion
-from backend.app.services.government_offices import has_government_office
+from backend.app.services.official_images import official_https_image_url
 from scripts.demo_portraits import (
     build_portraits,
     http_get_bytes,
@@ -43,7 +43,7 @@ class Report:
     path: str | None = None
 
 
-def _published_government(session_factory) -> list[dict]:
+def _published_with_photos(session_factory) -> list[dict]:
     with session_factory() as session:
         rows = session.execute(
             select(Politician, PoliticianVersion)
@@ -54,17 +54,17 @@ def _published_government(session_factory) -> list[dict]:
     people = []
     for politician, version in rows:
         profile = version.profile_data or {}
-        if not has_government_office(profile.get("mandates")):
-            continue
+        image_url = official_https_image_url(profile.get("image_url"))
         people.append(
             {
                 "id": politician.id,
                 "name": f"{politician.canonical_given_name} {politician.canonical_family_name}",
                 "given_name": politician.canonical_given_name,
                 "family_name": politician.canonical_family_name,
-                "image_url": profile.get("image_url"),
+                "image_url": image_url,
                 "source_name": "Fonte ufficiale",
-                "source_url": profile.get("official_homepage_url") or profile.get("image_url"),
+                "source_url": official_https_image_url(profile.get("official_homepage_url"))
+                or image_url,
             }
         )
     return people
@@ -80,7 +80,7 @@ def seed(
     fetch_bytes=http_get_bytes,
 ) -> Report:
     report = Report(path=str(portraits_path))
-    people = _published_government(session_factory)
+    people = _published_with_photos(session_factory)
     portraits = build_portraits(
         people,
         get_json=get_json if also_commons else (lambda url, params: {"search": [], "entities": {}, "query": {"pages": {}}}),

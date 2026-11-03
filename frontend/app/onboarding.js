@@ -1,3 +1,5 @@
+import { displayPersonName, officialImageUrl } from "./feed-card.js";
+
 // VeraPolitica — welcome screen and sign-up journey (story-style, one question per screen).
 // Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and
 // pill buttons; one large question per screen; circular avatar grid with check badges;
@@ -16,9 +18,15 @@ function monogram(name) {
   return letters.toLocaleUpperCase();
 }
 
+function personPhoto(person, portraitFor) {
+  const hosted = portraitFor?.(person.id);
+  if (hosted) return hosted;
+  return officialImageUrl(person.image_url) || "";
+}
+
 function avatar(person, portraitFor, size = "") {
-  const url = portraitFor(person.id);
-  return `<span class="ob-avatar${size}">${url ? `<img src="${escape(url)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escape(monogram(person.name))}</span>`}</span>`;
+  const url = personPhoto(person, portraitFor);
+  return `<span class="ob-avatar${size}">${url ? `<img src="${escape(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escape(monogram(person.name))}</span>`}</span>`;
 }
 
 export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
@@ -44,13 +52,18 @@ export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
 export function renderAccountForm(root, { mode = "register", error = "", onSubmit, onSwitch, onBack }) {
   const register = mode === "register";
   root.innerHTML = `
-    <div class="gate welcome account-gate" role="main" aria-labelledby="account-title">
-      <div class="welcome-center" style="place-content:start;padding-top:48px">
+    <div class="gate account-gate" role="main" aria-labelledby="account-title">
+      <div class="account-brand">
+        <img class="welcome-logo" src="./favicon.svg" alt="" width="72" height="72" />
+        <p class="welcome-name">VeraPolitica</p>
+        <p class="welcome-line">La politica italiana, con le fonti.</p>
+      </div>
+      <div class="account-panel">
         <p class="ob-kicker">${register ? "Crea il tuo account" : "Bentornato"}</p>
-        <h1 id="account-title" class="welcome-name" style="font-size:clamp(1.75rem,6vw,2.5rem)">${register ? "Registrati" : "Accedi"}</h1>
+        <h1 id="account-title" class="account-title">${register ? "Registrati" : "Accedi"}</h1>
         <form id="account-form" class="acc-form" novalidate>
           <label class="ob-label" for="acc-email">Email</label>
-          <input id="acc-email" class="ob-input is-compact" type="email" name="email" autocomplete="username" required maxlength="254" />
+          <input id="acc-email" class="ob-input is-compact" type="email" name="email" autocomplete="username" required maxlength="254" placeholder="nome@email.it" />
           <label class="ob-label" for="acc-password">Password</label>
           <input id="acc-password" class="ob-input is-compact" type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" required minlength="10" maxlength="128" />
           ${register ? `<p class="ob-note">Almeno 10 caratteri. Poi scegli chi seguire.</p>` : `<p class="ob-note">Usa l'email con cui ti sei registrato.</p>`}
@@ -145,7 +158,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       : key === "parties" ? `Avanti · ${state.parties.size}`
       : "Avanti";
     back.hidden = state.step === 0;
-    shell.className = `gate ob ${TONES[key]}`;
+    next.title = key === "name" && !valid() ? "Scrivi almeno due lettere" : "";
+    shell.className = `gate ob ${TONES[key]}${["name", "email", "password"].includes(key) ? " is-centered" : ""}`;
     root.querySelectorAll(".ob-progress li").forEach((item, index) => {
       item.classList.toggle("is-done", index < state.step);
       item.classList.toggle("is-current", index === state.step);
@@ -155,10 +169,11 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   // ---------------------------------------------------------------- screens
   const screens = {
     name: () => `
+      <div class="ob-faces-slot">${nameFaces()}</div>
       <p class="ob-kicker">Benvenuto</p>
-      <h1 id="ob-title" class="ob-title">Come ti chiamiamo?</h1>
-      <label class="visually-hidden" for="ob-name">Nome</label>
-      <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="Il tuo nome" />
+      <h1 id="ob-title" class="ob-title">Come ti chiami?</h1>
+      <label class="ob-label" for="ob-name">Il tuo nome</label>
+      <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="es. Anna" />
       <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
     zone: () => `
       <p class="ob-kicker">Di dove sei</p>
@@ -193,6 +208,17 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       ${state.accountError ? `<p class="ob-error" role="alert">${escape(state.accountError)}</p>` : ""}`,
     summary: () => summary(),
   };
+
+  function nameFaces() {
+    if (!Array.isArray(state.people) || !state.people.length) return "";
+    const photographed = state.people.filter((person) => personPhoto(person, portraitFor));
+    const rest = state.people.filter((person) => !personPhoto(person, portraitFor));
+    const pool = photographed.length >= 8 ? photographed : [...photographed, ...rest];
+    const limit = 12;
+    const picked = pool.length <= limit ? pool
+      : Array.from({ length: limit }, (_, index) => pool[Math.floor((index * pool.length) / limit)]);
+    return `<div class="ob-faces" aria-hidden="true">${picked.map((person) => avatar(person, portraitFor, " is-face")).join("")}</div>`;
+  }
 
   function peopleGrid() {
     const q = state.query.trim().toLocaleLowerCase("it");
@@ -266,32 +292,53 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   }
 
   // ---------------------------------------------------------------- data
+  const inflight = {};
   const loaders = {
-    politicians: async () => {
-      if (state.people !== null) return;
-      const items = [];
-      for (let offset = 0; offset < 20000; offset += 100) {
-        const payload = await api.listPoliticians({ offset, limit: 100 });
-        items.push(...(payload.items || []));
-        if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
+    name: () => loaders.politicians().catch(() => {}),
+    politicians: () => {
+      if (state.people !== null) return Promise.resolve();
+      if (!inflight.people) {
+        inflight.people = (async () => {
+          const items = [];
+          for (let offset = 0; offset < 20000; offset += 100) {
+            const payload = await api.listPoliticians({ offset, limit: 100 });
+            items.push(...(payload.items || []));
+            if (items.length >= (payload.total || 0) || !(payload.items || []).length) break;
+          }
+          state.people = items
+            .map((item) => ({
+              id: String(item.id),
+              name: displayPersonName(item.given_name, item.family_name),
+              image_url: item.profile?.image_url || item.image_url || null,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "it"));
+        })().finally(() => { delete inflight.people; });
       }
-      state.people = items
-        .map((item) => ({ id: String(item.id), name: `${item.given_name} ${item.family_name}`.trim() }))
-        .sort((a, b) => a.name.localeCompare(b.name, "it"));
+      return inflight.people;
     },
-    parties: async () => {
-      if (state.partyList !== null) return;
-      const payload = await api.listParties({ all: true });
-      state.partyList = payload.items
-        .map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null }))
-        .sort((a, b) => a.name.localeCompare(b.name, "it"));
-    },
-    zone: async () => {
-      if (state.regions === null) {
-        const payload = await api.listRegions();
-        state.regions = payload.items.map((item) => ({ id: item.id, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+    parties: () => {
+      if (state.partyList !== null) return Promise.resolve();
+      if (!inflight.parties) {
+        inflight.parties = (async () => {
+          const payload = await api.listParties({ all: true });
+          state.partyList = payload.items
+            .map((item) => ({ id: item.id, name: item.name, abbreviation: item.abbreviation || null, logo_url: item.logo_url || null }))
+            .sort((a, b) => a.name.localeCompare(b.name, "it"));
+        })().finally(() => { delete inflight.parties; });
       }
-      if (state.region) await loadProvinces(state.region.id);
+      return inflight.parties;
+    },
+    zone: () => {
+      if (!inflight.zone) {
+        inflight.zone = (async () => {
+          if (state.regions === null) {
+            const payload = await api.listRegions();
+            state.regions = payload.items.map((item) => ({ id: item.id, name: item.name, logo_url: item.logo_url || null })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+          }
+          if (state.region) await loadProvinces(state.region.id);
+        })().finally(() => { delete inflight.zone; });
+      }
+      return inflight.zone;
     },
   };
   async function loadProvinces(regionId) {
@@ -323,6 +370,10 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     }
   }
   function refresh(key) {
+    if (key === "name") {
+      const slot = body.querySelector(".ob-faces-slot");
+      if (slot) slot.innerHTML = nameFaces();
+    }
     if (key === "politicians") body.querySelector(".ob-people").innerHTML = peopleGrid();
     if (key === "parties") body.querySelector(".ob-chips").innerHTML = partyChips();
     if (key === "zone") {
@@ -427,5 +478,13 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   back.addEventListener("click", () => go(-1));
   root.querySelector(".ob-close").addEventListener("click", onClose);
   shell.addEventListener("keydown", (event) => { if (event.key === "Escape") onClose(); });
+  Promise.all([
+    loaders.politicians().catch(() => { if (state.people === null) state.people = []; }),
+    loaders.parties().catch(() => { if (state.partyList === null) state.partyList = []; }),
+    loaders.zone().catch(() => { if (state.regions === null) state.regions = []; }),
+  ]).then(() => {
+    const key = STEPS[state.step];
+    if (["name", "zone", "politicians", "parties"].includes(key)) refresh(key);
+  });
   render({ focusTitle: false });
 }

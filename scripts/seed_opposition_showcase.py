@@ -65,6 +65,9 @@ class Report:
     errors: list[str] = field(default_factory=list)
 
 
+SCHLEIN_NAMES = (("Elly", "Schlein"), ("Elena Ethel", "Schlein"), ("Elena", "Schlein"))
+
+
 def _published(session: Session, given: str, family: str) -> Politician | None:
     return session.scalar(
         select(Politician).where(
@@ -72,6 +75,14 @@ def _published(session: Session, given: str, family: str) -> Politician | None:
             Politician.current_version_id.is_not(None),
         )
     )
+
+
+def _published_any(session: Session, names: tuple[tuple[str, str], ...]) -> Politician | None:
+    for given, family in names:
+        found = _published(session, given, family)
+        if found is not None:
+            return found
+    return None
 
 
 def _has_published(session: Session, model, politician_id: int, identity_key: str) -> bool:
@@ -146,7 +157,7 @@ def _seed_schlein(
 ) -> PersonReport:
     report = PersonReport()
     with session_factory() as session:
-        politician = _published(session, "Elly", "Schlein")
+        politician = _published_any(session, SCHLEIN_NAMES)
         if politician is None:
             report.errors.append(
                 "Elly Schlein pubblicata non trovata: importa Camera e pubblica la scheda prima"

@@ -52,12 +52,40 @@ export function longDate(value) {
   if (!y || !m || !d) return "";
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
-function safeUrl(value) {
+const NAME_PARTICLES = new Set(["di", "de", "del", "della", "delle", "dei", "degli", "da", "dal", "lo", "la", "le", "e", "y", "van", "von"]);
+
+export function displayPersonName(given, family = "") {
+  const parts = [given, family].map((part) => String(part ?? "").trim()).filter(Boolean);
+  const words = parts.join(" ").split(/\s+/).filter(Boolean);
+  return words.map((word, index) => {
+    const bits = word.split(/(['’])/);
+    return bits.map((bit) => {
+      if (!bit || bit === "'" || bit === "’") return bit;
+      const lower = bit.toLocaleLowerCase("it");
+      if (index > 0 && NAME_PARTICLES.has(lower)) return lower;
+      return lower.charAt(0).toLocaleUpperCase("it") + lower.slice(1);
+    }).join("");
+  }).join(" ");
+}
+
+export function officialImageUrl(value) {
   if (typeof value === "string" && /^\/(media|portraits)\//.test(value)) return value;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
-  } catch { return null; }
+    const host = (url.hostname || "").toLowerCase();
+    const official = /(^|\.)(camera\.it|senato\.it|governo\.it)$/.test(host);
+    if (url.protocol === "https:") return url.href;
+    if (url.protocol === "http:" && official) {
+      url.protocol = "https:";
+      return url.href;
+    }
+  } catch { /* not a URL */ }
+  return null;
+}
+
+function safeUrl(value) {
+  if (typeof value === "string" && /^\/(media|portraits)\//.test(value)) return value;
+  return officialImageUrl(value);
 }
 function initials(name) {
   return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
@@ -67,7 +95,7 @@ function avatar(person, resolvePortrait) {
   let url = person.image_url;
   if (url && url.startsWith("politician:")) url = resolvePortrait ? resolvePortrait(Number(url.split(":")[1])) : null;
   const src = url ? safeUrl(url) : null;
-  return `<span class="vp-avatar">${src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" width="44" height="44" />` : `<span aria-hidden="true">${esc(initials(person.name))}</span>`}</span>`;
+  return `<span class="vp-avatar">${src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" width="64" height="64" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${esc(initials(displayPersonName(person.name)))}</span>`}</span>`;
 }
 
 // Where the sources come from, as counts: a fact, not a judgement on the news.
@@ -107,6 +135,7 @@ export function renderFeedCard(item, options = {}) {
   const badge = card.badge || { label: "Dalla redazione", tone: "plain" };
   const badgeDate = badge.date || item.occurred_on;
   const people = card.people || [];
+  const feature = people.length === 1;
   // Parties already shown under a person are not repeated.
   const shownParties = new Set(people.map((person) => person.party_id).filter(Boolean));
   const extraParties = (card.parties || []).filter((party) => !shownParties.has(party.id));
@@ -121,14 +150,20 @@ export function renderFeedCard(item, options = {}) {
   const link = card.link && safeUrl(card.link.url);
   const href = options.preview ? "#" : item.url;
   const question = `Spiegami: ${item.title}`;
-  return `<article class="vp-card tone-${esc(tone)}" data-card="${esc(key)}">
+  const byline = item.written_by
+    ? `<p class="vp-byline">Redattore: ${esc(item.written_by)}${item.verified_by ? ` · Verificatore: ${esc(item.verified_by)}` : ""}</p>`
+    : "";
+  return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}" data-card="${esc(key)}">
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
     <div class="vp-sub">
       <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(shortDate(badgeDate))}` : ""}</span>
       ${card.aside ? `<span class="vp-aside">${esc(card.aside)}</span>` : item.place ? `<span class="vp-aside">${esc(item.place)}</span>` : ""}
     </div>
     <div class="vp-body">
-      ${people.length ? `<ul class="vp-people">${people.map((person) => `<li>${avatar(person, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(person.name)}</a>` : `<strong>${esc(person.name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
+      ${people.length ? `<ul class="vp-people">${people.map((person) => {
+        const name = displayPersonName(person.name);
+        return `<li>${avatar({ ...person, name }, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(name)}</a>` : `<strong>${esc(name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`;
+      }).join("")}</ul>` : ""}
       ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Anche</li>${extraParties.map((party) => `<li title="${esc(party.name)}">${partyLogo(party)}${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
       ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
       <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
@@ -146,6 +181,7 @@ export function renderFeedCard(item, options = {}) {
     </div>
     <footer class="vp-foot">
       ${link ? `<a class="vp-outline" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(card.link.label)} ${cardIcon("external", 14)}</a>` : ""}
+      ${byline}
       <span class="vp-foot-spacer"></span>
       <button type="button" class="vp-icon-button" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Rimuovi dai salvati" : "Salva"}">${cardIcon("bookmark", 20, options.saved)}</button>
       <button type="button" class="vp-icon-button" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Condividi">${cardIcon("share", 20)}</button>

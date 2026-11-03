@@ -1,5 +1,6 @@
-import { bindFeedCards, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { bindFeedCards, displayPersonName, officialImageUrl, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
+export { displayPersonName, officialImageUrl };
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -176,20 +177,37 @@ const portraits = new Map();
 function safeImageUrl(value) {
   // Portraits stored by the demo are served by this API (same origin).
   if (typeof value === "string" && /^\/portraits\/\d+\/image$/.test(value)) return value;
-  return safeExternalUrl(value);
+  return officialImageUrl(value);
+}
+
+function rememberOfficialPhoto(person) {
+  const id = person?.id ?? person?.politician_id;
+  if (id == null) return;
+  const key = String(id);
+  if (portraits.has(key) && portraits.get(key)?.url) return;
+  const url = officialImageUrl(person.profile?.image_url || person.image_url);
+  if (!url) return;
+  portraits.set(key, {
+    url,
+    credit: "Fonte ufficiale",
+    license: "Ritratto istituzionale ufficiale",
+    source_url: url,
+    origin: "Fonte ufficiale",
+  });
 }
 
 function portraitFor(person) {
+  if (person?.id != null) rememberOfficialPhoto(person);
   const credited = portraits.get(String(person.id));
   if (credited) return credited;
-  const official = safeExternalUrl(person.profile?.image_url);
+  const official = officialImageUrl(person.profile?.image_url || person.image_url);
   return official ? { url: official, credit: "Fonte ufficiale", license: "Ritratto istituzionale ufficiale", source_url: official, origin: "Fonte ufficiale" } : null;
 }
 
 function portrait(person, { size = "card" } = {}) {
   const photo = portraitFor(person);
   const imageUrl = photo ? safeImageUrl(photo.url) : null;
-  const name = `${person.given_name} ${person.family_name}`;
+  const name = displayPersonName(person.given_name, person.family_name);
   const monogram = `<span class="monogram" aria-hidden="true">${escapeHtml(initials(person))}</span>`;
   const image = imageUrl
     ? `<img src="${escapeHtml(imageUrl)}" alt="Ritratto di ${escapeHtml(name)}" loading="${size === "hero" ? "eager" : "lazy"}" decoding="async" referrerpolicy="no-referrer" />`
@@ -288,10 +306,11 @@ function mandateTitle(mandate, gender) {
 export function renderPoliticianCard(person) {
   const mandate = primaryMandate(person);
   const gender = person.profile?.gender;
+  const name = displayPersonName(person.given_name, person.family_name);
   return `<article class="politician-card">
     ${portrait(person)}
     <div class="card-content">
-      <div class="card-title-row"><h3>${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</h3>${renderFavoriteToggle(person)}</div>
+      <div class="card-title-row"><h3>${escapeHtml(name)}</h3>${renderFavoriteToggle(person)}</div>
       <p class="mandate">${escapeHtml(mandateTitle(mandate, gender))}</p>
       <p class="area">${escapeHtml(mandate?.institution ?? "Istituzione nazionale")}${mandate?.election_area ? ` · ${escapeHtml(mandate.election_area)}` : ""}</p>
       <div class="card-record" data-record-for="${escapeHtml(person.id)}"><p class="card-record-empty">Caricamento delle promesse…</p></div>
@@ -514,7 +533,7 @@ export function renderCareerTimeline(person) {
 
 export function renderWhoIs(person) {
   const profile = person.profile || {};
-  const name = `${person.given_name} ${person.family_name}`;
+  const name = displayPersonName(person.given_name, person.family_name);
   const mandate = currentMandate(person);
   const party = currentParty(person);
   const place = birthPlace(profile);
@@ -632,7 +651,7 @@ export function renderProceedings(person = {}) {
 }
 
 export function suggestedAskQuestions(person, scorecard = null) {
-  const name = `${person.given_name} ${person.family_name}`.trim();
+  const name = displayPersonName(person.given_name, person.family_name).trim();
   if (!name) return [];
   const questions = [`Quali promesse di ${name} sono ancora in corso?`];
   const pledges = scorecard?.pledges || [];
@@ -655,7 +674,7 @@ export function suggestedAskQuestions(person, scorecard = null) {
 export function renderAskSuggestions(person, scorecard = null) {
   const questions = suggestedAskQuestions(person, scorecard);
   if (!questions.length) return "";
-  const name = `${person.given_name} ${person.family_name}`;
+  const name = displayPersonName(person.given_name, person.family_name);
   return `<section class="profile-ask" aria-label="Chiedi a VeraPolitica">
     <a class="profile-ask-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(questions[0])}">Chiedi a VeraPolitica su ${escapeHtml(name)}</a>
     <div class="ask-suggestions">${questions.map((question) => `<a class="ask-suggestion" href="./?view=ask&amp;question=${encodeURIComponent(question)}">${escapeHtml(question)}</a>`).join("")}</div>
@@ -925,10 +944,30 @@ function officeLabel(office) {
 
 function holderLabel(holder) {
   if (!holder) return "Non collegato al momento";
-  const name = `${holder.given_name} ${holder.family_name}`;
+  const name = displayPersonName(holder.given_name, holder.family_name);
   return holder.politician_id
     ? `<a href="./?politician=${encodeURIComponent(holder.politician_id)}">${escapeHtml(name)}</a>`
     : escapeHtml(name);
+}
+
+function officeHolderPhoto(holder) {
+  if (!holder) return "";
+  rememberOfficialPhoto(holder);
+  const url = officialImageUrl(holder.image_url) || (holder.politician_id ? resolvePortrait(holder.politician_id) : null);
+  return `<span class="office-holder-photo" aria-hidden="true">${url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span>${escapeHtml(initials(holder))}</span>`}</span>`;
+}
+
+export function renderOfficeHolderCard(holder, role) {
+  if (!holder) {
+    return `<p class="office-holder">${escapeHtml(role)}: non ancora collegato a una scheda pubblicata. Serve un mandato ufficiale e la verifica della redazione.</p>`;
+  }
+  return `<div class="office-holder-card">
+    ${officeHolderPhoto(holder)}
+    <div>
+      <p class="office-holder-role">${escapeHtml(role)}</p>
+      <p class="office-holder">${holderLabel(holder)}</p>
+    </div>
+  </div>`;
 }
 
 export function renderTerritorialOffices(offices = []) {
@@ -951,25 +990,22 @@ export function renderTerritorialOffices(offices = []) {
 }
 
 export function renderRegionCard(region) {
-  const president = region.current_president
-    ? `${region.current_president.given_name} ${region.current_president.family_name}`
-    : "Presidente non collegato al momento";
+  const president = region.current_president;
   return `<article class="proposal-card">
     <span class="proposal-type">ISTAT ${escapeHtml(region.istat_code)}</span>
     <h3>${escapeHtml(region.name)}</h3>
-    <p>Presidente: ${escapeHtml(president)}</p>
+    ${president ? renderOfficeHolderCard(president, "Presidente") : `<p>Presidente: non collegato al momento</p>`}
     <a class="profile-link" href="./?region=${encodeURIComponent(region.id)}">Vedi regione ${icon("arrowRight")}</a>
   </article>`;
 }
 
 export function renderMunicipalityCard(municipality) {
-  const mayor = municipality.current_mayor
-    ? `${municipality.current_mayor.given_name} ${municipality.current_mayor.family_name}`
-    : "Sindaco non collegato al momento";
+  const mayor = municipality.current_mayor;
   return `<article class="proposal-card">
     <span class="proposal-type">ISTAT ${escapeHtml(municipality.istat_code)}</span>
     <h3>Comune di ${escapeHtml(municipality.name)}</h3>
-    <p>Regione: ${escapeHtml(municipality.region_name)} · Sindaco: ${escapeHtml(mayor)}</p>
+    <p>Regione: ${escapeHtml(municipality.region_name)}</p>
+    ${mayor ? renderOfficeHolderCard(mayor, "Sindaco") : `<p>Sindaco: non collegato al momento</p>`}
     <a class="profile-link" href="./?municipality=${encodeURIComponent(municipality.id)}">Vedi comune ${icon("arrowRight")}</a>
   </article>`;
 }
@@ -981,9 +1017,7 @@ export function renderRegionDetail(region, municipalities = []) {
     if (right.name === "Roma") return 1;
     return left.name.localeCompare(right.name, "it");
   });
-  const office = region.current_president
-    ? `<p class="office-holder">Presidente in carica: ${holderLabel(region.current_president)}</p>`
-    : `<p class="office-holder">Presidente: non ancora collegato a una scheda pubblicata. Serve un mandato ufficiale e la verifica della redazione.</p>`;
+  const office = renderOfficeHolderCard(region.current_president, "Presidente in carica");
   return `<section class="proposal-detail-hero">
       <p class="eyebrow">Regione ISTAT ${escapeHtml(region.istat_code)}</p>
       <h1 id="region-detail-title">${escapeHtml(region.name)}</h1>
@@ -1003,9 +1037,7 @@ export function renderMunicipalityDetail(municipality) {
       <p class="eyebrow">Comune ISTAT ${escapeHtml(municipality.istat_code)}</p>
       <h1 id="municipality-detail-title">Comune di ${escapeHtml(municipality.name)}</h1>
       <p>Regione: <a href="./?region=${encodeURIComponent(municipality.region_id)}">${escapeHtml(municipality.region_name)}</a></p>
-      ${municipality.current_mayor
-        ? `<p class="office-holder">Sindaco in carica: ${holderLabel(municipality.current_mayor)}</p>`
-        : `<p class="office-holder">Sindaco: non ancora collegato a una scheda pubblicata. Serve l'elenco DAIT e la verifica della redazione.</p>`}
+      ${renderOfficeHolderCard(municipality.current_mayor, "Sindaco in carica")}
       <p>Provincia/UTS: <a href="./?province=${encodeURIComponent(municipality.province_abbreviation)}">${escapeHtml(municipality.province_name)} (${escapeHtml(municipality.province_abbreviation)})</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>`;
@@ -1312,20 +1344,26 @@ function nameWithMark(name) {
   return `${head}<span class="name-tail">${escapeHtml(last)}\u00a0`;
 }
 
+export function renderCoverMeter(scorecard) {
+  const counts = countPledgeVerdicts(scorecard?.pledges || []);
+  const kept = counts.kept || 0;
+  const broken = counts.broken || 0;
+  const closed = kept + broken;
+  if (!closed) return "";
+  const pct = Math.round((kept / closed) * 100);
+  return `<div class="cover-meter" role="img" aria-label="${kept} mantenute, ${broken} non mantenute">
+    <span class="cover-meter-bar"><span style="width:${pct}%"></span></span>
+    <p>${kept} mantenute · ${broken} non mantenute</p>
+  </div>`;
+}
+
 export function renderProfileStats(scorecard) {
-  if (!scorecard || !scorecard.tracked_pledges) {
-    return `<div class="stat-row"><div class="stat-tile"><strong>0</strong><span>Promesse</span></div><div class="stat-tile"><strong>0</strong><span>Concluse</span></div><div class="stat-tile"><strong class="is-muted">—</strong><span>Punteggio non calcolato</span></div></div>`;
-  }
-  const single = scorecard.strata.length === 1 ? scorecard.strata[0] : null;
-  const score = single
-    ? (single.rate === null || single.rate === undefined
-      ? `<div class="stat-tile"><strong class="is-muted">—</strong><span>Punteggio non calcolato</span></div>`
-      : `<div class="stat-tile is-accent"><strong>${percent(single.rate)}</strong><span>Tasso di mantenimento</span></div>`)
-    : `<div class="stat-tile"><strong>${scorecard.strata.length}</strong><span>Ruoli calcolati a parte</span></div>`;
-  const progress = scorecard.mandate_progress
-    ? `<div class="stat-tile"><strong>${percent(scorecard.mandate_progress.elapsed_fraction)}</strong><span>Mandato trascorso</span></div>`
-    : `<div class="stat-tile"><strong>${scorecard.strata.reduce((sum, item) => sum + item.closed_pledges, 0)}</strong><span>Concluse</span></div>`;
-  return `<div class="stat-row"><div class="stat-tile"><strong>${scorecard.tracked_pledges}</strong><span>Promesse</span></div>${score}${progress}</div>`;
+  const counts = countPledgeVerdicts(scorecard?.pledges || []);
+  return `<div class="stat-row">
+    <div class="stat-tile is-kept"><strong>${counts.kept || 0}</strong><span>Mantenute</span></div>
+    <div class="stat-tile is-broken"><strong>${counts.broken || 0}</strong><span>Non mantenute</span></div>
+    <div class="stat-tile is-progress"><strong>${counts.in_progress || 0}</strong><span>In corso</span></div>
+  </div>`;
 }
 
 export function renderCardRecord(scorecard) {
@@ -1585,7 +1623,7 @@ export function profileTopics(person, scorecard = null) {
 }
 
 export function renderFollowButton(person) {
-  const name = `${person.given_name} ${person.family_name}`.trim();
+  const name = displayPersonName(person.given_name, person.family_name).trim();
   const active = typeof localStorage !== "undefined" && isFavorite(person.id);
   return `<button type="button" class="follow-button favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" data-follow="1" aria-pressed="${active}">${active ? `${icon("check")}Segui già` : "Segui"}</button>`;
 }
@@ -1608,7 +1646,7 @@ export function renderRelatedPosts(editorial) {
 export function renderPoliticianDetail(person, scorecard = null) {
   const profile = person.profile;
   const gender = profile?.gender;
-  const name = `${person.given_name} ${person.family_name}`;
+  const name = displayPersonName(person.given_name, person.family_name);
   const publishedDate = formatPublishedAt(person.published_at);
   const mandate = currentMandate(person);
   const party = currentParty(person);
@@ -1654,7 +1692,8 @@ export function renderPoliticianDetail(person, scorecard = null) {
           <div class="cover-text">
             <h1 id="profile-name">${nameWithMark(name)}<span class="verified-mark" role="img" aria-label="Verificato su fonti ufficiali" title="Verificato su fonti ufficiali">${icon("badgeCheck", { size: 22 })}</span></span></h1>
             <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
-            ${party ? `<p class="profile-party">${escapeHtml(party.name)}</p>` : ""}
+            ${party ? `<p class="profile-party">${partyLogo(party, 22)}${escapeHtml(party.name)}</p>` : ""}
+            ${renderCoverMeter(scorecard)}
           </div>
           ${renderFollowButton(person)}
         </div>
@@ -1859,6 +1898,7 @@ export async function listAllPoliticians(api, { role = "" } = {}) {
     const page = await api.listPoliticians({ role, offset, limit: 100 });
     total = page.total || 0;
     items.push(...(page.items || []));
+    for (const person of page.items || []) rememberOfficialPhoto(person);
     if (items.length >= total || !(page.items || []).length) break;
   }
   return { items, total };
@@ -1937,13 +1977,14 @@ async function showDetail(api, politicianId) {
     const detail = byId("profile-detail");
     byId("detail-status").hidden = true;
     detail.hidden = false;
+    rememberOfficialPhoto(person);
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileSectionNav(detail);
     bindProfileShare(detail);
     bindProfileMotion(detail);
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
-    document.title = `${person.given_name} ${person.family_name} — VeraPolitica`;
+    document.title = `${displayPersonName(person.given_name, person.family_name)} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;
     showState(
@@ -2289,13 +2330,21 @@ function searchScope(type) {
   return SEARCH_SCOPES.find((scope) => scope.type === type);
 }
 
+function searchPersonName(item) {
+  if (item.metadata?.given_name || item.metadata?.family_name) {
+    return displayPersonName(item.metadata.given_name, item.metadata.family_name);
+  }
+  return displayPersonName(item.title);
+}
+
 function searchLeading(item) {
   const id = item.metadata?.id;
   if (item.entity_type === "politician" && id) {
-    const words = item.title.trim().split(/\s+/);
-    const photo = resolvePortrait(id);
+    rememberOfficialPhoto({ id, image_url: item.metadata?.image_url });
+    const words = searchPersonName(item).trim().split(/\s+/);
+    const photo = resolvePortrait(id) || officialImageUrl(item.metadata?.image_url);
     const mono = initials({ given_name: words[0] || "", family_name: words.length > 1 ? words[words.length - 1] : "" });
-    return `<span class="search-lead is-person" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : escapeHtml(mono)}</span>`;
+    return `<span class="search-lead is-person" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : escapeHtml(mono)}</span>`;
   }
   if (item.entity_type === "political_party") {
     const logo = partyLogo(searchParties.get(String(id)), 40);
@@ -2305,10 +2354,12 @@ function searchLeading(item) {
 }
 
 export function renderSearchCard(item, query) {
-  return `<li><a class="row-link search-row" href="${escapeHtml(item.url)}">
+  const title = item.entity_type === "politician" ? searchPersonName(item) : item.title;
+  const person = item.entity_type === "politician";
+  return `<li><a class="row-link search-row${person ? " is-person" : ""}" href="${escapeHtml(item.url)}">
     ${searchLeading(item)}
     <span class="row-text">
-      <strong>${highlight(item.title, query)}</strong>
+      <strong>${highlight(title, query)}</strong>
       <small>${highlight(item.subtitle, query)}</small>
       ${item.snippet ? `<span class="search-snippet">${highlight(item.snippet, query)}</span>` : ""}
     </span>
@@ -2343,12 +2394,13 @@ export function bestSearchMatch(groups, query) {
 }
 
 function renderBestMatch(item, query) {
+  const title = item.entity_type === "politician" ? searchPersonName(item) : item.title;
   return `<section class="search-best" aria-labelledby="search-best-title">
     <h2 id="search-best-title" class="search-section-title">Risultato migliore</h2>
-    <a class="search-best-card" href="${escapeHtml(item.url)}">
+    <a class="search-best-card${item.entity_type === "politician" ? " is-person" : ""}" href="${escapeHtml(item.url)}">
       ${searchLeading(item).replace('class="search-lead', 'class="search-lead is-large')}
       <span class="search-best-text">
-        <strong>${highlight(item.title, query)}</strong>
+        <strong>${highlight(title, query)}</strong>
         <span class="search-best-kind">${escapeHtml(searchTypeLabel(item.entity_type))}</span>
         <small>${highlight(String(item.subtitle || "").replace(new RegExp(`^${searchTypeLabel(item.entity_type)}\\s*·\\s*`, "i"), ""), query)}</small>
       </span>
@@ -2882,7 +2934,7 @@ function isFavorite(id) {
 }
 
 export function renderFavoriteToggle(person) {
-  const name = `${person.given_name} ${person.family_name}`.trim();
+  const name = displayPersonName(person.given_name, person.family_name).trim();
   const active = typeof localStorage !== "undefined" && isFavorite(person.id);
   return `<button type="button" class="favorite-toggle${active ? " is-active" : ""}" data-favorite-id="${escapeHtml(person.id)}" data-favorite-name="${escapeHtml(name)}" aria-pressed="${active}" aria-label="${active ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}: ${escapeHtml(name)}">${icon("star", { size: 18, filled: active })}</button>`;
 }
@@ -3150,6 +3202,8 @@ function cardItem(item) {
     place: feedPlace(item),
     sources: item.sources || [],
     coverage: item.kind === "editorial" ? sourceCoverage(item.blocks?.fonti || []) : null,
+    written_by: item.written_by || null,
+    verified_by: item.verified_by || null,
     card: item.card?.composed ? item.card : { category: "notizia", category_label: "Notizia", tone: "navy", badge: { label: item.label === "correction" ? "Correzione" : "Dalla redazione", tone: "plain" } },
   };
 }
@@ -3315,7 +3369,7 @@ async function showPost(api, postId) {
       ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
-    ${item.written_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))} · Redattore: ${escapeHtml(item.written_by)} · Verificatore: ${escapeHtml(item.verified_by || "—")}</p>` : ""}
+    ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Redattore: ${escapeHtml(item.written_by)}` : ""}${item.verified_by ? ` · Verificatore: ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     bindFeedCards(detail, {
       onSave: (url, title) => {
@@ -3371,15 +3425,20 @@ export function authorityWeight(person) {
   return AUTHORITY_WEIGHT[governmentRank(person)] ?? 0.42;
 }
 
+function personPhotoUrl(person) {
+  return resolvePortrait(person.id) || safeImageUrl(portraitFor(person)?.url);
+}
+
 function authorityNode(person, diameter) {
-  const name = `${person.given_name} ${person.family_name}`.trim();
-  const photo = resolvePortrait(person.id);
-  const party = person.current_party;
+  rememberOfficialPhoto(person);
+  const name = displayPersonName(person.given_name, person.family_name).trim();
+  const photo = personPhotoUrl(person);
+  const party = person.current_party || currentParty(person);
   const mark = party
     ? partyLogo(party, 18) || `<span class="authority-abbr">${escapeHtml(party.abbreviation || party.name)}</span>`
     : "";
   return `<a class="authority-node" href="./?politician=${encodeURIComponent(person.id)}" style="--d:${diameter}px" aria-label="${escapeHtml(`${name}, ${shortRole(person)}${party ? `, ${party.name}` : ""}`)}">
-    <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
     ${mark ? `<span class="authority-party" title="${escapeHtml(party.name)}">${mark}</span>` : ""}
     <span class="authority-name">${escapeHtml(name)}</span>
   </a>`;
@@ -3435,6 +3494,74 @@ export function renderAuthorityCloud(container, people) {
   container.style.height = `${Math.ceil(height)}px`;
 }
 
+export function collectFeaturedPoliticianIds({ parties = [], proposals = [], regions = [] } = {}) {
+  const ids = [];
+  const seen = new Set();
+  const add = (value) => {
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) return;
+    seen.add(id);
+    ids.push(id);
+  };
+  for (const party of parties) {
+    for (const member of party.current_members || []) add(member.politician_id);
+  }
+  for (const proposal of proposals) {
+    for (const actor of proposal.actors || []) add(actor.politician_id);
+  }
+  for (const region of regions) add(region.current_president?.politician_id);
+  return ids;
+}
+
+export function renderPersonBubble(person) {
+  rememberOfficialPhoto(person);
+  const name = displayPersonName(person.given_name, person.family_name).trim();
+  const photo = personPhotoUrl(person);
+  const role = shortRole(person);
+  return `<a class="person-bubble" href="./?politician=${encodeURIComponent(person.id)}" aria-label="${escapeHtml(`${name}${role ? `, ${role}` : ""}`)}">
+    <span class="bubble-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    <span class="bubble-name">${escapeHtml(name)}</span>
+    ${role ? `<span class="bubble-role">${escapeHtml(role)}</span>` : ""}
+  </a>`;
+}
+
+const GOVERNMENT_NOTE = "Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.";
+const FEATURED_NOTE = "Schede verificate dalla redazione, con incarico in corso. Non è un giudizio.";
+
+export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {}) {
+  const title = byId("government-title");
+  const note = byId("government-note");
+  cloud.removeAttribute("aria-busy");
+  cloud.style.height = "";
+  if (government.length) {
+    if (title) title.textContent = "Governo";
+    if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
+    cloud.className = "authority-cloud";
+    renderAuthorityCloud(cloud, government);
+    let lastWidth = cloud.clientWidth;
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(() => {
+        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
+        lastWidth = cloud.clientWidth;
+        renderAuthorityCloud(cloud, government);
+      }).observe(cloud);
+    }
+    return "governo";
+  }
+  if (featured.length) {
+    if (title) title.textContent = "Profili pubblicati";
+    if (note) { note.hidden = false; note.textContent = FEATURED_NOTE; }
+    cloud.className = "people-row";
+    cloud.innerHTML = featured.map(renderPersonBubble).join("");
+    return "featured";
+  }
+  if (title) title.textContent = "Governo";
+  if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
+  cloud.className = "authority-cloud is-static";
+  cloud.innerHTML = `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
+  return "empty";
+}
+
 export function renderPartyRow(party) {
   const members = party.current_member_count
     ? `${party.current_member_count} ${party.current_member_count === 1 ? "profilo in carica" : "profili in carica"}`
@@ -3461,28 +3588,36 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("topic-list").innerHTML = `<p class="empty-note">Temi non disponibili.</p>`;
   });
-  const people = Promise.all([api.listPoliticians({ role: "governo", limit: 100 }), loadPortraits(api)]).then(([payload]) => {
+  const partiesRequest = api.listParties({ all: true });
+  const people = Promise.all([
+    api.listPoliticians({ role: "governo", limit: 100 }),
+    partiesRequest.catch(() => ({ items: [] })),
+    api.listProposals({ limit: 50 }).catch(() => ({ items: [] })),
+    api.listRegions().catch(() => ({ items: [] })),
+    loadPortraits(api),
+  ]).then(async ([payload, partiesPayload, proposals, regions]) => {
+    for (const person of payload.items) rememberOfficialPhoto(person);
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
-    const cloud = byId("government-row");
+    let featured = [];
     if (!government.length) {
-      cloud.classList.add("is-static");
-      cloud.innerHTML = `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
-      return;
+      const partyPages = await Promise.all((partiesPayload.items || []).map((party) => api.getPoliticalParty(party.id).catch(() => null)));
+      const ids = collectFeaturedPoliticianIds({
+        parties: partyPages.filter(Boolean),
+        proposals: proposals.items || [],
+        regions: regions.items || [],
+      }).slice(0, 18);
+      const loaded = await Promise.all(ids.map((id) => api.getPolitician(id).catch(() => null)));
+      const byPerson = new Map(loaded.filter(Boolean).map((person) => [Number(person.id), person]));
+      featured = ids.map((id) => byPerson.get(id)).filter(Boolean);
     }
-    renderAuthorityCloud(cloud, government);
-    let lastWidth = cloud.clientWidth;
-    if (typeof ResizeObserver === "function") {
-      new ResizeObserver(() => {
-        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
-        lastWidth = cloud.clientWidth;
-        renderAuthorityCloud(cloud, government);
-      }).observe(cloud);
-    }
+    paintPoliticsFaces(byId("government-row"), { government, featured });
   }).catch(() => {
-    byId("government-row").innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
+    const cloud = byId("government-row");
+    cloud.classList.add("is-static");
+    cloud.innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
   }).finally(() => byId("government-row").removeAttribute("aria-busy"));
-  const parties = api.listParties({ all: true }).then((payload) => {
+  const parties = partiesRequest.then((payload) => {
     const items = [...payload.items].sort((a, b) => b.current_member_count - a.current_member_count || a.name.localeCompare(b.name, "it"));
     byId("party-list").innerHTML = items.length
       ? items.map(renderPartyRow).join("")
@@ -3570,7 +3705,7 @@ async function showCompare(api) {
   byId("compare-role").innerHTML = Object.entries(ROLE_LABELS).filter(([key]) => key !== "unknown").map(([key, label]) => `<option value="${key}"${key === role ? " selected" : ""}>${escapeHtml(label)}</option>`).join("");
   try {
     const people = await listAllPoliticians(api);
-    byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(person.given_name)} ${escapeHtml(person.family_name)}</label>`).join("");
+    byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(displayPersonName(person.given_name, person.family_name))}</label>`).join("");
   } catch {
     byId("compare-people").innerHTML = `<p class="empty-note">${escapeHtml(PUBLIC_UNAVAILABLE)}</p>`;
   }
@@ -3641,7 +3776,7 @@ async function showHistory(api) {
 }
 
 export function renderRosterRow(item) {
-  const name = `${item.given_name} ${item.family_name}`;
+  const name = displayPersonName(item.given_name, item.family_name);
   const link = item.politician_id ? `<a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(name)}</a>` : escapeHtml(name);
   const source = safeExternalUrl(item.source_url);
   return `<li class="roster-row"><span class="roster-name">${link}</span><span>${escapeHtml(romanLegislature(item.legislature) || String(item.legislature))} · ${item.chamber === "senato" ? "Senato" : "Camera"}${item.election_area ? ` · ${escapeHtml(item.election_area)}` : ""}</span><span>${item.start_date ? escapeHtml(item.end_date ? dateRange(item.start_date, item.end_date) : `Dal ${formatDate(item.start_date)}`) : ""}</span>${source ? `<a class="source-link" href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Fonte ${icon("external", { size: 14 })}</a>` : ""}</li>`;

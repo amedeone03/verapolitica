@@ -26,6 +26,22 @@ def test_welcome_and_registration_flow() -> None:
     assert "non dà indicazioni di voto" in onboarding
     assert "fetch(" not in onboarding and "localStorage" not in onboarding
     assert "collectAccount: true" in script
+    # Accedi / Registrati sit in a centred panel; the name step is vertically centred.
+    assert 'class="account-brand"' in onboarding and 'class="account-panel"' in onboarding
+    assert 'id="account-title" class="account-title"' in onboarding
+    assert "place-content:start" not in onboarding
+    assert 'class="ob-title">Come ti chiami?' in onboarding
+    assert "Come ti chiamiamo?" not in onboarding
+    assert 'class="ob-faces-slot"' in onboarding and "function nameFaces" in onboarding
+    assert "item.profile?.image_url" in onboarding
+    assert "displayPersonName" in onboarding
+    assert "photographed.length >= 8 ? photographed : [...photographed, ...rest]" in onboarding
+    assert "loaders.zone()" in onboarding and "loaders.parties()" in onboarding
+    assert 'class="ob-label" for="ob-name">Il tuo nome' in onboarding
+    assert '["name", "email", "password"].includes(key) ? " is-centered"' in onboarding
+    assert "Scrivi almeno due lettere" in onboarding
+    assert ".account-gate" in styles and ".ob.is-centered .ob-body" in styles
+    assert ".account-title" in styles and ".ob-faces" in styles and ".ob-avatar.is-face" in styles
     # The demo cannot save; the "Per te" sends follows to the feed.
     assert script.count("if (!isMember())") >= 3 and "demoNotice()" in script
     assert 'params.set("politicians"' in script and 'params.set("parties"' in script
@@ -41,6 +57,9 @@ def test_logos_reach_every_view() -> None:
     script = (APP / "app.js").read_text(encoding="utf-8")
     # Only logos served by VeraPolitica itself (/media/{id}) are drawn.
     assert "export function partyLogo" in card and "/^\\/media\\/\\d+$/" in card
+    assert "export function displayPersonName" in card
+    assert "class=\"vp-byline\"" in card
+    assert "officialImageUrl" in card
     assert "/^\\/media\\/\\d+$/" in onboarding and "listParties({ all: true })" in onboarding
     assert 'section === "simboli"' in console and "partyLogo(party)" in console
     assert 'api("/simboli", { method: "POST"' in console

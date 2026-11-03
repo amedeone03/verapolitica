@@ -16,6 +16,7 @@ router = APIRouter(prefix="/feed", tags=["feed"])
 @router.get("", response_model=FeedPage)
 def get_feed(
     session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_api_settings)],
     scope: FeedFilter = FeedFilter.ALL,
     region: Annotated[int | None, Query(gt=0)] = None,
     province: Annotated[str | None, Query(pattern=r"^[A-Z]{2}$")] = None,
@@ -28,7 +29,9 @@ def get_feed(
 ) -> FeedPage:
     """Verified facts, newest first. The zone is the reader's own territory."""
 
-    service = FeedService(session)
+    service = FeedService(
+        session, public_names=frozenset(settings.redazione_member_tokens.values())
+    )
     try:
         zone = service.resolve_zone(
             region_id=region, province=province, municipality_id=municipality

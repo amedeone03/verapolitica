@@ -451,8 +451,8 @@ class FeedService:
                 label="correction" if post.corrects_id else None,
                 blocks=_public_blocks(post.blocks),
                 card=self._post_card(post),
-                written_by=post.created_by if post.blocks and post.created_by in self.public_names else None,
-                verified_by=post.reviewed_by if post.blocks and post.reviewed_by in self.public_names else None,
+                written_by=post.created_by if post.created_by in self.public_names else None,
+                verified_by=post.reviewed_by if post.reviewed_by in self.public_names else None,
             )
 
 
