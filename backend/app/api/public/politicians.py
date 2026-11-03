@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
@@ -17,8 +17,11 @@ def list_politicians(
     session: Annotated[Session, Depends(get_db_session)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    role: Annotated[Literal["governo"] | None, Query()] = None,
 ) -> PublicPoliticianList:
-    return PublicPoliticianQueryService(session).list(offset=offset, limit=limit)
+    return PublicPoliticianQueryService(session).list(
+        offset=offset, limit=limit, role=role
+    )
 
 
 @router.get("/{politician_id}", response_model=PublicPolitician)

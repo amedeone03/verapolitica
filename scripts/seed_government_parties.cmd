@@ -1,5 +1,5 @@
 @echo off
-rem VeraPolitica: put the parties of the current Government in the list, with
+rem VeraPolitica: put Government and main opposition parties in the list, with
 rem their logos (free-licence files from Wikimedia Commons). Needs internet.
 rem The redazione can change name, abbreviation, website and logo at any time
 rem from /redazione/#/simboli.

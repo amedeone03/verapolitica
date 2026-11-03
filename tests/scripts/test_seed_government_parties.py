@@ -44,3 +44,10 @@ def test_government_parties_go_through_the_redazione_flow(tmp_path):
     again = seed_module.seed(service, get, approver="Direzione", names=("Partito Uno",))
     assert again.proposed == [] and "partito: Partito Uno (già nell'elenco)" in again.skipped
     engine.dispose()
+
+
+def test_parliament_seed_includes_opposition_and_electoral_lists():
+    assert "Partito Democratico" in seed_module.PARLIAMENT_PARTIES
+    assert "Movimento 5 Stelle" in seed_module.PARLIAMENT_PARTIES
+    assert "Alleanza Verdi e Sinistra" in seed_module.OPPOSITION_PARTIES
+    assert "wd:Q388602" in seed_module.QUERY

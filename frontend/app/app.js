@@ -227,12 +227,27 @@ function officeDisplayLabel(office, gender) {
   return mapped[key] || titleCase(office);
 }
 
-function currentMandate(person) {
+function latestOpenMandate(person) {
   const mandates = [...(person.profile?.mandates || [])];
   const open = mandates.filter((item) => !item.end_date);
   const pool = open.length ? open : mandates;
   pool.sort((left, right) => String(right.start_date || "").localeCompare(String(left.start_date || "")));
   return pool[0] ?? null;
+}
+
+export function cabinetMandate(person) {
+  const mandates = [...(person.profile?.mandates || [])];
+  const open = mandates.filter((item) => !item.end_date);
+  const pool = open.length ? open : mandates;
+  const ranked = pool
+    .map((mandate) => ({ mandate, rank: governmentOfficeRank(mandate.office) }))
+    .filter((item) => item.rank < GOVERNMENT_RANK.length)
+    .sort((a, b) => a.rank - b.rank || String(b.mandate.start_date || "").localeCompare(String(a.mandate.start_date || "")));
+  return ranked[0]?.mandate ?? null;
+}
+
+function currentMandate(person) {
+  return cabinetMandate(person) || latestOpenMandate(person);
 }
 
 export function currentParty(person) {
@@ -1703,7 +1718,11 @@ export function createPublicApiClient(fetchImpl = fetch) {
     return response.json();
   }
   return {
-    listPoliticians: () => request("/politicians?offset=0&limit=50"),
+    listPoliticians: ({ role = "", offset = 0, limit = 50 } = {}) => {
+      const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+      if (role) params.set("role", role);
+      return request(`/politicians?${params}`);
+    },
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
     explainPledge: (id) => request(`/proposals/${encodeURIComponent(id)}/explanation`),
@@ -1754,8 +1773,8 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getProposal: (id) => request(`/proposals/${encodeURIComponent(id)}`),
     listRegions: () => request("/regions?offset=0&limit=50"),
     getRegion: (id) => request(`/regions/${encodeURIComponent(id)}`),
-    listMunicipalities: ({ offset = 0, regionId = null } = {}) => {
-      const params = new URLSearchParams({ offset: String(offset), limit: "50" });
+    listMunicipalities: ({ offset = 0, regionId = null, limit = 50 } = {}) => {
+      const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
       if (regionId) params.set("region", String(regionId));
       return request(`/municipalities?${params}`);
     },
@@ -1995,6 +2014,16 @@ async function showProposalDetail(api, proposalId) {
   }
 }
 
+async function listAllMunicipalities(api, regionId) {
+  const items = [];
+  for (let offset = 0; offset < 9000; offset += 100) {
+    const page = await api.listMunicipalities({ offset, regionId, limit: 100 });
+    items.push(...(page.items || []));
+    if (items.length >= (page.total || 0)) break;
+  }
+  return items;
+}
+
 async function showRegions(api) {
   byId("archive-view").hidden = true;
   byId("regions-view").hidden = false;
@@ -2018,10 +2047,10 @@ async function showRegionDetail(api, regionId) {
   byId("region-detail-view").hidden = false;
   try {
     const region = await api.getRegion(regionId);
-    const municipalities = await api.listMunicipalities({ regionId });
+    const municipalities = await listAllMunicipalities(api, regionId);
     byId("region-detail-status").hidden = true;
     byId("region-detail").hidden = false;
-    byId("region-detail").innerHTML = renderRegionDetail(region, municipalities.items || []);
+    byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
     document.title = `${region.name} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;
@@ -3244,10 +3273,21 @@ async function showPost(api, postId) {
 // Government order: Prime Minister, Deputy Prime Ministers, Ministers, then the rest.
 const GOVERNMENT_RANK = ["presidente del consiglio", "vice presidente del consiglio", "ministro", "ministro senza portafoglio", "sottosegretario"];
 
+export function governmentOfficeRank(office) {
+  const key = String(office ?? "").toLocaleLowerCase("it").replace(/\s+/g, " ").trim();
+  const exact = GOVERNMENT_RANK.indexOf(key);
+  if (exact !== -1) return exact;
+  if (key.includes("vice presidente") || key.includes("vicepresidente")) return 1;
+  if (key.includes("presidente del consiglio")) return 0;
+  if (key.includes("ministro senza portafoglio")) return 3;
+  if (key.includes("viceministro") || key.includes("vice ministro")) return 3;
+  if (key.includes("ministro")) return 2;
+  if (key.includes("sottosegretario")) return 4;
+  return GOVERNMENT_RANK.length;
+}
+
 export function governmentRank(person) {
-  const office = String(primaryMandate(person)?.office ?? "").toLocaleLowerCase("it");
-  const index = GOVERNMENT_RANK.indexOf(office);
-  return index === -1 ? GOVERNMENT_RANK.length : index;
+  return governmentOfficeRank(cabinetMandate(person)?.office ?? primaryMandate(person)?.office);
 }
 
 // "Ministro della Difesa" → "Difesa"; titles without a portfolio keep their wording.
@@ -3358,7 +3398,7 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("topic-list").innerHTML = `<p class="empty-note">Temi non disponibili.</p>`;
   });
-  const people = Promise.all([api.listPoliticians(), loadPortraits(api)]).then(([payload]) => {
+  const people = Promise.all([api.listPoliticians({ role: "governo", limit: 100 }), loadPortraits(api)]).then(([payload]) => {
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
     const cloud = byId("government-row");

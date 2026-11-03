@@ -86,6 +86,9 @@ def test_politics_section_layout() -> None:
     assert "shortcut-grid" not in view
     assert "api.listParties({ all: true })" in script and "partyLogo(party, 40)" in script
     assert "export function shortRole" in script and "GOVERNMENT_RANK" in script
+    assert "export function cabinetMandate" in script and "export function governmentOfficeRank" in script
+    assert 'listPoliticians({ role: "governo", limit: 100 })' in script
+    assert "listAllMunicipalities" in script
 
 
 def test_proposals_section_layout() -> None:
