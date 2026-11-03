@@ -428,6 +428,10 @@ in `web` so they see `db` and raw storage:
 
 ./scripts/run_production_compose.sh exec web \
   python -m scripts.run_proposal_ingestion
+
+# Official-list cards on the Home feed (not newspaper news). Two different names.
+# ./scripts/run_production_compose.sh exec web \
+#   python -m scripts.seed_official_feed --author "Amedeo" --approver "Verificatore"
 ```
 
 There is **no** dedicated one-shot production importer. That is a known gap,

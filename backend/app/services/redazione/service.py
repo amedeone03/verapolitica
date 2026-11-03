@@ -1427,7 +1427,10 @@ class RedazioneService:
         if not post.blocks:
             blocks = {"sommario": post.body}
         findings = [
-            item.as_dict() for item in style.news_findings({"title": post.title, "blocks": blocks, "sources": sources})
+            item.as_dict()
+            for item in style.news_findings(
+                {"title": post.title, "blocks": blocks, "sources": sources, "card": composed}
+            )
         ]
         if not composed:
             findings.append(

@@ -97,7 +97,10 @@ Blocking (the item cannot be approved):
 - a position without a date, a career entry without a start date;
 - a news item without at least three sources, one institutional or agency,
   one centre-right and one centre-left outlet, or with an empty "Il fatto",
-  "Cosa cambia", "Destra" or "Sinistra" block;
+  "Cosa cambia", "Destra" or "Sinistra" block. A card typed
+  **Pubblicazione ufficiale** is the exception: it only announces an official
+  list (governo.it, Camera, Senato) and needs that institutional page, not
+  newspaper sources;
 - "Non mantenuta" without a reason (deadline passed, mandate ended, explicit
   renunciation), or with a declared deadline that is not before the fact.
 

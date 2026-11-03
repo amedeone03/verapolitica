@@ -28,6 +28,7 @@ from backend.app.services.reference_profile_audit import is_complete_source_url
 
 CATEGORIES: dict[str, tuple[str, str]] = {
     "notizia": ("Notizia", "navy"),
+    "pubblicazione": ("Pubblicazione ufficiale", "navy"),
     "disegno_di_legge": ("Disegno di legge del Governo", "navy"),
     "proposta_di_legge": ("Proposta di legge", "navy"),
     "decreto": ("Decreto-legge", "navy"),

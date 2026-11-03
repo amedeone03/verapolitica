@@ -113,16 +113,25 @@ def source_findings(sources: list[dict], *, field: str = "fonti", minimum: int =
     return findings
 
 
+def is_official_publication(post: dict) -> bool:
+    """A feed card that only announces an official list, not a political news analysis."""
+
+    card = post.get("card") or {}
+    return card.get("category") == "pubblicazione"
+
+
 def news_findings(post: dict) -> list[Finding]:
     """Checks for the "Modello Notizia" (nine blocks)."""
 
     blocks = post.get("blocks") or {}
+    official = is_official_publication(post)
     findings = text_findings(post.get("title"), field="titolo", title=True)
     if len(post.get("title") or "") > 90:
         findings.append(Finding("warning", "titolo_lungo", "Il titolo supera i 90 caratteri.", "titolo"))
     findings += text_findings(blocks.get("sommario"), field="sommario")
     if not (blocks.get("sommario") or "").strip():
         findings.append(Finding("error", "blocco_vuoto", "Manca il sommario: chi ha deciso cosa, quando.", "sommario"))
+    required_empty = {"fatto", "cosa_cambia"} if official else {"fatto", "cosa_cambia", "destra", "sinistra"}
     total = 0
     for key, label, low, high in NEWS_BLOCKS:
         text = blocks.get(key) or ""
@@ -132,7 +141,7 @@ def news_findings(post: dict) -> list[Finding]:
         total += count
         findings += text_findings(text, field=key)
         if not text.strip():
-            level = "error" if key in {"fatto", "cosa_cambia", "destra", "sinistra"} else "warning"
+            level = "error" if key in required_empty else "warning"
             findings.append(Finding(level, "blocco_vuoto", f"Blocco vuoto: «{label}». Se uno schieramento non si è espresso, lo si scrive.", key))
         elif count < low * 0.75 or count > high * 1.25:
             findings.append(Finding("warning", "lunghezza", f"«{label}»: {count} parole, indicazione {low}–{high}.", key))
@@ -148,11 +157,11 @@ def news_findings(post: dict) -> list[Finding]:
         if right_points != left_points:
             findings.append(Finding("warning", "equilibrio_punti", f"Destra {right_points} punti, sinistra {left_points}: stesso numero di punti.", "sinistra"))
     sources = post.get("sources") or []
-    findings += source_findings(sources, minimum=3)
+    findings += source_findings(sources, minimum=1 if official else 3)
     areas = {item.get("area") for item in sources if item.get("url")}
     if not areas & {"istituzionale", "agenzia"}:
         findings.append(Finding("error", "fonte_istituzionale", "Serve almeno una fonte istituzionale o di agenzia.", "fonti"))
-    if "centrodestra" not in areas or "centrosinistra" not in areas:
+    if not official and ("centrodestra" not in areas or "centrosinistra" not in areas):
         findings.append(Finding("error", "fonti_varie", "Servono almeno una testata di centrodestra e una di centrosinistra.", "fonti"))
     return findings
 

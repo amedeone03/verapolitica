@@ -1327,7 +1327,7 @@ function showRules() {
     <section class="card"><h2>Checklist prima di pubblicare</h2><ul class="findings" style="margin-top:10px">${CHECKLIST.map((text) => `<li class="ok">${esc(text)}</li>`).join("")}</ul>
       <p class="small muted" style="margin-top:10px">Chi verifica la spunta voce per voce prima di approvare.</p></section>
     <section class="card"><h2>Cosa controlla la console</h2><ul class="item-sources" style="margin-top:8px">
-      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti mancanti o che puntano a una home; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area; posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
+      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti mancanti o che puntano a una home; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area (una pubblicazione ufficiale, tipo elenco istituzionale, basta la pagina ufficiale); posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
       <li><strong>Avvisa:</strong> lunghezze fuori indicazione, squilibrio destra/sinistra, titoli con parole cariche, giudizi, opinioni senza nome, date abbreviate.</li>
       <li><strong>Punteggio:</strong> conta solo le promesse pubblicate, classificate e con uno stato approvato. «Non mantenuta» richiede due persone diverse da chi l'ha proposta e un motivo tra scadenza passata, mandato finito o rinuncia esplicita.</li>
     </ul></section>`;

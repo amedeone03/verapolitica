@@ -313,6 +313,45 @@ def test_news_follows_the_nine_block_model(console):
     assert "non si elimina" in locked.json()["detail"]
 
 
+def test_official_publication_needs_only_the_institutional_page(console):
+    client, politician_id, _ = console
+    payload = {
+        "title": "Pubblicato l'elenco dei titolari del Governo in carica",
+        "blocks": {
+            "sommario": "La Presidenza del Consiglio pubblica l'elenco dei titolari in carica.",
+            "fatto": "La pagina ufficiale elenca vicepresidenti, ministri e sottosegretari con la scheda di ciascuno.",
+            "cosa_cambia": "Le schede pubbliche riprendono i nomi e gli incarichi scritti su governo.it.",
+        },
+        "sources": [
+            {
+                "name": "Presidenza del Consiglio dei ministri",
+                "url": "https://www.governo.it/it/ministri-e-sottosegretari",
+                "area": "istituzionale",
+            }
+        ],
+        "politician_ids": [politician_id],
+        "card": {
+            "category": "pubblicazione",
+            "badge": {"label": "Nuova pubblicazione", "tone": "navy", "date": "2022-10-22"},
+            "institution": "Presidenza del Consiglio dei Ministri",
+            "people": [{"politician_id": politician_id, "use_portrait": True}],
+            "link": {
+                "label": "Elenco su governo.it",
+                "url": "https://www.governo.it/it/ministri-e-sottosegretari",
+            },
+        },
+    }
+    created = client.post("/redazione/api/notizie", headers=ANNA, json=payload)
+    assert created.status_code == 200, created.text
+    post = created.json()
+    assert not any(f["level"] == "error" for f in post["findings"])
+    assert not any(f["code"] == "fonti_varie" for f in post["findings"])
+    assert client.post(f"/redazione/api/coda/news/{post['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    public = client.get("/feed?redazione=true").json()
+    titles = [item["title"] for item in public["items"]]
+    assert "Pubblicato l'elenco dei titolari del Governo in carica" in titles
+
+
 def test_pending_news_can_be_discarded_even_when_blocked(console):
     client, politician_id, factory = console
     created = client.post(
@@ -439,7 +478,12 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     assert media.status_code == 200 and media.headers["content-type"] == "image/png"
     assert "immutable" in media.headers["cache-control"]
     options = client.get("/redazione/api/card", headers=ANNA).json()
-    assert {item["key"] for item in options["categories"]} >= {"notizia", "disegno_di_legge", "referendum"}
+    assert {item["key"] for item in options["categories"]} >= {
+        "notizia",
+        "pubblicazione",
+        "disegno_di_legge",
+        "referendum",
+    }
 
     sources = [
         {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/politica/2026/10/30/ddl-ferrovie.html", "area": "agenzia"},

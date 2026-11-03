@@ -35,7 +35,7 @@ export function cardIcon(name, size = 16, filled = false) {
 }
 
 const CATEGORY_ICON = {
-  notizia: "news", disegno_di_legge: "doc", proposta_di_legge: "doc", decreto: "doc",
+  notizia: "news", pubblicazione: "doc", disegno_di_legge: "doc", proposta_di_legge: "doc", decreto: "doc",
   votazione: "vote", interrogazione: "question", referendum: "ballot", promessa: "promise", elezioni: "ballot",
 };
 const STEP_ICON = ["building", "building", "swap", "stamp"];
