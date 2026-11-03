@@ -88,6 +88,10 @@ def test_politics_section_layout() -> None:
     assert "export function shortRole" in script and "GOVERNMENT_RANK" in script
     assert "export function cabinetMandate" in script and "export function governmentOfficeRank" in script
     assert 'listPoliticians({ role: "governo", limit: 100 })' in script
+    assert "export function collectFeaturedPoliticianIds" in script
+    assert "export function renderPersonBubble" in script
+    assert "export function paintPoliticsFaces" in script
+    assert "Profili pubblicati" in script
     assert "listAllMunicipalities" in script
     assert "export async function listAllPoliticians" in script
     assert "renderCurrentLegislatureWalk" in script
@@ -127,6 +131,10 @@ def test_government_cloud_sizes_by_institutional_role() -> None:
     assert "person.current_party" in node
     assert "new ResizeObserver" in script and ".authority-cloud.is-static" in css
     assert "@media (prefers-reduced-motion: reduce) { .authority-node" in css
+    # Without a cabinet, the same slot shows published profiles (party members, promise actors).
+    assert "className = \"people-row\"" in script
+    assert "current_members" in script.split("export function collectFeaturedPoliticianIds")[1].split("export function renderPersonBubble")[0]
+    assert 'id="government-note"' in html
 
 
 def test_search_is_grouped_instant_and_keeps_the_lens() -> None:

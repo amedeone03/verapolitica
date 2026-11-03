@@ -3371,15 +3371,19 @@ export function authorityWeight(person) {
   return AUTHORITY_WEIGHT[governmentRank(person)] ?? 0.42;
 }
 
+function personPhotoUrl(person) {
+  return resolvePortrait(person.id) || safeImageUrl(portraitFor(person)?.url);
+}
+
 function authorityNode(person, diameter) {
   const name = `${person.given_name} ${person.family_name}`.trim();
-  const photo = resolvePortrait(person.id);
-  const party = person.current_party;
+  const photo = personPhotoUrl(person);
+  const party = person.current_party || currentParty(person);
   const mark = party
     ? partyLogo(party, 18) || `<span class="authority-abbr">${escapeHtml(party.abbreviation || party.name)}</span>`
     : "";
   return `<a class="authority-node" href="./?politician=${encodeURIComponent(person.id)}" style="--d:${diameter}px" aria-label="${escapeHtml(`${name}, ${shortRole(person)}${party ? `, ${party.name}` : ""}`)}">
-    <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
     ${mark ? `<span class="authority-party" title="${escapeHtml(party.name)}">${mark}</span>` : ""}
     <span class="authority-name">${escapeHtml(name)}</span>
   </a>`;
@@ -3435,6 +3439,73 @@ export function renderAuthorityCloud(container, people) {
   container.style.height = `${Math.ceil(height)}px`;
 }
 
+export function collectFeaturedPoliticianIds({ parties = [], proposals = [], regions = [] } = {}) {
+  const ids = [];
+  const seen = new Set();
+  const add = (value) => {
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) return;
+    seen.add(id);
+    ids.push(id);
+  };
+  for (const party of parties) {
+    for (const member of party.current_members || []) add(member.politician_id);
+  }
+  for (const proposal of proposals) {
+    for (const actor of proposal.actors || []) add(actor.politician_id);
+  }
+  for (const region of regions) add(region.current_president?.politician_id);
+  return ids;
+}
+
+export function renderPersonBubble(person) {
+  const name = `${person.given_name} ${person.family_name}`.trim();
+  const photo = personPhotoUrl(person);
+  const role = shortRole(person);
+  return `<a class="person-bubble" href="./?politician=${encodeURIComponent(person.id)}" aria-label="${escapeHtml(`${name}${role ? `, ${role}` : ""}`)}">
+    <span class="bubble-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+    <span class="bubble-name">${escapeHtml(name)}</span>
+    ${role ? `<span class="bubble-role">${escapeHtml(role)}</span>` : ""}
+  </a>`;
+}
+
+const GOVERNMENT_NOTE = "Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.";
+const FEATURED_NOTE = "Schede verificate dalla redazione, con incarico in corso. Non è un giudizio.";
+
+export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {}) {
+  const title = byId("government-title");
+  const note = byId("government-note");
+  cloud.removeAttribute("aria-busy");
+  cloud.style.height = "";
+  if (government.length) {
+    if (title) title.textContent = "Governo";
+    if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
+    cloud.className = "authority-cloud";
+    renderAuthorityCloud(cloud, government);
+    let lastWidth = cloud.clientWidth;
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(() => {
+        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
+        lastWidth = cloud.clientWidth;
+        renderAuthorityCloud(cloud, government);
+      }).observe(cloud);
+    }
+    return "governo";
+  }
+  if (featured.length) {
+    if (title) title.textContent = "Profili pubblicati";
+    if (note) { note.hidden = false; note.textContent = FEATURED_NOTE; }
+    cloud.className = "people-row";
+    cloud.innerHTML = featured.map(renderPersonBubble).join("");
+    return "featured";
+  }
+  if (title) title.textContent = "Governo";
+  if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
+  cloud.className = "authority-cloud is-static";
+  cloud.innerHTML = `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
+  return "empty";
+}
+
 export function renderPartyRow(party) {
   const members = party.current_member_count
     ? `${party.current_member_count} ${party.current_member_count === 1 ? "profilo in carica" : "profili in carica"}`
@@ -3461,28 +3532,35 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("topic-list").innerHTML = `<p class="empty-note">Temi non disponibili.</p>`;
   });
-  const people = Promise.all([api.listPoliticians({ role: "governo", limit: 100 }), loadPortraits(api)]).then(([payload]) => {
+  const partiesRequest = api.listParties({ all: true });
+  const people = Promise.all([
+    api.listPoliticians({ role: "governo", limit: 100 }),
+    partiesRequest.catch(() => ({ items: [] })),
+    api.listProposals({ limit: 50 }).catch(() => ({ items: [] })),
+    api.listRegions().catch(() => ({ items: [] })),
+    loadPortraits(api),
+  ]).then(async ([payload, partiesPayload, proposals, regions]) => {
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
-    const cloud = byId("government-row");
+    let featured = [];
     if (!government.length) {
-      cloud.classList.add("is-static");
-      cloud.innerHTML = `<p class="empty-note">Nessun profilo del Governo pubblicato.</p>`;
-      return;
+      const partyPages = await Promise.all((partiesPayload.items || []).map((party) => api.getPoliticalParty(party.id).catch(() => null)));
+      const ids = collectFeaturedPoliticianIds({
+        parties: partyPages.filter(Boolean),
+        proposals: proposals.items || [],
+        regions: regions.items || [],
+      }).slice(0, 18);
+      const loaded = await Promise.all(ids.map((id) => api.getPolitician(id).catch(() => null)));
+      const byPerson = new Map(loaded.filter(Boolean).map((person) => [Number(person.id), person]));
+      featured = ids.map((id) => byPerson.get(id)).filter(Boolean);
     }
-    renderAuthorityCloud(cloud, government);
-    let lastWidth = cloud.clientWidth;
-    if (typeof ResizeObserver === "function") {
-      new ResizeObserver(() => {
-        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
-        lastWidth = cloud.clientWidth;
-        renderAuthorityCloud(cloud, government);
-      }).observe(cloud);
-    }
+    paintPoliticsFaces(byId("government-row"), { government, featured });
   }).catch(() => {
-    byId("government-row").innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
+    const cloud = byId("government-row");
+    cloud.classList.add("is-static");
+    cloud.innerHTML = `<p class="empty-note">Non è stato possibile caricare i profili.</p>`;
   }).finally(() => byId("government-row").removeAttribute("aria-busy"));
-  const parties = api.listParties({ all: true }).then((payload) => {
+  const parties = partiesRequest.then((payload) => {
     const items = [...payload.items].sort((a, b) => b.current_member_count - a.current_member_count || a.name.localeCompare(b.name, "it"));
     byId("party-list").innerHTML = items.length
       ? items.map(renderPartyRow).join("")

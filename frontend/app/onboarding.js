@@ -44,13 +44,18 @@ export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
 export function renderAccountForm(root, { mode = "register", error = "", onSubmit, onSwitch, onBack }) {
   const register = mode === "register";
   root.innerHTML = `
-    <div class="gate welcome account-gate" role="main" aria-labelledby="account-title">
-      <div class="welcome-center" style="place-content:start;padding-top:48px">
+    <div class="gate account-gate" role="main" aria-labelledby="account-title">
+      <div class="account-brand">
+        <img class="welcome-logo" src="./favicon.svg" alt="" width="72" height="72" />
+        <p class="welcome-name">VeraPolitica</p>
+        <p class="welcome-line">La politica italiana, con le fonti.</p>
+      </div>
+      <div class="account-panel">
         <p class="ob-kicker">${register ? "Crea il tuo account" : "Bentornato"}</p>
-        <h1 id="account-title" class="welcome-name" style="font-size:clamp(1.75rem,6vw,2.5rem)">${register ? "Registrati" : "Accedi"}</h1>
+        <h1 id="account-title" class="account-title">${register ? "Registrati" : "Accedi"}</h1>
         <form id="account-form" class="acc-form" novalidate>
           <label class="ob-label" for="acc-email">Email</label>
-          <input id="acc-email" class="ob-input is-compact" type="email" name="email" autocomplete="username" required maxlength="254" />
+          <input id="acc-email" class="ob-input is-compact" type="email" name="email" autocomplete="username" required maxlength="254" placeholder="nome@email.it" />
           <label class="ob-label" for="acc-password">Password</label>
           <input id="acc-password" class="ob-input is-compact" type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" required minlength="10" maxlength="128" />
           ${register ? `<p class="ob-note">Almeno 10 caratteri. Poi scegli chi seguire.</p>` : `<p class="ob-note">Usa l'email con cui ti sei registrato.</p>`}
@@ -145,7 +150,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       : key === "parties" ? `Avanti · ${state.parties.size}`
       : "Avanti";
     back.hidden = state.step === 0;
-    shell.className = `gate ob ${TONES[key]}`;
+    next.title = key === "name" && !valid() ? "Scrivi almeno due lettere" : "";
+    shell.className = `gate ob ${TONES[key]}${["name", "email", "password"].includes(key) ? " is-centered" : ""}`;
     root.querySelectorAll(".ob-progress li").forEach((item, index) => {
       item.classList.toggle("is-done", index < state.step);
       item.classList.toggle("is-current", index === state.step);
@@ -157,9 +163,9 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     name: () => `
       <p class="ob-kicker">Benvenuto</p>
       <h1 id="ob-title" class="ob-title">Come ti chiamiamo?</h1>
-      <label class="visually-hidden" for="ob-name">Nome</label>
-      <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="Il tuo nome" />
-      <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
+      <label class="ob-label" for="ob-name">Il tuo nome</label>
+      <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="es. Anna" />
+      <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`
     zone: () => `
       <p class="ob-kicker">Di dove sei</p>
       <h1 id="ob-title" class="ob-title">Dove sei?</h1>
