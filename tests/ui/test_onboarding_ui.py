@@ -20,7 +20,7 @@ def test_welcome_and_registration_flow() -> None:
     assert 'const REGISTER_STEPS = ["name", "zone", "politicians", "parties", "email", "password"]' in onboarding
     assert "collectAccount" in onboarding and "onCreateAccount" in onboarding
     assert "Qual è la tua email?" in onboarding and "Scegli una password" in onboarding
-    assert "api.listPoliticians()" in onboarding and "api.listParties(" in onboarding
+    assert "api.listPoliticians({ offset, limit: 100 })" in onboarding and "api.listParties(" in onboarding
     assert "api.listRegions()" in onboarding and "api.listProvinces(" in onboarding
     assert "Array.isArray(state.people) && !state.people.length" in onboarding
     assert "non dà indicazioni di voto" in onboarding

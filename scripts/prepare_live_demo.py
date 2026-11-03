@@ -25,12 +25,18 @@ from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.services.redazione.service import RedazioneService
 from backend.app.storage import LocalRawStorage
+from scripts.attach_governo_identities import finish as finish_cabinet
+from scripts.attach_territorial_identities import finish as finish_territorial
 from scripts.publish_territorial_profiles import publish as publish_offices
 from scripts.reprocess_parliamentary_groups import reprocess as reprocess_groups
 from scripts.seed_government_parties import seed as seed_parties
 from scripts.seed_meloni_showcase import seed as seed_meloni
 from scripts.seed_official_feed import seed as seed_feed
+from scripts.seed_official_notizia import seed as seed_notizia
 from scripts.seed_official_portraits import seed as seed_portraits
+from scripts.seed_opposition_showcase import seed as seed_opposition
+from scripts.seed_party_affiliations import seed as seed_affiliations
+from scripts.seed_rdc_verdict import seed as seed_verdict
 from scripts import sync_symbols
 
 
@@ -38,9 +44,15 @@ from scripts import sync_symbols
 class Report:
     parties: dict = field(default_factory=dict)
     groups: dict = field(default_factory=dict)
+    cabinet: dict = field(default_factory=dict)
+    territorial: dict = field(default_factory=dict)
     meloni: dict = field(default_factory=dict)
+    opposition: dict = field(default_factory=dict)
+    affiliations: dict = field(default_factory=dict)
+    verdict: dict = field(default_factory=dict)
     portraits: dict = field(default_factory=dict)
     feed: dict = field(default_factory=dict)
+    notizia: dict = field(default_factory=dict)
     offices: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
@@ -79,12 +91,52 @@ def prepare(
         report.errors.append(f"gruppi: {error}")
 
     try:
+        cabinet = finish_cabinet(session_factory, reviewer=approver)
+        report.cabinet = asdict(cabinet)
+        if cabinet.errors:
+            report.errors.extend(f"governo: {item}" for item in cabinet.errors)
+    except Exception as error:
+        report.errors.append(f"governo: {error}")
+
+    try:
+        territorial = finish_territorial(session_factory, reviewer=approver)
+        report.territorial = asdict(territorial)
+        if territorial.errors:
+            report.errors.extend(f"sindaci: {item}" for item in territorial.errors)
+    except Exception as error:
+        report.errors.append(f"sindaci: {error}")
+
+    try:
         meloni = seed_meloni(service, session_factory, author=author, approver=approver)
         report.meloni = asdict(meloni)
         if meloni.errors:
             report.errors.extend(f"meloni: {item}" for item in meloni.errors)
     except Exception as error:
         report.errors.append(f"meloni: {error}")
+
+    try:
+        opposition = seed_opposition(service, session_factory, author=author, approver=approver)
+        report.opposition = asdict(opposition)
+        if opposition.errors:
+            report.errors.extend(f"opposizione: {item}" for item in opposition.errors)
+    except Exception as error:
+        report.errors.append(f"opposizione: {error}")
+
+    try:
+        affiliations = seed_affiliations(session_factory)
+        report.affiliations = asdict(affiliations)
+        if affiliations.errors:
+            report.errors.extend(f"partiti-scheda: {item}" for item in affiliations.errors)
+    except Exception as error:
+        report.errors.append(f"partiti-scheda: {error}")
+
+    try:
+        verdict = seed_verdict(service, session_factory, author=author, approver=approver)
+        report.verdict = asdict(verdict)
+        if verdict.errors:
+            report.errors.extend(f"stato-rdc: {item}" for item in verdict.errors)
+    except Exception as error:
+        report.errors.append(f"stato-rdc: {error}")
 
     if portraits_path is not None:
         try:
@@ -102,6 +154,14 @@ def prepare(
             report.errors.extend(f"feed: {item}" for item in feed.errors)
     except Exception as error:
         report.errors.append(f"feed: {error}")
+
+    try:
+        notizia = seed_notizia(service, session_factory, author=author, approver=approver)
+        report.notizia = asdict(notizia)
+        if notizia.errors:
+            report.errors.extend(f"notizia: {item}" for item in notizia.errors)
+    except Exception as error:
+        report.errors.append(f"notizia: {error}")
 
     try:
         offices = publish_offices(

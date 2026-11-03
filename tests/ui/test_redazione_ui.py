@@ -35,6 +35,8 @@ def test_console_is_self_contained_and_in_cambridge_colours(tmp_path):
                  "Registro modifiche", "Parentesi quadre: nessuna rimasta aperta nel testo."):
         assert text in script or text in page
     assert "Approva e pubblica" in script and "data-check" in script
+    assert 'href="#/identita"' in page and "Identità da risolvere" in script
+    assert 'data-action="collega"' in script and "pending_identities" in script
     assert "Elimina la notizia" in script and "data-discard" in script
     assert "Aggiungi un politico" in script and 'api("/politici", { method: "POST"' in script
     assert 'method: "DELETE"' in script

@@ -89,6 +89,8 @@ def test_politics_section_layout() -> None:
     assert "export function cabinetMandate" in script and "export function governmentOfficeRank" in script
     assert 'listPoliticians({ role: "governo", limit: 100 })' in script
     assert "listAllMunicipalities" in script
+    assert "export async function listAllPoliticians" in script
+    assert "renderCurrentLegislatureWalk" in script
 
 
 def test_proposals_section_layout() -> None:

@@ -318,3 +318,5 @@ body { overflow-wrap: break-word; }
 .pending-edit p { margin: 0; }
 .check { display: flex; align-items: center; gap: 8px; font-size: .9375rem; }
 @media (max-width: 600px) { .symbol-actions { grid-column: 1 / -1; justify-content: flex-start; } .pending-edit { grid-column: 1 / -1; } }
+.identity-form { margin-top: 12px; }
+.plain-list { margin: 0; padding-left: 1.1rem; display: grid; gap: 16px; }
