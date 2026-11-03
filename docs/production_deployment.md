@@ -432,6 +432,33 @@ in `web` so they see `db` and raw storage:
 # Official-list cards on the Home feed (not newspaper news). Two different names.
 # ./scripts/run_production_compose.sh exec web \
 #   python -m scripts.seed_official_feed --author "Amedeo" --approver "Verificatore"
+
+# After Camera/Senato identities exist, attach groups from the stored SPARQL bundle
+# (does not download again):
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.reprocess_parliamentary_groups --dry-run
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.reprocess_parliamentary_groups --apply
+
+# Government + opposition parties in Registrati (PD, M5S, AVS). Needs Wikidata.
+# ./scripts/run_production_compose.sh exec web \
+#   python -m scripts.seed_government_parties --approver "Direzione VeraPolitica"
+
+# Meloni scheda + one classified promise (official URLs only, four-eyes).
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_meloni_showcase --author "Amedeo" --approver "Verificatore"
+
+# Official Governo portraits from the published profile image_url.
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.seed_official_portraits
+
+# Publish pending Lazio territorial drafts, if DAIT offices were ingested.
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.publish_territorial_profiles --dry-run --region Lazio
+
+# Or run the same steps together (never resets the database):
+# ./scripts/run_production_compose.sh exec -T web \
+#   python -m scripts.prepare_live_demo --author "Amedeo" --approver "Verificatore"
 ```
 
 There is **no** dedicated one-shot production importer. That is a known gap,

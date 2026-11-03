@@ -23,7 +23,7 @@ from backend.app.core.config import get_settings
 from backend.app.db.base import Base
 from backend.app.db.schema import prepare_runtime_schema
 from backend.app.db.session import create_db_engine, create_session_factory
-from backend.app.models import EditorialPost, Politician
+from backend.app.models import EditorialPost, Politician, Region
 from backend.app.services.matching_service import normalize_person_name
 from backend.app.services.redazione.service import RedazioneError, RedazioneService
 
@@ -43,6 +43,8 @@ class OfficialCard:
     link_label: str
     badge_date: str
     people: tuple[tuple[str, str], ...] = ()
+    scope: str = "national"
+    region_name: str | None = None
 
 
 CARDS = (
@@ -70,6 +72,33 @@ CARDS = (
         source_date="2022-10-22",
         institution="Presidenza del Consiglio dei Ministri",
         link_label="Elenco su governo.it",
+        badge_date="2022-10-22",
+        people=(("Giorgia", "Meloni"),),
+    ),
+    OfficialCard(
+        title="Pubblicato il curriculum ufficiale del Presidente del Consiglio",
+        sommario=(
+            "La Presidenza del Consiglio pubblica il curriculum ufficiale di "
+            "Giorgia Meloni, Presidente del Consiglio dei ministri in carica."
+        ),
+        fatto=(
+            "Sul sito della Presidenza, nella sezione Amministrazione trasparente, "
+            "è pubblicato il curriculum ufficiale del Presidente del Consiglio. "
+            "Il documento riporta i titoli di studio e gli incarichi istituzionali "
+            "dichiarati. VeraPolitica usa quella pagina come fonte ufficiale della "
+            "scheda pubblica, senza aggiungere incarichi assenti dal curriculum."
+        ),
+        cosa_cambia=(
+            "Chi segue Giorgia Meloni trova nel Per te l'avviso di quella "
+            "pubblicazione ufficiale, collegato alla scheda. Il testo resta quello "
+            "del curriculum della Presidenza. Un aggiornamento del file ufficiale "
+            "è la base per un aggiornamento successivo."
+        ),
+        source_name="Presidenza del Consiglio dei ministri",
+        source_url="https://presidenza.governo.it/AmministrazioneTrasparente/Organizzazione/OrganiIndirizzoPolitico/GovernoMeloni/PresMeloni/PresMeloni_curriculum.pdf",
+        source_date="2022-10-22",
+        institution="Presidenza del Consiglio dei Ministri",
+        link_label="Curriculum su presidenza.governo.it",
         badge_date="2022-10-22",
         people=(("Giorgia", "Meloni"),),
     ),
@@ -123,6 +152,34 @@ CARDS = (
         link_label="Dati aperti del Senato",
         badge_date="2022-10-13",
     ),
+    OfficialCard(
+        title="Pubblicata la classificazione ISTAT dei comuni del Lazio",
+        sommario=(
+            "L'ISTAT pubblica i codici e i nomi ufficiali delle regioni, delle "
+            "province e dei comuni italiani, incluso il Lazio e Roma."
+        ),
+        fatto=(
+            "Sul sito istat.it, alla pagina della classificazione dei comuni, "
+            "delle province e delle regioni, è consultabile l'elenco ufficiale "
+            "dei territori. VeraPolitica ha importato quei codici ISTAT come "
+            "riferimento territoriale: il Lazio e i suoi comuni, Roma compresa, "
+            "sono quelli dell'elenco nazionale, non una selezione di redazione."
+        ),
+        cosa_cambia=(
+            "Chi imposta la zona su Lazio o Roma vede il territorio ufficiale "
+            "ISTAT. I comuni sotto Roma restano quelli della classificazione. "
+            "Un aggiornamento dell'elenco ISTAT è la base per un aggiornamento "
+            "successivo delle schede territoriali."
+        ),
+        source_name="Istituto nazionale di statistica",
+        source_url="https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/",
+        source_date="2024-01-01",
+        institution="ISTAT",
+        link_label="Classificazione su istat.it",
+        badge_date="2024-01-01",
+        scope="region",
+        region_name="Lazio",
+    ),
 )
 
 
@@ -143,6 +200,11 @@ def _known_urls(session: Session) -> set[str]:
             if item.get("url"):
                 urls.add(item["url"])
     return urls
+
+
+def _region_id(session_factory: sessionmaker[Session], name: str) -> int | None:
+    with session_factory() as session:
+        return session.scalar(select(Region.id).where(Region.canonical_name == name))
 
 
 def _published_id(
@@ -177,6 +239,14 @@ def seed(
         if card.source_url in already:
             report.skipped.append(f"{card.title} (fonte già in una notizia)")
             continue
+        region_id = None
+        if card.region_name:
+            region_id = _region_id(session_factory, card.region_name)
+            if region_id is None:
+                report.skipped.append(
+                    f"{card.title} (regione {card.region_name} assente: importa ISTAT prima)"
+                )
+                continue
         people = []
         politician_ids = []
         for given, family in card.people:
@@ -187,7 +257,8 @@ def seed(
             politician_ids.append(politician_id)
         payload = {
             "title": card.title,
-            "scope": "national",
+            "scope": card.scope,
+            "region_id": region_id,
             "blocks": {
                 "sommario": card.sommario,
                 "fatto": card.fatto,

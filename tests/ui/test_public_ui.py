@@ -172,7 +172,7 @@ def test_public_ui_assets_are_strictly_public(tmp_path):
             )
         )
 
-    assert "/politicians?offset=0&limit=50" in assets
+    assert "/politicians?" in assets and 'params.set("role", role)' in assets
     assert "getPolitician" in assets
     assert "/admin/" not in assets
     assert "verapolitica-demo-admin" not in assets

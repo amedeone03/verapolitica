@@ -47,6 +47,7 @@ from backend.app.models.politician_profile import (
     PoliticianProceeding,
     ProfileContentStatus,
 )
+from backend.app.services.government_offices import has_government_office
 from backend.app.services.official_source_display import (
     citizen_source_label,
     citizen_source_url,
@@ -64,8 +65,19 @@ class PublicPoliticianQueryService:
         # the writing models); operator and import identities stay internal.
         self.public_names = public_names
 
-    def list(self, *, offset: int, limit: int) -> PublicPoliticianList:
+    def list(
+        self, *, offset: int, limit: int, role: str | None = None
+    ) -> PublicPoliticianList:
         visible = self._visible_query()
+        if role == "governo":
+            cabinet_ids = self._government_politician_ids()
+            if not cabinet_ids:
+                return PublicPoliticianList(
+                    items=(), total=0, offset=offset, limit=limit
+                )
+            visible = visible.where(Politician.id.in_(cabinet_ids))
+        elif role not in (None, ""):
+            raise ValueError(f"unsupported politician role filter: {role!r}")
         total = self.session.scalar(
             select(func.count()).select_from(visible.subquery())
         ) or 0
@@ -98,6 +110,13 @@ class PublicPoliticianQueryService:
             total=total,
             offset=offset,
             limit=limit,
+        )
+
+    def _government_politician_ids(self) -> tuple[int, ...]:
+        return tuple(
+            politician.id
+            for politician, version in self.session.execute(self._visible_query())
+            if has_government_office((version.profile_data or {}).get("mandates"))
         )
 
     def get(self, politician_id: int) -> PublicPolitician | None:
