@@ -61,7 +61,7 @@ def test_logos_reach_every_view() -> None:
     assert "export function displayPersonName" in card
     # Writer and verifier are named on the news page, not repeated on every feed card.
     assert "vp-byline" not in card and "Scritto da" not in card
-    assert "· Redattore: ${escapeHtml(item.written_by)}" in script
+    assert "· Scritto da ${escapeHtml(item.written_by)}" in script
     assert "export function hostedImageUrl" in card and "officialImageUrl" not in card
     assert "/^\\/media\\/\\d+$/" in onboarding and "listParties({ all: true })" in onboarding
     assert 'section === "simboli"' in console and "partyLogo(party)" in console

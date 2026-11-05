@@ -1021,6 +1021,7 @@ export function renderRegionDetail(region, municipalities = []) {
       <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>
+    <div id="region-news"></div>
     <section class="detail-card"><h2>Comuni in questa regione</h2>
       ${ordered.length ? `<div class="proposal-grid">${ordered.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
     </section>`;
@@ -2151,6 +2152,7 @@ async function showRegionDetail(api, regionId) {
     byId("region-detail").hidden = false;
     byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
     document.title = `${region.name} — VeraPolitica`;
+    renderLocalNews(api, byId("region-news"), { region_id: region.id }, region.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("region-detail-status"), missing ? "Questa regione non è disponibile." : "Non è stato possibile caricare questa regione.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -2698,8 +2700,9 @@ async function showMunicipalityDetail(api, municipalityId) {
     const municipality = await api.getMunicipality(municipalityId);
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
-    byId("municipality-detail").innerHTML = renderMunicipalityDetail(municipality);
+    byId("municipality-detail").innerHTML = `${renderMunicipalityDetail(municipality)}<div id="municipality-news"></div>`;
     document.title = `Comune di ${municipality.name} — VeraPolitica`;
+    renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }, municipality.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("municipality-detail-status"), missing ? "Questo comune non è disponibile." : "Non è stato possibile caricare questo comune.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -3307,6 +3310,25 @@ async function loadReactions(api, container) {
 
 const FEED_CHOICES = ["all", "national", "region", "province"];
 
+// Local news on a region or comune page: only items written for that territory
+// (the national ones are on the Feed). Comune pages also get the region's news.
+async function renderLocalNews(api, container, zone, placeName) {
+  container.innerHTML = `<section class="detail-card local-news" aria-labelledby="local-news-title"><h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2><p class="empty-note">Caricamento…</p></section>`;
+  try {
+    try { await loadPortraits(api); } catch { /* optional */ }
+    const page = await api.getFeed({ scope: "all", zone, redazione: true });
+    const items = (page.items || []).filter((item) => item.scope && item.scope !== "national").slice(0, 6);
+    const section = container.querySelector(".local-news");
+    section.innerHTML = `<h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2>${items.length
+      ? `<div class="feed-list local-news-list">${items.map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join("")}</div>`
+      : `<p class="empty-note">Nessuna notizia locale pubblicata.</p>`}`;
+    bindFeedCards(section, cardHandlers(api));
+    loadReactions(api, section);
+  } catch {
+    container.innerHTML = "";
+  }
+}
+
 async function showHome(api) {
   byId("home-view").hidden = false;
   document.title = "Feed — VeraPolitica";
@@ -3444,7 +3466,7 @@ async function showPost(api, postId) {
       ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
-    ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Redattore: ${escapeHtml(item.written_by)}` : ""}${item.verified_by ? ` · Verificatore: ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
+    ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Scritto da ${escapeHtml(item.written_by)}` : ""}${item.verified_by && item.verified_by !== item.written_by ? ` · Pubblicato da ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     bindFeedCards(detail, cardHandlers(api));
     loadReactions(api, detail);

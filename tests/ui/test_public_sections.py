@@ -161,3 +161,13 @@ def test_search_is_grouped_instant_and_keeps_the_lens() -> None:
     assert 'SEARCH_RECENT_KEY = "verapolitica.search.recent.v1"' in script
     assert "Restano solo su questo dispositivo." in script and "data-remove-recent" in script
     assert "@keyframes search-shimmer" in css and ".skeleton-line { animation: none; }" in css
+
+
+def test_region_and_comune_pages_show_their_local_news():
+    from pathlib import Path
+
+    script = Path("frontend/app/app.js").read_text(encoding="utf-8")
+    assert "async function renderLocalNews(api, container, zone, placeName)" in script
+    assert 'item.scope !== "national"' in script
+    assert '<div id="region-news"></div>' in script
+    assert 'renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }' in script
