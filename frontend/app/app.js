@@ -3136,16 +3136,17 @@ document.addEventListener("touchstart", () => {}, { passive: true });
 const SECTION_BY_VIEW = {
   politics: "politics", politicians: "politics", proposals: "politics", compare: "politics",
   methodology: "politics", ask: "politics", search: "search",
-  history: "history", parliamentarians: "history", provinces: "history", "referendum-archive": "history",
-  regions: "history", municipalities: "history",
+  history: "history", parliamentarians: "history", "referendum-archive": "history",
+  provinces: "politics", regions: "politics", municipalities: "politics",
   profile: "profile",
 };
 
 export function sectionFor(params) {
   const view = params.get("view");
   if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
-  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")) return "politics";
-  if (params.get("legislature") || params.get("province") || params.get("region") || params.get("municipality") || params.get("history_region")) return "history";
+  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")
+    || params.get("province") || params.get("region") || params.get("municipality")) return "politics";
+  if (params.get("legislature") || params.get("history_region")) return "history";
   return "home";
 }
 
@@ -3713,7 +3714,77 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
   }).finally(() => byId("party-list").removeAttribute("aria-busy"));
-  await Promise.all([people, parties]);
+  await Promise.all([people, parties, renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
+}
+
+function zoneHolderRow(holder, role) {
+  return `<li class="zone-holder">${officeHolderPhoto(holder)}<span><small>${escapeHtml(role)}</small><strong>${holderLabel(holder)}</strong></span></li>`;
+}
+
+export function renderZoneCard(zone, { municipality = null, region = null } = {}) {
+  if (!zone) {
+    return `<p><strong>La tua zona</strong></p>
+      <p class="zone-copy">Scegli il comune: qui vedrai sindaco, presidente di regione e le notizie del territorio. La scelta resta su questo dispositivo.</p>
+      <a class="zone-cta" href="./?view=profile">Scegli la zona</a>`;
+  }
+  const holders = [];
+  if (municipality?.current_mayor) holders.push(zoneHolderRow(municipality.current_mayor, `Sindaco di ${zone.municipality_name || "comune"}`));
+  if (region?.current_president) holders.push(zoneHolderRow(region.current_president, `Presidente ${zone.region_name ? `della regione ${zone.region_name}` : "di regione"}`));
+  const links = [
+    zone.municipality_id ? [`./?municipality=${encodeURIComponent(zone.municipality_id)}`, "Comune"] : null,
+    zone.province ? [`./?province=${encodeURIComponent(zone.province)}`, "Provincia"] : null,
+    zone.region_id ? [`./?region=${encodeURIComponent(zone.region_id)}`, "Regione"] : null,
+  ].filter(Boolean);
+  return `<p class="zone-label"><small>La tua zona</small><strong>${escapeHtml(zoneLabel(zone))}</strong></p>
+    ${holders.length ? `<ul class="zone-holders">${holders.join("")}</ul>` : `<p class="zone-copy">Sindaco e presidente non sono ancora collegati a una scheda pubblicata.</p>`}
+    <div class="favorite-chips">${links.map(([href, label]) => `<a class="topic-chip" href="${escapeHtml(href)}">${label}</a>`).join("")}</div>`;
+}
+
+async function renderMyZone(api, container) {
+  const zone = loadReaderProfile().zone;
+  byId("zone-change").hidden = !zone;
+  try {
+    const [municipality, region] = await Promise.all([
+      zone?.municipality_id ? api.getMunicipality(zone.municipality_id).catch(() => null) : null,
+      zone?.region_id ? api.getRegion(zone.region_id).catch(() => null) : null,
+    ]);
+    container.innerHTML = renderZoneCard(zone, { municipality, region });
+  } finally {
+    container.removeAttribute("aria-busy");
+  }
+}
+
+function bindTerritoryFind(api) {
+  const field = byId("territory-q");
+  const list = byId("territory-results");
+  let timer = null;
+  let controller = null;
+  field.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = field.value.trim();
+    if (q.length < 2) {
+      list.hidden = true;
+      list.innerHTML = "";
+      return;
+    }
+    timer = setTimeout(async () => {
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const payload = await api.search({ q, type: "municipality", limit: 6, signal: controller.signal });
+        const items = (payload.items || []).filter((item) => item.metadata?.id);
+        list.innerHTML = items.length
+          ? items.map((item) => `<li><a class="row-link" href="./?municipality=${encodeURIComponent(item.metadata.id)}"><span class="row-icon" aria-hidden="true">${icon("mapPin", { size: 18 })}</span><span class="row-text"><strong>${escapeHtml(item.title)}</strong>${item.subtitle ? `<small>${escapeHtml(item.subtitle)}</small>` : ""}</span><span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`).join("")
+          : `<li class="row-empty">Nessun comune trovato.</li>`;
+        list.hidden = false;
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          list.innerHTML = `<li class="row-empty">Ricerca non disponibile.</li>`;
+          list.hidden = false;
+        }
+      }
+    }, 220);
+  });
 }
 
 function renderMemberList(members, emptyText) {
