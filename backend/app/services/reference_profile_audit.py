@@ -70,6 +70,7 @@ CONTROVERSY_TYPES = frozenset(
         ProceedingType.POLITICAL_CONTROVERSY,
         ProceedingType.LEGAL_CONTROVERSY,
         ProceedingType.MEDIA_CONTROVERSY,
+        ProceedingType.RELATED_INVESTIGATION,
     }
 )
 CONTENT_MODELS = {

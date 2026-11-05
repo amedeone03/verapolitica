@@ -24,6 +24,37 @@ console is not linked from the public site and is `noindex`.
 You need **at least two named people**. One person cannot approve their own
 work, so a single token leaves every draft stuck in **Da verificare**.
 
+### Capi squadra
+
+`VERAPOLITICA_REDAZIONE_LEADS="Nome Cognome;Altro Nome"` names the capi squadra
+(names must match `VERAPOLITICA_REDAZIONE_MEMBERS`; unknown names are ignored).
+A capo squadra:
+
+- sees **Pubblica subito** (ticked) on every form: the politician, the blocks
+  of the scheda, promises, news. Saving publishes at once;
+- can **Verifica e pubblica** their own items still in **Da verificare**;
+- is logged as such: the approval entry carries `self_verified: true` and
+  «Verificato dal capo squadra che l'ha inserito».
+
+The state of a promise (the verdict that moves the score) still needs a second
+person, for capi squadra too. On a local demo, **Caporedattore demo** is the capo
+squadra.
+
+### Procedimenti giudiziari e controversie
+
+Two separate boxes on the scheda:
+
+- **Procedimenti giudiziari**: only investigations and trials *against the
+  politician* (types «Indagine a suo carico», «Processo a suo carico»);
+- **Controversie**: matters of public interest that do not necessarily put the
+  politician under investigation — a statement, a bust, a relative or
+  collaborator under investigation («Indagine su una persona vicina»).
+
+The console refuses an investigation of the politician among the controversies
+and a controversy among the proceedings. Existing rows were sorted by the
+migration `f3a7c9d21b48`: anything with an investigation or trial against the
+politician stays a proceeding.
+
 ### Production VPS
 
 On the server, generate one token per editor (do not reuse the admin key):

@@ -41,7 +41,8 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "Chi è" in script
     assert "Cosa ha fatto" in script
     assert "Posizioni su temi chiave" in script
-    assert "Procedimenti e controversie" in script
+    assert "<h2>Procedimenti giudiziari</h2>" in script and "<h2>Controversie</h2>" in script
+    assert 'id="controversie"' in script and "related_investigation" in script
     assert "Scheda delle promesse" in script
     assert "countPledgeVerdicts" in script
     assert "renderPledgeStatusSummary" in script
@@ -54,7 +55,8 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
     assert "Come vengono verificati questi dati?" in script
     assert "Le valutazioni delle promesse vengono pubblicate solo dopo revisione." in script
     assert "Non sono ancora disponibili posizioni verificate per questo profilo." in script
-    assert "Questa sezione non contiene ancora elementi pubblicati." in script
+    # Empty boxes say nothing is published yet, never that the record is clean.
+    assert script.count("Questa sezione non contiene ancora elementi pubblicati.") >= 2
     assert "Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo." in script
     assert "Non ancora valutata" in script
     assert "class=\"source-name\"" in script

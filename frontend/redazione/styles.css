@@ -323,3 +323,64 @@ body { overflow-wrap: break-word; }
 
 /* Politician photos fill the square; logos and coats of arms stay whole. */
 .symbol-thumb.is-photo { object-fit: cover; padding: 0; border-radius: 50%; }
+
+/* ------------------------------------------------------------------ dashboard
+   Pattern references (Appllama): Planner Pro «Tasks Dashboard» (tappable summary
+   cards that filter the list), Superlist «Today» (greeting header, compact rows,
+   quick actions). Rows expand in place; nothing opens a new page. */
+.dash-head { align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.dash-head h1 { font-size: clamp(1.5rem, 2.6vw, 2rem); }
+.role-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--color-accent-light); color: var(--color-accent-strong); font-weight: 700; letter-spacing: .02em; text-transform: none; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-action { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; color: var(--color-primary); font-weight: 600; font-size: .875rem; text-decoration: none; transition: transform .12s ease, border-color .12s ease; }
+.quick-action span { font-size: 1rem; line-height: 1; color: var(--color-accent-strong); }
+.quick-action:hover { border-color: var(--color-control-border); }
+.quick-action:active, .tile-button:active, .queue-row summary:active { transform: scale(.98); }
+
+.dash-tiles .tile-button { text-align: left; cursor: pointer; font: inherit; transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease; }
+.dash-tiles .tile-button:hover { border-color: var(--color-control-border); }
+.dash-tiles .tile-button[aria-pressed="true"] { border-color: var(--color-primary); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.dash-tiles .tile-button.is-alert strong { color: var(--color-danger); }
+.dash-tiles .tile-button:focus-visible, .queue-row summary:focus-visible, .quick-action:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+
+.queue-group { margin-bottom: 22px; }
+.queue-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 2px 8px; }
+.queue-group-head h2 { font-size: 1rem; margin: 0; }
+.queue-group-head .count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--color-background); border: 1px solid var(--color-border); font-size: .75rem; }
+.row-list { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.queue-row + .queue-row { border-top: 1px solid var(--color-border); }
+.queue-row summary { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 16px; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; list-style: none; transition: background .12s ease, transform .12s ease; }
+.queue-row summary::-webkit-details-marker { display: none; }
+.queue-row summary:hover { background: var(--color-background); }
+.queue-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-control-border); }
+.queue-row.is-verify .queue-dot { background: var(--color-secondary); }
+.queue-row.is-self .queue-dot { background: var(--color-accent-strong); }
+.queue-row.is-blocked .queue-dot { background: var(--color-danger); }
+.queue-row.is-mine .queue-dot { background: var(--color-warning); }
+.queue-main { display: grid; gap: 4px; min-width: 0; }
+.queue-title { font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: .8125rem; color: var(--color-text-muted); }
+.queue-sub .chip { font-size: .72rem; }
+.queue-state { font-size: .8125rem; color: var(--color-text-muted); white-space: nowrap; }
+.queue-row.is-verify .queue-state { color: var(--color-secondary); font-weight: 600; }
+.queue-row.is-self .queue-state { color: var(--color-accent-strong); font-weight: 600; }
+.queue-row.is-blocked .queue-state { color: var(--color-danger); font-weight: 600; }
+.queue-chevron { width: 8px; height: 8px; border-right: 2px solid var(--color-control-border); border-bottom: 2px solid var(--color-control-border); transform: rotate(-45deg); transition: transform .15s ease; justify-self: center; }
+.queue-row[open] .queue-chevron { transform: rotate(45deg); }
+.queue-row[open] summary { background: var(--color-background); }
+.queue-body { padding: 4px 16px 18px 38px; }
+.empty-done { display: grid; gap: 4px; text-align: center; }
+
+.lead-publish { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 4px; padding: 10px 12px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent-light); font-size: .875rem; }
+.lead-publish input { margin-top: 3px; }
+
+@media (max-width: 640px) {
+  .queue-row summary { grid-template-columns: 10px minmax(0, 1fr) 16px; padding: 12px; }
+  .queue-state { display: none; }
+  .queue-title { white-space: normal; }
+  .queue-body { padding: 4px 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-action, .tile-button, .queue-row summary, .queue-chevron { transition: none; }
+  .quick-action:active, .tile-button:active, .queue-row summary:active { transform: none; }
+}

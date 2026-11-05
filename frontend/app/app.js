@@ -571,6 +571,7 @@ const PROCEEDING_TYPE_LABELS = {
   political_controversy: "Controversia politica",
   legal_controversy: "Controversia giuridica",
   media_controversy: "Controversia mediatica",
+  related_investigation: "Indagine su una persona vicina",
 };
 
 const PROCEEDING_OUTCOME_LABELS = {
@@ -610,10 +611,8 @@ export function renderKeyPositions(person = {}) {
   </section>`;
 }
 
-export function renderProceedings(person = {}) {
-  const items = person.proceedings || [];
-  const body = items.length
-    ? `<div class="proceeding-list">${items.map((item) => `<article class="proceeding-card">
+function proceedingCard(item) {
+  return `<article class="proceeding-card">
         <h3>${escapeHtml(item.title)}</h3>
         <p class="proceeding-meta"><span class="proceeding-type">${escapeHtml(proceedingTypeLabel(item.proceeding_types || []))}</span>${item.outcome ? `<span class="proceeding-outcome">Stato/Esito: ${escapeHtml(PROCEEDING_OUTCOME_LABELS[item.outcome] || item.outcome)}</span>` : ""}</p>
         <p class="who-copy">${escapeHtml(item.summary)}</p>
@@ -624,11 +623,26 @@ export function renderProceedings(person = {}) {
           title: source.title,
           kind: source.kind,
         })).join("")}</div>
-      </article>`).join("")}</div>`
-    : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`;
+      </article>`;
+}
+
+// Two boxes: what concerns the politician in court, and public controversies that
+// do not necessarily involve an investigation of them (a statement, a relative).
+export function renderProceedings(person = {}) {
+  const all = person.proceedings || [];
+  const judicial = all.filter((item) => (item.category || "proceeding") === "proceeding");
+  const controversies = all.filter((item) => item.category === "controversy");
+  const name = displayPersonName(person.given_name, person.family_name);
+  const list = (items) => `<div class="proceeding-list">${items.map(proceedingCard).join("")}</div>`;
   return `<section class="detail-card profile-block profile-proceedings" id="procedimenti">
-    <h2>Procedimenti e controversie</h2>
-    ${body}
+    <h2>Procedimenti giudiziari</h2>
+    <p class="block-lede">Indagini e processi a carico di ${escapeHtml(name || "questa persona")}. Un'indagine non è una condanna.</p>
+    ${judicial.length ? list(judicial) : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`}
+  </section>
+  <section class="detail-card profile-block profile-controversies" id="controversie">
+    <h2>Controversie</h2>
+    <p class="block-lede">Vicende di rilevanza pubblica che non comportano necessariamente indagini a suo carico, anche quando riguardano persone vicine.</p>
+    ${controversies.length ? list(controversies) : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`}
   </section>`;
 }
 
@@ -1653,6 +1667,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
     { href: "#posizioni", label: "Posizioni" },
     { href: "#promesse", label: "Promesse" },
     { href: "#procedimenti", label: "Procedimenti" },
+    { href: "#controversie", label: "Controversie" },
     sourcesMarkup ? { href: "#fonti", label: "Fonti" } : null,
   ].filter(Boolean));
   const overview = `<section class="detail-card profile-block profile-overview" id="profilo">

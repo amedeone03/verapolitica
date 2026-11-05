@@ -157,10 +157,14 @@ class EditorialService:
             raise EditorialConflictError(f"post is {post.status.value}")
         return post
 
-    def publish(self, post_id: int, *, reviewer: str, note: str | None = None) -> EditorialPostResponse:
+    def publish(
+        self, post_id: int, *, reviewer: str, note: str | None = None, allow_author: bool = False
+    ) -> EditorialPostResponse:
+        """``allow_author`` is set only by the redazione for a capo squadra's own post."""
+
         with self.session_factory.begin() as session:
             post = self._pending(session, post_id)
-            if post.created_by == reviewer:
+            if post.created_by == reviewer and not allow_author:
                 raise EditorialConflictError("the author cannot publish their own post")
             now = self.clock()
             post.status = EditorialPostStatus.PUBLISHED

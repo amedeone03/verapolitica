@@ -19,7 +19,10 @@ from backend.app.models.politician_profile import (
     PoliticianPosition,
     PoliticianProceeding,
     PoliticianProfileSource,
+    PROCEEDING_CATEGORY_TYPES,
+    ProceedingCategory,
     ProceedingType,
+    proceeding_category_for,
     ProfileContentKind,
     ProfileContentStatus,
 )
@@ -141,6 +144,13 @@ class PoliticianProfileService:
         types = tuple(dict.fromkeys(payload.proceeding_types))
         if not types:
             raise PoliticianProfileValidationError("proceeding_types is required")
+        category = payload.category or proceeding_category_for(types)
+        allowed = PROCEEDING_CATEGORY_TYPES[category]
+        if any(item not in allowed for item in types):
+            raise PoliticianProfileValidationError(
+                "a controversy cannot carry a proceeding against the politician, "
+                "and a proceeding cannot carry controversy types"
+            )
         if (
             payload.outcome_date
             and payload.event_date
@@ -154,6 +164,7 @@ class PoliticianProfileService:
             payload.created_by,
             payload.sources,
             title=payload.title.strip(),
+            category=category.value,
             proceeding_types=[item.value for item in types],
             event_date=payload.event_date,
             event_precision=payload.event_precision,
@@ -478,6 +489,7 @@ class PoliticianProfileService:
         return tuple(
             PublicProceeding(
                 title=row.title,
+                category=ProceedingCategory(row.category or "proceeding"),
                 proceeding_types=tuple(ProceedingType(item) for item in row.proceeding_types),
                 event_date=row.event_date,
                 event_precision=row.event_precision,
@@ -943,6 +955,7 @@ class PoliticianProfileService:
             items.append(
                 EditorialPreviewProceeding(
                     title=row.title,
+                    category=ProceedingCategory(row.category or "proceeding"),
                     proceeding_types=types,
                     event_date=row.event_date,
                     event_precision=row.event_precision,
