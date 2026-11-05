@@ -143,7 +143,7 @@ export function renderFeedCard(item, options = {}) {
   const href = options.preview ? "#" : item.url;
   const question = `Spiegami: ${item.title}`;
   const byline = item.written_by
-    ? `<p class="vp-byline">Redattore: ${esc(item.written_by)}${item.verified_by ? ` · Verificatore: ${esc(item.verified_by)}` : ""}</p>`
+    ? `<p class="vp-byline">${item.verified_by && item.verified_by !== item.written_by ? `Scritto da ${esc(item.written_by)} · Pubblicato da ${esc(item.verified_by)}` : `Redazione: ${esc(item.written_by)}`}</p>`
     : "";
   return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}" data-card="${esc(key)}">
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
