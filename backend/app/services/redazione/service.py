@@ -1484,7 +1484,12 @@ class RedazioneService:
             ]
 
     # --------------------------------------------------- parties and symbols
-    SYMBOL_LABELS = {"party": "Logo del partito", "region": "Stemma della regione", "province": "Stemma della provincia"}
+    SYMBOL_LABELS = {
+        "party": "Logo del partito",
+        "region": "Stemma della regione",
+        "province": "Stemma della provincia",
+        "politician": "Foto del politico",
+    }
 
     @staticmethod
     def _provinces(session: Session) -> dict[str, dict]:
@@ -1511,10 +1516,22 @@ class RedazioneService:
             }
         if kind == "province":
             return dict(sorted(self._provinces(session).items(), key=lambda item: item[1]["name"] or ""))
+        if kind == "politician":
+            # Only published schede: a photo appears on the public site, so the person must too.
+            rows = session.execute(
+                select(Politician.id, Politician.canonical_given_name, Politician.canonical_family_name)
+                .join(PoliticianVersion, PoliticianVersion.id == Politician.current_version_id)
+                .where(PoliticianVersion.published_at.is_not(None))
+                .order_by(Politician.canonical_family_name, Politician.canonical_given_name, Politician.id)
+            )
+            return {
+                str(pid): {"key": str(pid), "name": f"{given} {family}".strip()}
+                for pid, given, family in rows
+            }
         raise RedazioneValidation("Tipo di simbolo sconosciuto.")
 
     def symbols(self) -> dict:
-        """Parties, regions and provinces with their approved logo and pending proposals."""
+        """Parties, regions, provinces and politicians with their approved image and pending proposals."""
 
         with self.session_factory() as session:
             pending: dict[tuple[str, str], list[dict]] = {}
@@ -1532,7 +1549,10 @@ class RedazioneService:
                 pending.setdefault(key, []).append(
                     {"id": row.id, "created_by": row.created_by, "summary": row.summary, "payload": row.payload}
                 )
-            result: dict[str, Any] = {"licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()]}
+            result: dict[str, Any] = {
+                "licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()],
+                "portrait_licenses": [{"key": k, "label": v} for k, v in symbols_module.licenses_for("politician").items()],
+            }
             for kind in SYMBOL_KINDS:
                 approved = symbols_module.symbol_rows(session, kind)
                 result[kind] = [
@@ -1554,14 +1574,16 @@ class RedazioneService:
         license_key = str(payload.get("license") or "")
         source_url = _clean(payload.get("source_url"))
         errors = {}
+        photo = kind == "politician"
+        what = "la foto" if photo else "il logo"
         if kind not in SYMBOL_KINDS:
-            errors["kind"] = "Scegli partito, regione o provincia."
+            errors["kind"] = "Scegli partito, regione, provincia o politico."
         if not credit:
-            errors["credit"] = "Indica il titolare o l'autore del logo."
-        if license_key not in symbols_module.LICENSES:
-            errors["license"] = "Scegli la licenza con cui il logo può essere pubblicato."
+            errors["credit"] = f"Indica il titolare o l'autore del{'la foto' if photo else ' logo'}."
+        if license_key not in symbols_module.licenses_for(kind):
+            errors["license"] = f"Scegli la licenza con cui {what} può essere pubblicat{'a' if photo else 'o'}."
         if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
-            errors["source_url"] = "Indica la pagina https da cui proviene il logo."
+            errors["source_url"] = f"Indica la pagina https da cui proviene {what}."
         if errors:
             raise RedazioneValidation("Controlla i campi del logo.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
         with self.session_factory.begin() as session:
@@ -1570,7 +1592,7 @@ class RedazioneService:
                 raise RedazioneNotFound("Partito, regione o provincia non trovato.")
             image = session.get(EditorialImage, int(payload.get("image_id") or 0))
             if image is None:
-                raise RedazioneValidation("Carica prima l'immagine del logo.")
+                raise RedazioneValidation(f"Carica prima l'immagine del{'la foto' if photo else ' logo'}.")
             name = targets[key]["name"]
             request = EditorialChangeRequest(
                 kind="simbolo",

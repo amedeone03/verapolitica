@@ -13,7 +13,6 @@ def test_prepare_live_demo_refuses_same_author_and_approver(tmp_path):
             author="Amedeo",
             approver="Amedeo",
             party_approver="Direzione",
-            portraits_path=None,
             raw_storage=tmp_path / "raw",
         )
     except ValueError as error:
@@ -32,7 +31,6 @@ def test_prepare_live_demo_runs_without_resetting_when_the_archive_is_empty(tmp_
         author="Amedeo",
         approver="Verificatore",
         party_approver="Direzione",
-        portraits_path=tmp_path / "portraits.json",
         raw_storage=tmp_path / "raw",
         get=lambda url: b'{"results":{"bindings":[]}}',
     )

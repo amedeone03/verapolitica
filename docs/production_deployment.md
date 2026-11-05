@@ -466,9 +466,8 @@ in `web` so they see `db` and raw storage:
 # ./scripts/run_production_compose.sh exec -T web \
 #   python -m scripts.seed_official_notizia --author "Amedeo" --approver "Verificatore"
 
-# Official Governo portraits from the published profile image_url.
-# ./scripts/run_production_compose.sh exec -T web \
-#   python -m scripts.seed_official_portraits
+# Politician photos: uploaded in the redazione console (Foto dei politici)
+# and approved by a second member. Nothing is taken from Camera, Senato or Governo.
 
 # DAIT mayor identity cases, then publish pending Lazio drafts.
 # ./scripts/run_production_compose.sh exec -T web \
