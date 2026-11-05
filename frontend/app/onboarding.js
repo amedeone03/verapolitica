@@ -1,4 +1,4 @@
-import { displayPersonName, officialImageUrl } from "./feed-card.js";
+import { displayPersonName } from "./feed-card.js";
 
 // VeraPolitica — welcome screen and sign-up journey (story-style, one question per screen).
 // Pattern references (Appllama, Spotify): dark full-screen welcome with centred logo and
@@ -19,9 +19,7 @@ function monogram(name) {
 }
 
 function personPhoto(person, portraitFor) {
-  const hosted = portraitFor?.(person.id);
-  if (hosted) return hosted;
-  return officialImageUrl(person.image_url) || "";
+  return portraitFor?.(person.id) || "";
 }
 
 function avatar(person, portraitFor, size = "") {
@@ -309,7 +307,6 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
             .map((item) => ({
               id: String(item.id),
               name: displayPersonName(item.given_name, item.family_name),
-              image_url: item.profile?.image_url || item.image_url || null,
             }))
             .sort((a, b) => a.name.localeCompare(b.name, "it"));
         })().finally(() => { delete inflight.people; });

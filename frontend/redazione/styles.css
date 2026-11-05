@@ -320,3 +320,6 @@ body { overflow-wrap: break-word; }
 @media (max-width: 600px) { .symbol-actions { grid-column: 1 / -1; justify-content: flex-start; } .pending-edit { grid-column: 1 / -1; } }
 .identity-form { margin-top: 12px; }
 .plain-list { margin: 0; padding-left: 1.1rem; display: grid; gap: 16px; }
+
+/* Politician photos fill the square; logos and coats of arms stay whole. */
+.symbol-thumb.is-photo { object-fit: cover; padding: 0; border-radius: 50%; }

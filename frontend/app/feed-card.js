@@ -68,24 +68,16 @@ export function displayPersonName(given, family = "") {
   }).join(" ");
 }
 
-export function officialImageUrl(value) {
-  if (typeof value === "string" && /^\/(media|portraits)\//.test(value)) return value;
-  try {
-    const url = new URL(value);
-    const host = (url.hostname || "").toLowerCase();
-    const official = /(^|\.)(camera\.it|senato\.it|governo\.it)$/.test(host);
-    if (url.protocol === "https:") return url.href;
-    if (url.protocol === "http:" && official) {
-      url.protocol = "https:";
-      return url.href;
-    }
-  } catch { /* not a URL */ }
-  return null;
+// Photos are served by this site only: /media (uploaded and approved by the
+// redazione) or /portraits (files already stored). No image is loaded from
+// Camera, Senato, Governo or any other outside host.
+export function hostedImageUrl(value) {
+  return typeof value === "string" && /^\/(media\/\d+|portraits\/\d+\/image)$/.test(value) ? value : null;
 }
 
 function safeUrl(value) {
   if (typeof value === "string" && /^\/(media|portraits)\//.test(value)) return value;
-  return officialImageUrl(value);
+  return hostedImageUrl(value);
 }
 function initials(name) {
   return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();

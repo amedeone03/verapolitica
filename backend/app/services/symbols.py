@@ -1,6 +1,7 @@
-"""Approved logos (parties) and coats of arms (regions, provinces), shared by every view.
+"""Approved logos (parties), coats of arms (regions, provinces) and politician photos.
 
-Keys: the party id, the region id, the province abbreviation, all as strings.
+Keys: the party id, the region id, the province abbreviation, the politician
+id, all as strings.
 Only rows approved by a second redazione member exist, so every lookup here is
 already public.
 """
@@ -19,6 +20,14 @@ LICENSES = {
     "autorizzato": "Uso autorizzato dal titolare",
     "istituzionale": "Stemma istituzionale (fonte ufficiale)",
 }
+
+
+def licenses_for(kind: str) -> dict[str, str]:
+    """A politician's photo cannot claim the institutional coat-of-arms licence."""
+
+    if kind == "politician":
+        return {key: label for key, label in LICENSES.items() if key != "istituzionale"}
+    return LICENSES
 
 
 def media_url(image_id: int) -> str:

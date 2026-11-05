@@ -1,6 +1,6 @@
-import { bindFeedCards, displayPersonName, officialImageUrl, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
-export { displayPersonName, officialImageUrl };
+export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -177,31 +177,11 @@ const portraits = new Map();
 function safeImageUrl(value) {
   // Portraits stored by the demo are served by this API (same origin).
   if (typeof value === "string" && /^\/portraits\/\d+\/image$/.test(value)) return value;
-  return officialImageUrl(value);
-}
-
-function rememberOfficialPhoto(person) {
-  const id = person?.id ?? person?.politician_id;
-  if (id == null) return;
-  const key = String(id);
-  if (portraits.has(key) && portraits.get(key)?.url) return;
-  const url = officialImageUrl(person.profile?.image_url || person.image_url);
-  if (!url) return;
-  portraits.set(key, {
-    url,
-    credit: "Fonte ufficiale",
-    license: "Ritratto istituzionale ufficiale",
-    source_url: url,
-    origin: "Fonte ufficiale",
-  });
+  return hostedImageUrl(value);
 }
 
 function portraitFor(person) {
-  if (person?.id != null) rememberOfficialPhoto(person);
-  const credited = portraits.get(String(person.id));
-  if (credited) return credited;
-  const official = officialImageUrl(person.profile?.image_url || person.image_url);
-  return official ? { url: official, credit: "Fonte ufficiale", license: "Ritratto istituzionale ufficiale", source_url: official, origin: "Fonte ufficiale" } : null;
+  return portraits.get(String(person.id)) || null;
 }
 
 function portrait(person, { size = "card" } = {}) {
@@ -952,8 +932,7 @@ function holderLabel(holder) {
 
 function officeHolderPhoto(holder) {
   if (!holder) return "";
-  rememberOfficialPhoto(holder);
-  const url = officialImageUrl(holder.image_url) || (holder.politician_id ? resolvePortrait(holder.politician_id) : null);
+  const url = holder.politician_id ? resolvePortrait(holder.politician_id) : null;
   return `<span class="office-holder-photo" aria-hidden="true">${url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span>${escapeHtml(initials(holder))}</span>`}</span>`;
 }
 
@@ -1898,7 +1877,6 @@ export async function listAllPoliticians(api, { role = "" } = {}) {
     const page = await api.listPoliticians({ role, offset, limit: 100 });
     total = page.total || 0;
     items.push(...(page.items || []));
-    for (const person of page.items || []) rememberOfficialPhoto(person);
     if (items.length >= total || !(page.items || []).length) break;
   }
   return { items, total };
@@ -1977,7 +1955,6 @@ async function showDetail(api, politicianId) {
     const detail = byId("profile-detail");
     byId("detail-status").hidden = true;
     detail.hidden = false;
-    rememberOfficialPhoto(person);
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileSectionNav(detail);
     bindProfileShare(detail);
@@ -2340,9 +2317,8 @@ function searchPersonName(item) {
 function searchLeading(item) {
   const id = item.metadata?.id;
   if (item.entity_type === "politician" && id) {
-    rememberOfficialPhoto({ id, image_url: item.metadata?.image_url });
     const words = searchPersonName(item).trim().split(/\s+/);
-    const photo = resolvePortrait(id) || officialImageUrl(item.metadata?.image_url);
+    const photo = resolvePortrait(id);
     const mono = initials({ given_name: words[0] || "", family_name: words.length > 1 ? words[words.length - 1] : "" });
     return `<span class="search-lead is-person" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : escapeHtml(mono)}</span>`;
   }
@@ -3430,7 +3406,6 @@ function personPhotoUrl(person) {
 }
 
 function authorityNode(person, diameter) {
-  rememberOfficialPhoto(person);
   const name = displayPersonName(person.given_name, person.family_name).trim();
   const photo = personPhotoUrl(person);
   const party = person.current_party || currentParty(person);
@@ -3514,7 +3489,6 @@ export function collectFeaturedPoliticianIds({ parties = [], proposals = [], reg
 }
 
 export function renderPersonBubble(person) {
-  rememberOfficialPhoto(person);
   const name = displayPersonName(person.given_name, person.family_name).trim();
   const photo = personPhotoUrl(person);
   const role = shortRole(person);
@@ -3596,7 +3570,6 @@ async function showPolitics(api) {
     api.listRegions().catch(() => ({ items: [] })),
     loadPortraits(api),
   ]).then(async ([payload, partiesPayload, proposals, regions]) => {
-    for (const person of payload.items) rememberOfficialPhoto(person);
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
     let featured = [];
