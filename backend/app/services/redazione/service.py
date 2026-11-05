@@ -269,7 +269,8 @@ class RedazioneService:
     ) -> None:
         self.session_factory = session_factory
         self.clock = clock
-        # Capi squadra: they may verify and publish their own work (logged as such).
+        # Admins write and publish at once, and publish what others write.
+        # With no admin named, any second member verifies (four-eyes).
         self.leads = frozenset(leads)
         self.profiles = PoliticianProfileService(session_factory)
         self.pledges = PledgeService(session_factory, clock=clock)
@@ -450,6 +451,7 @@ class RedazioneService:
                     "institution": institution if office else None,
                     "start_date": start.isoformat() if office and start else None,
                     "office_label": GOVERNMENT_OFFICES.get(office) if office else None,
+                    **({"image": image} if (image := self._image_payload(session, payload)) else {}),
                 },
                 created_by=member,
                 created_at=self.clock(),
@@ -1602,9 +1604,11 @@ class RedazioneService:
             errors["kind"] = "Scegli partito, regione, provincia o politico."
         if not credit:
             errors["credit"] = f"Indica il titolare o l'autore del{'la foto' if photo else ' logo'}."
+        if photo and not license_key:
+            license_key = "nel-credito"
         if license_key not in symbols_module.licenses_for(kind):
             errors["license"] = f"Scegli la licenza con cui {what} può essere pubblicat{'a' if photo else 'o'}."
-        if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
+        if (source_url or not photo) and (not source_url.startswith("https://") or not urlsplit(source_url).netloc):
             errors["source_url"] = f"Indica la pagina https da cui proviene {what}."
         if errors:
             raise RedazioneValidation("Controlla i campi del logo.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
@@ -1691,6 +1695,37 @@ class RedazioneService:
             )
             return {"id": request.id, "summary": request.summary}
 
+    def _image_payload(self, session: Session, payload: dict) -> dict | None:
+        """The photo or logo sent with a new politician or party: image, credit, optional source."""
+
+        image_id = int(payload.get("image_id") or 0)
+        if not image_id:
+            return None
+        if session.get(EditorialImage, image_id) is None:
+            raise RedazioneValidation("Immagine non trovata: caricala di nuovo.")
+        credit = _clean(payload.get("image_credit"))[:300]
+        if not credit:
+            raise RedazioneValidation("Scrivi da dove viene l'immagine (es. «Camera dei deputati», «Wikimedia Commons, CC BY-SA»).")
+        source = _clean(payload.get("image_source_url"))
+        if source and (not source.startswith("https://") or not urlsplit(source).netloc):
+            raise RedazioneValidation("Il link dell'immagine deve iniziare con https://.")
+        return {"image_id": image_id, "credit": credit, "source_url": source}
+
+    def _attach_image(self, session: Session, kind: str, key: str, image: dict | None, *, proposed_by: str, approved_by: str) -> None:
+        if not image:
+            return
+        current = session.scalar(select(EditorialSymbol).where(EditorialSymbol.kind == kind, EditorialSymbol.key == key))
+        if current is None:
+            current = EditorialSymbol(kind=kind, key=key)
+            session.add(current)
+        current.image_id = image["image_id"]
+        current.credit = image["credit"]
+        current.license = image.get("license") or "nel-credito"
+        current.source_url = image.get("source_url") or ""
+        current.proposed_by = proposed_by
+        current.approved_by = approved_by
+        current.approved_at = self.clock()
+
     def propose_party(self, payload: dict, *, member: str) -> dict:
         name = _clean(payload.get("name"))[:300]
         abbreviation = _clean(payload.get("abbreviation"))[:40] or None
@@ -1716,7 +1751,10 @@ class RedazioneService:
                 target_id=0,
                 politician_id=None,
                 summary=f"Nuovo partito: {name}" + (f" ({abbreviation})" if abbreviation else ""),
-                payload={"name": name, "abbreviation": abbreviation, "website": website, "source_url": source_url},
+                payload={
+                    "name": name, "abbreviation": abbreviation, "website": website, "source_url": source_url,
+                    **({"image": image} if (image := self._image_payload(session, payload)) else {}),
+                },
                 created_by=member,
                 created_at=self.clock(),
             )
@@ -1996,7 +2034,7 @@ class RedazioneService:
             "findings": findings,
             "blocked": blocked,
             "own": author == member,
-            "can_approve": author != member and not blocked,
+            "can_approve": author != member and not blocked and self.can_publish(member),
             "can_self_verify": author == member and not blocked and self.can_self_verify(kind, member),
             "can_discard": kind == "news",
             "approvals": [],
@@ -2019,19 +2057,26 @@ class RedazioneService:
     def can_self_verify(self, kind: str, member: str) -> bool:
         return self.is_lead(member) and kind not in self.SELF_VERIFY_EXCLUDED
 
+    def can_publish(self, member: str) -> bool:
+        """With admins named, only they publish; otherwise any member (four-eyes)."""
+
+        return not self.leads or self.is_lead(member)
+
     def publish_own(self, kind: str, item_id: int, *, member: str, note: str | None = None) -> dict:
         """A capo squadra publishes what they just wrote, without a second person."""
 
         if not self.can_self_verify(kind, member):
-            raise RedazioneConflict("Solo un capo squadra può pubblicare direttamente ciò che scrive.")
-        return self.approve(kind, item_id, member=member, note=note or "Verificato da chi l'ha inserito (capo squadra).")
+            raise RedazioneConflict("Solo un admin pubblica direttamente ciò che scrive.")
+        return self.approve(kind, item_id, member=member, note=note or "Pubblicato da un admin.")
 
     def approve(self, kind: str, item_id: int, *, member: str, note: str | None = None, extra: dict | None = None) -> dict:
         item = self._queue_entry(kind, item_id, member)
+        if not self.can_publish(member):
+            raise RedazioneConflict("Pubblica un admin della redazione.")
         self_verified = bool(item["own"])
         if self_verified and not self.can_self_verify(kind, member):
             if kind in self.SELF_VERIFY_EXCLUDED and self.is_lead(member):
-                raise RedazioneConflict("Lo stato di una promessa cambia il punteggio: lo deve approvare un'altra persona anche per i capi squadra.")
+                raise RedazioneConflict("Lo stato di una promessa cambia il punteggio: lo approva una seconda persona, anche se sei admin.")
             raise RedazioneConflict("Chi scrive non è chi verifica: questo contenuto lo deve approvare un'altra persona.")
         if member in item.get("approvals", []):
             raise RedazioneConflict("Hai già approvato questo stato: serve una seconda persona.")
@@ -2044,7 +2089,7 @@ class RedazioneService:
         details: dict[str, Any] = {"note": note, "author": item["author"]}
         if self_verified:
             details["self_verified"] = True
-            details["role"] = "capo squadra"
+            details["role"] = "admin"
         try:
             if kind in PROFILE_MODELS:
                 self.profiles.approve(PROFILE_KINDS[kind], item_id, reviewer=member, note=note)
@@ -2092,7 +2137,7 @@ class RedazioneService:
         ) as error:
             raise RedazioneConflict(str(error)) from error
         if self_verified:
-            summary = f"{summary} Verificato dal capo squadra che l'ha inserito."
+            summary = f"{summary} Pubblicato direttamente da un admin."
         self.log(
             actor=member,
             action="approvazione",
@@ -2109,6 +2154,8 @@ class RedazioneService:
         if not note:
             raise RedazioneValidation("Scrivi cosa va corretto: chi ha scritto lo leggerà.")
         item = self._queue_entry(kind, item_id, member)
+        if not self.can_publish(member):
+            raise RedazioneConflict("Respinge un admin della redazione.")
         try:
             if kind in PROFILE_MODELS:
                 self.profiles.reject(PROFILE_KINDS[kind], item_id, reviewer=member, note=note)
@@ -2258,6 +2305,7 @@ class RedazioneService:
                 session.add(party)
                 session.flush()
                 row.target_id = party.id
+                self._attach_image(session, "party", str(party.id), payload.get("image"), proposed_by=row.created_by, approved_by=member)
                 summary = f"Aggiunto all'elenco: {row.summary.removeprefix('Nuovo partito: ')}"
             elif row.kind == "politico":
                 payload = row.payload
@@ -2309,6 +2357,7 @@ class RedazioneService:
                 session.add(version)
                 session.flush()
                 politician.current_version_id = version.id
+                self._attach_image(session, "politician", str(politician.id), payload.get("image"), proposed_by=row.created_by, approved_by=member)
                 row.target_id = politician.id
                 row.politician_id = politician.id
                 summary = f"Aggiunto all'elenco: {payload['given_name']} {payload['family_name']}"

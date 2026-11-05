@@ -24,21 +24,32 @@ console is not linked from the public site and is `noindex`.
 You need **at least two named people**. One person cannot approve their own
 work, so a single token leaves every draft stuck in **Da verificare**.
 
-### Capi squadra
+### Admin
 
-`VERAPOLITICA_REDAZIONE_LEADS="Nome Cognome;Altro Nome"` names the capi squadra
-(names must match `VERAPOLITICA_REDAZIONE_MEMBERS`; unknown names are ignored).
-A capo squadra:
+`VERAPOLITICA_REDAZIONE_ADMINS="Nome Cognome;Altro Nome"` names the admins
+(names must match `VERAPOLITICA_REDAZIONE_MEMBERS`; unknown names are ignored;
+`VERAPOLITICA_REDAZIONE_LEADS` is the old name and still works).
 
-- sees **Pubblica subito** (ticked) on every form: the politician, the blocks
-  of the scheda, promises, news. Saving publishes at once;
-- can **Verifica e pubblica** their own items still in **Da verificare**;
-- is logged as such: the approval entry carries `self_verified: true` and
-  «Verificato dal capo squadra che l'ha inserito».
+- An admin writes and publishes at once: politicians, scheda blocks, promises,
+  news, parties, photos. The log records `self_verified: true`.
+- Everyone else saves and the item waits in **Da fare** until an admin
+  publishes or rejects it (with a note the author sees on their home).
+- With no admin named, any second member publishes (the old four-eyes rule).
+- The state of a promise moves the public score and still needs a second person.
 
-The state of a promise (the verdict that moves the score) still needs a second
-person, for capi squadra too. On a local demo, **Caporedattore demo** is the capo
-squadra.
+On a local demo, **Caporedattore demo** is the admin.
+
+### Foto e loghi
+
+The photo of a new politician goes in the «Nuovo politico» form, the logo of a
+new party in the «Nuovo partito» form: file, credit (e.g. «Camera dei
+deputati»), optional source link. An existing scheda has «Aggiungi/Cambia la
+foto» in its first block. Nothing is fetched from Camera, Senato or Governo.
+
+### Notizie locali
+
+A news item is national, regional, provincial or about one comune: pick the
+region from the list or search the comune by name.
 
 ### Procedimenti giudiziari e controversie
 

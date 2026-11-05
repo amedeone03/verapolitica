@@ -19,6 +19,7 @@ LICENSES = {
     "cc-by-sa": "CC BY-SA",
     "autorizzato": "Uso autorizzato dal titolare",
     "istituzionale": "Stemma istituzionale (fonte ufficiale)",
+    "nel-credito": "Indicata nel credito",
 }
 
 

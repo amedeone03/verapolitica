@@ -96,7 +96,8 @@ def _create(service: RedazioneService, member: str, payload: dict, call, kind: s
             status_code=error.status_code,
             content={"detail": str(error), "findings": error.findings},
         )
-    if not (payload.get("publish_now") and service.can_self_verify(kind, member)):
+    # An admin publishes what they write; «publish_now: false» keeps a draft.
+    if payload.get("publish_now") is False or not service.can_self_verify(kind, member):
         return result
     try:
         published = service.publish_own(kind, item_id(result), member=member)
@@ -123,6 +124,8 @@ def me(member: Member, settings: Annotated[Settings, Depends(get_api_settings)])
     return {
         "name": member,
         "lead": member in settings.redazione_lead_names,
+        "admin": member in settings.redazione_lead_names,
+        "admins_named": bool(settings.redazione_lead_names),
         "leads": sorted(settings.redazione_lead_names),
         "members": sorted(set(settings.redazione_member_tokens.values())),
         "demo": not settings.is_production,

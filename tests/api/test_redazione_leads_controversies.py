@@ -71,32 +71,31 @@ def test_only_named_members_are_capi_squadra():
     assert demo.redazione_lead_names == {"Caporedattore demo"}
 
 
-def test_a_capo_squadra_verifies_their_own_block_and_the_log_says_so(desk):
+def test_an_admin_publishes_what_they_write_and_the_log_says_so(desk):
     client, politician_id, factory = desk
-    assert client.get("/redazione/api/me", headers=CARLA).json()["lead"] is True
-    assert client.get("/redazione/api/me", headers=ANNA).json()["lead"] is False
+    assert client.get("/redazione/api/me", headers=CARLA).json()["admin"] is True
+    assert client.get("/redazione/api/me", headers=ANNA).json()["admin"] is False
 
     saved = client.post(f"/redazione/api/politici/{politician_id}/blocchi/biography", headers=CARLA, json=_biography(politician_id)).json()
-    queued = _queue_item(client, CARLA, "biography", id=saved["id"])
-    assert queued["own"] and queued["can_self_verify"] and not queued["can_approve"]
-    approved = client.post(f"/redazione/api/coda/biography/{saved['id']}/approva", headers=CARLA, json={})
-    assert approved.status_code == 200, approved.text
-    assert approved.json()["self_verified"] is True
+    assert saved["published"] is True
     assert client.get(f"/politicians/{politician_id}").json()["biography"] is not None
     with factory() as session:
         entry = session.scalars(
             select(EditorialLogEntry).where(EditorialLogEntry.action == "approvazione").order_by(EditorialLogEntry.id.desc())
         ).first()
     assert entry.actor == "Carla Caporedattrice" and entry.details["self_verified"] is True
-    assert "capo squadra" in entry.summary
+    assert "admin" in entry.summary
 
-    # Anyone else still needs a second person.
+    # A redattore writes; only an admin publishes it.
     other = client.post(f"/redazione/api/politici/{politician_id}/blocchi/career_entry", headers=ANNA, json={
         "role": "Deputato", "institution": "Camera dei deputati", "start_date": "2022-10-13", "sources": [SOURCE],
     }).json()
-    assert not _queue_item(client, ANNA, "career_entry", id=other["id"])["can_self_verify"]
-    refused = client.post(f"/redazione/api/coda/career_entry/{other['id']}/approva", headers=ANNA, json={})
-    assert refused.status_code == 409 and "Chi scrive non è chi verifica" in refused.json()["detail"]
+    assert "published" not in other
+    assert not _queue_item(client, BRUNO, "career_entry", id=other["id"])["can_approve"]
+    refused = client.post(f"/redazione/api/coda/career_entry/{other['id']}/approva", headers=BRUNO, json={})
+    assert refused.status_code == 409 and "admin" in refused.json()["detail"]
+    assert _queue_item(client, CARLA, "career_entry", id=other["id"])["can_approve"]
+    assert client.post(f"/redazione/api/coda/career_entry/{other['id']}/approva", headers=CARLA, json={}).status_code == 200
 
 
 def test_a_capo_squadra_publishes_a_new_politician_at_once(desk):
@@ -138,7 +137,7 @@ def test_controversies_are_a_separate_box_from_proceedings(desk):
     })
     assert controversy.status_code == 200, controversy.text
     assert controversy.json()["data"]["category"] == "controversy"
-    assert _queue_item(client, BRUNO, "proceeding", id=controversy.json()["id"])["kind_label"] == "Controversia"
+    assert _queue_item(client, CARLA, "proceeding", id=controversy.json()["id"])["kind_label"] == "Controversia"
 
     # An investigation of the politician cannot hide among controversies, and vice versa.
     wrong = client.post(base, headers=ANNA, json={
@@ -159,7 +158,7 @@ def test_controversies_are_a_separate_box_from_proceedings(desk):
         "sources": [SENATO],
     }).json()
     for item in (controversy.json(), proceeding):
-        assert client.post(f"/redazione/api/coda/proceeding/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
+        assert client.post(f"/redazione/api/coda/proceeding/{item['id']}/approva", headers=CARLA, json={}).status_code == 200
     public = client.get(f"/politicians/{politician_id}").json()["proceedings"]
     assert {item["title"]: item["category"] for item in public} == {
         "Indagine sul figlio": "controversy",
@@ -197,7 +196,7 @@ def test_overview_counts_the_week_and_the_schede_with_a_biography(desk):
     client, politician_id, _ = desk
     before = client.get("/redazione/api/panoramica", headers=CARLA).json()
     assert before["public_schede"] == 1 and before["schede_with_bio"] == 0
-    saved = client.post(f"/redazione/api/politici/{politician_id}/blocchi/biography", headers=CARLA, json={**_biography(politician_id), "publish_now": True}).json()
+    saved = client.post(f"/redazione/api/politici/{politician_id}/blocchi/biography", headers=CARLA, json=_biography(politician_id)).json()
     assert saved["published"] is True
     after = client.get("/redazione/api/panoramica", headers=CARLA).json()
     assert after["schede_with_bio"] == 1
@@ -209,10 +208,43 @@ def test_home_lists_my_rejections_until_i_save_again(desk):
     client, politician_id, _ = desk
     base = f"/redazione/api/politici/{politician_id}/blocchi/biography"
     saved = client.post(base, headers=ANNA, json=_biography(politician_id)).json()
-    assert client.post(f"/redazione/api/coda/biography/{saved['id']}/rifiuta", headers=BRUNO, json={"note": "Manca la fonte del 1970."}).status_code == 200
+    assert client.post(f"/redazione/api/coda/biography/{saved['id']}/rifiuta", headers=CARLA, json={"note": "Manca la fonte del 1970."}).status_code == 200
     rejected = client.get("/redazione/api/panoramica", headers=ANNA).json()["my_rejected"]
     assert [row["note"] for row in rejected] == ["Manca la fonte del 1970."]
     assert rejected[0]["politician_id"] == politician_id
-    assert client.get("/redazione/api/panoramica", headers=BRUNO).json()["my_rejected"] == []
+    assert client.get("/redazione/api/panoramica", headers=CARLA).json()["my_rejected"] == []
     client.post(base, headers=ANNA, json=_biography(politician_id))
     assert client.get("/redazione/api/panoramica", headers=ANNA).json()["my_rejected"] == []
+
+
+JPEG = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\xff\xd8\xff\xe0" + b"\x00" * 64).decode()
+
+
+def test_the_photo_goes_in_with_the_new_politician_and_the_logo_with_the_party(desk):
+    client, _, _ = desk
+    image = client.post("/redazione/api/immagini", headers=CARLA, json={"data": JPEG}).json()
+    missing_credit = client.post("/redazione/api/politici", headers=CARLA, json={
+        "given_name": "Lucia", "family_name": "Verdi", "source_url": "https://www.camera.it/leg19/verdi", "image_id": image["id"],
+    })
+    assert missing_credit.status_code == 422
+    created = client.post("/redazione/api/politici", headers=CARLA, json={
+        "given_name": "Lucia", "family_name": "Verdi", "source_url": "https://www.camera.it/leg19/verdi",
+        "image_id": image["id"], "image_credit": "Camera dei deputati",
+    }).json()
+    assert created["published"] is True
+    person = next(row for row in client.get("/politicians").json()["items"] if row["family_name"] == "Verdi")
+    photo = client.get("/portraits").json()[str(person["id"])]
+    assert photo["url"] == f"/media/{image['id']}" and photo["credit"] == "Camera dei deputati"
+
+    logo = client.post("/redazione/api/immagini", headers=CARLA, json={"data": JPEG.replace("AAAA", "AAAB", 1)}).json()
+    party = client.post("/redazione/api/partiti", headers=CARLA, json={
+        "name": "Partito di Prova", "source_url": "https://example.org/statuto", "image_id": logo["id"], "image_credit": "Sito del partito",
+    }).json()
+    assert party["published"] is True
+    listed = next(item for item in client.get("/political-parties?all=true").json()["items"] if item["name"] == "Partito di Prova")
+    assert listed["logo_url"] == f"/media/{logo['id']}"
+
+
+def test_admins_setting_and_old_name():
+    assert Settings(redazione_members=MEMBERS, redazione_admins="Carla Caporedattrice").redazione_lead_names == {"Carla Caporedattrice"}
+    assert Settings(redazione_members=MEMBERS, redazione_leads="Anna Redattrice").redazione_lead_names == {"Anna Redattrice"}
