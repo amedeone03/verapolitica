@@ -27,7 +27,7 @@ import binascii
 import hashlib
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -2338,7 +2338,30 @@ class RedazioneService:
             "blocked": sum(1 for item in queue if item["blocked"]),
             "by_kind": [{"kind": kind, "label": KIND_LABELS[kind], "count": count} for kind, count in sorted(counts.items())],
             "recent": self.log_entries(limit=8)["items"],
+            **self._week_and_coverage(member),
         }
+
+    def _week_and_coverage(self, member: str) -> dict:
+        """What the desk published in the last 7 days, and how many public schede have a «Chi è»."""
+
+        since = self.clock() - timedelta(days=7)
+        with self.session_factory() as session:
+            approved = select(func.count()).select_from(EditorialLogEntry).where(
+                EditorialLogEntry.action == "approvazione", EditorialLogEntry.created_at >= since
+            )
+            public_ids = select(Politician.id).join(
+                PoliticianVersion, PoliticianVersion.id == Politician.current_version_id
+            ).where(PoliticianVersion.published_at.is_not(None))
+            with_bio = select(func.count(func.distinct(PoliticianBiography.politician_id))).where(
+                PoliticianBiography.status == ProfileContentStatus.PUBLISHED,
+                PoliticianBiography.politician_id.in_(public_ids),
+            )
+            return {
+                "published_week": session.scalar(approved) or 0,
+                "my_published_week": session.scalar(approved.where(EditorialLogEntry.actor == member)) or 0,
+                "public_schede": session.scalar(select(func.count()).select_from(public_ids.subquery())) or 0,
+                "schede_with_bio": session.scalar(with_bio) or 0,
+            }
 
 
 def _place(value: Any) -> str | None:

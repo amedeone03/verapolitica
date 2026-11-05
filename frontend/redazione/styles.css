@@ -384,3 +384,75 @@ body { overflow-wrap: break-word; }
   .quick-action, .tile-button, .queue-row summary, .queue-chevron { transition: none; }
   .quick-action:active, .tile-button:active, .queue-row summary:active { transform: none; }
 }
+
+/* ------------------------------------------------------------------ shell v2
+   Same navy, sage and Inter as VeraPolitica. Desktop: a left sidebar grouped by
+   job (Lavoro, Contenuti, Riferimento), like the side menus of Expensify and
+   Trello; mobile: one scrollable row instead of three wrapped lines. */
+.nav-icon { flex: none; opacity: .85; }
+.nav-label { display: none; }
+@media (max-width: 1099px) {
+  .console-nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter); }
+  .console-nav::-webkit-scrollbar { display: none; }
+  .console-nav a { flex: none; white-space: nowrap; }
+}
+@media (min-width: 1100px) {
+  .console-bar:has(#console-nav:not([hidden])) { position: fixed; inset: 0 auto 0 0; width: 248px; overflow-y: auto; z-index: 20; }
+  .console-bar:has(#console-nav:not([hidden])) .console-bar-inner { flex-direction: column; flex-wrap: nowrap; align-items: stretch; height: 100%; min-height: 0; padding: 22px 14px 18px; gap: 20px; }
+  .console-bar:has(#console-nav:not([hidden])) .console-brand { padding: 0 8px; }
+  .console-bar:has(#console-nav:not([hidden])) .console-nav { flex-direction: column; flex-wrap: nowrap; gap: 2px; flex: 1 1 auto; }
+  .console-bar:has(#console-nav:not([hidden])) .nav-label { display: block; margin: 14px 10px 4px; color: #93A4B4; font-size: .6875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .console-bar:has(#console-nav:not([hidden])) .nav-label:first-child { margin-top: 0; }
+  .console-bar:has(#console-nav:not([hidden])) .console-nav a { min-height: 40px; padding: 0 10px; border-radius: var(--radius-md); box-shadow: none; transition: background .12s ease; }
+  .console-bar:has(#console-nav:not([hidden])) .console-nav a:hover { background: rgba(255, 255, 255, .06); }
+  .console-bar:has(#console-nav:not([hidden])) .console-nav a[aria-current="page"] { background: rgba(255, 255, 255, .12); box-shadow: inset 3px 0 0 var(--color-accent); }
+  .console-bar:has(#console-nav:not([hidden])) .console-nav .count { margin-left: auto; }
+  .console-bar:has(#console-nav:not([hidden])) .console-user { flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 10px 0; border-top: 1px solid rgba(255, 255, 255, .14); }
+  body.console:has(#console-nav:not([hidden])) main { margin-left: 248px; max-width: 1240px; padding-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .console-nav a { transition: none; } }
+
+/* ------------------------------------------------------------------ dashboard v2 */
+.dash-layout { display: grid; gap: 24px; }
+@media (min-width: 1280px) { .dash-layout { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; } .dash-side { position: sticky; top: 24px; } }
+.dash-side { display: grid; gap: 16px; }
+.side-card { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; }
+.side-card h2 { font-size: .875rem; margin: 0 0 10px; letter-spacing: .02em; }
+.week-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.week-stats strong { display: block; font: 600 1.4rem var(--font-heading); color: var(--color-primary); }
+.week-stats span { font-size: .75rem; color: var(--color-text-muted); }
+.meter { height: 8px; margin: 8px 0 6px; border-radius: 999px; background: var(--color-background); border: 1px solid var(--color-border); overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--color-accent-strong); border-radius: inherit; }
+.activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.activity li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: .8125rem; line-height: 1.35; }
+.activity .who { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-accent-light); color: var(--color-accent-strong); font-size: .6875rem; font-weight: 700; }
+.activity time { display: block; color: var(--color-text-muted); font-size: .75rem; }
+.activity .what { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* ------------------------------------------------------------------ scheda v2 */
+.scheda-progress { position: sticky; top: 0; z-index: 5; display: grid; gap: 10px; margin: 0 0 20px; padding: 12px 16px; background: rgba(248, 250, 249, .96); backdrop-filter: blur(6px); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.scheda-progress-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; font-size: .875rem; }
+.scheda-steps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.scheda-steps::-webkit-scrollbar { display: none; }
+.scheda-step { display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; color: var(--color-text); font-size: .8125rem; font-weight: 500; text-decoration: none; transition: transform .12s ease, border-color .12s ease; }
+.scheda-step:hover { border-color: var(--color-control-border); }
+.scheda-step:active { transform: scale(.97); }
+.scheda-step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); }
+.scheda-step.is-published .dot { background: var(--color-accent-strong); }
+.scheda-step.is-pending .dot { background: var(--color-warning); }
+.scheda-step.is-empty { color: var(--color-text-muted); }
+details.block-help { margin: 0 0 12px; }
+details.block-help > summary { cursor: pointer; color: var(--color-secondary); font-size: .8125rem; font-weight: 600; list-style: none; }
+details.block-help > summary::-webkit-details-marker { display: none; }
+details.block-help > summary::before { content: "ⓘ "; }
+details.block-help[open] > summary { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .scheda-step { transition: none; } .scheda-step:active { transform: none; } }
+/* Jumps from the progress strip land below it, and the side panel stays clear of it. */
+.layout-side > div > [id^="blocco-"] { scroll-margin-top: 120px; }
+@media (min-width: 1100px) { .scheda-progress ~ .layout-side > aside { top: 112px; } }
+@media (max-width: 640px) {
+  .dash-head .quick-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter); }
+  .dash-head .quick-actions::-webkit-scrollbar { display: none; }
+  .quick-action { flex: none; }
+  .dash-head p:not(.eyebrow) { display: none; }
+}

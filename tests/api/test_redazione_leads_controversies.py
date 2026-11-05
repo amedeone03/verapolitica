@@ -191,3 +191,15 @@ def test_old_rows_are_sorted_into_the_right_box(tmp_path):
         rows = {row.title: row.category for row in session.scalars(select(PoliticianProceeding))}
     engine.dispose()
     assert rows == {"Busto": "controversy", "Processo": "proceeding"}
+
+
+def test_overview_counts_the_week_and_the_schede_with_a_biography(desk):
+    client, politician_id, _ = desk
+    before = client.get("/redazione/api/panoramica", headers=CARLA).json()
+    assert before["public_schede"] == 1 and before["schede_with_bio"] == 0
+    saved = client.post(f"/redazione/api/politici/{politician_id}/blocchi/biography", headers=CARLA, json={**_biography(politician_id), "publish_now": True}).json()
+    assert saved["published"] is True
+    after = client.get("/redazione/api/panoramica", headers=CARLA).json()
+    assert after["schede_with_bio"] == 1
+    assert after["published_week"] == before["published_week"] + 1
+    assert after["my_published_week"] == before["my_published_week"] + 1

@@ -331,8 +331,32 @@ function ago(value) {
   return days === 1 ? "ieri" : `${days} giorni fa`;
 }
 
+function initials(name) {
+  const words = String(name || "").split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] || "") + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase() || "·";
+}
+
+function dashSide(overview) {
+  if (!overview) return "";
+  const total = overview.public_schede || 0;
+  const done = overview.schede_with_bio || 0;
+  const share = total ? Math.round((done / total) * 100) : 0;
+  return `<aside class="dash-side" aria-label="Riepilogo">
+    <section class="side-card"><h2>Ultimi 7 giorni</h2>
+      <div class="week-stats"><div><strong>${overview.published_week || 0}</strong><span>pubblicati dalla redazione</span></div><div><strong>${overview.my_published_week || 0}</strong><span>approvati da te</span></div></div>
+    </section>
+    <section class="side-card"><h2>Schede pubbliche con «Chi è»</h2>
+      <div class="meter" role="img" aria-label="${done} su ${total}"><span style="width:${share}%"></span></div>
+      <p class="small muted">${done} su ${total} schede pubblicate. <a href="#/politici">Apri l'elenco</a></p>
+    </section>
+    ${(overview.recent || []).length ? `<section class="side-card"><h2>Attività recente</h2>
+      <ul class="activity">${overview.recent.slice(0, 6).map((entry) => `<li><span class="who" aria-hidden="true">${esc(initials(entry.actor))}</span><div><span class="what"><strong>${esc(entry.actor)}</strong> · ${esc(entry.summary)}</span><time datetime="${esc(entry.at)}">${ago(entry.at)}</time></div></li>`).join("")}</ul>
+      <p class="small" style="margin:10px 0 0"><a href="#/registro">Tutto il registro</a></p></section>` : ""}
+  </aside>`;
+}
+
 async function showQueue() {
-  const items = await api("/coda");
+  const [items, overview] = await Promise.all([api("/coda"), api("/panoramica").catch(() => null)]);
   const groups = Object.fromEntries(QUEUE_GROUPS.map(([key]) => [key, []]));
   for (const item of items) groups[queueGroup(item)].push(item);
   const kinds = [...new Map(items.map((item) => [item.kind_label, item.kind_label])).keys()];
@@ -358,12 +382,12 @@ async function showQueue() {
       </div></div>
     <div class="summary-strip dash-tiles" role="group" aria-label="Filtra la coda">${tiles.map(([key, count, label]) => `<button type="button" class="tile tile-button${key === "blocked" && count ? " is-alert" : ""}" data-filter="${key}" aria-pressed="${queueFilter === key}"><strong>${count}</strong><span>${esc(label)}</span></button>`).join("")}</div>
     ${kinds.length > 1 ? `<div class="filters" role="group" aria-label="Tipo di contenuto"><button type="button" data-filter="all" aria-pressed="${queueFilter === "all"}">Tutti</button>${kinds.map((label) => `<button type="button" data-filter="${esc(label)}" aria-pressed="${queueFilter === label}">${esc(label)}</button>`).join("")}</div>` : ""}
-    <div id="queue-list">${items.length ? QUEUE_GROUPS.map(([key, title, hint]) => {
+    <div class="dash-layout"><div id="queue-list">${items.length ? QUEUE_GROUPS.map(([key, title, hint]) => {
       const shown = groups[key].filter(matches);
       if (!shown.length) return "";
       return `<section class="queue-group" data-group="${key}"><div class="queue-group-head"><h2>${esc(title)} <span class="count">${shown.length}</span></h2><p class="small muted">${esc(hint)}</p></div>
         <div class="row-list">${shown.map(queueCard).join("")}</div></section>`;
-    }).join("") || `<div class="empty">Niente in attesa con questo filtro.</div>` : `<div class="empty empty-done"><strong>Niente in attesa.</strong><span>Quando qualcuno della redazione salva un contenuto, compare qui.</span></div>`}</div>`;
+    }).join("") || `<div class="empty">Niente in attesa con questo filtro.</div>` : `<div class="empty empty-done"><strong>Niente in attesa.</strong><span>Quando qualcuno della redazione salva un contenuto, compare qui.</span></div>`}</div>${dashSide(overview)}</div>`;
   view.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
     queueFilter = queueFilter === button.dataset.filter ? "all" : button.dataset.filter;
     showQueue();
@@ -703,7 +727,28 @@ function guide(key) {
 }
 function blockHead(key, extra = "") {
   const g = BLOCK_GUIDE[key];
-  return `<div class="card-head"><h2><span class="block-number">${g.n}</span>${esc(g.title)}</h2>${extra}</div>${guide(key)}`;
+  // The writing rules stay one click away: the block itself comes first.
+  return `<div class="card-head"><h2><span class="block-number">${g.n}</span>${esc(g.title)}</h2>${extra}</div><details class="block-help"><summary>Come si scrive</summary>${guide(key)}</details>`;
+}
+
+// Progress strip of the scheda: one chip per block, coloured by what the citizen sees.
+function schedaProgress(s) {
+  const steps = ["biography", "career_entry", "position", "promise", "proceeding", "controversy", "news"].map((kind) => {
+    let items = [];
+    if (kind === "promise") items = (s.promises || []).map((p) => ({ status: p.published ? "published" : "pending" }));
+    else if (kind === "news") items = (s.news || []).map((n) => ({ status: n.status === "published" ? "published" : "pending" }));
+    else items = blockItems(s, kind) || [];
+    const published = items.filter((item) => item.status === "published").length;
+    const pending = items.filter((item) => item.status === "pending").length;
+    const state = published ? "is-published" : pending ? "is-pending" : "is-empty";
+    return { kind, state, published, pending, title: BLOCK_GUIDE[kind].title };
+  });
+  const core = steps.filter((step) => ["biography", "career_entry", "position"].includes(step.kind));
+  const ready = core.filter((step) => step.state === "is-published").length;
+  return `<nav class="scheda-progress" aria-label="Blocchi della scheda">
+    <div class="scheda-progress-head"><strong>${ready} di ${core.length} blocchi essenziali pubblicati</strong><span class="small muted">Verde pubblicato · giallo in attesa · grigio vuoto</span></div>
+    <div class="scheda-steps">${steps.map((step) => `<a class="scheda-step ${step.state}" href="#blocco-${step.kind}" data-jump="blocco-${step.kind}"><span class="dot" aria-hidden="true"></span>${esc(step.title)}${step.published || step.pending ? ` <span class="muted">${step.published + step.pending}</span>` : ""}</a>`).join("")}</div>
+  </nav>`;
 }
 
 async function showScheda(politicianId, focus) {
@@ -712,9 +757,10 @@ async function showScheda(politicianId, focus) {
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/politici">Politici</a> · Modello Politico</p><h1>${esc(s.name)}</h1></div>
       <div class="actions">${s.public_url ? `<a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a>` : `<span class="chip chip-muted">Profilo non ancora pubblico</span>`}
       <a class="button button-secondary" href="#/registro" data-log-politician="${s.id}">Registro di questa scheda</a></div></div>
+    ${schedaProgress(s)}
     <div class="layout-side"><div>
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Scheda rapida</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Nome, data e luogo di nascita, partito, incarico attuale e da quando, «Aggiornato al».</div><div><b>Lunghezza</b>Riquadro</div><div class="avoid"><b>Da evitare</b>Titoli onorifici o aggettivi.</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Nome, data e luogo di nascita, partito, incarico attuale e da quando, «Aggiornato al».</div><div><b>Lunghezza</b>Riquadro</div><div class="avoid"><b>Da evitare</b>Titoli onorifici o aggettivi.</div></div></details>
         <div class="preview" style="max-height:none"><dl><dt>Nascita</dt><dd>${q.birth_date ? `${longDate(q.birth_date)}${q.birth_place ? `, ${esc(q.birth_place)}` : ""}` : "Non indicata"}</dd><dt>Incarico attuale</dt><dd>${q.office ? `${esc(q.office)}${q.office_since ? ` dal ${longDate(q.office_since)}` : ""}` : "Non indicato"}</dd><dt>Partito</dt><dd>${esc(q.party || "Non indicato")}</dd></dl></div>
         <p class="small muted">Aggiornato al ${q.updated_at ? longDate(q.updated_at) : "—"} · Redattore ${esc(q.writers.join(", ") || "—")} · Verificatore ${esc(q.verifiers.join(", ") || "—")}</p>
         <p class="small muted">Questi dati arrivano dall'importazione ufficiale (Camera, Senato, Governo): non si scrivono a mano.</p>
@@ -875,6 +921,12 @@ function newsBlock(s) {
 
 function bindScheda(s) {
   const reload = (focus) => showScheda(s.id, focus);
+  // In-page jumps: the console routes on the hash, so scroll instead of navigating.
+  view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const target = document.getElementById(link.dataset.jump);
+    target?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }));
   view.querySelectorAll("form.block-form").forEach((form) => form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
