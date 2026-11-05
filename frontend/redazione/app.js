@@ -78,7 +78,16 @@ async function api(path, { method = "GET", body } = {}) {
   return data;
 }
 
+function foldEmptyBlocks(findings = []) {
+  // «Blocco vuoto» repeated for every block reads like noise: one line says how many.
+  const empty = findings.filter((f) => f.code === "blocco_vuoto");
+  if (empty.length < 2) return findings;
+  const level = empty.some((f) => f.level === "error") ? "error" : "warning";
+  return [{ level, code: "blocchi_vuoti", message: `${empty.length} blocchi ancora vuoti.` }, ...findings.filter((f) => f.code !== "blocco_vuoto")];
+}
+
 function findingsList(findings) {
+  findings = foldEmptyBlocks(findings);
   if (!findings?.length) return `<ul class="findings"><li class="ok">Nessun problema rilevato dai controlli automatici.</li></ul>`;
   return `<ul class="findings">${findings.map((f) => `<li class="${f.level === "error" ? "error" : "warning"}">${esc(f.message)}</li>`).join("")}</ul>`;
 }
@@ -192,16 +201,67 @@ function updateCounter(field) {
 }
 const counted = (min, max) => `data-count="${min}-${max}"`;
 
-// Capi squadra verify their own work: the «Pubblica subito» switch, ticked by default.
-const isLead = () => Boolean(state.me?.lead);
-function leadPublishToggle() {
-  if (!isLead()) return "";
-  return `<label class="check lead-publish"><input type="checkbox" name="publish_now" checked />
-    <span><strong>Pubblica subito</strong> · l'ho verificato io come capo squadra. Nel registro resta scritto.</span></label>`;
+// Admins publish what they save. Everyone else saves a draft for an admin.
+const isLead = () => Boolean(state.me?.admin ?? state.me?.lead);
+const leadPublishToggle = () => "";
+const publishNow = () => undefined;
+const saveLabel = (draft = "Salva") => (isLead() ? "Pubblica" : draft);
+// Photo (politician) or logo (party) inside the creation form: file, credit, optional link.
+function imageFields(prefix, label) {
+  return `<fieldset class="image-fields"><legend>${esc(label)} <span class="hint">facoltativa</span></legend>
+    <div class="image-row"><span class="image-preview" data-image-preview="${prefix}" aria-hidden="true"></span>
+      <div class="grid-2" style="flex:1">
+        <div class="field"><label for="${prefix}-img">File</label><input id="${prefix}-img" type="file" accept="image/png,image/jpeg,image/webp" data-image-file="${prefix}" /></div>
+        <div class="field"><label for="${prefix}-credit">Credito <span class="hint">es. «Camera dei deputati»</span></label><input id="${prefix}-credit" name="image_credit" type="text" maxlength="300" /></div>
+        <div class="field"><label for="${prefix}-src">Link della fonte <span class="hint">facoltativo</span></label><input id="${prefix}-src" name="image_source_url" type="url" placeholder="https://" /></div>
+      </div></div>
+  </fieldset>`;
 }
-const publishNow = (form) => Boolean(form.elements?.publish_now?.checked);
+
+function readImage(file, { photo = true } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      if (photo) {
+        const side = Math.min(img.width, img.height);
+        const sy = Math.max(0, Math.min(img.height - side, (img.height - side) * 0.25));
+        ctx.drawImage(img, (img.width - side) / 2, sy, side, side, 0, 0, 256, 256);
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
+      } else {
+        const k = Math.min(232 / img.width, 232 / img.height);
+        ctx.drawImage(img, (256 - img.width * k) / 2, (256 - img.height * k) / 2, img.width * k, img.height * k);
+        resolve(canvas.toDataURL("image/png"));
+      }
+    };
+    img.onerror = () => reject(new Error("Immagine non leggibile."));
+    reader.onload = () => { img.src = reader.result; };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadImageFields(form, prefix, alt, { photo = true } = {}) {
+  const file = form.querySelector(`[data-image-file="${prefix}"]`)?.files?.[0];
+  if (!file) return { image_credit: undefined, image_source_url: undefined };
+  const data = await readImage(file, { photo });
+  const image = await api("/immagini", { method: "POST", body: { data, alt } });
+  return { image_id: image.id };
+}
+
+function bindImagePreviews(root) {
+  root.querySelectorAll("[data-image-file]").forEach((input) => input.addEventListener("change", async () => {
+    const box = root.querySelector(`[data-image-preview="${input.dataset.imageFile}"]`);
+    if (!box) return;
+    const file = input.files?.[0];
+    box.style.backgroundImage = file ? `url("${await readImage(file, { photo: input.dataset.imageFile !== "party" })}")` : "";
+  }));
+}
+
 function savedToast(result, waiting) {
-  if (result?.published) return toast(result.summary || "Pubblicato.");
+  if (result?.published) return toast("Pubblicato.");
   if (result?.publish_error) return toast(`Salvato, ma non ancora pubblicabile: ${result.publish_error}`, true);
   return toast(waiting);
 }
@@ -359,7 +419,7 @@ function homeSection(key, title, hint, items, { emptyText = "" } = {}) {
 function rejectedList(rows) {
   if (!rows.length) return "";
   return `<section class="home-section" data-home="rejected">
-    <div class="home-section-head"><h2>Respinti da correggere <span class="count">${rows.length}</span></h2><p class="small muted">Leggi la nota, correggi e salva di nuovo.</p></div>
+    <div class="home-section-head"><h2>Respinti <span class="count">${rows.length}</span></h2></div>
     <ul class="row-list rejected-list">${rows.map((row) => `<li>
       <span class="queue-dot is-red" aria-hidden="true"></span>
       <div><strong>${esc(String(row.summary || "").split(" Motivo:")[0].replace(/^Respinto:\s*/, ""))}</strong>${row.note ? `<p class="small">«${esc(row.note)}» — ${esc(row.by)}</p>` : `<p class="small muted">${esc(row.by)}</p>`}</div>
@@ -381,37 +441,35 @@ async function showQueue() {
   const withBio = overview?.schede_with_bio || 0;
   view.innerHTML = `<div class="home">
     <header class="home-head">
-      <p class="eyebrow">${lead ? `<span class="role-chip">Capo squadra</span>` : "Redazione"}</p>
-      <h1>${hello ? `Ciao ${esc(hello)}` : "Ciao"}</h1>
-      <p class="home-sub">${todo ? `Hai <strong>${todo}</strong> ${todo === 1 ? "cosa" : "cose"} da fare.` : "Niente da fare per te adesso."}</p>
+      <h1>Da fare</h1>
+      <p class="home-sub">${todo ? `${todo} ${todo === 1 ? "elemento" : "elementi"}` : "Niente in sospeso."}${lead ? " · admin" : ""}</p>
     </header>
 
     <form class="home-search" role="search" id="home-search">
       <label class="visually-hidden" for="home-q">Cerca un politico</label>
       <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="home-q" type="search" placeholder="Cerca un politico…" autocomplete="off" />
+      <input id="home-q" type="search" placeholder="Cerca un politico" autocomplete="off" />
       <ul class="home-results" id="home-results" hidden></ul>
     </form>
 
-    <section class="home-create" aria-label="Crea">
-      <a class="create-card" href="#/notizie/nuova"><strong>Nuova notizia</strong><span>Modello in 9 blocchi, fonti dei due schieramenti</span></a>
-      <a class="create-card" href="#/politici" data-create="politico"><strong>Nuovo politico</strong><span>Nome, fonte ufficiale, incarico</span></a>
-      <a class="create-card" href="#/simboli/politician"><strong>Foto di un politico</strong><span>Con autore, licenza e pagina di provenienza</span></a>
-    </section>
+    <nav class="home-create" aria-label="Crea">
+      <a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a>
+      <a class="button button-secondary" href="#/politici" data-create="politico">Nuovo politico</a>
+      <a class="button button-secondary" href="#/simboli/party" data-create="partito">Nuovo partito</a>
+    </nav>
 
     <div class="home-todo">
       ${rejectedList(rejected)}
-      ${homeSection("fix", "Da correggere", "Tuoi contenuti con errori: correggili prima della verifica.", toFix)}
-      ${homeSection("verify", "Da verificare", "Scritti da altri: controlla le fonti e decidi.", groups.verify, { emptyText: "Niente da verificare per te." })}
-      ${lead ? homeSection("self", "Tuoi, da pubblicare", "Sei capo squadra: verificali e pubblicali tu.", groups.self) : ""}
-      ${homeSection("mine", "Tuoi, in attesa", "Li verifica un'altra persona della redazione.", groups.mine)}
-      ${homeSection("other", "Altri in attesa", "Hai già dato la tua approvazione.", groups.other)}
+      ${homeSection("fix", "Da correggere", "", toFix)}
+      ${homeSection("verify", "Da pubblicare", "", groups.verify, { emptyText: lead ? "Niente da pubblicare." : "" })}
+      ${lead ? homeSection("self", "Tuoi, da pubblicare", "", groups.self) : ""}
+      ${homeSection("mine", "Inviati, in attesa", "", groups.mine)}
+      ${homeSection("other", "Altri in attesa", "", groups.other)}
     </div>
 
-    ${overview ? `<footer class="home-stats" aria-label="Numeri della redazione">
+    ${overview ? `<footer class="home-stats" aria-label="Numeri">
       <span><strong>${overview.published_week || 0}</strong> pubblicati in 7 giorni</span>
-      <span><strong>${overview.my_published_week || 0}</strong> approvati da te</span>
-      <span><strong>${withBio}/${total}</strong> schede con «Chi è» <span class="meter meter-inline" aria-hidden="true"><span style="width:${total ? Math.round((withBio / total) * 100) : 0}%"></span></span></span>
+      <span><strong>${withBio}/${total}</strong> schede con «Chi è»</span>
       <a href="#/registro">Registro</a>
     </footer>` : ""}
   </div>`;
@@ -420,8 +478,8 @@ async function showQueue() {
     homeOpen = homeOpen === button.dataset.homeToggle ? "" : button.dataset.homeToggle;
     showQueue();
   }));
-  view.querySelectorAll('[data-create="politico"]').forEach((link) => link.addEventListener("click", () => {
-    try { sessionStorage.setItem("vp-open-new-politician", "1"); } catch { /* storage off */ }
+  view.querySelectorAll("[data-create]").forEach((link) => link.addEventListener("click", () => {
+    try { sessionStorage.setItem(`vp-open-new-${link.dataset.create}`, "1"); } catch { /* storage off */ }
   }));
   bindHomeSearch();
   bindQueueActions(view, showQueue);
@@ -458,7 +516,7 @@ function bindHomeSearch() {
   input.addEventListener("keydown", (event) => { if (event.key === "Escape") { input.value = ""; list.hidden = true; } });
   list.addEventListener("click", (event) => {
     if (event.target instanceof Element && event.target.closest('[data-create="politico"]')) {
-      try { sessionStorage.setItem("vp-open-new-politician", "1"); } catch { /* storage off */ }
+      try { sessionStorage.setItem("vp-open-new-politico", "1"); } catch { /* storage off */ }
     }
   });
 }
@@ -469,21 +527,18 @@ function queueCard(item) {
   const needsClassification = item.kind === "promise" && !item.preview?.classification;
   const group = queueGroup(item);
   const self = item.can_self_verify;
-  const stateLabel = { verify: "Da verificare", self: "Tuo · verificalo tu", mine: "In attesa di un'altra persona", blocked: "Bloccato", other: "In attesa" }[group];
+  const stateLabel = { verify: "Da pubblicare", self: "Tuo, da pubblicare", mine: "In attesa", blocked: "Da correggere", other: "In attesa" }[group];
   const decision = item.can_approve || self ? `
       <form class="decision" data-kind="${esc(item.kind)}" data-id="${item.id}">
         ${needsClassification ? classificationFields("approve", {}) : ""}
-        <ul class="checklist">${CHECKLIST.map((text, index) => `<li><label class="check"><input type="checkbox" data-check="${index}" />${esc(text)}</label></li>`).join("")}</ul>
-        <div class="field" style="margin-top:12px"><label for="note-${item.kind}-${item.id}">${self ? "Nota per il registro" : "Nota per chi ha scritto"}</label><textarea id="note-${item.kind}-${item.id}" name="note" rows="2" placeholder="${self ? "Facoltativa: come l'hai verificato." : "Obbligatoria se respingi: cosa va corretto."}"></textarea></div>
+        <div class="field"><label for="note-${item.kind}-${item.id}">Nota</label><textarea id="note-${item.kind}-${item.id}" name="note" rows="2" placeholder="Serve solo se respingi: cosa va corretto."></textarea></div>
         <div class="actions">
-          <button type="submit" class="button button-approve" data-action="approva" disabled>${self ? "Verifica e pubblica" : "Approva e pubblica"}</button>
-          ${self ? "" : `<button type="button" class="button button-danger" data-action="rifiuta">Respingi</button>`}
-          <span class="small muted" data-checklist-hint>Spunta la checklist per ${self ? "pubblicare" : "approvare"}.</span>
+          <button type="submit" class="button button-approve" data-action="approva">Pubblica</button>
+          ${self ? "" : `<button type="button" class="button button-secondary" data-action="rifiuta">Respingi</button>`}
         </div>
-        ${self ? `<p class="small muted">Sei capo squadra: lo pubblichi senza una seconda persona. Nel registro resta scritto che l'hai verificato tu.</p>` : ""}
-      </form>` : group === "mine" ? `<p class="own-note">Scritto da te: lo verifica un'altra persona della redazione.</p>`
-      : group === "blocked" ? `<p class="own-note">Bloccato: va corretto da chi scrive prima della verifica.</p>`
-      : `<p class="own-note">Hai già dato la tua approvazione: serve un'altra persona.</p>`;
+      </form>` : group === "mine" ? `<p class="own-note">In attesa di un admin.</p>`
+      : group === "blocked" ? `<p class="own-note">Va corretto da chi l'ha scritto.</p>`
+      : `<p class="own-note">In attesa di un admin.</p>`;
   return `<details class="queue-row is-${group}" data-kind="${esc(item.kind)}" data-id="${item.id}">
     <summary>
       <span class="queue-dot" aria-hidden="true"></span>
@@ -537,13 +592,7 @@ function newsPreview(blocks = {}) {
 function bindQueueActions(root, reload) {
   root.querySelectorAll("form.decision").forEach((form) => {
     const approve = form.querySelector('[data-action="approva"]');
-    const hint = form.querySelector("[data-checklist-hint]");
-    const sync = () => {
-      const all = [...form.querySelectorAll("[data-check]")].every((box) => box.checked);
-      approve.disabled = !all;
-      hint.hidden = all;
-    };
-    form.addEventListener("change", sync);
+    const sync = () => { approve.disabled = false; };
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       approve.disabled = true;
@@ -604,8 +653,8 @@ function identityStatusLabel(status) {
 async function showIdentities() {
   const payload = await api("/identita?status=pending&limit=100");
   const items = payload.items || [];
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Coda quotidiana</p><h1>Identità da risolvere</h1>
-    <p>governo.it e l'elenco DAIT dei sindaci spesso non hanno la data di nascita. Il bootstrap automatico non crea quelle persone. Qui una persona della redazione collega il nome all'archivio, crea una nuova identità o lascia il caso in attesa. Il nome di chi decide finisce nel registro.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Identità da risolvere</h1>
+    <p>Nomi arrivati senza data di nascita: collegali all'archivio o crea una nuova persona.</p></div></div>
     <div class="summary-strip">
       <div class="tile"><strong>${payload.total || 0}</strong><span>casi in attesa</span></div>
     </div>
@@ -708,8 +757,7 @@ async function showPoliticians(query = "") {
     api("/coda"),
   ]);
   const pending = queue.filter((item) => item.kind === "change" && item.preview?.kind === "politico");
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Politico</p><h1>Politici</h1>
-    <p>La scheda di una persona con un ruolo pubblico. Si scrive solo da fonti pubbliche: il politico non scrive mai la propria scheda.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Politici</h1></div></div>
     ${newPoliticianForm(pending)}
     <form id="politician-search" class="card" role="search" style="margin-bottom:16px"><label for="pq">Cerca per nome o cognome</label>
       <div class="actions" style="margin-top:4px"><input id="pq" type="search" value="${esc(query)}" style="flex:1 1 260px" /><button class="button button-primary" type="submit">Cerca</button></div></form>
@@ -720,12 +768,15 @@ async function showPoliticians(query = "") {
     event.preventDefault();
     showPoliticians(view.querySelector("#pq").value);
   });
+  bindImagePreviews(view);
   view.querySelector("#politician-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     try {
-      const result = await api("/politici", { method: "POST", body: { ...Object.fromEntries(new FormData(form)), publish_now: publishNow(form) } });
-      savedToast(result, "Politico proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      const body = Object.fromEntries(new FormData(form));
+      Object.assign(body, await uploadImageFields(form, "pol", `Foto: ${body.given_name} ${body.family_name}`));
+      const result = await api("/politici", { method: "POST", body });
+      savedToast(result, "Inviato all'admin.");
       showPoliticians(query);
       refreshCount();
     } catch (error) {
@@ -757,7 +808,7 @@ const GOVERNMENT_OFFICES = [
 
 function newPoliticianForm(pending) {
   let open = false;
-  try { open = sessionStorage.getItem("vp-open-new-politician") === "1"; sessionStorage.removeItem("vp-open-new-politician"); } catch { /* storage off */ }
+  try { open = sessionStorage.getItem("vp-open-new-politico") === "1"; sessionStorage.removeItem("vp-open-new-politico"); } catch { /* storage off */ }
   return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
     <form id="politician-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
@@ -768,8 +819,8 @@ function newPoliticianForm(pending) {
         <div class="field"><label for="pol-office">Incarico di Governo</label><select id="pol-office" name="office">${GOVERNMENT_OFFICES.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}</select></div>
         <div class="field"><label for="pol-start">Inizio incarico</label><input id="pol-start" name="start_date" type="date" /><span class="hint">Obbligatorio solo se scegli un incarico di Governo.</span></div>
       </div>
-      ${leadPublishToggle()}
-      <div class="actions"><button class="button button-primary" type="submit">${isLead() ? "Salva il politico" : "Proponi il politico"}</button></div>
+      ${imageFields("pol", "Foto")}
+      <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
     </form>
   </details>
   ${pending.length ? `<section class="card pending-parties"><h2>Politici proposti <span class="count">${pending.length}</span></h2>
@@ -822,18 +873,24 @@ function schedaProgress(s) {
 }
 
 async function showScheda(politicianId, focus) {
-  const s = await api(`/politici/${politicianId}`);
+  const [s, portraits] = await Promise.all([
+    api(`/politici/${politicianId}`),
+    fetch("/portraits").then((response) => (response.ok ? response.json() : {})).catch(() => ({})),
+  ]);
+  s.photo = portraits[String(politicianId)] || null;
   const q = s.scheda_rapida;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/politici">Politici</a> · Modello Politico</p><h1>${esc(s.name)}</h1></div>
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/politici">Politici</a></p><h1>${esc(s.name)}</h1></div>
       <div class="actions">${s.public_url ? `<a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a>` : `<span class="chip chip-muted">Profilo non ancora pubblico</span>`}
       <a class="button button-secondary" href="#/registro" data-log-politician="${s.id}">Registro di questa scheda</a></div></div>
     ${schedaProgress(s)}
-    <div class="layout-side"><div>
-      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Scheda rapida</h2></div>
+    <div class="scheda-body">
+      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Scheda rapida</h2>${s.photo ? `<figure class="scheda-photo"><img src="${esc(s.photo.url)}" alt="" width="72" height="72" /><figcaption class="small muted">${esc(s.photo.credit)}</figcaption></figure>` : ""}</div>
         <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Nome, data e luogo di nascita, partito, incarico attuale e da quando, «Aggiornato al».</div><div><b>Lunghezza</b>Riquadro</div><div class="avoid"><b>Da evitare</b>Titoli onorifici o aggettivi.</div></div></details>
         <div class="preview" style="max-height:none"><dl><dt>Nascita</dt><dd>${q.birth_date ? `${longDate(q.birth_date)}${q.birth_place ? `, ${esc(q.birth_place)}` : ""}` : "Non indicata"}</dd><dt>Incarico attuale</dt><dd>${q.office ? `${esc(q.office)}${q.office_since ? ` dal ${longDate(q.office_since)}` : ""}` : "Non indicato"}</dd><dt>Partito</dt><dd>${esc(q.party || "Non indicato")}</dd></dl></div>
-        <p class="small muted">Aggiornato al ${q.updated_at ? longDate(q.updated_at) : "—"} · Redattore ${esc(q.writers.join(", ") || "—")} · Verificatore ${esc(q.verifiers.join(", ") || "—")}</p>
-        <p class="small muted">Questi dati arrivano dall'importazione ufficiale (Camera, Senato, Governo): non si scrivono a mano.</p>
+        <p class="small muted">Aggiornato al ${q.updated_at ? longDate(q.updated_at) : "—"} · Scritto da ${esc(q.writers.join(", ") || "—")} · Pubblicato da ${esc(q.verifiers.join(", ") || "—")}</p>
+        <details class="writer photo-writer"><summary>${s.photo ? "Cambia la foto" : "Aggiungi la foto"}</summary>
+          <form class="photo-form stack">${imageFields("photo", "Foto")}<div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div></form>
+        </details>
       </section>
       ${profileBlock(s, "biography")}
       ${profileBlock(s, "career_entry")}
@@ -842,12 +899,7 @@ async function showScheda(politicianId, focus) {
       ${profileBlock(s, "proceeding")}
       ${profileBlock(s, "controversy")}
       ${newsBlock(s)}
-    </div>
-    <aside class="card side-panel"><h3>Prima di pubblicare la scheda</h3>
-      <ul class="findings">${s.checklist.map((c) => `<li class="${c.ok ? "ok" : "warning"}">${esc(c.label)}</li>`).join("")}</ul>
-      ${s.changes.length ? `<h3 style="margin-top:16px">Modifiche in attesa</h3><ul class="item-sources">${s.changes.map((c) => `<li>${esc(c.summary)} — ${esc(c.created_by)}</li>`).join("")}</ul>` : ""}
-      <p class="small muted" style="margin-top:12px">Ogni salvataggio crea una bozza: il cittadino la vede solo dopo l'approvazione di un'altra persona. Tutte le modifiche finiscono nel registro.</p>
-    </aside></div>`;
+    </div>`;
   bindScheda(s);
   if (focus) document.getElementById(focus)?.scrollIntoView();
 }
@@ -909,8 +961,7 @@ function blockForm(kind, d = {}) {
     <div class="field"><label for="${id}-outs">Esito, con la formula esatta della sentenza</label><textarea id="${id}-outs" name="outcome_summary" rows="2">${esc(d.outcome_summary || "")}</textarea></div>`;
   const apiKind = kind === "controversy" ? "proceeding" : kind;
   return `<form class="block-form" data-kind="${apiKind}" data-block="blocco-${kind}">${key}${fields}${sourcesEditor(`${id}-src`, d.sources || [])}
-    ${leadPublishToggle()}
-    <div class="actions"><button class="button button-primary" type="submit">${isLead() ? "Salva" : "Salva e invia alla verifica"}</button><span class="small muted">${isLead() ? "Con «Pubblica subito» il cittadino lo vede appena salvi." : "Il cittadino non lo vede finché un'altra persona non approva."}</span></div></form>`;
+    <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div></form>`;
 }
 
 function readBlockForm(form) {
@@ -960,8 +1011,7 @@ function promisesBlock(s) {
         <div class="field-row"><div class="field"><label for="pr-date">Data della dichiarazione</label><input id="pr-date" type="date" name="introduced_at" required /></div><div class="field"><label for="pr-where">Dove <span class="hint">Es. «Discorso alla Camera per la fiducia»</span></label><input id="pr-where" type="text" name="where" /></div></div>
         <div class="field-row"><div class="field"><label for="pr-sname">Fonte</label><input id="pr-sname" type="text" name="source_name" placeholder="Es. Adnkronos" required /></div><div class="field"><label for="pr-surl">Link</label><input id="pr-surl" type="url" name="source_url" placeholder="https://…" required /></div></div>
         ${classificationFields("new-promise")}
-        ${leadPublishToggle()}
-        <div class="actions"><button class="button button-primary" type="submit">${isLead() ? "Salva la promessa" : "Salva e invia alla verifica"}</button></div>
+        <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
       </form></details>
   </section>`;
 }
@@ -991,6 +1041,18 @@ function newsBlock(s) {
 
 function bindScheda(s) {
   const reload = (focus) => showScheda(s.id, focus);
+  bindImagePreviews(view);
+  view.querySelector(".photo-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      const upload = await uploadImageFields(form, "photo", `Foto: ${s.name}`);
+      if (!upload.image_id) return toast("Scegli prima il file.", true);
+      const result = await api("/simboli", { method: "POST", body: { kind: "politician", key: String(s.id), image_id: upload.image_id, credit: form.image_credit.value.trim(), source_url: form.image_source_url.value.trim() } });
+      savedToast(result, "Inviata all'admin.");
+      reload();
+    } catch (error) { toast(error.findings?.map((f) => f.message).join(" ") || error.message, true); }
+  });
   // In-page jumps: the console routes on the hash, so scroll instead of navigating.
   view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -1003,7 +1065,7 @@ function bindScheda(s) {
       const item = await api(`/politici/${s.id}/blocchi/${form.dataset.kind}`, { method: "POST", body: readBlockForm(form) });
       const errors = item.findings.filter((f) => f.level === "error").length;
       if (errors) toast(`Bozza salvata con ${errors} errori da correggere prima della verifica.`, true);
-      else savedToast(item, "Bozza salvata e inviata alla verifica.");
+      else savedToast(item, "Inviato all'admin.");
       reload(form.dataset.block || `blocco-${form.dataset.kind}`);
     } catch (error) { toast(error.message, true); }
   }));
@@ -1031,7 +1093,7 @@ function bindScheda(s) {
     };
     try {
       const result = await api(`/politici/${s.id}/promesse`, { method: "POST", body });
-      savedToast(result, "Promessa salvata e inviata alla verifica.");
+      savedToast(result, "Inviata all'admin.");
       reload("blocco-promise");
     } catch (error) { toast(error.findings?.length ? error.findings.map((f) => f.message).join(" ") : error.message, true); }
   });
@@ -1073,12 +1135,63 @@ function bindScheda(s) {
 }
 
 // ---------------------------------------------------------------------- news
+// Where a news item belongs: the whole country, a region, a province or a comune,
+// chosen by name (regions from the list, comuni by search).
+function bindTerritoryPicker(form, post) {
+  const scope = form.scope;
+  const hidden = form.territory;
+  const regionSelect = form.querySelector("[data-region-select]");
+  const town = form.querySelector("#n-town");
+  const results = form.querySelector("[data-town-results]");
+  const show = () => {
+    form.querySelectorAll("[data-scope-field]").forEach((field) => { field.hidden = field.dataset.scopeField !== scope.value; });
+    if (scope.value === "region") hidden.value = regionSelect.value;
+  };
+  fetch("/regions?limit=100").then((response) => response.json()).then((payload) => {
+    const items = (payload.items || []).slice().sort((a, b) => a.name.localeCompare(b.name, "it"));
+    regionSelect.innerHTML = `<option value="">Scegli…</option>${items.map((item) => `<option value="${item.id}"${post.region_id === item.id ? " selected" : ""}>${esc(item.name)}</option>`).join("")}`;
+    show();
+  }).catch(() => { regionSelect.innerHTML = `<option value="">Elenco non disponibile</option>`; });
+  if (post.municipality_id) {
+    fetch(`/municipalities/${post.municipality_id}`).then((response) => response.json()).then((item) => { town.value = item.name || ""; }).catch(() => {});
+  }
+  regionSelect.addEventListener("change", () => { hidden.value = regionSelect.value; form.dispatchEvent(new Event("change")); });
+  scope.addEventListener("change", show);
+  let timer = 0;
+  town.addEventListener("input", () => {
+    clearTimeout(timer);
+    hidden.value = "";
+    const q = town.value.trim();
+    if (q.length < 2) { results.hidden = true; return; }
+    timer = setTimeout(async () => {
+      try {
+        const payload = await (await fetch(`/search?type=municipality&limit=8&q=${encodeURIComponent(q)}`)).json();
+        const items = payload.items || [];
+        results.hidden = false;
+        results.innerHTML = items.length
+          ? items.map((item) => `<li><a href="#" data-town="${item.metadata?.id}" data-name="${esc(item.title)}"><strong>${esc(item.title)}</strong><span class="small muted">${esc(item.subtitle || "")}</span></a></li>`).join("")
+          : `<li class="small muted" style="padding:10px 14px">Nessun comune con questo nome.</li>`;
+      } catch { results.hidden = true; }
+    }, 200);
+  });
+  results.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("[data-town]") : null;
+    if (!link) return;
+    event.preventDefault();
+    hidden.value = link.dataset.town;
+    town.value = link.dataset.name;
+    results.hidden = true;
+    form.dispatchEvent(new Event("change"));
+  });
+  show();
+}
+
 async function showNews() {
   const list = await api("/notizie");
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Notizia</p><h1>Notizie</h1>
-    <p>Una sintesi imparziale di un fatto politico che incide sulla vita delle persone. Nove blocchi, sempre nello stesso ordine. Obiettivo: 2–4 sintesi a settimana.</p></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Notizie</h1>
+    <p>Nazionali, regionali, provinciali o di un comune.</p></div>
     <a class="button button-primary" href="#/notizie/nuova">Nuova notizia</a></div>
-    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Redattore</th><th>Verificatore</th><th>Data</th><th></th></tr></thead><tbody>
+    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
     ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="empty">Nessuna notizia. <a href="#/notizie/nuova">Scrivi la prima</a>.</div>`}`;
   bindDiscardButtons(view, showNews);
@@ -1106,34 +1219,36 @@ async function showNewsEditor(postId) {
   const editable = post.status === "pending" || !postId;
   const b = post.blocks || {};
   const blocks = state.rules.news_blocks;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a> · Modello Notizia</p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a></p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
       ${postId ? `<p>Scritta da ${esc(post.created_by)}${post.reviewed_by ? ` · verificata da ${esc(post.reviewed_by)}` : ""} · <span class="chip ${post.status === "published" ? "chip-published" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa di verifica" }[post.status]}</span></p>` : ""}</div>
       ${post.public_url || post.can_discard ? `<div class="actions" style="margin-top:0">${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}${post.can_discard ? `<button type="button" class="button button-danger" id="n-discard">Elimina la notizia</button>` : ""}</div>` : ""}</div>
     ${!editable ? `<p class="own-note" style="margin-bottom:16px">Una notizia pubblicata non si modifica: un errore si corregge in modo visibile con una rettifica («Corretto il [data]: …»).</p>` : ""}
     <div class="layout-side"><form id="news-form" class="stack">
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo e sommario</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div></details>
         <div class="field"><label for="n-title">Titolo</label><input id="n-title" type="text" name="title" maxlength="300" value="${esc(post.title)}" required /></div>
         <div class="field"><label for="n-sommario">Sommario <span class="hint">È il testo della card nel feed.</span></label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
       </section>
       ${composer.html()}
       ${blocks.map((block, index) => `<section class="card"><div class="card-head"><h2><span class="block-number">${index + 1}</span>${esc(block.label)}</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
         <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
         ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
         ${block.key === "sinistra" ? `<div class="label">Equilibrio destra / sinistra</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
       </section>`).join("")}
       <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Elencare fonti non lette.</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Elencare fonti non lette.</div></div></details>
         ${newsSourcesEditor(post.sources)}
         <div class="field-row"><div class="field"><label for="n-scope">Ambito</label><select id="n-scope" name="scope">${options([["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"]], post.scope || "national")}</select></div>
-          <div class="field"><label for="n-region">Codice regione / comune</label><input id="n-region" type="number" name="territory" min="1" value="${esc(post.region_id || post.municipality_id || "")}" /><span class="hint">Solo per notizie locali (id del territorio).</span></div>
-          <div class="field"><label for="n-prov">Sigla provincia</label><input id="n-prov" type="text" name="province" maxlength="2" value="${esc(post.province_abbreviation || "")}" /></div></div>
+          <input type="hidden" name="territory" value="${esc(post.region_id || post.municipality_id || "")}" />
+          <div class="field" data-scope-field="region" hidden><label for="n-region">Regione</label><select id="n-region" data-region-select><option value="">Caricamento…</option></select></div>
+          <div class="field territory-search" data-scope-field="municipality" hidden><label for="n-town">Comune</label><input id="n-town" type="search" autocomplete="off" placeholder="Scrivi il nome del comune" /><ul class="home-results" data-town-results hidden></ul></div>
+          <div class="field" data-scope-field="province" hidden><label for="n-prov">Sigla provincia</label><input id="n-prov" type="text" name="province" maxlength="2" placeholder="es. MI" value="${esc(post.province_abbreviation || "")}" /></div></div>
         <div class="field"><label for="n-pol">Politici citati <span class="hint">La notizia compare in «Notizie collegate» nel loro profilo.</span></label>
           <div class="actions" style="margin-top:0"><input id="n-pol" type="search" placeholder="Cerca un politico" style="flex:1 1 220px" /><button type="button" class="button button-secondary" id="n-pol-add">Aggiungi</button></div>
           <ul class="item-sources" id="n-pol-list">${(post.politicians || []).map(politicianChip).join("")}</ul></div>
       </section>
-      ${editable ? `${leadPublishToggle()}<div class="actions"><button class="button button-primary" type="submit">${postId ? "Salva le modifiche" : isLead() ? "Salva la notizia" : "Salva e invia alla verifica"}</button><span class="small muted">Fonti: Redattore e Verificatore compaiono in fondo alla notizia pubblicata.</span></div>` : ""}
+      ${editable ? `<div class="actions"><button class="button button-primary" type="submit">${saveLabel(postId ? "Salva" : "Invia all'admin")}</button></div>` : ""}
     </form>
     <aside class="card side-panel"><h3>Anteprima nel feed</h3>
       <div id="card-preview" class="card-preview"></div>
@@ -1209,13 +1324,14 @@ async function showNewsEditor(postId) {
   balance();
   preview();
   bindPoliticianPicker();
+  bindTerritoryPicker(form, post);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
       const saved = await api(postId ? `/notizie/${postId}` : "/notizie", { method: postId ? "PUT" : "POST", body: collect() });
       const errors = saved.findings.filter((f) => f.level === "error").length;
       if (errors) toast(`Salvata con ${errors} errori: va corretta prima della verifica.`, true);
-      else savedToast(saved, "Notizia salvata e inviata alla verifica.");
+      else savedToast(saved, "Inviata all'admin.");
       location.hash = `#/notizie/${saved.id}`;
       if (postId) showNewsEditor(saved.id);
     } catch (error) { toast(error.message, true); }
@@ -1287,7 +1403,7 @@ function createCardComposer(initial, initialPublic) {
   const stepOptions = () => opts.iter_steps[c.iter.first].map((label, i) => [String(i + 1), `${i + 1}. ${label}`]);
 
   const html = () => `<section class="card" id="card-composer"><div class="card-head"><h2><span class="block-number">F</span>La card nel feed</h2><span class="chip chip-kind">Così appare nella timeline</span></div>
-      <div class="block-guide"><div><b>Cosa scrivere</b>Il tipo di contenuto, l'etichetta con la data, chi è coinvolto (con foto rotonda), l'ente. Titolo e sommario sono quelli del blocco 0.</div><div><b>Persone</b>Fino a 3</div><div class="avoid"><b>Da evitare</b>Foto senza diritti d'uso: indica sempre il credito.</div></div>
+      <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Il tipo di contenuto, l'etichetta con la data, chi è coinvolto (con foto rotonda), l'ente. Titolo e sommario sono quelli del blocco 0.</div><div><b>Persone</b>Fino a 3</div><div class="avoid"><b>Da evitare</b>Foto senza diritti d'uso: indica sempre il credito.</div></div></details>
       <div class="field-row">
         <div class="field"><label for="c-category">Tipo</label><select id="c-category" data-c="category">${options(opts.categories.map((x) => [x.key, x.label]), c.category)}</select></div>
         <div class="field"><label for="c-badge">Etichetta</label><input id="c-badge" type="text" list="c-badge-presets" data-c="badge.label" value="${esc(c.badge.label)}" /><datalist id="c-badge-presets">${opts.badge_presets.map((x) => `<option value="${esc(x)}"></option>`).join("")}</datalist></div>
@@ -1582,8 +1698,8 @@ async function showLog(offset = 0) {
   if (logFilter.politico) params.set("politico", logFilter.politico);
   if (logFilter.utente) params.set("utente", logFilter.utente);
   const log = await api(`/registro?${params}`);
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Trasparenza interna</p><h1>Registro modifiche</h1>
-    <p>Ogni scrittura, modifica, approvazione, rifiuto, ritiro, assegnazione di stato ed eliminazione di una bozza, con chi l'ha fatta e quando. Il registro non si può modificare né cancellare.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Registro</h1>
+    <p>Chi ha fatto cosa e quando. Non si modifica.</p></div></div>
     <form id="log-filter" class="card" style="margin-bottom:16px"><div class="field-row">
       <div class="field"><label for="lf-user">Persona</label><select id="lf-user"><option value="">Tutte</option>${state.me.members.map((m) => `<option${m === logFilter.utente ? " selected" : ""}>${esc(m)}</option>`).join("")}</select></div>
       <div class="field"><label for="lf-pol">Politico (id)</label><input id="lf-pol" type="number" min="1" value="${esc(logFilter.politico || "")}" /></div>
@@ -1614,10 +1730,10 @@ function showRules() {
     ["Numeri con fonte e data", "Cifra, unità, anno, fonte. Se due fonti divergono si riportano entrambe e si spiega la differenza."],
     ["Linguaggio semplice", "Frasi corte, termini tecnici spiegati subito. Si scrive per chi non ha studiato politica."],
     ["Titoli neutri", "Dicono cosa è successo, non cosa pensare. Niente «finalmente», «scandalo», «storico», «attacca», «affonda»."],
-    ["Due persone per contenuto", "Chi scrive non è chi verifica. Ogni scheda riporta data di aggiornamento, redattore e verificatore."],
+    ["Pubblica un admin", "Chi scrive salva; pubblica un admin della redazione. Ogni scheda riporta data di aggiornamento e chi l'ha pubblicata."],
   ];
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modelli di scrittura</p><h1>Le otto regole che valgono sempre</h1>
-    <p>Valgono per ogni contenuto, dal Presidente del Consiglio al consigliere di un piccolo comune. Se un modello e una regola sembrano in conflitto, vince la regola. La console controlla in automatico quelle verificabili.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Regole</h1>
+    <p>Valgono per ogni contenuto. Se un modello e una regola sembrano in conflitto, vince la regola.</p></div></div>
     <div class="rules-grid">${rules.map(([title, text], i) => `<div class="rule"><b>${i + 1}</b><h3>${esc(title)}</h3><p class="small">${esc(text)}</p></div>`).join("")}</div>
     <section class="card" style="margin-top:20px"><h2>Convenzioni di scrittura</h2><div class="table-wrap" style="margin-top:10px"><table class="data-table"><thead><tr><th>Cosa</th><th>Come si scrive</th></tr></thead><tbody>
       <tr><td>Date</td><td>Per esteso: «16 settembre 2026». Mai «16/9». Orari 24 ore.</td></tr>
@@ -1646,7 +1762,7 @@ else showLogin();
 // ------------------------------------------------------------------ symbols
 // Party logos and coats of arms of regions and provinces. Each upload is a
 // proposal: it goes public only when another member approves it in the queue.
-const SYMBOL_TABS = [["party", "Partiti"], ["region", "Regioni"], ["province", "Province"], ["politician", "Foto dei politici"]];
+const SYMBOL_TABS = [["party", "Partiti"], ["region", "Regioni"], ["province", "Province"]];
 let symbolFilter = "";
 
 function symbolThumb(item, stored = null, kind = "") {
@@ -1677,10 +1793,8 @@ async function showSymbols(kind) {
     try { stored = await (await fetch("/portraits")).json(); } catch { stored = {}; }
   }
   const storedFor = (item) => (photo && !item.symbol && stored[item.key]?.url?.startsWith("/portraits/") ? stored[item.key] : null);
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Elenchi</p><h1>${photo ? "Foto dei politici" : "Partiti e territori"}</h1>
-    <p>${photo
-      ? "La foto di ogni politico pubblicato la carica la redazione: il sito non prende immagini da Camera, Senato o Governo. Serve il credito, la licenza e la pagina di provenienza, e la deve approvare un'altra persona. Le foto già presenti restano finché non le sostituisci."
-      : "Loghi dei partiti e stemmi di regioni e province: li vede il cittadino nella registrazione, nel feed e nelle schede. Ogni logo serve con credito, licenza e pagina di provenienza, e va approvato da un'altra persona."}</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Partiti e territori</h1>
+    <p>Loghi dei partiti e stemmi di regioni e province, con credito e fonte.</p></div></div>
     <nav class="filters" aria-label="Elenco">${SYMBOL_TABS.map(([key, label]) => `<a class="filter-link" href="#/simboli/${key}" aria-current="${key === kind ? "page" : "false"}">${label} <span class="count">${data[key].length}</span></a>`).join("")}</nav>
     <div class="summary-strip">
       <div class="tile"><strong>${items.length}</strong><span>${kind === "party" ? "partiti nell'elenco" : kind === "region" ? "regioni (ISTAT)" : kind === "province" ? "province (ISTAT)" : "schede pubblicate"}</span></div>
@@ -1745,12 +1859,15 @@ async function showSymbols(kind) {
       toast(error.message, true);
     }
   }));
+  bindImagePreviews(view);
   view.querySelector("#party-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     try {
-      await api("/partiti", { method: "POST", body: Object.fromEntries(new FormData(form)) });
-      toast("Partito proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      const body = Object.fromEntries(new FormData(form));
+      Object.assign(body, await uploadImageFields(form, "party", `Logo: ${body.name}`, { photo: false }));
+      const result = await api("/partiti", { method: "POST", body });
+      savedToast(result, "Inviato all'admin.");
       showSymbols("party");
     } catch (error) {
       toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
@@ -1761,8 +1878,8 @@ async function showSymbols(kind) {
 const REJECT_REASONS = ["Non più attivo", "Non è un partito", "Duplicato di una voce esistente", "Logo non corretto o non ufficiale", "Licenza non verificabile"];
 function reviewControls(item) {
   if (item.created_by === state.me?.name) {
-    if (!isLead()) return `<p class="small muted">In attesa di un'altra persona</p>`;
-    return `<form class="review-inline" data-review="${esc(item.id)}"><button class="button button-approve" type="submit" value="approva">Verifica e pubblica</button></form>`;
+    if (!isLead()) return `<p class="small muted">In attesa di un admin</p>`;
+    return `<form class="review-inline" data-review="${esc(item.id)}"><button class="button button-approve" type="submit" value="approva">Pubblica</button></form>`;
   }
   return `<form class="review-inline" data-review="${esc(item.id)}">
     <button class="button button-approve" type="submit" value="approva">Approva</button>
@@ -1772,7 +1889,9 @@ function reviewControls(item) {
 }
 
 function newPartyForm(pending) {
-  return `<details class="card new-party"><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
+  let open = false;
+  try { open = sessionStorage.getItem("vp-open-new-partito") === "1"; sessionStorage.removeItem("vp-open-new-partito"); } catch { /* storage off */ }
+  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
     <form id="party-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
         <div class="field"><label for="party-name">Nome ufficiale</label><input id="party-name" name="name" type="text" required minlength="2" maxlength="300" /></div>
@@ -1780,7 +1899,8 @@ function newPartyForm(pending) {
         <div class="field"><label for="party-site">Sito ufficiale <span class="hint">https://…</span></label><input id="party-site" name="website" type="url" /></div>
         <div class="field"><label for="party-source">Fonte <span class="hint">statuto, registro dei partiti, sito</span></label><input id="party-source" name="source_url" type="url" required /></div>
       </div>
-      <div class="actions"><button class="button button-primary" type="submit">Proponi il partito</button></div>
+      ${imageFields("party", "Logo")}
+      <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
     </form>
   </details>
   ${pending.length ? `<section class="card pending-parties"><h2>Partiti proposti <span class="count">${pending.length}</span></h2>

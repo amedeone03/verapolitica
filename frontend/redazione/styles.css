@@ -501,3 +501,20 @@ details.block-help[open] > summary { margin-bottom: 8px; }
   .create-card strong { font-size: .875rem; }
   .create-card strong::before { display: block; font-size: 1.1rem; }
 }
+
+/* Photo or logo inside a form */
+.image-fields { margin: 4px 0 0; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.image-fields legend { padding: 0 6px; font-weight: 600; font-size: .875rem; }
+.image-row { display: flex; gap: 14px; align-items: flex-start; }
+.image-preview { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--color-background) center / cover no-repeat; border: 1px solid var(--color-border); }
+.scheda-photo { display: flex; align-items: center; gap: 10px; margin: 0; }
+.scheda-photo img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-border); }
+@media (max-width: 640px) { .image-row { flex-direction: column; } }
+.scheda-body { display: grid; gap: 16px; max-width: 920px; }
+.scheda-body > [id^="blocco-"] { scroll-margin-top: 120px; }
+.territory-search { position: relative; }
+.home-create { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 640px) { .home-create { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } .home-create .button { padding: 0 8px; font-size: .8125rem; } }
+.home-head h1 { margin-bottom: 2px; }
+@media (min-width: 900px) { .image-fields .grid-2 { grid-template-columns: 1fr 1fr 1fr; } }
+.image-fields .field .hint { display: inline; }
