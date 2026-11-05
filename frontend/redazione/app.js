@@ -336,63 +336,131 @@ function initials(name) {
   return ((words[0]?.[0] || "") + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase() || "·";
 }
 
-function dashSide(overview) {
-  if (!overview) return "";
-  const total = overview.public_schede || 0;
-  const done = overview.schede_with_bio || 0;
-  const share = total ? Math.round((done / total) * 100) : 0;
-  return `<aside class="dash-side" aria-label="Riepilogo">
-    <section class="side-card"><h2>Ultimi 7 giorni</h2>
-      <div class="week-stats"><div><strong>${overview.published_week || 0}</strong><span>pubblicati dalla redazione</span></div><div><strong>${overview.my_published_week || 0}</strong><span>approvati da te</span></div></div>
-    </section>
-    <section class="side-card"><h2>Schede pubbliche con «Chi è»</h2>
-      <div class="meter" role="img" aria-label="${done} su ${total}"><span style="width:${share}%"></span></div>
-      <p class="small muted">${done} su ${total} schede pubblicate. <a href="#/politici">Apri l'elenco</a></p>
-    </section>
-    ${(overview.recent || []).length ? `<section class="side-card"><h2>Attività recente</h2>
-      <ul class="activity">${overview.recent.slice(0, 6).map((entry) => `<li><span class="who" aria-hidden="true">${esc(initials(entry.actor))}</span><div><span class="what"><strong>${esc(entry.actor)}</strong> · ${esc(entry.summary)}</span><time datetime="${esc(entry.at)}">${ago(entry.at)}</time></div></li>`).join("")}</ul>
-      <p class="small" style="margin:10px 0 0"><a href="#/registro">Tutto il registro</a></p></section>` : ""}
-  </aside>`;
+// ---------------------------------------------------------------- home
+// One page for whoever writes: find a scheda, create something, see what is
+// waiting for you. Pattern references (Appllama): Any.do «My Lists Home» and
+// Tasks «Home» (rounded search field, two-column create cards, short lists),
+// Notion «Workspace Home» (search first, everything else one tap away).
+let homeOpen = "";
+const HOME_PREVIEW = 4;
+
+function homeSection(key, title, hint, items, { emptyText = "" } = {}) {
+  if (!items.length && !emptyText) return "";
+  const open = homeOpen === key;
+  const shown = open ? items : items.slice(0, HOME_PREVIEW);
+  return `<section class="home-section" data-home="${key}">
+    <div class="home-section-head"><h2>${esc(title)} <span class="count">${items.length}</span></h2>${hint ? `<p class="small muted">${esc(hint)}</p>` : ""}</div>
+    ${items.length ? `<div class="row-list">${shown.map(queueCard).join("")}</div>
+      ${items.length > HOME_PREVIEW ? `<button type="button" class="link-more" data-home-toggle="${key}">${open ? "Mostra meno" : `Vedi tutti (${items.length})`}</button>` : ""}`
+      : `<p class="home-empty">${esc(emptyText)}</p>`}
+  </section>`;
+}
+
+function rejectedList(rows) {
+  if (!rows.length) return "";
+  return `<section class="home-section" data-home="rejected">
+    <div class="home-section-head"><h2>Respinti da correggere <span class="count">${rows.length}</span></h2><p class="small muted">Leggi la nota, correggi e salva di nuovo.</p></div>
+    <ul class="row-list rejected-list">${rows.map((row) => `<li>
+      <span class="queue-dot is-red" aria-hidden="true"></span>
+      <div><strong>${esc(String(row.summary || "").split(" Motivo:")[0].replace(/^Respinto:\s*/, ""))}</strong>${row.note ? `<p class="small">«${esc(row.note)}» — ${esc(row.by)}</p>` : `<p class="small muted">${esc(row.by)}</p>`}</div>
+      ${row.politician_id ? `<a class="button button-secondary" href="#/politici/${row.politician_id}">Apri la scheda</a>` : row.object_kind === "news" ? `<a class="button button-secondary" href="#/notizie/${row.object_id}">Apri la notizia</a>` : ""}
+    </li>`).join("")}</ul>
+  </section>`;
 }
 
 async function showQueue() {
   const [items, overview] = await Promise.all([api("/coda"), api("/panoramica").catch(() => null)]);
+  const lead = isLead();
   const groups = Object.fromEntries(QUEUE_GROUPS.map(([key]) => [key, []]));
   for (const item of items) groups[queueGroup(item)].push(item);
-  const kinds = [...new Map(items.map((item) => [item.kind_label, item.kind_label])).keys()];
-  const matches = (item) => queueFilter === "all" || queueGroup(item) === queueFilter || item.kind_label === queueFilter;
-  const lead = isLead();
-  const tiles = [
-    ["verify", groups.verify.length, "da verificare da te"],
-    lead ? ["self", groups.self.length, "tuoi, li verifichi tu"] : ["mine", groups.mine.length, "tuoi, in attesa"],
-    ["blocked", groups.blocked.length, "bloccati da errori"],
-    ["all", items.length, "in attesa in totale"],
-  ];
   const hello = (state.me?.name || "").split(/\s+/)[0];
-  view.innerHTML = `<div class="page-head dash-head"><div>
-      <p class="eyebrow">Ciclo di lavoro${lead ? ` · <span class="role-chip">Capo squadra</span>` : ""}</p>
-      <h1>${hello ? `Ciao ${esc(hello)}, ` : ""}${items.length ? `${groups.verify.length || "niente"} da verificare` : "tutto in ordine"}</h1>
-      <p>${lead
-        ? "Scrive il redattore, verifica un'altra persona. Come capo squadra puoi pubblicare direttamente ciò che inserisci: nel registro resta scritto che l'hai verificato tu."
-        : "Scrive il redattore, verifica un'altra persona, poi si pubblica. Nulla di quello che vedi qui è visibile al cittadino finché non viene approvato."}</p></div>
-      <div class="quick-actions" aria-label="Azioni rapide">
-        <a class="quick-action" href="#/politici"><span aria-hidden="true">＋</span>Politico o scheda</a>
-        <a class="quick-action" href="#/notizie/nuova"><span aria-hidden="true">＋</span>Notizia</a>
-        <a class="quick-action" href="#/simboli/politician"><span aria-hidden="true">＋</span>Foto</a>
-      </div></div>
-    <div class="summary-strip dash-tiles" role="group" aria-label="Filtra la coda">${tiles.map(([key, count, label]) => `<button type="button" class="tile tile-button${key === "blocked" && count ? " is-alert" : ""}" data-filter="${key}" aria-pressed="${queueFilter === key}"><strong>${count}</strong><span>${esc(label)}</span></button>`).join("")}</div>
-    ${kinds.length > 1 ? `<div class="filters" role="group" aria-label="Tipo di contenuto"><button type="button" data-filter="all" aria-pressed="${queueFilter === "all"}">Tutti</button>${kinds.map((label) => `<button type="button" data-filter="${esc(label)}" aria-pressed="${queueFilter === label}">${esc(label)}</button>`).join("")}</div>` : ""}
-    <div class="dash-layout"><div id="queue-list">${items.length ? QUEUE_GROUPS.map(([key, title, hint]) => {
-      const shown = groups[key].filter(matches);
-      if (!shown.length) return "";
-      return `<section class="queue-group" data-group="${key}"><div class="queue-group-head"><h2>${esc(title)} <span class="count">${shown.length}</span></h2><p class="small muted">${esc(hint)}</p></div>
-        <div class="row-list">${shown.map(queueCard).join("")}</div></section>`;
-    }).join("") || `<div class="empty">Niente in attesa con questo filtro.</div>` : `<div class="empty empty-done"><strong>Niente in attesa.</strong><span>Quando qualcuno della redazione salva un contenuto, compare qui.</span></div>`}</div>${dashSide(overview)}</div>`;
-  view.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
-    queueFilter = queueFilter === button.dataset.filter ? "all" : button.dataset.filter;
+  const rejected = overview?.my_rejected || [];
+  const toFix = groups.blocked.filter((item) => item.own);
+  const todo = groups.verify.length + groups.self.length + toFix.length + rejected.length;
+  const total = overview?.public_schede || 0;
+  const withBio = overview?.schede_with_bio || 0;
+  view.innerHTML = `<div class="home">
+    <header class="home-head">
+      <p class="eyebrow">${lead ? `<span class="role-chip">Capo squadra</span>` : "Redazione"}</p>
+      <h1>${hello ? `Ciao ${esc(hello)}` : "Ciao"}</h1>
+      <p class="home-sub">${todo ? `Hai <strong>${todo}</strong> ${todo === 1 ? "cosa" : "cose"} da fare.` : "Niente da fare per te adesso."}</p>
+    </header>
+
+    <form class="home-search" role="search" id="home-search">
+      <label class="visually-hidden" for="home-q">Cerca un politico</label>
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="home-q" type="search" placeholder="Cerca un politico…" autocomplete="off" />
+      <ul class="home-results" id="home-results" hidden></ul>
+    </form>
+
+    <section class="home-create" aria-label="Crea">
+      <a class="create-card" href="#/notizie/nuova"><strong>Nuova notizia</strong><span>Modello in 9 blocchi, fonti dei due schieramenti</span></a>
+      <a class="create-card" href="#/politici" data-create="politico"><strong>Nuovo politico</strong><span>Nome, fonte ufficiale, incarico</span></a>
+      <a class="create-card" href="#/simboli/politician"><strong>Foto di un politico</strong><span>Con autore, licenza e pagina di provenienza</span></a>
+    </section>
+
+    <div class="home-todo">
+      ${rejectedList(rejected)}
+      ${homeSection("fix", "Da correggere", "Tuoi contenuti con errori: correggili prima della verifica.", toFix)}
+      ${homeSection("verify", "Da verificare", "Scritti da altri: controlla le fonti e decidi.", groups.verify, { emptyText: "Niente da verificare per te." })}
+      ${lead ? homeSection("self", "Tuoi, da pubblicare", "Sei capo squadra: verificali e pubblicali tu.", groups.self) : ""}
+      ${homeSection("mine", "Tuoi, in attesa", "Li verifica un'altra persona della redazione.", groups.mine)}
+      ${homeSection("other", "Altri in attesa", "Hai già dato la tua approvazione.", groups.other)}
+    </div>
+
+    ${overview ? `<footer class="home-stats" aria-label="Numeri della redazione">
+      <span><strong>${overview.published_week || 0}</strong> pubblicati in 7 giorni</span>
+      <span><strong>${overview.my_published_week || 0}</strong> approvati da te</span>
+      <span><strong>${withBio}/${total}</strong> schede con «Chi è» <span class="meter meter-inline" aria-hidden="true"><span style="width:${total ? Math.round((withBio / total) * 100) : 0}%"></span></span></span>
+      <a href="#/registro">Registro</a>
+    </footer>` : ""}
+  </div>`;
+
+  view.querySelectorAll("[data-home-toggle]").forEach((button) => button.addEventListener("click", () => {
+    homeOpen = homeOpen === button.dataset.homeToggle ? "" : button.dataset.homeToggle;
     showQueue();
   }));
+  view.querySelectorAll('[data-create="politico"]').forEach((link) => link.addEventListener("click", () => {
+    try { sessionStorage.setItem("vp-open-new-politician", "1"); } catch { /* storage off */ }
+  }));
+  bindHomeSearch();
   bindQueueActions(view, showQueue);
+}
+
+function bindHomeSearch() {
+  const input = view.querySelector("#home-q");
+  const list = view.querySelector("#home-results");
+  let timer = 0;
+  let seq = 0;
+  const render = (rows, q) => {
+    list.hidden = !q;
+    list.innerHTML = rows.length
+      ? rows.map((row) => `<li><a href="#/politici/${row.id}"><strong>${esc(row.name)}</strong><span class="small muted">${row.public ? "Scheda pubblica" : "Non pubblicata"}${row.pending ? ` · ${row.pending} in attesa` : ""}</span></a></li>`).join("")
+      : `<li class="muted small" style="padding:10px 14px">Nessun politico con questo nome. <a href="#/politici" data-create="politico">Aggiungilo</a></li>`;
+  };
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { list.hidden = true; return; }
+    timer = setTimeout(async () => {
+      const mine = ++seq;
+      try {
+        const rows = await api(`/politici?q=${encodeURIComponent(q)}&limit=8`);
+        if (mine === seq) render(rows, q);
+      } catch { /* ignore */ }
+    }, 200);
+  });
+  view.querySelector("#home-search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const first = list.querySelector("a[href^='#/politici/']");
+    if (first) location.hash = first.getAttribute("href");
+  });
+  input.addEventListener("keydown", (event) => { if (event.key === "Escape") { input.value = ""; list.hidden = true; } });
+  list.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest('[data-create="politico"]')) {
+      try { sessionStorage.setItem("vp-open-new-politician", "1"); } catch { /* storage off */ }
+    }
+  });
 }
 
 function queueCard(item) {
@@ -688,7 +756,9 @@ const GOVERNMENT_OFFICES = [
 ];
 
 function newPoliticianForm(pending) {
-  return `<details class="card new-party"><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
+  let open = false;
+  try { open = sessionStorage.getItem("vp-open-new-politician") === "1"; sessionStorage.removeItem("vp-open-new-politician"); } catch { /* storage off */ }
+  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
     <form id="politician-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
         <div class="field"><label for="pol-given">Nome</label><input id="pol-given" name="given_name" type="text" required minlength="2" maxlength="200" /></div>
