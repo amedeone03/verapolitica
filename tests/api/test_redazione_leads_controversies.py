@@ -203,3 +203,16 @@ def test_overview_counts_the_week_and_the_schede_with_a_biography(desk):
     assert after["schede_with_bio"] == 1
     assert after["published_week"] == before["published_week"] + 1
     assert after["my_published_week"] == before["my_published_week"] + 1
+
+
+def test_home_lists_my_rejections_until_i_save_again(desk):
+    client, politician_id, _ = desk
+    base = f"/redazione/api/politici/{politician_id}/blocchi/biography"
+    saved = client.post(base, headers=ANNA, json=_biography(politician_id)).json()
+    assert client.post(f"/redazione/api/coda/biography/{saved['id']}/rifiuta", headers=BRUNO, json={"note": "Manca la fonte del 1970."}).status_code == 200
+    rejected = client.get("/redazione/api/panoramica", headers=ANNA).json()["my_rejected"]
+    assert [row["note"] for row in rejected] == ["Manca la fonte del 1970."]
+    assert rejected[0]["politician_id"] == politician_id
+    assert client.get("/redazione/api/panoramica", headers=BRUNO).json()["my_rejected"] == []
+    client.post(base, headers=ANNA, json=_biography(politician_id))
+    assert client.get("/redazione/api/panoramica", headers=ANNA).json()["my_rejected"] == []

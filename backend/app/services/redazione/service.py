@@ -2356,7 +2356,44 @@ class RedazioneService:
                 PoliticianBiography.status == ProfileContentStatus.PUBLISHED,
                 PoliticianBiography.politician_id.in_(public_ids),
             )
+            rejected = [
+                {
+                    "at": _iso(row.created_at),
+                    "by": row.actor,
+                    "object_kind": row.object_kind,
+                    "object_id": row.object_id,
+                    "politician_id": row.politician_id,
+                    "summary": row.summary,
+                    "note": (row.details or {}).get("note"),
+                    "_created": row.created_at,
+                }
+                for row in session.scalars(
+                    select(EditorialLogEntry)
+                    .where(EditorialLogEntry.action == "rifiuto", EditorialLogEntry.created_at >= self.clock() - timedelta(days=14))
+                    .order_by(EditorialLogEntry.created_at.desc())
+                    .limit(50)
+                )
+                if (row.details or {}).get("author") == member
+            ]
+            # Gone from the list once the author saved that content again.
+            rejected = [
+                item for item in rejected
+                if not session.scalar(
+                    select(func.count()).select_from(EditorialLogEntry).where(
+                        EditorialLogEntry.actor == member,
+                        EditorialLogEntry.action != "rifiuto",
+                        EditorialLogEntry.created_at > item["_created"],
+                        EditorialLogEntry.object_kind == item["object_kind"],
+                        (EditorialLogEntry.politician_id == item["politician_id"])
+                        if item["politician_id"] is not None
+                        else (EditorialLogEntry.object_id == item["object_id"]),
+                    )
+                )
+            ][:10]
+            for item in rejected:
+                item.pop("_created", None)
             return {
+                "my_rejected": rejected,
                 "published_week": session.scalar(approved) or 0,
                 "my_published_week": session.scalar(approved.where(EditorialLogEntry.actor == member)) or 0,
                 "public_schede": session.scalar(select(func.count()).select_from(public_ids.subquery())) or 0,
