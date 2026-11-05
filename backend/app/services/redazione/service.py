@@ -74,7 +74,10 @@ from backend.app.models.politician_profile import (
     PoliticianProceeding,
     PoliticianProfileSource,
     ProceedingOutcome,
+    PROCEEDING_CATEGORY_TYPES,
+    ProceedingCategory,
     ProceedingType,
+    proceeding_category_for,
     ProfileContentKind,
     ProfileContentStatus,
     ProfileSourceKind,
@@ -164,7 +167,7 @@ KIND_LABELS = {
     "biography": "Chi è",
     "career_entry": "Cosa ha fatto",
     "position": "Posizione su tema chiave",
-    "proceeding": "Procedimento o controversia",
+    "proceeding": "Procedimento giudiziario",
     "promise": "Promessa",
     "proposal": "Proposta",
     "status": "Stato di una promessa",
@@ -262,9 +265,12 @@ class RedazioneService:
         session_factory: sessionmaker[Session],
         *,
         clock: Callable[[], datetime] = _utc_now,
+        leads: frozenset[str] | set[str] = frozenset(),
     ) -> None:
         self.session_factory = session_factory
         self.clock = clock
+        # Capi squadra: they may verify and publish their own work (logged as such).
+        self.leads = frozenset(leads)
         self.profiles = PoliticianProfileService(session_factory)
         self.pledges = PledgeService(session_factory, clock=clock)
         self.proposals = ProposalService(session_factory)
@@ -565,6 +571,9 @@ class RedazioneService:
             "data": data,
             "findings": findings,
             "can_approve": row.status is ProfileContentStatus.PENDING and row.created_by != member,
+            "can_self_verify": row.status is ProfileContentStatus.PENDING
+            and row.created_by == member
+            and self.can_self_verify(kind, member),
         }
 
     @staticmethod
@@ -590,6 +599,7 @@ class RedazioneService:
             }
         return {
             "title": row.title,
+            "category": row.category or "proceeding",
             "proceeding_types": list(row.proceeding_types or []),
             "event_date": _iso(row.event_date),
             "outcome": row.outcome.value if row.outcome else None,
@@ -703,9 +713,19 @@ class RedazioneService:
                 identity = identity or _slug(fields["topic"])
                 draft = PositionDraftInput(identity_key=identity, sources=sources, created_by=member, **fields)
             else:
-                types = tuple(ProceedingType(item) for item in (payload.get("proceeding_types") or []))
+                types = tuple(ProceedingType(item) for item in (payload.get("proceeding_types") or []) if item)
+                category = ProceedingCategory(payload.get("category") or proceeding_category_for(types).value)
+                if not types:
+                    raise RedazioneValidation("Scegli il tipo di vicenda.")
+                if any(item not in PROCEEDING_CATEGORY_TYPES[category] for item in types):
+                    raise RedazioneValidation(
+                        "Le controversie stanno nel box «Controversie»; nei procedimenti giudiziari vanno solo indagini e processi a carico del politico."
+                        if category is ProceedingCategory.PROCEEDING
+                        else "Un'indagine o un processo a carico del politico va nel box «Procedimenti giudiziari», non tra le controversie."
+                    )
                 fields = {
                     "title": _clean(payload.get("title")),
+                    "category": category,
                     "proceeding_types": types,
                     "event_date": _parse_date(payload.get("event_date"), "data"),
                     "event_precision": DatePrecision.DAY if payload.get("event_date") else None,
@@ -735,6 +755,8 @@ class RedazioneService:
                 for name, value in fields.items():
                     if name == "proceeding_types":
                         value = [item.value for item in value]
+                    if name == "category":
+                        value = value.value
                     setattr(pending, name, value)
                 previous_author = pending.created_by
                 pending.created_by = member
@@ -1763,8 +1785,7 @@ class RedazioneService:
             query = query.where(EditorialChangeRequest.politician_id == politician_id)
         return [self._change_response(session, row, member) for row in session.scalars(query.order_by(EditorialChangeRequest.id))]
 
-    @staticmethod
-    def _change_response(session: Session, row: EditorialChangeRequest, member: str) -> dict:
+    def _change_response(self, session: Session, row: EditorialChangeRequest, member: str) -> dict:
         return {
             "id": row.id,
             "kind": row.kind,
@@ -1777,6 +1798,9 @@ class RedazioneService:
             "created_by": row.created_by,
             "created_at": _iso(row.created_at),
             "can_approve": row.status is ChangeRequestStatus.PENDING and row.created_by != member,
+            "can_self_verify": row.status is ChangeRequestStatus.PENDING
+            and row.created_by == member
+            and self.can_self_verify("change", member),
         }
 
     # ------------------------------------------------------------------ queue
@@ -1793,7 +1817,8 @@ class RedazioneService:
                         self._queue_item(
                             kind=kind,
                             item_id=row.id,
-                            title=KIND_LABELS[kind] + self._profile_title_suffix(kind, item["data"]),
+                            title=("Controversia" if item["data"].get("category") == "controversy" else KIND_LABELS[kind])
+                            + self._profile_title_suffix(kind, item["data"]),
                             politician_id=row.politician_id,
                             politician_name=names.get(row.politician_id),
                             author=row.created_by,
@@ -1943,8 +1968,8 @@ class RedazioneService:
         label = data.get("topic") or data.get("role") or data.get("title")
         return f": {label}" if label else ""
 
-    @staticmethod
     def _queue_item(
+        self,
         *,
         kind: str,
         item_id: int,
@@ -1960,7 +1985,7 @@ class RedazioneService:
         blocked = style.has_errors(findings)
         return {
             "kind": kind,
-            "kind_label": KIND_LABELS[kind],
+            "kind_label": "Controversia" if kind == "proceeding" and (preview or {}).get("category") == "controversy" else KIND_LABELS[kind],
             "id": item_id,
             "title": title,
             "politician_id": politician_id,
@@ -1972,6 +1997,7 @@ class RedazioneService:
             "blocked": blocked,
             "own": author == member,
             "can_approve": author != member and not blocked,
+            "can_self_verify": author == member and not blocked and self.can_self_verify(kind, member),
             "can_discard": kind == "news",
             "approvals": [],
             "approvals_required": 1,
@@ -1984,9 +2010,28 @@ class RedazioneService:
                 return item
         raise RedazioneNotFound("Elemento non più in attesa di verifica.")
 
+    # Pledge verdicts move the public score and keep their own two-person rule.
+    SELF_VERIFY_EXCLUDED = frozenset({"status"})
+
+    def is_lead(self, member: str) -> bool:
+        return member in self.leads
+
+    def can_self_verify(self, kind: str, member: str) -> bool:
+        return self.is_lead(member) and kind not in self.SELF_VERIFY_EXCLUDED
+
+    def publish_own(self, kind: str, item_id: int, *, member: str, note: str | None = None) -> dict:
+        """A capo squadra publishes what they just wrote, without a second person."""
+
+        if not self.can_self_verify(kind, member):
+            raise RedazioneConflict("Solo un capo squadra può pubblicare direttamente ciò che scrive.")
+        return self.approve(kind, item_id, member=member, note=note or "Verificato da chi l'ha inserito (capo squadra).")
+
     def approve(self, kind: str, item_id: int, *, member: str, note: str | None = None, extra: dict | None = None) -> dict:
         item = self._queue_entry(kind, item_id, member)
-        if item["own"]:
+        self_verified = bool(item["own"])
+        if self_verified and not self.can_self_verify(kind, member):
+            if kind in self.SELF_VERIFY_EXCLUDED and self.is_lead(member):
+                raise RedazioneConflict("Lo stato di una promessa cambia il punteggio: lo deve approvare un'altra persona anche per i capi squadra.")
             raise RedazioneConflict("Chi scrive non è chi verifica: questo contenuto lo deve approvare un'altra persona.")
         if member in item.get("approvals", []):
             raise RedazioneConflict("Hai già approvato questo stato: serve una seconda persona.")
@@ -1997,6 +2042,9 @@ class RedazioneService:
         politician_id = item["politician_id"]
         summary = f"Approvato: {item['kind_label']} — {item['title']}"
         details: dict[str, Any] = {"note": note, "author": item["author"]}
+        if self_verified:
+            details["self_verified"] = True
+            details["role"] = "capo squadra"
         try:
             if kind in PROFILE_MODELS:
                 self.profiles.approve(PROFILE_KINDS[kind], item_id, reviewer=member, note=note)
@@ -2028,7 +2076,7 @@ class RedazioneService:
                     summary = f"Pubblicato lo stato: {item['title']}. Il punteggio è aggiornato."
                     details["assessment_id"] = assessment.id
             elif kind == "news":
-                self.editorial.publish(item_id, reviewer=member, note=note)
+                self.editorial.publish(item_id, reviewer=member, note=note, allow_author=self_verified)
                 summary = f"Pubblicata la notizia «{item['title']}»."
             elif kind == "change":
                 summary = self._apply_change(item_id, member=member, note=note)
@@ -2043,6 +2091,8 @@ class RedazioneService:
             EditorialValidationError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
+        if self_verified:
+            summary = f"{summary} Verificato dal capo squadra che l'ha inserito."
         self.log(
             actor=member,
             action="approvazione",
@@ -2052,7 +2102,7 @@ class RedazioneService:
             summary=summary,
             details=details,
         )
-        return {"ok": True, "summary": summary}
+        return {"ok": True, "summary": summary, "self_verified": self_verified}
 
     def reject(self, kind: str, item_id: int, *, member: str, note: str) -> dict:
         note = _clean(note)

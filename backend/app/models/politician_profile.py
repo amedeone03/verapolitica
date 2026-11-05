@@ -76,11 +76,44 @@ class DatePrecision(StrEnum):
 
 
 class ProceedingType(StrEnum):
+    # Against the politician directly.
     JUDICIAL_PROCEEDING = "judicial_proceeding"
     INVESTIGATION = "investigation"
+    # Controversies: public matters that do not put the politician under investigation.
     POLITICAL_CONTROVERSY = "political_controversy"
     LEGAL_CONTROVERSY = "legal_controversy"
     MEDIA_CONTROVERSY = "media_controversy"
+    # An investigation or trial of someone close (a relative, a collaborator), not of the politician.
+    RELATED_INVESTIGATION = "related_investigation"
+
+
+class ProceedingCategory(StrEnum):
+    """Two public boxes on the scheda: what concerns the politician in court, and the rest."""
+
+    PROCEEDING = "proceeding"
+    CONTROVERSY = "controversy"
+
+
+PROCEEDING_CATEGORY_TYPES = {
+    ProceedingCategory.PROCEEDING: frozenset({ProceedingType.JUDICIAL_PROCEEDING, ProceedingType.INVESTIGATION}),
+    ProceedingCategory.CONTROVERSY: frozenset(
+        {
+            ProceedingType.POLITICAL_CONTROVERSY,
+            ProceedingType.LEGAL_CONTROVERSY,
+            ProceedingType.MEDIA_CONTROVERSY,
+            ProceedingType.RELATED_INVESTIGATION,
+        }
+    ),
+}
+
+
+def proceeding_category_for(types) -> "ProceedingCategory":
+    """Old rows: a matter is a proceeding when any type concerns the politician in court."""
+
+    values = {ProceedingType(item) for item in (types or [])}
+    if values & PROCEEDING_CATEGORY_TYPES[ProceedingCategory.PROCEEDING]:
+        return ProceedingCategory.PROCEEDING
+    return ProceedingCategory.CONTROVERSY if values else ProceedingCategory.PROCEEDING
 
 
 class ProceedingOutcome(StrEnum):
@@ -211,6 +244,9 @@ class PoliticianProceeding(Base, _ProfileContentMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(500))
+    category: Mapped[str] = mapped_column(
+        String(20), default=ProceedingCategory.PROCEEDING.value, server_default=ProceedingCategory.PROCEEDING.value
+    )
     proceeding_types: Mapped[list[str]] = mapped_column(JSON)
     event_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     event_precision: Mapped[DatePrecision | None] = mapped_column(

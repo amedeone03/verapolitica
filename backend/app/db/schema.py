@@ -70,7 +70,10 @@ def prepare_sqlite_schema(engine: Engine) -> None:
 
 # Columns added to existing tables after a local demo database was built.
 # create_all creates missing tables but never alters existing ones.
-_LATE_SQLITE_COLUMNS = (("editorial_posts", "blocks", "JSON"),)
+_LATE_SQLITE_COLUMNS = (
+    ("editorial_posts", "blocks", "JSON"),
+    ("politician_proceedings", "category", "VARCHAR(20) NOT NULL DEFAULT 'proceeding'"),
+)
 
 
 def _add_missing_sqlite_columns(engine: Engine) -> None:
@@ -83,6 +86,22 @@ def _add_missing_sqlite_columns(engine: Engine) -> None:
             names = {item["name"] for item in inspector.get_columns(table)}
             if column not in names:
                 connection.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
+                if (table, column) == ("politician_proceedings", "category"):
+                    _backfill_proceeding_category(connection)
+
+
+def _backfill_proceeding_category(connection) -> None:
+    """Same rule as the Alembic migration f3a7c9d21b48, for local SQLite demos."""
+
+    import json
+
+    from backend.app.models import proceeding_category_for
+
+    for row_id, types in connection.exec_driver_sql("SELECT id, proceeding_types FROM politician_proceedings").fetchall():
+        values = types if isinstance(types, list) else json.loads(types or "[]")
+        category = proceeding_category_for(values).value
+        if category != "proceeding":
+            connection.exec_driver_sql("UPDATE politician_proceedings SET category = ? WHERE id = ?", (category, row_id))
 
 
 def prepare_runtime_schema(engine: Engine, settings: Settings) -> None:

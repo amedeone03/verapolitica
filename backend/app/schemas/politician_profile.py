@@ -5,6 +5,7 @@ from pydantic import AnyHttpUrl, Field, field_validator
 
 from backend.app.models.politician_profile import (
     DatePrecision,
+    ProceedingCategory,
     ProceedingOutcome,
     ProceedingType,
     ProfileContentKind,
@@ -103,6 +104,8 @@ class PositionDraftInput(ImmutableSchema):
 class ProceedingDraftInput(ImmutableSchema):
     identity_key: str = Field(min_length=1, max_length=120)
     title: str = Field(min_length=1, max_length=500)
+    # None: derived from the types (anything in court concerning the politician is a proceeding).
+    category: ProceedingCategory | None = None
     proceeding_types: tuple[ProceedingType, ...] = Field(min_length=1)
     event_date: date | None = None
     event_precision: DatePrecision | None = None
@@ -152,6 +155,7 @@ class PublicPosition(ImmutableSchema):
 
 class PublicProceeding(ImmutableSchema):
     title: str
+    category: ProceedingCategory = ProceedingCategory.PROCEEDING
     proceeding_types: tuple[ProceedingType, ...]
     event_date: date | None
     event_precision: DatePrecision | None

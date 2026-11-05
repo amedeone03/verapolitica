@@ -112,6 +112,10 @@ class Settings(BaseSettings):
     # Redazione members: "Nome Cognome=token;Nome Cognome=token". Each member
     # signs in with their own token, so the log knows who wrote and who verified.
     redazione_members: SecretStr | None = None
+    # Capi squadra: member names, separated by ';' or ','. They may verify and
+    # publish what they write themselves (logged as such). Pledge verdicts still
+    # need a second person.
+    redazione_leads: str | None = None
     # Signs citizen session cookies. Required in production; a local fallback
     # is used only outside production when this is blank.
     session_secret: SecretStr | None = None
@@ -262,6 +266,17 @@ class Settings(BaseSettings):
         if not members and not self.is_production and self.demo_ui_enabled:
             return dict(DEMO_REDAZIONE_MEMBERS)
         return members
+
+    @property
+    def redazione_lead_names(self) -> frozenset[str]:
+        """Member names allowed to verify their own work. Only names that are members count."""
+
+        names = set(self.redazione_member_tokens.values())
+        raw = self.redazione_leads or ""
+        if not raw.strip() and names == set(DEMO_REDAZIONE_MEMBERS.values()):
+            return frozenset({"Caporedattore demo"})
+        wanted = {part.strip() for part in raw.replace(",", ";").split(";") if part.strip()}
+        return frozenset(wanted & names)
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
