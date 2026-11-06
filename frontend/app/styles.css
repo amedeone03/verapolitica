@@ -828,7 +828,7 @@ a, button, select, summary, label { touch-action: manipulation; }
 .feed-zone { margin: 0 auto var(--space-1); color: var(--color-text-muted); font-size: .8125rem; text-align: center; }
 .feed-zone a { color: var(--color-primary); font-weight: 600; text-underline-offset: 3px; }
 .feed-zone:empty { display: none; }
-.feed-timeline { display: grid; gap: 0; border-top: 1px solid var(--color-border); transition: opacity 150ms ease; }
+.feed-timeline { display: grid; gap: 12px; transition: opacity 150ms ease; }
 .feed-timeline[aria-busy="true"] { opacity: .45; }
 .feed-more { display: block; margin: var(--space-5) auto 0; }
 .post-card { max-width: 720px; margin: 0 auto var(--space-5); }
@@ -897,6 +897,7 @@ h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
    clip-path tabs) instead of two colour fades crossing each other. */
 .feed-segments {
   --seg-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --seg-move: cubic-bezier(0.77, 0, 0.175, 1);
   position: relative; display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); padding: 3px;
   border-radius: 999px; background: #EBF0EE;
 }
@@ -912,15 +913,16 @@ h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
   position: absolute; inset: 3px; z-index: 1; display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
   pointer-events: none; color: var(--color-primary);
   clip-path: inset(0 calc((var(--n, 4) - 1 - var(--a, 0)) * 100% / var(--n, 4)) 0 calc(var(--a, 0) * 100% / var(--n, 4)) round 999px);
-  transition: clip-path 240ms var(--seg-ease);
+  transition: clip-path 250ms var(--seg-move);
 }
 .feed-segments-active > span { background: #fff; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(15, 39, 71, .06); }
 @media (max-width: 400px) { .feed-segments button, .feed-segments-active > span { font-size: .8125rem; padding: 0 2px; } }
 @media (prefers-reduced-motion: reduce) { .feed-segments button:active { transform: none; } .feed-segments-active { transition: none; } }
 
 /* Loading: the shape of the timeline, not a spinner. */
-.feed-skeleton { display: grid; border-top: 1px solid var(--color-border); }
-.skeleton-item { display: grid; gap: 10px; padding: 20px 0 22px; border-bottom: 1px solid var(--color-border); }
+.feed-skeleton { display: grid; gap: 12px; }
+.skeleton-item { display: grid; gap: 10px; padding: 0 16px 20px; overflow: hidden; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); }
+.skeleton-item::before { content: ""; height: 38px; margin: 0 -16px 4px; background: #E8EEEB; }
 .sk-line { display: block; height: 12px; width: 100%; border-radius: 6px; background: #E8EEEB; animation: sk-pulse 1.4s ease-in-out infinite; }
 .sk-line.is-meta { width: 38%; height: 10px; }
 .sk-line.is-title { width: 82%; height: 18px; }
@@ -943,9 +945,8 @@ h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
 .tab-count { color: var(--color-text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .tab-count:empty { display: none; }
 .profile-panel:focus-visible { outline: none; }
-.profile-repost-label { display: flex; align-items: center; gap: 6px; margin: 0; padding: 14px 0 0; color: var(--color-text-muted); font-size: .8125rem; font-weight: 600; }
-.profile-repost-label + .vp-card { padding-top: 8px; }
-.profile-missing { margin: 0; padding: 16px 0; border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); font-size: .875rem; }
+.profile-repost-label { display: flex; align-items: center; gap: 6px; margin: 4px 0 -6px; padding: 0 4px; color: var(--color-text-muted); font-size: .8125rem; font-weight: 600; }
+.profile-missing { margin: 0; padding: 16px; border: 1px dashed var(--color-border); border-radius: 14px; color: var(--color-text-muted); font-size: .875rem; }
 .profile-empty { display: grid; justify-items: center; gap: 6px; padding: var(--space-8) var(--space-4); text-align: center; }
 .profile-empty strong { font-size: 1.0625rem; color: var(--color-primary); }
 .profile-empty p { margin: 0 0 var(--space-3); max-width: 32ch; color: var(--color-text-muted); font-size: .9375rem; }

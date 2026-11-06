@@ -1,8 +1,9 @@
 /* VeraPolitica — feed card (shared by /app and /redazione). Cambridge Classic tokens,
    with fallbacks so the file also works where the tokens are not defined.
 
-   A timeline item, not a boxed widget: kind · place · date on one quiet line, the
-   people, the title, the summary, then one row of actions. Motion follows Emil
+   A white box with one coloured band that names the kind of news (navy for
+   laws and news, red for referendums, green for promises, ink for votes), then
+   the people, the title, the summary and one row of actions. Motion follows Emil
    Kowalski's rules: transform and opacity only, ease-out under 300ms, exits faster
    than entries, no animation on keyboard actions, gentler (not zero) when the
    reader asks for reduced motion. */
@@ -20,22 +21,30 @@
   --vp-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --vp-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   position: relative;
-  padding: 18px 0 10px;
-  border-bottom: 1px solid var(--vp-line);
+  overflow: clip;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--vp-line);
+  border-radius: 14px;
   color: var(--vp-text);
   font-family: var(--font-body, "Inter", system-ui, sans-serif);
 }
 .vp-card.tone-ink { --vp-tone: var(--vp-ink); }
 .vp-card.tone-red { --vp-tone: var(--vp-red); }
 .vp-card.tone-green { --vp-tone: var(--vp-green); }
-.vp-card.is-preview { padding: 16px 16px 8px; border: 1px solid var(--vp-line); border-radius: 12px; background: var(--color-surface, #fff); }
 .vp-icon { flex: none; }
 
-/* Kind · place · date */
-.vp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0 0 10px; color: var(--vp-muted); font-size: .8125rem; font-weight: 500; line-height: 1.3; }
-.vp-kind { display: inline-flex; align-items: center; gap: 5px; color: var(--vp-tone); font-weight: 700; }
-.vp-dot { color: var(--color-border-strong, #A8B8B5); }
-.vp-date { font-variant-numeric: tabular-nums; }
+/* The band: kind of news on the left, date on the right. */
+.vp-band {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 38px; padding: 8px 16px; background: var(--vp-tone); color: #fff;
+  font-size: .8125rem; font-weight: 600; line-height: 1.25;
+}
+.vp-kind { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.vp-kind > span { overflow-wrap: anywhere; }
+.vp-date { flex: none; color: rgba(255, 255, 255, .82); font-weight: 500; font-variant-numeric: tabular-nums; }
+.vp-body { padding: 14px 16px 6px; }
+.vp-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 10px; color: var(--vp-muted); font-size: .8125rem; font-weight: 500; }
+.vp-place { min-width: 0; overflow-wrap: anywhere; }
 .vp-badge { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--vp-soft); color: var(--vp-text); font-size: .75rem; font-weight: 700; }
 .vp-badge.badge-navy { background: #E3ECF6; color: var(--vp-navy); }
 .vp-badge.badge-green { background: #E3F1E9; color: var(--vp-green); }
@@ -103,7 +112,7 @@
 .vp-sources a { color: var(--vp-navy); text-underline-offset: 3px; display: inline-flex; align-items: center; gap: 4px; }
 
 /* One row of actions. */
-.vp-actions { display: flex; align-items: center; gap: 2px; margin: 10px -8px 0; }
+.vp-actions { display: flex; align-items: center; gap: 2px; margin: 10px -8px 0; padding-top: 6px; border-top: 1px solid var(--vp-line); }
 .vp-actions-spacer { flex: 1 1 auto; }
 .vp-action {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 40px; min-height: 40px; padding: 0 8px;
@@ -122,7 +131,7 @@
 .vp-action.vp-save[aria-pressed="true"] { color: var(--vp-navy); }
 .vp-action.vp-repost[aria-pressed="true"] { color: var(--vp-green); }
 .vp-action.is-done { color: var(--vp-green); }
-.vp-repost.is-turning .vp-icon { animation: vp-turn 320ms var(--vp-ease-in-out); }
+.vp-repost.is-turning .vp-icon { animation: vp-turn 260ms var(--vp-ease-in-out); }
 @keyframes vp-turn { from { transform: rotate(-180deg); } to { transform: rotate(0); } }
 @media (max-width: 359px) { .vp-text-action > span:not(.vp-count) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 
@@ -132,8 +141,8 @@
 .vp-react[aria-pressed="true"] { color: var(--vp-ink); }
 .vp-react-heart { display: inline-grid; }
 .vp-react-emoji { display: inline-block; font-size: 1.25rem; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
-.vp-react-emoji.is-popping { animation: vp-pop 300ms cubic-bezier(0.34, 1.4, 0.64, 1); }
-@keyframes vp-pop { from { transform: scale(.7); } to { transform: scale(1); } }
+.vp-react-emoji.is-popping { animation: vp-pop 200ms var(--vp-ease-out); }
+@keyframes vp-pop { from { transform: scale(.85); opacity: .6; } to { transform: scale(1); opacity: 1; } }
 .vp-react-count { min-width: 1ch; }
 
 .vp-picker {
@@ -153,7 +162,7 @@
   border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
   opacity: 0; transform: translateY(8px) scale(.8);
   transition: transform 200ms var(--vp-ease-out), opacity 160ms ease-out, background-color 150ms ease;
-  transition-delay: calc(var(--i, 0) * 30ms);
+  transition-delay: var(--vp-delay, 0ms);
 }
 .vp-picker.is-open .vp-picker-item { opacity: 1; transform: none; }
 .vp-picker-emoji { font-size: 1.75rem; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; transition: transform 150ms var(--vp-ease-out); }
@@ -163,15 +172,15 @@
 .vp-picker-count { position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); color: var(--vp-muted); font-size: .625rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .vp-picker-item:active .vp-picker-emoji { transform: scale(.9); }
 
-.vp-byline { margin: 2px 0 0; color: var(--vp-muted); font-size: .75rem; font-weight: 500; }
-
 .vp-card :focus-visible { outline: 3px solid var(--vp-navy); outline-offset: 2px; }
 
-/* Cards that arrive in the list cascade in once: decorative, never blocks a tap. */
-.vp-card[style*="--i"] { animation: vp-enter 280ms var(--vp-ease-out) both; animation-delay: calc(var(--i) * 40ms); }
-@keyframes vp-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* First open of the feed in a session: the first three cards arrive as one wave
+   (lead 0ms/10px, then 60ms and 100ms/6px). Never on tab switches or "Carica altri". */
+.vp-card.is-entering { animation: vp-enter 260ms var(--vp-ease-out) both; animation-delay: var(--vp-delay, 0ms); }
+@keyframes vp-enter { from { opacity: 0; transform: translateY(var(--vp-rise, 6px)); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 600px) {
+  .vp-band, .vp-body { padding-left: 14px; padding-right: 14px; }
   .vp-title { font-size: 1.125rem; }
   .vp-card.is-feature .vp-title { font-size: 1.25rem; }
   .vp-step-name { font-size: .6875rem; }
@@ -179,7 +188,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vp-action:active, .vp-picker-item:active .vp-picker-emoji { transform: none; }
-  .vp-card[style*="--i"] { animation: vp-fade 200ms ease both; animation-delay: 0ms; }
+  .vp-card.is-entering { animation: vp-fade 200ms ease both; animation-delay: 0ms; }
   .vp-picker, .vp-picker.is-leaving, .vp-picker-item { transform: none; transition: opacity 150ms ease; transition-delay: 0ms; }
   .vp-picker-item.is-hover .vp-picker-emoji, .vp-picker-item:hover .vp-picker-emoji { transform: none; }
   .vp-react-emoji.is-popping, .vp-repost.is-turning .vp-icon { animation: none; }

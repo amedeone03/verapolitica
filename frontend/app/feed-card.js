@@ -1,7 +1,8 @@
 // VeraPolitica — feed card, shared by the public feed (/app) and the
 // redazione console preview (/redazione). One function, same markup.
 //
-//   Kind · place · date                         [badge]
+//   [■ Kind (tone band)                       date]
+//   place                                       [badge]
 //   (o) Name     (o) Name        round image + party or role
 //   Institution
 //   Title
@@ -9,7 +10,6 @@
 //   [iter: 4 steps]  status · since
 //   [coverage]
 //   ♡ 12   ⟲   Fonti 3   Chiedi              [save] [share]
-//   Redattore · Verificatore
 //
 // Reactions: tap the heart; press and hold (or ArrowUp on the keyboard) for
 // ❤️ 😡 🎉 😢. Drawn with the system emoji, so on iPhone and Mac they are Apple's.
@@ -157,7 +157,14 @@ function reactionInner(mine, total) {
   const icon = mine && REACTION[mine]
     ? `<span class="vp-react-emoji" aria-hidden="true">${REACTION[mine].emoji}</span>`
     : `<span class="vp-react-heart">${cardIcon("heart", 20)}</span>`;
-  return `${icon}<span class="vp-react-count"${total ? "" : " hidden"}>${total || ""}</span>`;
+  return `${icon}<span class="vp-react-count"${total ? "" : " hidden"}>${total ? compactCount(total) : ""}</span>`;
+}
+
+// 9 · 999 · 1.284 → "1,3 mila": counts never push the action row off one line.
+const COUNT = typeof Intl !== "undefined" ? new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 }) : null;
+export function compactCount(value) {
+  const n = Number(value) || 0;
+  return n < 1000 || !COUNT ? String(n) : COUNT.format(n).replace(/\s/g, "\u00a0");
 }
 
 function reactionLabel(mine, total) {
@@ -195,17 +202,17 @@ export function renderFeedCard(item, options = {}) {
   // "Dalla redazione" is every post: only a badge that says something is shown.
   const showBadge = badge.label && !(badge.tone === "plain" && badge.label === "Dalla redazione");
   const place = card.aside || item.place;
-  const byline = item.written_by
-    ? `<p class="vp-byline">Scritto da ${esc(item.written_by)}${item.verified_by ? ` · verificato da ${esc(item.verified_by)}` : ""}</p>`
-    : "";
-  const style = Number.isInteger(options.index) ? ` style="--i:${Math.min(options.index, 8)}"` : "";
-  return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}${options.preview ? " is-preview" : ""}" data-card="${esc(key)}"${style}>
-    <header class="vp-meta">
-      <span class="vp-kind">${cardIcon(CATEGORY_ICON[card.category] || "news", 14)}${esc(card.category_label || "Notizia")}</span>
-      ${place ? `<span class="vp-dot" aria-hidden="true">·</span><span class="vp-place">${esc(place)}</span>` : ""}
-      ${date ? `<span class="vp-dot" aria-hidden="true">·</span><time class="vp-date" datetime="${esc(String(badge.date || item.occurred_on || "").slice(0, 10))}">${esc(date)}</time>` : ""}
-      ${showBadge ? `<span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}</span>` : ""}
+  // Entrance (choreograph): only the first three cards, lead first, gaps shrinking (0, 60, 100ms).
+  const ENTER = [[0, 10], [60, 6], [100, 6]];
+  const enter = Number.isInteger(options.index) && options.index < ENTER.length ? ENTER[options.index] : null;
+  const style = enter ? ` style="--vp-delay:${enter[0]}ms;--vp-rise:${enter[1]}px"` : "";
+  return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}${options.preview ? " is-preview" : ""}${enter ? " is-entering" : ""}" data-card="${esc(key)}"${style}>
+    <header class="vp-band">
+      <span class="vp-kind">${cardIcon(CATEGORY_ICON[card.category] || "news", 15)}<span>${esc(card.category_label || "Notizia")}</span></span>
+      ${date ? `<time class="vp-date" datetime="${esc(String(badge.date || item.occurred_on || "").slice(0, 10))}">${esc(date)}</time>` : ""}
     </header>
+    <div class="vp-body">
+    ${place || showBadge ? `<p class="vp-sub">${place ? `<span class="vp-place">${esc(place)}</span>` : ""}${showBadge ? `<span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}</span>` : ""}</p>` : ""}
     ${people.length ? `<ul class="vp-people">${people.map((person) => {
       const name = displayPersonName(person.name);
       return `<li>${avatar({ ...person, name }, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(name)}</a>` : `<strong>${esc(name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`;
@@ -230,7 +237,7 @@ export function renderFeedCard(item, options = {}) {
       <button type="button" class="vp-action vp-save" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Salvata nel profilo: togli" : "Salva nel profilo"}">${cardIcon("bookmark", 20, options.saved)}</button>
       <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Invia">${cardIcon("share", 20)}</button>
     </footer>
-    ${byline}
+    </div>
   </article>`;
 }
 
@@ -312,7 +319,7 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
     root.setAttribute("role", "menu");
     root.setAttribute("aria-label", "Reazioni");
     if (keyboard) root.dataset.keyboard = "1";
-    root.innerHTML = REACTIONS.map((item, index) => `<button type="button" role="menuitemradio" aria-checked="${mine === item.code}" class="vp-picker-item${mine === item.code ? " is-mine" : ""}" data-react-code="${item.code}" style="--i:${index}" aria-label="${esc(item.label)}${counts[item.code] ? `, ${counts[item.code]}` : ""}"><span class="vp-picker-emoji" aria-hidden="true">${item.emoji}</span><span class="vp-picker-count" aria-hidden="true">${counts[item.code] || ""}</span></button>`).join("");
+    root.innerHTML = REACTIONS.map((item, index) => `<button type="button" role="menuitemradio" aria-checked="${mine === item.code}" class="vp-picker-item${mine === item.code ? " is-mine" : ""}" data-react-code="${item.code}" style="--vp-delay:${[0, 25, 45, 60][index]}ms" aria-label="${esc(item.label)}${counts[item.code] ? `, ${counts[item.code]}` : ""}"><span class="vp-picker-emoji" aria-hidden="true">${item.emoji}</span><span class="vp-picker-count" aria-hidden="true">${counts[item.code] ? compactCount(counts[item.code]) : ""}</span></button>`).join("");
     button.parentElement.appendChild(root);
     button.setAttribute("aria-expanded", "true");
     picker = { root, button };

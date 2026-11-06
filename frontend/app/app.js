@@ -3234,6 +3234,16 @@ export function toggleSavedPost(profile, url, title) {
   return { ...profile, saved: exists ? saved.filter((item) => item.url !== url) : [{ url, title, at: todayIso() }, ...saved].slice(0, 50) };
 }
 
+// The feed's entrance wave plays once per session: the feed is opened many times a day.
+const FEED_ENTERED_KEY = "verapolitica.feed-entered.v1";
+function firstFeedOpen() {
+  try {
+    if (globalThis.sessionStorage?.getItem(FEED_ENTERED_KEY)) return false;
+    globalThis.sessionStorage?.setItem(FEED_ENTERED_KEY, "1");
+  } catch { /* private mode: animate */ }
+  return true;
+}
+
 // Re-share a post into the reader's own profile (newest first).
 export function toggleSharedPost(profile, url, title) {
   const shared = profile.shared || [];
@@ -3340,7 +3350,7 @@ async function showHome(api) {
     showState(status, title, detail);
     if (action) status.querySelector("div")?.insertAdjacentHTML("beforeend", action);
   };
-  const load = async (append, { animate = true } = {}) => {
+  const load = async (append, { animate = false } = {}) => {
     zoneLine();
     const territory = zoneFor();
     if (!territory) {
@@ -3388,10 +3398,10 @@ async function showHome(api) {
     offset = 0;
     forYouFallback = false;
     // Switching is frequent: the list swaps without the cascade.
-    load(false, { animate: false });
+    load(false);
   });
   more.addEventListener("click", () => load(true));
-  await load(false);
+  await load(false, { animate: firstFeedOpen() });
 }
 
 const NEWS_SECTIONS = [
@@ -4037,7 +4047,7 @@ async function renderProfileList(api, kind) {
     if (!item) return `<p class="profile-missing">${escapeHtml(entry.title || "Notizia")} non è più disponibile.</p>`;
     const when = entry.at ? ` il ${escapeHtml(formatDate(entry.at))}` : "";
     const label = kind === "shared" ? `<p class="profile-repost-label">${icon("repost", { size: 14 })}Hai ricondiviso${when}</p>` : "";
-    return `${label}${renderFeedTimelineItem(item, profile, index)}`;
+    return `${label}${renderFeedTimelineItem(item, profile)}`;
   }).join("");
   target.removeAttribute("aria-busy");
   loadReactions(api, target);

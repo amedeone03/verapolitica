@@ -39,3 +39,17 @@ def test_motion_is_short_and_respects_reduced_motion():
     assert "@media (hover: hover) and (pointer: fine)" in css
     # Segmented control: a clipped copy of the labels slides, Kowalski's tab technique.
     assert ".feed-segments-active" in styles and "clip-path: inset(0 calc(" in styles
+
+
+def test_category_band_and_session_entrance():
+    card = (APP / "feed-card.js").read_text(encoding="utf-8")
+    css = (APP / "feed-card.css").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    # One coloured band per kind of news, coloured by the redazione's tone.
+    assert '<header class="vp-band">' in card
+    for tone in ("tone-ink", "tone-red", "tone-green"):
+        assert f".vp-card.{tone}" in css
+    # Entrance: three cards, non-uniform delays, once per session, never on tab switches.
+    assert "const ENTER = [[0, 10], [60, 6], [100, 6]];" in card
+    assert "load(false, { animate: firstFeedOpen() })" in script
+
