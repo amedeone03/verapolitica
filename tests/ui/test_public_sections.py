@@ -234,3 +234,26 @@ def test_politica_opens_with_regioni_camera_senato():
     assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
     assert 'getParliament: () => request("/parliament/composition")' in script
     assert 'getRegionsOverview: () => request("/territories/regions")' in script
+
+
+def test_redazione_corrections_reach_the_politica_page():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    assert 'getPoliticsEdits: () => request("/parliament/edits")' in script
+    # Governo: hide, change party/row/title, add people; texts and captions replaced.
+    assert "export async function applyGovernmentEdits(people, edits, loadPerson)" in script
+    assert "if (person.edited_tier !== undefined" in script and "if (person.edited_role) return person.edited_role;" in script
+    assert 'texts["text:regions_caption"]' in script and 'live["text:government_note"]' in script
+    # A corrected value says so, in words.
+    assert script.count("editedMark(") >= 4
+
+
+def test_redazione_has_a_politica_attuale_page():
+    console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    html = (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
+    assert 'href="#/politica" data-section="politica"' in html and "Politica attuale" in html
+    assert 'else if (section === "politica") await showPoliticaAttuale(' in console
+    for tab in ("governo", "regioni", "parlamento", "testi"):
+        assert f'["{tab}",' in console
+    # Each row keeps the official value beside the correction, and can go back to it.
+    assert "Dati ufficiali:" in console and "Torna al dato ufficiale" in console
+    assert 'if (item.kind === "politica")' in console

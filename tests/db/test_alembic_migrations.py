@@ -27,6 +27,7 @@ ALEMBIC_CHAIN = (
     "a1f6c9d27e48",
     "f3a7c9d21b48",
     "b4e1d7c93a52",
+    "c6f2a8e15d34",
 )
 
 

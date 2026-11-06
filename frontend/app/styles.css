@@ -1540,7 +1540,8 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .quadro-initials { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, #fff); box-shadow: inset 0 0 0 2px var(--c); color: var(--color-primary); font-size: .6875rem; font-weight: 800; }
 .quadro-next { color: var(--color-text-muted); font-size: .8125rem; }
 .muted-note { color: var(--color-text-muted); font-size: .8125rem; }
-.quadro-group-row a { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--color-border); color: var(--color-text); text-decoration: none; transition: opacity 150ms ease; }
+.quadro-group-row { border-bottom: 1px solid var(--color-border); }
+.quadro-group-row .quadro-group-link { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 4px; color: var(--color-text); text-decoration: none; transition: opacity 150ms ease; }
 @media (hover: hover) and (pointer: fine) { .quadro-group-row a:hover { background: var(--color-background); } }
 .quadro-group-name { display: grid; min-width: 0; }
 .quadro-group-name strong { color: var(--color-primary); font-size: .9375rem; overflow-wrap: anywhere; }
@@ -1551,3 +1552,9 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .quadro-panel .is-dim { opacity: .25; }
 @media (prefers-reduced-motion: reduce) { .quadro-panel.is-swapping { animation: none; } }
 .quadro-hemicycle.is-regions { max-width: 460px; }
+
+/* A value corrected by the redazione: said in words, the reason on hover/long-press. */
+.edited-mark { display: inline-block; margin-top: 2px; font-size: 0.72rem; font-weight: 600; color: #2F6B4F; letter-spacing: 0.01em; }
+.quadro-row-body .edited-mark { margin-left: auto; }
+.quadro-group-row .edited-mark { display: block; padding: 0 4px 8px 26px; margin-top: -4px; }
+.gov-who .edited-mark { display: block; }

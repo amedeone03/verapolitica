@@ -231,3 +231,27 @@ Sezione **Partiti e territori** della console (`#/simboli`):
 - **Partiti del Governo e dell'opposizione**: `scripts\seed_government_parties.cmd` inserisce Fratelli d'Italia, Lega per Salvini Premier, Forza Italia, Noi Moderati, Partito Democratico, Movimento 5 Stelle e Alleanza Verdi e Sinistra (dati Wikidata: nome, sigla, sito, logo). AVS è un'alleanza elettorale, non solo un partito Q7278. Passano dal flusso normale (proposta «Sincronizzazione Wikidata», approvazione «Direzione VeraPolitica»), quindi compaiono nel registro e in Registrati. Un logo senza licenza libera su Commons non viene scaricato: la redazione carica il file ufficiale dalla console.
 - **Modifiche**: ogni partito ha «Modifica» (nome, sigla, sito, rimozione del logo, con il motivo) e «Sostituisci logo». Le modifiche si applicano quando le approva un'altra persona.
 - **Dove compaiono**: chip dei partiti e delle zone nella registrazione, riepilogo «La tua scheda», card del feed (accanto al partito della persona e nella riga «Anche»), composer della card in console, Profilo. I partiti seguiti dal lettore si riallineano all'elenco della redazione a ogni apertura (nome, sigla, logo; un partito rimosso sparisce).
+
+## Politica attuale
+
+Console page `#/politica` (tabs Governo · Regioni · Camera e Senato · Testi):
+every item the citizen sees in Politica, with the **official value always
+shown under the correction**.
+
+| Key | What it changes |
+|---|---|
+| `government:{politician_id}` | party shown, row in the chart (`tier` 0–4), title shown, hidden; a politician not in the official Government is added this way |
+| `region:{id}` | coalition, president shown (and their scheda), next election — wins over the regional scheda |
+| `chamber:{camera\|senato}:group:{id}` | name, abbreviation, seats, hidden |
+| `chamber:{c}:extra:{slug}` | a group not in the official data |
+| `text:{government_note\|regions_caption\|camera_caption\|senato_caption}` | the notes under the charts |
+
+Every correction needs a **reason** and (except texts) a **source**; it is a
+new version that the admin publishes (the admin publishes their own). «Torna
+al dato ufficiale» publishes a version that removes the correction. Table
+`politics_edits` (migration `c6f2a8e15d34`). Public: `GET
+/parliament/edits` (live corrections, used for Governo and texts); regions and
+chambers are corrected server-side in `/territories/regions` and
+`/parliament/composition`, which keep the official value under `official`.
+The site marks each corrected item «Aggiornato dalla redazione», with the
+reason on hover.

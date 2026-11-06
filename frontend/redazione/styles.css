@@ -538,3 +538,15 @@ details.block-help[open] > summary { margin-bottom: 8px; }
 .row-edit { display: grid; gap: 8px; padding: 8px; background: var(--color-background); border-radius: var(--radius-sm); }
 @media (min-width: 900px) { .row-edit { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) auto; align-items: center; } }
 .row-edit input, .row-edit select { min-height: 38px; }
+
+/* Politica attuale: one row per thing the citizen sees, official value under the correction. */
+.politica-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.politica-row { padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.politica-row.is-edited { border-left: 4px solid #2F6B4F; }
+.politica-row-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 16px; }
+.politica-row-head p { margin: 2px 0 0; }
+.politica-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.politica-row .writer { margin-top: 8px; }
+.add-row { margin: 12px 0; }
+.pa-results { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; padding: 0; list-style: none; }
+.politica-panel .card + .card { margin-top: 12px; }

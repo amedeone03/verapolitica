@@ -128,6 +128,7 @@ from backend.app.services.public_politician_service import PublicPoliticianQuery
 from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
 from backend.app.services.redazione.territory import TerritoryError, TerritorySchede
+from backend.app.services.redazione.politics import PoliticsEditError, PoliticsEdits
 
 
 # --------------------------------------------------------------------- errors
@@ -177,6 +178,7 @@ KIND_LABELS = {
     "symbol": "Logo o stemma",
     "image": "Immagine",
     "territory": "Scheda di un territorio",
+    "politica": "Politica attuale",
 }
 VERDICT_LABELS = {
     "kept": "Mantenuta",
@@ -280,6 +282,7 @@ class RedazioneService:
         self.proposal_review = ProposalReviewService(session_factory)
         self.editorial = EditorialService(session_factory, clock=clock)
         self.territories = TerritorySchede(session_factory)
+        self.politics = PoliticsEdits(session_factory)
 
     # ------------------------------------------------------------------- log
     def _log(
@@ -1998,6 +2001,20 @@ class RedazioneService:
                 )
                 item["territory"] = block["territory"]
                 items.append(item)
+            for edit in self.politics.pending():
+                item = self._queue_item(
+                    kind="politica",
+                    item_id=edit["id"],
+                    title=edit["title"],
+                    politician_id=int(edit["key"].split(":")[1]) if edit["kind"] == "government" else None,
+                    politician_name=None,
+                    author=edit["created_by"],
+                    created_at=datetime.fromisoformat(edit["created_at"]) if edit["created_at"] else None,
+                    preview=edit,
+                    findings=edit["findings"],
+                    member=member,
+                )
+                items.append(item)
             for change in self._change_requests(session, member=member):
                 items.append(
                     self._queue_item(
@@ -2143,6 +2160,10 @@ class RedazioneService:
                 summary = f"Pubblicata la notizia «{item['title']}»."
             elif kind == "change":
                 summary = self._apply_change(item_id, member=member, note=note)
+            elif kind == "politica":
+                self.politics.publish(item_id, reviewer=member, note=note)
+                summary = f"Pubblicato «{item['title']}»."
+                details["key"] = (item.get("preview") or {}).get("key")
             elif kind == "territory":
                 self.territories.publish(item_id, reviewer=member, note=note)
                 summary = f"Pubblicato «{item['title']}»."
@@ -2157,6 +2178,7 @@ class RedazioneService:
             EditorialConflictError,
             EditorialValidationError,
             TerritoryError,
+            PoliticsEditError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
         if self_verified:
@@ -2201,6 +2223,8 @@ class RedazioneService:
                     row.review_note = note
             elif kind == "territory":
                 self.territories.reject(item_id, reviewer=member, note=note)
+            elif kind == "politica":
+                self.politics.reject(item_id, reviewer=member, note=note)
             else:
                 raise RedazioneNotFound("tipo sconosciuto")
         except (
@@ -2209,6 +2233,7 @@ class RedazioneService:
             PledgeServiceError,
             EditorialConflictError,
             TerritoryError,
+            PoliticsEditError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
         summary = f"Respinto: {item['kind_label']} — {item['title']}. Motivo: {note}"
@@ -2246,6 +2271,29 @@ class RedazioneService:
             politician_id=None,
             summary=f"Nuova versione: {saved['title']}.",
             details={"territory": {"kind": kind, "key": key}, "block": block},
+        )
+        return saved
+
+    # -------------------------------------------------------- politica attuale
+    def politics_console(self, *, member: str) -> dict:
+        data = self.politics.console(member=member)
+        data["can_publish"] = self.can_publish(member)
+        data["admin"] = self.is_lead(member)
+        return data
+
+    def save_politics_edit(self, key: str, payload: dict, *, member: str) -> dict:
+        try:
+            saved = self.politics.restore(key, member=member, reason=str(payload.get("reason") or "")) if payload.get("restore") else self.politics.save(key, payload, member=member)
+        except PoliticsEditError as error:
+            raise (RedazioneNotFound if error.status_code == 404 else RedazioneValidation)(str(error), error.findings) from error
+        self.log(
+            actor=member,
+            action="proposta",
+            object_kind="politica",
+            object_id=saved["id"],
+            politician_id=int(key.split(":")[1]) if key.startswith("government:") else None,
+            summary=f"Nuova versione: {saved['title']}.",
+            details={"key": key, "reason": saved["reason"]},
         )
         return saved
 

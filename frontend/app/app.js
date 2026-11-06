@@ -1896,6 +1896,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getProvinceHistory: (code) => request(`/archive/provinces/${encodeURIComponent(code)}`),
     getTerritory: (kind, key) => request(`/territories/${encodeURIComponent(kind)}/${encodeURIComponent(key)}`),
     getRegionsOverview: () => request("/territories/regions"),
+    getPoliticsEdits: () => request("/parliament/edits"),
     getParliament: () => request("/parliament/composition"),
     getRegionHistory: (id) => request(`/archive/regions/${encodeURIComponent(id)}`),
     listMunicipalitiesInProvince: async (province) => {
@@ -3612,11 +3613,13 @@ export function governmentOfficeRank(office) {
 }
 
 export function governmentRank(person) {
+  if (person.edited_tier !== undefined && person.edited_tier !== null) return person.edited_tier;
   return governmentOfficeRank(cabinetMandate(person)?.office ?? primaryMandate(person)?.office);
 }
 
 // "Ministro della Difesa" → "Difesa"; titles without a portfolio keep their wording.
 export function shortRole(person) {
+  if (person.edited_role) return person.edited_role;
   const mandate = primaryMandate(person);
   if (!mandate) return "";
   const role = mandateRole(mandate, person.profile?.gender);
@@ -3794,14 +3797,14 @@ export function renderRegionsQuadro(overview) {
       <div class="quadro-row-head"><a href="./?region=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong></a>
         <span class="quadro-chip is-${key}" style="--c:${COALITION_COLOR[key]}">${escapeHtml(labels[key])}</span></div>
       <div class="quadro-row-body">${president ? `<span class="quadro-person"><span class="quadro-initials" style="--c:${COALITION_COLOR[key]}" aria-hidden="true">${escapeHtml(president.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase())}</span>${president.politician_id ? `<a href="./?politician=${encodeURIComponent(president.politician_id)}">${escapeHtml(president.name)}</a>` : escapeHtml(president.name)}</span>` : `<span class="muted-note">Presidente non collegato all'anagrafe ufficiale</span>`}
-        ${item.next_election ? `<span class="quadro-next">Prossime elezioni: ${escapeHtml(item.next_election)}</span>` : ""}</div>
+        ${item.next_election ? `<span class="quadro-next">Prossime elezioni: ${escapeHtml(item.next_election)}</span>` : ""}${editedMark(item.edited)}</div>
     </li>`;
   }).join("");
   return `<figure class="quadro-figure">
       <svg class="quadro-hemicycle is-regions" viewBox="0 0 300 ${Math.ceil(layout.height + r + 4)}" role="img" aria-label="Regioni per coalizione del presidente: ${escapeHtml(COALITION_ORDER.filter((key) => counts[key]).map((key) => `${labels[key]} ${counts[key]}`).join(", "))}">${dots}</svg>
       <div class="quadro-bar is-tall" aria-hidden="true">${segments}</div>
       <ul class="quadro-legend">${legend}</ul>
-      <figcaption>Coalizione con cui è stato eletto il presidente, come la registra la redazione dai risultati ufficiali. Tratteggiato: regione ancora da compilare.</figcaption>
+      <figcaption>${escapeHtml(overview.caption || "Coalizione con cui è stato eletto il presidente, come la registra la redazione dai risultati ufficiali. Tratteggiato: regione ancora da compilare.")}</figcaption>
     </figure>
     <ul class="quadro-list">${list}</ul>`;
 }
@@ -3810,10 +3813,11 @@ export function renderChamberQuadro(chamber) {
   if (!chamber?.groups?.length) {
     return `<p class="empty-note">La composizione per gruppi della ${escapeHtml(chamber?.label || "camera")} non è ancora disponibile: compare dopo l'aggiornamento dei dati ufficiali.</p>`;
   }
+  const gid = (group) => (group.id ?? `x-${group.key}`);
   const byName = [...chamber.groups].sort((a, b) => a.name.localeCompare(b.name, "it"));
-  const coloured = new Set([...chamber.groups].slice(0, GROUP_SLOTS.length).map((group) => group.id));
+  const coloured = new Set([...chamber.groups].slice(0, GROUP_SLOTS.length).map(gid));
   let slot = 0;
-  const color = new Map(byName.map((group) => [group.id, coloured.has(group.id) ? GROUP_SLOTS[slot++] : "#7D8E8B"]));
+  const color = new Map(byName.map((group) => [gid(group), coloured.has(gid(group)) ? GROUP_SLOTS[slot++] : "#7D8E8B"]));
   const layout = hemicycle(chamber.counted, { width: 400, inner: 0.36 });
   let index = 0;
   const dots = chamber.groups.map((group) => {
@@ -3822,22 +3826,22 @@ export function renderChamberQuadro(chamber) {
       const seat = layout.seats[index++];
       out.push(`<circle cx="${seat.x.toFixed(1)}" cy="${seat.y.toFixed(1)}" r="${layout.radius.toFixed(2)}"></circle>`);
     }
-    return `<g class="quadro-group" data-group="${group.id}" style="--c:${color.get(group.id)}"><title>${escapeHtml(`${group.name}: ${group.seats} seggi`)}</title>${out.join("")}</g>`;
+    return `<g class="quadro-group" data-group="${escapeHtml(gid(group))}" style="--c:${color.get(gid(group))}"><title>${escapeHtml(`${group.name}: ${group.seats} seggi`)}</title>${out.join("")}</g>`;
   }).join("");
   const share = (seats) => `${((seats / chamber.counted) * 100).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
-  const segments = chamber.groups.map((group) => `<span class="quadro-seg" data-group="${group.id}" style="flex-grow:${group.seats};--c:${color.get(group.id)}" title="${escapeHtml(`${group.name}: ${group.seats}`)}"></span>`).join("");
+  const segments = chamber.groups.map((group) => `<span class="quadro-seg" data-group="${escapeHtml(gid(group))}" style="flex-grow:${group.seats};--c:${color.get(gid(group))}" title="${escapeHtml(`${group.name}: ${group.seats}`)}"></span>`).join("");
   const marker = chamber.majority ? `<span class="quadro-majority" style="left:${((chamber.majority / chamber.counted) * 100).toFixed(2)}%" aria-hidden="true"></span>` : "";
-  const rows = chamber.groups.map((group) => `<li class="quadro-group-row" data-group="${group.id}"><a href="./?parliamentary_group=${encodeURIComponent(group.id)}">
-      <span class="quadro-swatch" style="--c:${color.get(group.id)}" aria-hidden="true"></span>
+  const rows = chamber.groups.map((group) => `<li class="quadro-group-row${group.edited ? " is-edited" : ""}" data-group="${escapeHtml(gid(group))}"><${group.id ? `a href="./?parliamentary_group=${encodeURIComponent(group.id)}"` : "div"} class="quadro-group-link">
+      <span class="quadro-swatch" style="--c:${color.get(gid(group))}" aria-hidden="true"></span>
       <span class="quadro-group-name"><strong>${escapeHtml(group.name)}</strong>${group.abbreviation && group.abbreviation !== group.name ? `<small>${escapeHtml(group.abbreviation)}</small>` : ""}</span>
-      <span class="quadro-seats"><b>${group.seats}</b><small>${share(group.seats)}</small></span></a></li>`).join("");
+      <span class="quadro-seats"><b>${group.seats}</b><small>${share(group.seats)}</small></span></${group.id ? "a" : "div"}>${editedMark(group.edited)}</li>`).join("");
   return `<figure class="quadro-figure">
       <svg class="quadro-hemicycle is-seats" viewBox="0 0 400 ${Math.ceil(layout.height + layout.radius + 4)}" role="img" aria-label="${escapeHtml(`${chamber.label}: ${chamber.groups.map((group) => `${group.name} ${group.seats}`).join(", ")}`)}">${dots}
         <text class="quadro-total" x="200" y="${(layout.height - 18).toFixed(0)}" text-anchor="middle">${chamber.counted}</text>
         <text class="quadro-total-label" x="200" y="${(layout.height - 2).toFixed(0)}" text-anchor="middle">seggi</text></svg>
       <div class="quadro-bar" aria-hidden="true">${segments}${marker}</div>
       <p class="quadro-majority-note">${chamber.majority ? `Maggioranza assoluta: <b>${chamber.majority}</b> seggi` : ""}</p>
-      <figcaption>${escapeHtml(chamber.label)}${chamber.legislature ? `, legislatura ${chamber.legislature}` : ""}: ${chamber.counted} seggi su ${chamber.seats_by_law} previsti, dai gruppi parlamentari pubblicati da ${chamber.chamber === "camera" ? "camera.it" : "senato.it"}. Gruppi ordinati per numero di seggi.</figcaption>
+      <figcaption>${chamber.caption ? escapeHtml(chamber.caption) : `${escapeHtml(chamber.label)}${chamber.legislature ? `, legislatura ${chamber.legislature}` : ""}: ${chamber.counted} seggi su ${chamber.seats_by_law} previsti, dai gruppi parlamentari pubblicati da ${chamber.chamber === "camera" ? "camera.it" : "senato.it"}. Gruppi ordinati per numero di seggi.`}</figcaption>
     </figure>
     <ul class="quadro-groups">${rows}</ul>`;
 }
@@ -3846,10 +3850,14 @@ async function renderQuadro(api) {
   const tabs = byId("quadro-tabs");
   const panel = byId("quadro-panel");
   if (!tabs || !panel) return;
-  const [regions, parliament] = await Promise.all([
+  const [regions, parliament, edits] = await Promise.all([
     api.getRegionsOverview().catch(() => null),
     api.getParliament().catch(() => null),
+    (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
   ]);
+  const texts = edits?.items || {};
+  if (regions && texts["text:regions_caption"]?.body) regions.caption = texts["text:regions_caption"].body;
+  for (const name of ["camera", "senato"]) if (parliament?.[name] && texts[`text:${name}_caption`]?.body) parliament[name].caption = texts[`text:${name}_caption`].body;
   const names = ["regioni", "camera", "senato"];
   const render = (name) => {
     if (name === "regioni") return regions?.items?.length ? renderRegionsQuadro(regions) : `<p class="empty-note">Le regioni non sono ancora disponibili.</p>`;
@@ -3947,7 +3955,7 @@ export function renderGovernmentComposition(people) {
         const role = shortRole(person);
         return `<li data-party="${escapeHtml(group.key)}"><a href="./?politician=${encodeURIComponent(person.id)}" style="--c:${group.color}">
           <span class="gov-face">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
-          <span class="gov-who"><strong>${escapeHtml(name)}</strong><small>${escapeHtml([role !== tier.label ? role : "", short(group)].filter(Boolean).join(" · "))}</small></span></a></li>`;
+          <span class="gov-who"><strong>${escapeHtml(name)}</strong><small>${escapeHtml([role !== tier.label ? role : "", short(group)].filter(Boolean).join(" · "))}</small>${editedMark(person.edited)}</span></a></li>`;
       }).join("")}</ul></section>`).join("")}</div>
   </div>`;
 }
@@ -3971,6 +3979,34 @@ export function bindGovernmentComposition(root, cloud) {
   });
 }
 
+// Corrections published by the redazione («Politica attuale»): who is shown,
+// with which party, row and title. People added there are loaded one by one.
+export async function applyGovernmentEdits(people, edits, loadPerson) {
+  const items = edits || {};
+  const byId = new Map(people.map((person) => [String(person.id), person]));
+  const added = Object.keys(items).filter((key) => key.startsWith("government:") && !byId.has(key.slice(11)));
+  const loaded = await Promise.all(added.map((key) => Promise.resolve(loadPerson ? loadPerson(key.slice(11)) : null).catch(() => null)));
+  for (const person of loaded.filter(Boolean)) byId.set(String(person.id), person);
+  const out = [];
+  for (const [id, person] of byId) {
+    const edit = items[`government:${id}`];
+    if (!edit) { out.push(person); continue; }
+    if (edit.hidden) continue;
+    const copy = { ...person, edited: { reason: edit.reason, published_at: edit.published_at } };
+    if (edit.party_name) copy.current_party = { id: `redazione:${edit.party_name}`, name: edit.party_name, abbreviation: edit.party_abbreviation || null };
+    if (edit.tier !== undefined && edit.tier !== null && edit.tier !== "") copy.edited_tier = Number(edit.tier);
+    if (edit.role_label) copy.edited_role = edit.role_label;
+    out.push(copy);
+  }
+  return out;
+}
+
+export function editedMark(edited) {
+  if (!edited) return "";
+  return `<span class="edited-mark" title="${escapeHtml(edited.reason ? `Aggiornato dalla redazione: ${edited.reason}` : "Aggiornato dalla redazione")}">Aggiornato dalla redazione</span>`;
+}
+
+let GOVERNMENT_NOTE_TEXT = null;
 const GOVERNMENT_NOTE = "Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.";
 const FEATURED_NOTE = "Schede verificate dalla redazione, con incarico in corso. Non è un giudizio.";
 
@@ -3981,7 +4017,7 @@ export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {
   cloud.style.height = "";
   if (government.length) {
     if (title) title.textContent = "Governo";
-    if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
+    if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE_TEXT || GOVERNMENT_NOTE; }
     cloud.className = "authority-cloud";
     renderAuthorityCloud(cloud, government);
     const chart = byId("government-chart");
@@ -4049,8 +4085,12 @@ async function showPolitics(api) {
     api.listProposals({ limit: 50 }).catch(() => ({ items: [] })),
     api.listRegions().catch(() => ({ items: [] })),
     loadPortraits(api),
-  ]).then(async ([payload, partiesPayload, proposals, regions]) => {
-    const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
+    (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
+  ]).then(async ([payload, partiesPayload, proposals, regions, , edits]) => {
+    const live = edits?.items || {};
+    if (live["text:government_note"]?.body) GOVERNMENT_NOTE_TEXT = live["text:government_note"].body;
+    const people = await applyGovernmentEdits(payload.items, live, (id) => api.getPolitician(id));
+    const government = people.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
     let featured = [];
     if (!government.length) {

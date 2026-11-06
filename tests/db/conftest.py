@@ -83,6 +83,7 @@ EXPECTED_TABLES = frozenset(
         "civic_accounts",
         "civic_post_reactions",
         "territory_blocks",
+        "politics_edits",
     }
 )
 

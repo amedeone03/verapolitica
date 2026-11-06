@@ -229,6 +229,22 @@ def save_block(
     return _create(service, member, payload, service.save_profile_block, kind, lambda r: r["id"], politician_id, kind)
 
 
+# Politica attuale: corrections to everything the Politica page shows.
+@router.get("/politica")
+def politics_console(member: Member, service: Service) -> Any:
+    return _run(service.politics_console, member=member)
+
+
+@router.post("/politica/{key}")
+def save_politics_edit(
+    key: Annotated[str, Path(pattern=r"^[a-z0-9:_-]{3,120}$")],
+    member: Member,
+    service: Service,
+    payload: Annotated[dict, Body()],
+) -> Any:
+    return _create(service, member, payload, service.save_politics_edit, "politica", lambda r: r["id"], key)
+
+
 # Territory schede: Regione, Provincia, Comune. Same flow as a politician's scheda.
 TerritoryKindPath = Annotated[str, Path(pattern=r"^(region|province|municipality)$")]
 TerritoryKeyPath = Annotated[str, Path(pattern=r"^[A-Za-z0-9]{1,12}$")]

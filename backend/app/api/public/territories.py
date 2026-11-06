@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.api.deps import get_session_factory
+from backend.app.services.redazione.politics import PoliticsEdits, apply_regions
 from backend.app.services.redazione.territory import TerritoryError, TerritorySchede
 
 
@@ -20,7 +21,7 @@ def regions_overview(
     """The twenty regions with their president and coalition, for Politica."""
 
     response.headers["Cache-Control"] = "public, max-age=60"
-    return TerritorySchede(factory).regions_overview()
+    return apply_regions(TerritorySchede(factory).regions_overview(), PoliticsEdits(factory).published())
 
 
 @router.get("/{kind}/{key}")
