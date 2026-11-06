@@ -12,6 +12,17 @@ from backend.app.services.redazione.territory import TerritoryError, TerritorySc
 router = APIRouter(prefix="/territories", tags=["territories"])
 
 
+@router.get("/regions")
+def regions_overview(
+    response: Response,
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> dict[str, Any]:
+    """The twenty regions with their president and coalition, for Politica."""
+
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return TerritorySchede(factory).regions_overview()
+
+
 @router.get("/{kind}/{key}")
 def territory(
     kind: Annotated[str, Path(pattern=r"^(region|province|municipality)$")],

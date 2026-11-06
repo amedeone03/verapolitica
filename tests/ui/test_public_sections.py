@@ -219,3 +219,18 @@ def test_government_chart_shows_the_parties_and_the_ranks():
     assert "String(a.party.name).localeCompare(String(b.party.name)" in script
     assert 'role="img" aria-label="Componenti del Governo per partito' in script
     assert ".gov-bar { display: flex; gap: 2px;" in styles
+
+
+def test_politica_opens_with_regioni_camera_senato():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
+    # Three tabs above the Governo block, one panel.
+    assert view.index('id="quadro-title"') < view.index('id="government-title"')
+    for tab in ("regioni", "camera", "senato"):
+        assert f'data-quadro="{tab}"' in view
+    # Regions are coloured only by the coalition the redazione published; the rest is «Da compilare».
+    assert 'const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];' in script
+    assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
+    assert 'getParliament: () => request("/parliament/composition")' in script
+    assert 'getRegionsOverview: () => request("/territories/regions")' in script

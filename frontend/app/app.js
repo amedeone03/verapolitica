@@ -1895,6 +1895,8 @@ export function createPublicApiClient(fetchImpl = fetch) {
     listProvinces: (regionId = null) => request(`/archive/provinces${regionId ? `?region=${encodeURIComponent(regionId)}` : ""}`),
     getProvinceHistory: (code) => request(`/archive/provinces/${encodeURIComponent(code)}`),
     getTerritory: (kind, key) => request(`/territories/${encodeURIComponent(kind)}/${encodeURIComponent(key)}`),
+    getRegionsOverview: () => request("/territories/regions"),
+    getParliament: () => request("/parliament/composition"),
     getRegionHistory: (id) => request(`/archive/regions/${encodeURIComponent(id)}`),
     listMunicipalitiesInProvince: async (province) => {
       const items = [];
@@ -3730,6 +3732,171 @@ export function renderPersonBubble(person) {
 }
 
 // ---------------------------------------------------------------------------
+// «Il quadro»: Regioni, Camera, Senato as a hemicycle, a summary bar and a list.
+// Regions are coloured by the coalition of their president as the redazione
+// published it (the official results are the source); a region still to be
+// filled in is dashed, never guessed. Seats come from the official group
+// memberships of camera.it and senato.it.
+const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];
+const COALITION_COLOR = { centrosinistra: "#eb6834", altro: "#1baf7a", centrodestra: "#2a78d6", da_compilare: "#7D8E8B" };
+const GROUP_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+
+// Seat positions on concentric arcs, left to right: the classic parliament chart.
+export function hemicycle(count, { rows, inner = 0.45, width = 400 } = {}) {
+  if (!count) return { seats: [], radius: 0 };
+  const lines = rows || (count <= 30 ? 4 : count <= 250 ? 8 : 12);
+  const outer = width / 2 - 12;
+  const radii = Array.from({ length: lines }, (_, index) => outer * (inner + ((1 - inner) * index) / Math.max(1, lines - 1)));
+  const total = radii.reduce((sum, value) => sum + value, 0);
+  const perRow = radii.map((radius) => Math.max(1, Math.round((count * radius) / total)));
+  let diff = count - perRow.reduce((sum, value) => sum + value, 0);
+  for (let index = lines - 1; diff !== 0; index = (index - 1 + lines) % lines) {
+    if (diff > 0) { perRow[index] += 1; diff -= 1; } else if (perRow[index] > 1) { perRow[index] -= 1; diff += 1; }
+  }
+  const seats = [];
+  radii.forEach((radius, row) => {
+    const n = perRow[row];
+    for (let k = 0; k < n; k += 1) {
+      const angle = n === 1 ? Math.PI / 2 : Math.PI * (1 - k / (n - 1));
+      seats.push({ x: width / 2 + radius * Math.cos(angle), y: outer + 12 - radius * Math.sin(angle), angle, row });
+    }
+  });
+  // Left to right, then outer rows first: contiguous groups form wedges.
+  seats.sort((a, b) => b.angle - a.angle || b.row - a.row);
+  const spacing = Math.min(...radii.map((radius, row) => (Math.PI * radius) / Math.max(1, perRow[row] - 1)));
+  const gap = lines > 1 ? radii[1] - radii[0] : outer;
+  return { seats, radius: Math.max(2, Math.min(spacing, gap) * 0.42), height: outer + 12 };
+}
+
+export function renderRegionsQuadro(overview) {
+  const order = (item) => COALITION_ORDER.indexOf(item.coalition || "da_compilare");
+  const items = [...overview.items].sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name, "it"));
+  // Few, large seats: a narrower canvas makes each region a readable disc.
+  const layout = hemicycle(items.length, { width: 300, inner: 0.5, rows: 3 });
+  const r = layout.radius * 1.05;
+  const labels = { ...overview.labels, da_compilare: "Da compilare" };
+  const dots = items.map((item, index) => {
+    const seat = layout.seats[index];
+    const key = item.coalition || "da_compilare";
+    const president = item.president?.name ? ` · ${item.president.name}` : "";
+    return `<a href="./?region=${encodeURIComponent(item.id)}" class="quadro-node is-${key}" data-group="${key}" style="--c:${COALITION_COLOR[key]}">
+      <title>${escapeHtml(`${item.name} · ${labels[key]}${president}`)}</title>
+      <circle cx="${seat.x.toFixed(1)}" cy="${seat.y.toFixed(1)}" r="${r.toFixed(1)}"></circle>
+      <text x="${seat.x.toFixed(1)}" y="${(seat.y + 3.6).toFixed(1)}" text-anchor="middle">${escapeHtml(item.short)}</text></a>`;
+  }).join("");
+  const counts = overview.counts;
+  const segments = COALITION_ORDER.filter((key) => counts[key]).map((key) => `<span class="quadro-seg is-${key}" data-group="${key}" style="flex-grow:${counts[key]};--c:${COALITION_COLOR[key]}" title="${escapeHtml(`${labels[key]}: ${counts[key]}`)}"><b>${counts[key]}</b></span>`).join("");
+  const legend = COALITION_ORDER.filter((key) => counts[key]).map((key) => `<li data-group="${key}"><span class="quadro-swatch is-${key}" style="--c:${COALITION_COLOR[key]}" aria-hidden="true"></span>${escapeHtml(labels[key])} <b>${counts[key]}</b></li>`).join("");
+  const list = [...overview.items].sort((a, b) => a.name.localeCompare(b.name, "it")).map((item) => {
+    const key = item.coalition || "da_compilare";
+    const president = item.president;
+    return `<li class="quadro-row">
+      <div class="quadro-row-head"><a href="./?region=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong></a>
+        <span class="quadro-chip is-${key}" style="--c:${COALITION_COLOR[key]}">${escapeHtml(labels[key])}</span></div>
+      <div class="quadro-row-body">${president ? `<span class="quadro-person"><span class="quadro-initials" style="--c:${COALITION_COLOR[key]}" aria-hidden="true">${escapeHtml(president.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase())}</span>${president.politician_id ? `<a href="./?politician=${encodeURIComponent(president.politician_id)}">${escapeHtml(president.name)}</a>` : escapeHtml(president.name)}</span>` : `<span class="muted-note">Presidente non collegato all'anagrafe ufficiale</span>`}
+        ${item.next_election ? `<span class="quadro-next">Prossime elezioni: ${escapeHtml(item.next_election)}</span>` : ""}</div>
+    </li>`;
+  }).join("");
+  return `<figure class="quadro-figure">
+      <svg class="quadro-hemicycle is-regions" viewBox="0 0 300 ${Math.ceil(layout.height + r + 4)}" role="img" aria-label="Regioni per coalizione del presidente: ${escapeHtml(COALITION_ORDER.filter((key) => counts[key]).map((key) => `${labels[key]} ${counts[key]}`).join(", "))}">${dots}</svg>
+      <div class="quadro-bar is-tall" aria-hidden="true">${segments}</div>
+      <ul class="quadro-legend">${legend}</ul>
+      <figcaption>Coalizione con cui è stato eletto il presidente, come la registra la redazione dai risultati ufficiali. Tratteggiato: regione ancora da compilare.</figcaption>
+    </figure>
+    <ul class="quadro-list">${list}</ul>`;
+}
+
+export function renderChamberQuadro(chamber) {
+  if (!chamber?.groups?.length) {
+    return `<p class="empty-note">La composizione per gruppi della ${escapeHtml(chamber?.label || "camera")} non è ancora disponibile: compare dopo l'aggiornamento dei dati ufficiali.</p>`;
+  }
+  const byName = [...chamber.groups].sort((a, b) => a.name.localeCompare(b.name, "it"));
+  const coloured = new Set([...chamber.groups].slice(0, GROUP_SLOTS.length).map((group) => group.id));
+  let slot = 0;
+  const color = new Map(byName.map((group) => [group.id, coloured.has(group.id) ? GROUP_SLOTS[slot++] : "#7D8E8B"]));
+  const layout = hemicycle(chamber.counted, { width: 400, inner: 0.36 });
+  let index = 0;
+  const dots = chamber.groups.map((group) => {
+    const out = [];
+    for (let k = 0; k < group.seats; k += 1) {
+      const seat = layout.seats[index++];
+      out.push(`<circle cx="${seat.x.toFixed(1)}" cy="${seat.y.toFixed(1)}" r="${layout.radius.toFixed(2)}"></circle>`);
+    }
+    return `<g class="quadro-group" data-group="${group.id}" style="--c:${color.get(group.id)}"><title>${escapeHtml(`${group.name}: ${group.seats} seggi`)}</title>${out.join("")}</g>`;
+  }).join("");
+  const share = (seats) => `${((seats / chamber.counted) * 100).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
+  const segments = chamber.groups.map((group) => `<span class="quadro-seg" data-group="${group.id}" style="flex-grow:${group.seats};--c:${color.get(group.id)}" title="${escapeHtml(`${group.name}: ${group.seats}`)}"></span>`).join("");
+  const marker = chamber.majority ? `<span class="quadro-majority" style="left:${((chamber.majority / chamber.counted) * 100).toFixed(2)}%" aria-hidden="true"></span>` : "";
+  const rows = chamber.groups.map((group) => `<li class="quadro-group-row" data-group="${group.id}"><a href="./?parliamentary_group=${encodeURIComponent(group.id)}">
+      <span class="quadro-swatch" style="--c:${color.get(group.id)}" aria-hidden="true"></span>
+      <span class="quadro-group-name"><strong>${escapeHtml(group.name)}</strong>${group.abbreviation && group.abbreviation !== group.name ? `<small>${escapeHtml(group.abbreviation)}</small>` : ""}</span>
+      <span class="quadro-seats"><b>${group.seats}</b><small>${share(group.seats)}</small></span></a></li>`).join("");
+  return `<figure class="quadro-figure">
+      <svg class="quadro-hemicycle is-seats" viewBox="0 0 400 ${Math.ceil(layout.height + layout.radius + 4)}" role="img" aria-label="${escapeHtml(`${chamber.label}: ${chamber.groups.map((group) => `${group.name} ${group.seats}`).join(", ")}`)}">${dots}
+        <text class="quadro-total" x="200" y="${(layout.height - 18).toFixed(0)}" text-anchor="middle">${chamber.counted}</text>
+        <text class="quadro-total-label" x="200" y="${(layout.height - 2).toFixed(0)}" text-anchor="middle">seggi</text></svg>
+      <div class="quadro-bar" aria-hidden="true">${segments}${marker}</div>
+      <p class="quadro-majority-note">${chamber.majority ? `Maggioranza assoluta: <b>${chamber.majority}</b> seggi` : ""}</p>
+      <figcaption>${escapeHtml(chamber.label)}${chamber.legislature ? `, legislatura ${chamber.legislature}` : ""}: ${chamber.counted} seggi su ${chamber.seats_by_law} previsti, dai gruppi parlamentari pubblicati da ${chamber.chamber === "camera" ? "camera.it" : "senato.it"}. Gruppi ordinati per numero di seggi.</figcaption>
+    </figure>
+    <ul class="quadro-groups">${rows}</ul>`;
+}
+
+async function renderQuadro(api) {
+  const tabs = byId("quadro-tabs");
+  const panel = byId("quadro-panel");
+  if (!tabs || !panel) return;
+  const [regions, parliament] = await Promise.all([
+    api.getRegionsOverview().catch(() => null),
+    api.getParliament().catch(() => null),
+  ]);
+  const names = ["regioni", "camera", "senato"];
+  const render = (name) => {
+    if (name === "regioni") return regions?.items?.length ? renderRegionsQuadro(regions) : `<p class="empty-note">Le regioni non sono ancora disponibili.</p>`;
+    return parliament ? renderChamberQuadro(parliament[name]) : `<p class="empty-note">La composizione del Parlamento non è disponibile al momento.</p>`;
+  };
+  const show = (name, { focus = false } = {}) => {
+    tabs.style.setProperty("--a", String(names.indexOf(name)));
+    for (const button of tabs.querySelectorAll("[data-quadro]")) {
+      const active = button.dataset.quadro === name;
+      button.setAttribute("aria-selected", String(active));
+      button.tabIndex = active ? 0 : -1;
+      if (active && focus) button.focus();
+    }
+    panel.setAttribute("aria-labelledby", `quadro-tab-${name}`);
+    panel.innerHTML = render(name);
+    panel.removeAttribute("aria-busy");
+    // A short fade so the swap does not flash; nothing moves.
+    panel.classList.remove("is-swapping");
+    void panel.offsetWidth;
+    panel.classList.add("is-swapping");
+  };
+  tabs.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-quadro]") : null;
+    if (button) show(button.dataset.quadro);
+  });
+  tabs.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const current = names.indexOf(tabs.querySelector('[aria-selected="true"]').dataset.quadro);
+    show(names[(current + (event.key === "ArrowRight" ? 1 : -1) + names.length) % names.length], { focus: true });
+  });
+  // Pointing at a group (or a legend row) highlights it everywhere in the figure.
+  const focusGroup = (event) => {
+    const target = event.target instanceof Element ? event.target.closest("[data-group]") : null;
+    panel.dataset.focus = target ? target.dataset.group : "";
+    for (const node of panel.querySelectorAll("[data-group]")) node.classList.toggle("is-dim", Boolean(target) && node.dataset.group !== target.dataset.group);
+  };
+  if (typeof matchMedia === "function" && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    panel.addEventListener("pointerover", focusGroup);
+    panel.addEventListener("pointerleave", () => focusGroup({ target: null }));
+  }
+  panel.addEventListener("focusin", focusGroup);
+  panel.addEventListener("focusout", () => focusGroup({ target: null }));
+  show("regioni");
+}
+
+// ---------------------------------------------------------------------------
 // How the Government is made up: one thin segmented bar by party (counts in
 // the list beside it, so no number sits on the bar) and the members by rank.
 // Colours follow the party, never its size: they are assigned by name, and the
@@ -3911,7 +4078,7 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
   }).finally(() => byId("party-list").removeAttribute("aria-busy"));
-  await Promise.all([people, parties, renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
+  await Promise.all([people, parties, renderQuadro(api), renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
 }
 
 function zoneHolderRow(holder, role) {

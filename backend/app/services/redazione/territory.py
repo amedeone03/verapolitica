@@ -46,6 +46,21 @@ def _clean(value: Any, limit: int = 4000) -> str:
     return " ".join(str(value or "").split())[:limit]
 
 
+# The coalition that elected the regional president, as the redazione records it
+# from the official results (Eligendo, the Region). Used by the Politica overview.
+COALITIONS = {
+    "centrosinistra": "Centrosinistra",
+    "centrodestra": "Centrodestra",
+    "altro": "Altra coalizione o lista",
+}
+
+# ISTAT region code → the short label used in the Politica overview.
+REGION_SHORT = {
+    "01": "PIE", "02": "VDA", "03": "LOM", "04": "TAA", "05": "VEN", "06": "FVG", "07": "LIG",
+    "08": "EMR", "09": "TOS", "10": "UMB", "11": "MAR", "12": "LAZ", "13": "ABR", "14": "MOL",
+    "15": "CAM", "16": "PUG", "17": "BAS", "18": "CAL", "19": "SIC", "20": "SAR",
+}
+
 PROMISE_STATES = {
     "da_compilare": "Da compilare",
     "in_corso": "In corso",
@@ -82,6 +97,7 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
             "fields": [
                 {"key": "capoluogo", "label": "Capoluogo"},
                 {"key": "tipo", "label": "Tipo", "options": {"ordinaria": "Regione a statuto ordinario", "speciale": "Regione a statuto speciale"}},
+                {"key": "coalizione", "label": "Coalizione del presidente", "options": COALITIONS},
                 {"key": "popolazione", "label": "Popolazione (ISTAT)"},
                 {"key": "popolazione_anno", "label": "Anno del dato"},
                 {"key": "ultime_elezioni", "label": "Ultime elezioni"},
@@ -401,6 +417,45 @@ class TerritorySchede:
                 "publishers": sorted({row.reviewed_by for row in latest.values() if row.reviewed_by}),
                 "news_title": NEWS_TITLES[kind],
             }
+
+    def regions_overview(self) -> dict:
+        """Every region with its president and the coalition the redazione published."""
+
+        with self.session_factory() as session:
+            territory = PublicTerritoryQueryService(session)
+            regions = territory.list_regions(offset=0, limit=100).items
+            rapida = {
+                row.territory_key: row
+                for row in session.scalars(
+                    select(TerritoryBlock)
+                    .where(
+                        TerritoryBlock.territory_kind == TerritoryKind.REGION,
+                        TerritoryBlock.block == "rapida",
+                        TerritoryBlock.status == TerritoryBlockStatus.PUBLISHED,
+                    )
+                    .order_by(TerritoryBlock.published_at, TerritoryBlock.id)
+                )
+            }
+            items = []
+            for region in regions:
+                row = rapida.get(str(region.id))
+                data = row.data if row else {}
+                coalition = data.get("coalizione") if data.get("coalizione") in COALITIONS else None
+                items.append({
+                    "id": region.id,
+                    "name": region.name,
+                    "short": REGION_SHORT.get(region.istat_code, region.name[:3].upper()),
+                    "istat_code": region.istat_code,
+                    "president": _holder(region.current_president, "Presidente della Regione"),
+                    "coalition": coalition,
+                    "coalition_label": COALITIONS.get(coalition) if coalition else None,
+                    "last_election": data.get("ultime_elezioni") or None,
+                    "next_election": data.get("prossime_elezioni") or None,
+                    "updated_at": _iso(row.published_at) if row else None,
+                })
+            counts = {key: sum(1 for item in items if item["coalition"] == key) for key in COALITIONS}
+            counts["da_compilare"] = sum(1 for item in items if item["coalition"] is None)
+            return {"items": items, "counts": counts, "labels": COALITIONS}
 
     def search(self, query: str = "", *, limit: int = 30) -> list[dict]:
         text = query.strip()

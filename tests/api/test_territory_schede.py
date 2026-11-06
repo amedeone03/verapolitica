@@ -153,3 +153,75 @@ def test_an_admin_publishes_at_once(tmp_path):
         waiting = client.post("/redazione/api/territori/province/MI/blocchi/elezioni", headers=ANNA, json={"body": "Testo.", "sources": [ISTAT]}).json()
         assert waiting.get("published") is not True and waiting["status"] == "pending"
     engine.dispose()
+
+
+def test_regions_overview_shows_the_coalition_the_redazione_published(tmp_path):
+    client, ids, engine = _client(tmp_path, admins="Carla Caporedattrice")
+    with client:
+        empty = client.get("/territories/regions").json()
+        assert empty["items"][0]["short"] == "LOM" and empty["items"][0]["coalition"] is None
+        assert empty["counts"] == {"centrosinistra": 0, "centrodestra": 0, "altro": 0, "da_compilare": 1}
+        client.post(
+            f"/redazione/api/territori/region/{ids['region']}/blocchi/rapida",
+            headers=CARLA,
+            json={"fields": {"capoluogo": "Milano", "coalizione": "centrodestra", "prossime_elezioni": "Primavera 2028"}, "sources": [ISTAT]},
+        )
+        overview = client.get("/territories/regions").json()
+        lombardia = overview["items"][0]
+        assert lombardia["coalition"] == "centrodestra" and lombardia["coalition_label"] == "Centrodestra"
+        assert lombardia["next_election"] == "Primavera 2028"
+        assert overview["counts"]["centrodestra"] == 1 and overview["counts"]["da_compilare"] == 0
+        # A value outside the list is not stored.
+        client.post(f"/redazione/api/territori/region/{ids['region']}/blocchi/rapida", headers=CARLA, json={"fields": {"capoluogo": "Milano", "coalizione": "inventata"}, "sources": [ISTAT]})
+        assert client.get("/territories/regions").json()["items"][0]["coalition"] is None
+    engine.dispose()
+
+
+def test_parliament_composition_counts_open_memberships_of_the_current_legislature(tmp_path):
+    from datetime import date
+
+    from sqlalchemy.orm import Session
+
+    from backend.app.models import ParliamentaryGroup, Politician
+    from backend.app.models.parliamentary_group_membership import ParliamentaryGroupMembership
+    from backend.app.services import normalize_person_name
+
+    client, _, engine = _client(tmp_path)
+    with Session(engine) as session:
+        source = session.query(Source).first()
+        document = session.query(RawDocument).first()
+        old = ParliamentaryGroup(canonical_name="Gruppo della XVIII", abbreviation="OLD", institution="Camera dei Deputati", legislature="XVIII")
+        big = ParliamentaryGroup(canonical_name="Gruppo grande", abbreviation="GG", institution="Camera dei Deputati", legislature="XIX")
+        small = ParliamentaryGroup(canonical_name="Gruppo piccolo", abbreviation="GP", institution="Camera dei Deputati", legislature="XIX")
+        senate = ParliamentaryGroup(canonical_name="Gruppo del Senato", abbreviation="GS", institution="Senato della Repubblica", legislature="19")
+        session.add_all([old, big, small, senate])
+        session.flush()
+        people = []
+        for index in range(6):
+            person = Politician(canonical_given_name="Persona", canonical_family_name=f"Numero{index}", normalized_name=normalize_person_name("Persona", f"Numero{index}"))
+            session.add(person)
+            people.append(person)
+        session.flush()
+
+        def member(person, group, key, end=None):
+            session.add(ParliamentaryGroupMembership(
+                politician_id=person.id, parliamentary_group_id=group.id, source_id=source.id, raw_document_id=document.id,
+                identity_key=key, source_url="https://dati.camera.it/x", start_date=date(2022, 10, 13), end_date=end,
+            ))
+
+        member(people[0], big, "a")
+        member(people[1], big, "b")
+        member(people[2], big, "c")
+        member(people[3], small, "d")
+        member(people[4], small, "e", end=date(2024, 1, 1))  # left the group
+        member(people[5], old, "f")  # previous legislature
+        member(people[5], senate, "g")
+        session.commit()
+    with client:
+        data = client.get("/parliament/composition").json()
+    engine.dispose()
+    camera = data["camera"]
+    assert camera["legislature"] == 19 and camera["seats_by_law"] == 400
+    assert [(group["abbreviation"], group["seats"]) for group in camera["groups"]] == [("GG", 3), ("GP", 1)]
+    assert camera["counted"] == 4 and camera["majority"] == 3
+    assert data["senato"]["groups"] == [{"id": data["senato"]["groups"][0]["id"], "name": "Gruppo del Senato", "abbreviation": "GS", "seats": 1}]

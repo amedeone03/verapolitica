@@ -84,6 +84,17 @@
           <input id="politics-q" name="q" type="search" placeholder="Politico, partito o proposta" autocomplete="off" />
         </form>
 
+        <section class="politics-block quadro" aria-labelledby="quadro-title">
+          <div class="block-head"><h2 id="quadro-title">Il quadro</h2></div>
+          <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:3;--a:0">
+            <button type="button" role="tab" id="quadro-tab-regioni" data-quadro="regioni" aria-selected="true" aria-controls="quadro-panel">Regioni</button>
+            <button type="button" role="tab" id="quadro-tab-camera" data-quadro="camera" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Camera</button>
+            <button type="button" role="tab" id="quadro-tab-senato" data-quadro="senato" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Senato</button>
+            <div class="feed-segments-active" aria-hidden="true"><span>Regioni</span><span>Camera</span><span>Senato</span></div>
+          </div>
+          <div id="quadro-panel" class="quadro-panel" role="tabpanel" aria-labelledby="quadro-tab-regioni" aria-busy="true"></div>
+        </section>
+
         <section class="politics-block" aria-labelledby="government-title">
           <div class="block-head"><h2 id="government-title">Governo</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
           <div id="government-row" class="authority-cloud" aria-busy="true"></div>
