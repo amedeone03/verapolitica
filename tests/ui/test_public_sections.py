@@ -161,3 +161,29 @@ def test_search_is_grouped_instant_and_keeps_the_lens() -> None:
     assert 'SEARCH_RECENT_KEY = "verapolitica.search.recent.v1"' in script
     assert "Restano solo su questo dispositivo." in script and "data-remove-recent" in script
     assert "@keyframes search-shimmer" in css and ".skeleton-line { animation: none; }" in css
+
+
+def test_region_and_comune_pages_show_their_local_news():
+    from pathlib import Path
+
+    script = Path("frontend/app/app.js").read_text(encoding="utf-8")
+    assert "async function renderLocalNews(api, container, zone, placeName)" in script
+    assert 'item.scope !== "national"' in script
+    assert '<div id="region-news"></div>' in script
+    assert 'renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }' in script
+
+
+def test_politica_holds_regions_provinces_and_comuni():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
+    for marker in ('id="territories-title"', 'id="my-zone"', 'id="territory-q"', 'href="./?view=regions"',
+                   'href="./?view=provinces"', 'href="./?view=municipalities"'):
+        assert marker in view
+    # The zone card reads the on-device profile; the comune search uses the public search.
+    assert "export function renderZoneCard(zone" in script
+    assert "const zone = loadReaderProfile().zone;" in script
+    assert 'api.search({ q, type: "municipality", limit: 6' in script
+    assert 'provinces: "politics", regions: "politics", municipalities: "politics"' in script
+    archive = html.split('id="history-view"')[1].split("</section>\n      </section>")[0]
+    assert "?view=regions" not in archive and "?view=provinces" not in archive

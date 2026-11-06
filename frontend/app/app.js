@@ -1,6 +1,6 @@
-import { applyReactions, bindFeedCards, displayPersonName, officialImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { applyReactions, bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
-export { displayPersonName, officialImageUrl };
+export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
 
 // Lucide icons (ISC licence, lucide-static 0.460.0), inlined: no runtime dependency.
@@ -179,31 +179,11 @@ const portraits = new Map();
 function safeImageUrl(value) {
   // Portraits stored by the demo are served by this API (same origin).
   if (typeof value === "string" && /^\/portraits\/\d+\/image$/.test(value)) return value;
-  return officialImageUrl(value);
-}
-
-function rememberOfficialPhoto(person) {
-  const id = person?.id ?? person?.politician_id;
-  if (id == null) return;
-  const key = String(id);
-  if (portraits.has(key) && portraits.get(key)?.url) return;
-  const url = officialImageUrl(person.profile?.image_url || person.image_url);
-  if (!url) return;
-  portraits.set(key, {
-    url,
-    credit: "Fonte ufficiale",
-    license: "Ritratto istituzionale ufficiale",
-    source_url: url,
-    origin: "Fonte ufficiale",
-  });
+  return hostedImageUrl(value);
 }
 
 function portraitFor(person) {
-  if (person?.id != null) rememberOfficialPhoto(person);
-  const credited = portraits.get(String(person.id));
-  if (credited) return credited;
-  const official = officialImageUrl(person.profile?.image_url || person.image_url);
-  return official ? { url: official, credit: "Fonte ufficiale", license: "Ritratto istituzionale ufficiale", source_url: official, origin: "Fonte ufficiale" } : null;
+  return portraits.get(String(person.id)) || null;
 }
 
 function portrait(person, { size = "card" } = {}) {
@@ -591,6 +571,7 @@ const PROCEEDING_TYPE_LABELS = {
   political_controversy: "Controversia politica",
   legal_controversy: "Controversia giuridica",
   media_controversy: "Controversia mediatica",
+  related_investigation: "Indagine su una persona vicina",
 };
 
 const PROCEEDING_OUTCOME_LABELS = {
@@ -630,10 +611,8 @@ export function renderKeyPositions(person = {}) {
   </section>`;
 }
 
-export function renderProceedings(person = {}) {
-  const items = person.proceedings || [];
-  const body = items.length
-    ? `<div class="proceeding-list">${items.map((item) => `<article class="proceeding-card">
+function proceedingCard(item) {
+  return `<article class="proceeding-card">
         <h3>${escapeHtml(item.title)}</h3>
         <p class="proceeding-meta"><span class="proceeding-type">${escapeHtml(proceedingTypeLabel(item.proceeding_types || []))}</span>${item.outcome ? `<span class="proceeding-outcome">Stato/Esito: ${escapeHtml(PROCEEDING_OUTCOME_LABELS[item.outcome] || item.outcome)}</span>` : ""}</p>
         <p class="who-copy">${escapeHtml(item.summary)}</p>
@@ -644,11 +623,26 @@ export function renderProceedings(person = {}) {
           title: source.title,
           kind: source.kind,
         })).join("")}</div>
-      </article>`).join("")}</div>`
-    : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`;
+      </article>`;
+}
+
+// Two boxes: what concerns the politician in court, and public controversies that
+// do not necessarily involve an investigation of them (a statement, a relative).
+export function renderProceedings(person = {}) {
+  const all = person.proceedings || [];
+  const judicial = all.filter((item) => (item.category || "proceeding") === "proceeding");
+  const controversies = all.filter((item) => item.category === "controversy");
+  const name = displayPersonName(person.given_name, person.family_name);
+  const list = (items) => `<div class="proceeding-list">${items.map(proceedingCard).join("")}</div>`;
   return `<section class="detail-card profile-block profile-proceedings" id="procedimenti">
-    <h2>Procedimenti e controversie</h2>
-    ${body}
+    <h2>Procedimenti giudiziari</h2>
+    <p class="block-lede">Indagini e processi a carico di ${escapeHtml(name || "questa persona")}. Un'indagine non è una condanna.</p>
+    ${judicial.length ? list(judicial) : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`}
+  </section>
+  <section class="detail-card profile-block profile-controversies" id="controversie">
+    <h2>Controversie</h2>
+    <p class="block-lede">Vicende di rilevanza pubblica che non comportano necessariamente indagini a suo carico, anche quando riguardano persone vicine.</p>
+    ${controversies.length ? list(controversies) : `<p class="empty-note">Questa sezione non contiene ancora elementi pubblicati.</p>`}
   </section>`;
 }
 
@@ -954,8 +948,7 @@ function holderLabel(holder) {
 
 function officeHolderPhoto(holder) {
   if (!holder) return "";
-  rememberOfficialPhoto(holder);
-  const url = officialImageUrl(holder.image_url) || (holder.politician_id ? resolvePortrait(holder.politician_id) : null);
+  const url = holder.politician_id ? resolvePortrait(holder.politician_id) : null;
   return `<span class="office-holder-photo" aria-hidden="true">${url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span>${escapeHtml(initials(holder))}</span>`}</span>`;
 }
 
@@ -1028,6 +1021,7 @@ export function renderRegionDetail(region, municipalities = []) {
       <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>
       ${sourceUrl ? `<p><a class="source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Fonte ISTAT ufficiale ${icon("external", { size: 14 })}</a></p>` : ""}
     </section>
+    <div id="region-news"></div>
     <section class="detail-card"><h2>Comuni in questa regione</h2>
       ${ordered.length ? `<div class="proposal-grid">${ordered.map(renderMunicipalityCard).join("")}</div>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
     </section>`;
@@ -1674,6 +1668,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
     { href: "#posizioni", label: "Posizioni" },
     { href: "#promesse", label: "Promesse" },
     { href: "#procedimenti", label: "Procedimenti" },
+    { href: "#controversie", label: "Controversie" },
     sourcesMarkup ? { href: "#fonti", label: "Fonti" } : null,
   ].filter(Boolean));
   const overview = `<section class="detail-card profile-block profile-overview" id="profilo">
@@ -1902,7 +1897,6 @@ export async function listAllPoliticians(api, { role = "" } = {}) {
     const page = await api.listPoliticians({ role, offset, limit: 100 });
     total = page.total || 0;
     items.push(...(page.items || []));
-    for (const person of page.items || []) rememberOfficialPhoto(person);
     if (items.length >= total || !(page.items || []).length) break;
   }
   return { items, total };
@@ -1981,7 +1975,6 @@ async function showDetail(api, politicianId) {
     const detail = byId("profile-detail");
     byId("detail-status").hidden = true;
     detail.hidden = false;
-    rememberOfficialPhoto(person);
     detail.innerHTML = renderPoliticianDetail(person, scorecard);
     bindProfileSectionNav(detail);
     bindProfileShare(detail);
@@ -2159,6 +2152,7 @@ async function showRegionDetail(api, regionId) {
     byId("region-detail").hidden = false;
     byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
     document.title = `${region.name} — VeraPolitica`;
+    renderLocalNews(api, byId("region-news"), { region_id: region.id }, region.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("region-detail-status"), missing ? "Questa regione non è disponibile." : "Non è stato possibile caricare questa regione.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -2344,9 +2338,8 @@ function searchPersonName(item) {
 function searchLeading(item) {
   const id = item.metadata?.id;
   if (item.entity_type === "politician" && id) {
-    rememberOfficialPhoto({ id, image_url: item.metadata?.image_url });
     const words = searchPersonName(item).trim().split(/\s+/);
-    const photo = resolvePortrait(id) || officialImageUrl(item.metadata?.image_url);
+    const photo = resolvePortrait(id);
     const mono = initials({ given_name: words[0] || "", family_name: words.length > 1 ? words[words.length - 1] : "" });
     return `<span class="search-lead is-person" aria-hidden="true">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : escapeHtml(mono)}</span>`;
   }
@@ -2707,8 +2700,9 @@ async function showMunicipalityDetail(api, municipalityId) {
     const municipality = await api.getMunicipality(municipalityId);
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
-    byId("municipality-detail").innerHTML = renderMunicipalityDetail(municipality);
+    byId("municipality-detail").innerHTML = `${renderMunicipalityDetail(municipality)}<div id="municipality-news"></div>`;
     document.title = `Comune di ${municipality.name} — VeraPolitica`;
+    renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }, municipality.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("municipality-detail-status"), missing ? "Questo comune non è disponibile." : "Non è stato possibile caricare questo comune.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -3142,16 +3136,17 @@ document.addEventListener("touchstart", () => {}, { passive: true });
 const SECTION_BY_VIEW = {
   politics: "politics", politicians: "politics", proposals: "politics", compare: "politics",
   methodology: "politics", ask: "politics", search: "search",
-  history: "history", parliamentarians: "history", provinces: "history", "referendum-archive": "history",
-  regions: "history", municipalities: "history",
+  history: "history", parliamentarians: "history", "referendum-archive": "history",
+  provinces: "politics", regions: "politics", municipalities: "politics",
   profile: "profile",
 };
 
 export function sectionFor(params) {
   const view = params.get("view");
   if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
-  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")) return "politics";
-  if (params.get("legislature") || params.get("province") || params.get("region") || params.get("municipality") || params.get("history_region")) return "history";
+  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")
+    || params.get("province") || params.get("region") || params.get("municipality")) return "politics";
+  if (params.get("legislature") || params.get("history_region")) return "history";
   return "home";
 }
 
@@ -3316,6 +3311,25 @@ async function loadReactions(api, container) {
 
 const FEED_CHOICES = ["all", "national", "region", "province"];
 
+// Local news on a region or comune page: only items written for that territory
+// (the national ones are on the Feed). Comune pages also get the region's news.
+async function renderLocalNews(api, container, zone, placeName) {
+  container.innerHTML = `<section class="detail-card local-news" aria-labelledby="local-news-title"><h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2><p class="empty-note">Caricamento…</p></section>`;
+  try {
+    try { await loadPortraits(api); } catch { /* optional */ }
+    const page = await api.getFeed({ scope: "all", zone, redazione: true });
+    const items = (page.items || []).filter((item) => item.scope && item.scope !== "national").slice(0, 6);
+    const section = container.querySelector(".local-news");
+    section.innerHTML = `<h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2>${items.length
+      ? `<div class="feed-list local-news-list">${items.map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join("")}</div>`
+      : `<p class="empty-note">Nessuna notizia locale pubblicata.</p>`}`;
+    bindFeedCards(section, cardHandlers(api));
+    loadReactions(api, section);
+  } catch {
+    container.innerHTML = "";
+  }
+}
+
 async function showHome(api) {
   byId("home-view").hidden = false;
   document.title = "Feed — VeraPolitica";
@@ -3453,7 +3467,7 @@ async function showPost(api, postId) {
       ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
-    ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Redattore: ${escapeHtml(item.written_by)}` : ""}${item.verified_by ? ` · Verificatore: ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
+    ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Scritto da ${escapeHtml(item.written_by)}` : ""}${item.verified_by && item.verified_by !== item.written_by ? ` · Pubblicato da ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     bindFeedCards(detail, cardHandlers(api));
     loadReactions(api, detail);
@@ -3508,7 +3522,6 @@ function personPhotoUrl(person) {
 }
 
 function authorityNode(person, diameter) {
-  rememberOfficialPhoto(person);
   const name = displayPersonName(person.given_name, person.family_name).trim();
   const photo = personPhotoUrl(person);
   const party = person.current_party || currentParty(person);
@@ -3592,7 +3605,6 @@ export function collectFeaturedPoliticianIds({ parties = [], proposals = [], reg
 }
 
 export function renderPersonBubble(person) {
-  rememberOfficialPhoto(person);
   const name = displayPersonName(person.given_name, person.family_name).trim();
   const photo = personPhotoUrl(person);
   const role = shortRole(person);
@@ -3674,7 +3686,6 @@ async function showPolitics(api) {
     api.listRegions().catch(() => ({ items: [] })),
     loadPortraits(api),
   ]).then(async ([payload, partiesPayload, proposals, regions]) => {
-    for (const person of payload.items) rememberOfficialPhoto(person);
     const government = payload.items.filter((person) => governmentRank(person) < GOVERNMENT_RANK.length);
     government.sort((a, b) => governmentRank(a) - governmentRank(b) || `${a.family_name} ${a.given_name}`.localeCompare(`${b.family_name} ${b.given_name}`, "it"));
     let featured = [];
@@ -3703,7 +3714,77 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
   }).finally(() => byId("party-list").removeAttribute("aria-busy"));
-  await Promise.all([people, parties]);
+  await Promise.all([people, parties, renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
+}
+
+function zoneHolderRow(holder, role) {
+  return `<li class="zone-holder">${officeHolderPhoto(holder)}<span><small>${escapeHtml(role)}</small><strong>${holderLabel(holder)}</strong></span></li>`;
+}
+
+export function renderZoneCard(zone, { municipality = null, region = null } = {}) {
+  if (!zone) {
+    return `<p><strong>La tua zona</strong></p>
+      <p class="zone-copy">Scegli il comune: qui vedrai sindaco, presidente di regione e le notizie del territorio. La scelta resta su questo dispositivo.</p>
+      <a class="zone-cta" href="./?view=profile">Scegli la zona</a>`;
+  }
+  const holders = [];
+  if (municipality?.current_mayor) holders.push(zoneHolderRow(municipality.current_mayor, `Sindaco di ${zone.municipality_name || "comune"}`));
+  if (region?.current_president) holders.push(zoneHolderRow(region.current_president, `Presidente ${zone.region_name ? `della regione ${zone.region_name}` : "di regione"}`));
+  const links = [
+    zone.municipality_id ? [`./?municipality=${encodeURIComponent(zone.municipality_id)}`, "Comune"] : null,
+    zone.province ? [`./?province=${encodeURIComponent(zone.province)}`, "Provincia"] : null,
+    zone.region_id ? [`./?region=${encodeURIComponent(zone.region_id)}`, "Regione"] : null,
+  ].filter(Boolean);
+  return `<p class="zone-label"><small>La tua zona</small><strong>${escapeHtml(zoneLabel(zone))}</strong></p>
+    ${holders.length ? `<ul class="zone-holders">${holders.join("")}</ul>` : `<p class="zone-copy">Sindaco e presidente non sono ancora collegati a una scheda pubblicata.</p>`}
+    <div class="favorite-chips">${links.map(([href, label]) => `<a class="topic-chip" href="${escapeHtml(href)}">${label}</a>`).join("")}</div>`;
+}
+
+async function renderMyZone(api, container) {
+  const zone = loadReaderProfile().zone;
+  byId("zone-change").hidden = !zone;
+  try {
+    const [municipality, region] = await Promise.all([
+      zone?.municipality_id ? api.getMunicipality(zone.municipality_id).catch(() => null) : null,
+      zone?.region_id ? api.getRegion(zone.region_id).catch(() => null) : null,
+    ]);
+    container.innerHTML = renderZoneCard(zone, { municipality, region });
+  } finally {
+    container.removeAttribute("aria-busy");
+  }
+}
+
+function bindTerritoryFind(api) {
+  const field = byId("territory-q");
+  const list = byId("territory-results");
+  let timer = null;
+  let controller = null;
+  field.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = field.value.trim();
+    if (q.length < 2) {
+      list.hidden = true;
+      list.innerHTML = "";
+      return;
+    }
+    timer = setTimeout(async () => {
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const payload = await api.search({ q, type: "municipality", limit: 6, signal: controller.signal });
+        const items = (payload.items || []).filter((item) => item.metadata?.id);
+        list.innerHTML = items.length
+          ? items.map((item) => `<li><a class="row-link" href="./?municipality=${encodeURIComponent(item.metadata.id)}"><span class="row-icon" aria-hidden="true">${icon("mapPin", { size: 18 })}</span><span class="row-text"><strong>${escapeHtml(item.title)}</strong>${item.subtitle ? `<small>${escapeHtml(item.subtitle)}</small>` : ""}</span><span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`).join("")
+          : `<li class="row-empty">Nessun comune trovato.</li>`;
+        list.hidden = false;
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          list.innerHTML = `<li class="row-empty">Ricerca non disponibile.</li>`;
+          list.hidden = false;
+        }
+      }
+    }, 220);
+  });
 }
 
 function renderMemberList(members, emptyText) {

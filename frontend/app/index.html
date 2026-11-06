@@ -95,6 +95,24 @@
           <ul id="party-list" class="row-list party-rows" aria-busy="true"></ul>
         </section>
 
+        <section class="politics-block" aria-labelledby="territories-title">
+          <div class="block-head"><h2 id="territories-title">Territori</h2><a id="zone-change" class="block-link" href="./?view=profile" hidden>Cambia zona</a></div>
+          <div id="my-zone" class="zone-card" aria-busy="true"></div>
+          <form id="territory-find" class="territory-find" action="./" method="get" role="search">
+            <input type="hidden" name="view" value="search" />
+            <input type="hidden" name="type" value="municipality" />
+            <label class="visually-hidden" for="territory-q">Cerca un comune</label>
+            <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="territory-q" name="q" type="search" placeholder="Cerca un comune" autocomplete="off" aria-controls="territory-results" />
+          </form>
+          <ul id="territory-results" class="row-list territory-results" aria-live="polite" hidden></ul>
+          <ul class="row-list">
+            <li><a class="row-link" href="./?view=regions"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Regioni</strong><small>Presidenti, comuni e notizie locali</small></span></a></li>
+            <li><a class="row-link" href="./?view=provinces"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Province</strong><small>Sindaci e referendum, provincia per provincia</small></span></a></li>
+            <li><a class="row-link" href="./?view=municipalities"><span class="row-icon" data-icon="mapPin"></span><span class="row-text"><strong>Comuni</strong><small>Tutti i comuni ISTAT, con il sindaco</small></span></a></li>
+          </ul>
+        </section>
+
         <section class="politics-block" aria-labelledby="tools-title">
           <div class="block-head"><h2 id="tools-title">Strumenti</h2></div>
           <ul class="row-list">
@@ -141,12 +159,8 @@
         </form>
         <div id="history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dell'archivio…</strong></div></div>
         <div id="era-list" hidden></div>
-        <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Territori e consultazioni</h2>
+        <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Consultazioni e leggi</h2>
           <div class="shortcut-grid">
-            <a class="shortcut-card" href="./?view=regions">Regioni</a>
-            <a class="shortcut-card" href="./?view=search&amp;q=Lazio&amp;type=region">Lazio</a>
-            <a class="shortcut-card" href="./?view=search&amp;q=Roma&amp;type=municipality">Roma</a>
-            <a class="shortcut-card" href="./?view=provinces">Province</a>
             <a class="shortcut-card" href="./?view=referendum-archive">Referendum</a>
             <a class="shortcut-card" href="./?view=proposals&amp;status=enacted">Leggi promulgate</a>
           </div>
@@ -168,7 +182,7 @@
       </section>
 
       <section id="provinces-view" aria-labelledby="provinces-title" hidden>
-        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
+        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div class="hero compact-hero"><h1 id="provinces-title">Province</h1></div>
         <div id="provinces-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento delle province…</strong></div></div>
         <div id="province-list" class="province-groups" hidden></div>
@@ -356,6 +370,7 @@
       </section>
 
       <section id="regions-view" aria-labelledby="regions-title" hidden>
+        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div class="hero compact-hero">
           <h1 id="regions-title">Regioni italiane</h1>
           
@@ -380,6 +395,7 @@
       </section>
 
       <section id="municipalities-view" aria-labelledby="municipalities-title" hidden>
+        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div class="hero compact-hero">
           <h1 id="municipalities-title">Comuni</h1>
           

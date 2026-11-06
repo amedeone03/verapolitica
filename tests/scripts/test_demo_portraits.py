@@ -93,7 +93,7 @@ def test_portraits_reject_non_politicians_and_foreign_namesakes():
     assert build_portraits(PEOPLE[1:2], get_json=get_json) == {}
 
 
-def test_portraits_endpoint_serves_only_valid_https_entries(tmp_path):
+def test_portraits_endpoint_lists_only_photos_stored_on_this_site(tmp_path):
     path = tmp_path / "portraits.json"
     path.write_text(json.dumps({
         "2": {"url": "https://upload.wikimedia.org/thumb.jpg", "credit": "A", "license": "CC BY 4.0",
@@ -104,7 +104,7 @@ def test_portraits_endpoint_serves_only_valid_https_entries(tmp_path):
     settings = Settings(database_url=f"sqlite:///{tmp_path / 'p.db'}", portraits_path=path)
     with TestClient(create_app(settings)) as client:
         body = client.get("/portraits").json()
-    assert list(body) == ["2"]
+    assert body == {}  # no local file: nothing is linked from outside hosts
     with TestClient(create_app(Settings(database_url=f"sqlite:///{tmp_path / 'q.db'}"))) as client:
         assert client.get("/portraits").json() == {}
 
@@ -156,6 +156,6 @@ def test_portrait_files_are_stored_and_served_locally(tmp_path):
         image = client.get("/portraits/2/image")
         missing = client.get("/portraits/3/image")
     assert listing["2"]["url"] == "/portraits/2/image"
-    assert listing["3"]["url"] == "https://upload.wikimedia.org/page.html"
+    assert "3" not in listing  # no local file, so no outside link
     assert image.status_code == 200 and image.headers["content-type"] == "image/jpeg"
     assert missing.status_code == 404

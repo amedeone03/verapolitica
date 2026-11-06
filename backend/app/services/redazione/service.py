@@ -27,7 +27,7 @@ import binascii
 import hashlib
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -74,7 +74,10 @@ from backend.app.models.politician_profile import (
     PoliticianProceeding,
     PoliticianProfileSource,
     ProceedingOutcome,
+    PROCEEDING_CATEGORY_TYPES,
+    ProceedingCategory,
     ProceedingType,
+    proceeding_category_for,
     ProfileContentKind,
     ProfileContentStatus,
     ProfileSourceKind,
@@ -164,7 +167,7 @@ KIND_LABELS = {
     "biography": "Chi è",
     "career_entry": "Cosa ha fatto",
     "position": "Posizione su tema chiave",
-    "proceeding": "Procedimento o controversia",
+    "proceeding": "Procedimento giudiziario",
     "promise": "Promessa",
     "proposal": "Proposta",
     "status": "Stato di una promessa",
@@ -262,9 +265,13 @@ class RedazioneService:
         session_factory: sessionmaker[Session],
         *,
         clock: Callable[[], datetime] = _utc_now,
+        leads: frozenset[str] | set[str] = frozenset(),
     ) -> None:
         self.session_factory = session_factory
         self.clock = clock
+        # Admins write and publish at once, and publish what others write.
+        # With no admin named, any second member verifies (four-eyes).
+        self.leads = frozenset(leads)
         self.profiles = PoliticianProfileService(session_factory)
         self.pledges = PledgeService(session_factory, clock=clock)
         self.proposals = ProposalService(session_factory)
@@ -444,6 +451,7 @@ class RedazioneService:
                     "institution": institution if office else None,
                     "start_date": start.isoformat() if office and start else None,
                     "office_label": GOVERNMENT_OFFICES.get(office) if office else None,
+                    **({"image": image} if (image := self._image_payload(session, payload)) else {}),
                 },
                 created_by=member,
                 created_at=self.clock(),
@@ -565,6 +573,9 @@ class RedazioneService:
             "data": data,
             "findings": findings,
             "can_approve": row.status is ProfileContentStatus.PENDING and row.created_by != member,
+            "can_self_verify": row.status is ProfileContentStatus.PENDING
+            and row.created_by == member
+            and self.can_self_verify(kind, member),
         }
 
     @staticmethod
@@ -590,6 +601,7 @@ class RedazioneService:
             }
         return {
             "title": row.title,
+            "category": row.category or "proceeding",
             "proceeding_types": list(row.proceeding_types or []),
             "event_date": _iso(row.event_date),
             "outcome": row.outcome.value if row.outcome else None,
@@ -703,9 +715,19 @@ class RedazioneService:
                 identity = identity or _slug(fields["topic"])
                 draft = PositionDraftInput(identity_key=identity, sources=sources, created_by=member, **fields)
             else:
-                types = tuple(ProceedingType(item) for item in (payload.get("proceeding_types") or []))
+                types = tuple(ProceedingType(item) for item in (payload.get("proceeding_types") or []) if item)
+                category = ProceedingCategory(payload.get("category") or proceeding_category_for(types).value)
+                if not types:
+                    raise RedazioneValidation("Scegli il tipo di vicenda.")
+                if any(item not in PROCEEDING_CATEGORY_TYPES[category] for item in types):
+                    raise RedazioneValidation(
+                        "Le controversie stanno nel box «Controversie»; nei procedimenti giudiziari vanno solo indagini e processi a carico del politico."
+                        if category is ProceedingCategory.PROCEEDING
+                        else "Un'indagine o un processo a carico del politico va nel box «Procedimenti giudiziari», non tra le controversie."
+                    )
                 fields = {
                     "title": _clean(payload.get("title")),
+                    "category": category,
                     "proceeding_types": types,
                     "event_date": _parse_date(payload.get("event_date"), "data"),
                     "event_precision": DatePrecision.DAY if payload.get("event_date") else None,
@@ -735,6 +757,8 @@ class RedazioneService:
                 for name, value in fields.items():
                     if name == "proceeding_types":
                         value = [item.value for item in value]
+                    if name == "category":
+                        value = value.value
                     setattr(pending, name, value)
                 previous_author = pending.created_by
                 pending.created_by = member
@@ -1484,7 +1508,12 @@ class RedazioneService:
             ]
 
     # --------------------------------------------------- parties and symbols
-    SYMBOL_LABELS = {"party": "Logo del partito", "region": "Stemma della regione", "province": "Stemma della provincia"}
+    SYMBOL_LABELS = {
+        "party": "Logo del partito",
+        "region": "Stemma della regione",
+        "province": "Stemma della provincia",
+        "politician": "Foto del politico",
+    }
 
     @staticmethod
     def _provinces(session: Session) -> dict[str, dict]:
@@ -1511,10 +1540,22 @@ class RedazioneService:
             }
         if kind == "province":
             return dict(sorted(self._provinces(session).items(), key=lambda item: item[1]["name"] or ""))
+        if kind == "politician":
+            # Only published schede: a photo appears on the public site, so the person must too.
+            rows = session.execute(
+                select(Politician.id, Politician.canonical_given_name, Politician.canonical_family_name)
+                .join(PoliticianVersion, PoliticianVersion.id == Politician.current_version_id)
+                .where(PoliticianVersion.published_at.is_not(None))
+                .order_by(Politician.canonical_family_name, Politician.canonical_given_name, Politician.id)
+            )
+            return {
+                str(pid): {"key": str(pid), "name": f"{given} {family}".strip()}
+                for pid, given, family in rows
+            }
         raise RedazioneValidation("Tipo di simbolo sconosciuto.")
 
     def symbols(self) -> dict:
-        """Parties, regions and provinces with their approved logo and pending proposals."""
+        """Parties, regions, provinces and politicians with their approved image and pending proposals."""
 
         with self.session_factory() as session:
             pending: dict[tuple[str, str], list[dict]] = {}
@@ -1532,7 +1573,10 @@ class RedazioneService:
                 pending.setdefault(key, []).append(
                     {"id": row.id, "created_by": row.created_by, "summary": row.summary, "payload": row.payload}
                 )
-            result: dict[str, Any] = {"licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()]}
+            result: dict[str, Any] = {
+                "licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()],
+                "portrait_licenses": [{"key": k, "label": v} for k, v in symbols_module.licenses_for("politician").items()],
+            }
             for kind in SYMBOL_KINDS:
                 approved = symbols_module.symbol_rows(session, kind)
                 result[kind] = [
@@ -1554,14 +1598,18 @@ class RedazioneService:
         license_key = str(payload.get("license") or "")
         source_url = _clean(payload.get("source_url"))
         errors = {}
+        photo = kind == "politician"
+        what = "la foto" if photo else "il logo"
         if kind not in SYMBOL_KINDS:
-            errors["kind"] = "Scegli partito, regione o provincia."
+            errors["kind"] = "Scegli partito, regione, provincia o politico."
         if not credit:
-            errors["credit"] = "Indica il titolare o l'autore del logo."
-        if license_key not in symbols_module.LICENSES:
-            errors["license"] = "Scegli la licenza con cui il logo può essere pubblicato."
-        if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
-            errors["source_url"] = "Indica la pagina https da cui proviene il logo."
+            errors["credit"] = f"Indica il titolare o l'autore del{'la foto' if photo else ' logo'}."
+        if photo and not license_key:
+            license_key = "nel-credito"
+        if license_key not in symbols_module.licenses_for(kind):
+            errors["license"] = f"Scegli la licenza con cui {what} può essere pubblicat{'a' if photo else 'o'}."
+        if (source_url or not photo) and (not source_url.startswith("https://") or not urlsplit(source_url).netloc):
+            errors["source_url"] = f"Indica la pagina https da cui proviene {what}."
         if errors:
             raise RedazioneValidation("Controlla i campi del logo.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
         with self.session_factory.begin() as session:
@@ -1570,7 +1618,7 @@ class RedazioneService:
                 raise RedazioneNotFound("Partito, regione o provincia non trovato.")
             image = session.get(EditorialImage, int(payload.get("image_id") or 0))
             if image is None:
-                raise RedazioneValidation("Carica prima l'immagine del logo.")
+                raise RedazioneValidation(f"Carica prima l'immagine del{'la foto' if photo else ' logo'}.")
             name = targets[key]["name"]
             request = EditorialChangeRequest(
                 kind="simbolo",
@@ -1647,6 +1695,37 @@ class RedazioneService:
             )
             return {"id": request.id, "summary": request.summary}
 
+    def _image_payload(self, session: Session, payload: dict) -> dict | None:
+        """The photo or logo sent with a new politician or party: image, credit, optional source."""
+
+        image_id = int(payload.get("image_id") or 0)
+        if not image_id:
+            return None
+        if session.get(EditorialImage, image_id) is None:
+            raise RedazioneValidation("Immagine non trovata: caricala di nuovo.")
+        credit = _clean(payload.get("image_credit"))[:300]
+        if not credit:
+            raise RedazioneValidation("Scrivi da dove viene l'immagine (es. «Camera dei deputati», «Wikimedia Commons, CC BY-SA»).")
+        source = _clean(payload.get("image_source_url"))
+        if source and (not source.startswith("https://") or not urlsplit(source).netloc):
+            raise RedazioneValidation("Il link dell'immagine deve iniziare con https://.")
+        return {"image_id": image_id, "credit": credit, "source_url": source}
+
+    def _attach_image(self, session: Session, kind: str, key: str, image: dict | None, *, proposed_by: str, approved_by: str) -> None:
+        if not image:
+            return
+        current = session.scalar(select(EditorialSymbol).where(EditorialSymbol.kind == kind, EditorialSymbol.key == key))
+        if current is None:
+            current = EditorialSymbol(kind=kind, key=key)
+            session.add(current)
+        current.image_id = image["image_id"]
+        current.credit = image["credit"]
+        current.license = image.get("license") or "nel-credito"
+        current.source_url = image.get("source_url") or ""
+        current.proposed_by = proposed_by
+        current.approved_by = approved_by
+        current.approved_at = self.clock()
+
     def propose_party(self, payload: dict, *, member: str) -> dict:
         name = _clean(payload.get("name"))[:300]
         abbreviation = _clean(payload.get("abbreviation"))[:40] or None
@@ -1672,7 +1751,10 @@ class RedazioneService:
                 target_id=0,
                 politician_id=None,
                 summary=f"Nuovo partito: {name}" + (f" ({abbreviation})" if abbreviation else ""),
-                payload={"name": name, "abbreviation": abbreviation, "website": website, "source_url": source_url},
+                payload={
+                    "name": name, "abbreviation": abbreviation, "website": website, "source_url": source_url,
+                    **({"image": image} if (image := self._image_payload(session, payload)) else {}),
+                },
                 created_by=member,
                 created_at=self.clock(),
             )
@@ -1741,8 +1823,7 @@ class RedazioneService:
             query = query.where(EditorialChangeRequest.politician_id == politician_id)
         return [self._change_response(session, row, member) for row in session.scalars(query.order_by(EditorialChangeRequest.id))]
 
-    @staticmethod
-    def _change_response(session: Session, row: EditorialChangeRequest, member: str) -> dict:
+    def _change_response(self, session: Session, row: EditorialChangeRequest, member: str) -> dict:
         return {
             "id": row.id,
             "kind": row.kind,
@@ -1755,6 +1836,9 @@ class RedazioneService:
             "created_by": row.created_by,
             "created_at": _iso(row.created_at),
             "can_approve": row.status is ChangeRequestStatus.PENDING and row.created_by != member,
+            "can_self_verify": row.status is ChangeRequestStatus.PENDING
+            and row.created_by == member
+            and self.can_self_verify("change", member),
         }
 
     # ------------------------------------------------------------------ queue
@@ -1771,7 +1855,8 @@ class RedazioneService:
                         self._queue_item(
                             kind=kind,
                             item_id=row.id,
-                            title=KIND_LABELS[kind] + self._profile_title_suffix(kind, item["data"]),
+                            title=("Controversia" if item["data"].get("category") == "controversy" else KIND_LABELS[kind])
+                            + self._profile_title_suffix(kind, item["data"]),
                             politician_id=row.politician_id,
                             politician_name=names.get(row.politician_id),
                             author=row.created_by,
@@ -1921,8 +2006,8 @@ class RedazioneService:
         label = data.get("topic") or data.get("role") or data.get("title")
         return f": {label}" if label else ""
 
-    @staticmethod
     def _queue_item(
+        self,
         *,
         kind: str,
         item_id: int,
@@ -1938,7 +2023,7 @@ class RedazioneService:
         blocked = style.has_errors(findings)
         return {
             "kind": kind,
-            "kind_label": KIND_LABELS[kind],
+            "kind_label": "Controversia" if kind == "proceeding" and (preview or {}).get("category") == "controversy" else KIND_LABELS[kind],
             "id": item_id,
             "title": title,
             "politician_id": politician_id,
@@ -1949,7 +2034,8 @@ class RedazioneService:
             "findings": findings,
             "blocked": blocked,
             "own": author == member,
-            "can_approve": author != member and not blocked,
+            "can_approve": author != member and not blocked and self.can_publish(member),
+            "can_self_verify": author == member and not blocked and self.can_self_verify(kind, member),
             "can_discard": kind == "news",
             "approvals": [],
             "approvals_required": 1,
@@ -1962,9 +2048,35 @@ class RedazioneService:
                 return item
         raise RedazioneNotFound("Elemento non più in attesa di verifica.")
 
+    # Pledge verdicts move the public score and keep their own two-person rule.
+    SELF_VERIFY_EXCLUDED = frozenset({"status"})
+
+    def is_lead(self, member: str) -> bool:
+        return member in self.leads
+
+    def can_self_verify(self, kind: str, member: str) -> bool:
+        return self.is_lead(member) and kind not in self.SELF_VERIFY_EXCLUDED
+
+    def can_publish(self, member: str) -> bool:
+        """With admins named, only they publish; otherwise any member (four-eyes)."""
+
+        return not self.leads or self.is_lead(member)
+
+    def publish_own(self, kind: str, item_id: int, *, member: str, note: str | None = None) -> dict:
+        """A capo squadra publishes what they just wrote, without a second person."""
+
+        if not self.can_self_verify(kind, member):
+            raise RedazioneConflict("Solo un admin pubblica direttamente ciò che scrive.")
+        return self.approve(kind, item_id, member=member, note=note or "Pubblicato da un admin.")
+
     def approve(self, kind: str, item_id: int, *, member: str, note: str | None = None, extra: dict | None = None) -> dict:
         item = self._queue_entry(kind, item_id, member)
-        if item["own"]:
+        if not self.can_publish(member):
+            raise RedazioneConflict("Pubblica un admin della redazione.")
+        self_verified = bool(item["own"])
+        if self_verified and not self.can_self_verify(kind, member):
+            if kind in self.SELF_VERIFY_EXCLUDED and self.is_lead(member):
+                raise RedazioneConflict("Lo stato di una promessa cambia il punteggio: lo approva una seconda persona, anche se sei admin.")
             raise RedazioneConflict("Chi scrive non è chi verifica: questo contenuto lo deve approvare un'altra persona.")
         if member in item.get("approvals", []):
             raise RedazioneConflict("Hai già approvato questo stato: serve una seconda persona.")
@@ -1975,6 +2087,9 @@ class RedazioneService:
         politician_id = item["politician_id"]
         summary = f"Approvato: {item['kind_label']} — {item['title']}"
         details: dict[str, Any] = {"note": note, "author": item["author"]}
+        if self_verified:
+            details["self_verified"] = True
+            details["role"] = "admin"
         try:
             if kind in PROFILE_MODELS:
                 self.profiles.approve(PROFILE_KINDS[kind], item_id, reviewer=member, note=note)
@@ -2006,7 +2121,7 @@ class RedazioneService:
                     summary = f"Pubblicato lo stato: {item['title']}. Il punteggio è aggiornato."
                     details["assessment_id"] = assessment.id
             elif kind == "news":
-                self.editorial.publish(item_id, reviewer=member, note=note)
+                self.editorial.publish(item_id, reviewer=member, note=note, allow_author=self_verified)
                 summary = f"Pubblicata la notizia «{item['title']}»."
             elif kind == "change":
                 summary = self._apply_change(item_id, member=member, note=note)
@@ -2021,6 +2136,8 @@ class RedazioneService:
             EditorialValidationError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
+        if self_verified:
+            summary = f"{summary} Pubblicato direttamente da un admin."
         self.log(
             actor=member,
             action="approvazione",
@@ -2030,13 +2147,15 @@ class RedazioneService:
             summary=summary,
             details=details,
         )
-        return {"ok": True, "summary": summary}
+        return {"ok": True, "summary": summary, "self_verified": self_verified}
 
     def reject(self, kind: str, item_id: int, *, member: str, note: str) -> dict:
         note = _clean(note)
         if not note:
             raise RedazioneValidation("Scrivi cosa va corretto: chi ha scritto lo leggerà.")
         item = self._queue_entry(kind, item_id, member)
+        if not self.can_publish(member):
+            raise RedazioneConflict("Respinge un admin della redazione.")
         try:
             if kind in PROFILE_MODELS:
                 self.profiles.reject(PROFILE_KINDS[kind], item_id, reviewer=member, note=note)
@@ -2186,6 +2305,7 @@ class RedazioneService:
                 session.add(party)
                 session.flush()
                 row.target_id = party.id
+                self._attach_image(session, "party", str(party.id), payload.get("image"), proposed_by=row.created_by, approved_by=member)
                 summary = f"Aggiunto all'elenco: {row.summary.removeprefix('Nuovo partito: ')}"
             elif row.kind == "politico":
                 payload = row.payload
@@ -2237,6 +2357,7 @@ class RedazioneService:
                 session.add(version)
                 session.flush()
                 politician.current_version_id = version.id
+                self._attach_image(session, "politician", str(politician.id), payload.get("image"), proposed_by=row.created_by, approved_by=member)
                 row.target_id = politician.id
                 row.politician_id = politician.id
                 summary = f"Aggiunto all'elenco: {payload['given_name']} {payload['family_name']}"
@@ -2266,7 +2387,67 @@ class RedazioneService:
             "blocked": sum(1 for item in queue if item["blocked"]),
             "by_kind": [{"kind": kind, "label": KIND_LABELS[kind], "count": count} for kind, count in sorted(counts.items())],
             "recent": self.log_entries(limit=8)["items"],
+            **self._week_and_coverage(member),
         }
+
+    def _week_and_coverage(self, member: str) -> dict:
+        """What the desk published in the last 7 days, and how many public schede have a «Chi è»."""
+
+        since = self.clock() - timedelta(days=7)
+        with self.session_factory() as session:
+            approved = select(func.count()).select_from(EditorialLogEntry).where(
+                EditorialLogEntry.action == "approvazione", EditorialLogEntry.created_at >= since
+            )
+            public_ids = select(Politician.id).join(
+                PoliticianVersion, PoliticianVersion.id == Politician.current_version_id
+            ).where(PoliticianVersion.published_at.is_not(None))
+            with_bio = select(func.count(func.distinct(PoliticianBiography.politician_id))).where(
+                PoliticianBiography.status == ProfileContentStatus.PUBLISHED,
+                PoliticianBiography.politician_id.in_(public_ids),
+            )
+            rejected = [
+                {
+                    "at": _iso(row.created_at),
+                    "by": row.actor,
+                    "object_kind": row.object_kind,
+                    "object_id": row.object_id,
+                    "politician_id": row.politician_id,
+                    "summary": row.summary,
+                    "note": (row.details or {}).get("note"),
+                    "_created": row.created_at,
+                }
+                for row in session.scalars(
+                    select(EditorialLogEntry)
+                    .where(EditorialLogEntry.action == "rifiuto", EditorialLogEntry.created_at >= self.clock() - timedelta(days=14))
+                    .order_by(EditorialLogEntry.created_at.desc())
+                    .limit(50)
+                )
+                if (row.details or {}).get("author") == member
+            ]
+            # Gone from the list once the author saved that content again.
+            rejected = [
+                item for item in rejected
+                if not session.scalar(
+                    select(func.count()).select_from(EditorialLogEntry).where(
+                        EditorialLogEntry.actor == member,
+                        EditorialLogEntry.action != "rifiuto",
+                        EditorialLogEntry.created_at > item["_created"],
+                        EditorialLogEntry.object_kind == item["object_kind"],
+                        (EditorialLogEntry.politician_id == item["politician_id"])
+                        if item["politician_id"] is not None
+                        else (EditorialLogEntry.object_id == item["object_id"]),
+                    )
+                )
+            ][:10]
+            for item in rejected:
+                item.pop("_created", None)
+            return {
+                "my_rejected": rejected,
+                "published_week": session.scalar(approved) or 0,
+                "my_published_week": session.scalar(approved.where(EditorialLogEntry.actor == member)) or 0,
+                "public_schede": session.scalar(select(func.count()).select_from(public_ids.subquery())) or 0,
+                "schede_with_bio": session.scalar(with_bio) or 0,
+            }
 
 
 def _place(value: Any) -> str | None:

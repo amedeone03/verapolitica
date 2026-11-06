@@ -24,6 +24,48 @@ console is not linked from the public site and is `noindex`.
 You need **at least two named people**. One person cannot approve their own
 work, so a single token leaves every draft stuck in **Da verificare**.
 
+### Admin
+
+`VERAPOLITICA_REDAZIONE_ADMINS="Nome Cognome;Altro Nome"` names the admins
+(names must match `VERAPOLITICA_REDAZIONE_MEMBERS`; unknown names are ignored;
+`VERAPOLITICA_REDAZIONE_LEADS` is the old name and still works).
+
+- An admin writes and publishes at once: politicians, scheda blocks, promises,
+  news, parties, photos. The log records `self_verified: true`.
+- Everyone else saves and the item waits in **Da fare** until an admin
+  publishes or rejects it (with a note the author sees on their home).
+- With no admin named, any second member publishes (the old four-eyes rule).
+- The state of a promise moves the public score and still needs a second person.
+
+On a local demo, **Caporedattore demo** is the admin.
+
+### Foto e loghi
+
+The photo of a new politician goes in the «Nuovo politico» form, the logo of a
+new party in the «Nuovo partito» form: file, credit (e.g. «Camera dei
+deputati»), optional source link. An existing scheda has «Aggiungi/Cambia la
+foto» in its first block. Nothing is fetched from Camera, Senato or Governo.
+
+### Notizie locali
+
+A news item is national, regional, provincial or about one comune: pick the
+region from the list or search the comune by name.
+
+### Procedimenti giudiziari e controversie
+
+Two separate boxes on the scheda:
+
+- **Procedimenti giudiziari**: only investigations and trials *against the
+  politician* (types «Indagine a suo carico», «Processo a suo carico»);
+- **Controversie**: matters of public interest that do not necessarily put the
+  politician under investigation — a statement, a bust, a relative or
+  collaborator under investigation («Indagine su una persona vicina»).
+
+The console refuses an investigation of the politician among the controversies
+and a controversy among the proceedings. Existing rows were sorted by the
+migration `f3a7c9d21b48`: anything with an investigation or trial against the
+politician stays a proceeding.
+
 ### Production VPS
 
 On the server, generate one token per editor (do not reuse the admin key):
@@ -154,9 +196,9 @@ Sezione **Partiti e territori** della console (`#/simboli`):
 - **Una notizia a quattro occhi**: `python -m scripts.seed_official_notizia --author "Amedeo" --approver "Verificatore"` pubblica un Modello Notizia con tre fonti già in archivio (resoconto Senato, Sky TG24, Il Fatto Quotidiano).
 - **Coda identità**: sezione **Identità** della console (`#/identita`). I casi Governo e DAIT senza data di nascita arrivano qui. Chi decide è il membro della redazione, non la chiave admin.
 - **Gruppi parlamentari**: dopo l'ingest Camera/Senato, `python -m scripts.reprocess_parliamentary_groups --apply` riallaccia i gruppi dal bundle SPARQL già in archivio, senza scaricare di nuovo.
-- **Ritratti del Governo**: `python -m scripts.seed_official_portraits` scrive i ritratti istituzionali già presenti sulle schede pubblicate (`image_url` di governo.it).
+- **Foto dei politici**: le carica la redazione in **Partiti, territori e foto → Foto dei politici** (`#/simboli/politician`), con autore, licenza e pagina di provenienza; diventano pubbliche solo dopo l'approvazione di un secondo membro. Il sito non prende né collega foto da Camera, Senato o Governo, nemmeno se l'indirizzo è sulla scheda. Le foto già salvate in `data/…/portraits` restano finché la redazione non le sostituisce.
 - **Zona sotto Roma**: con i territori ISTAT importati, la scheda della regione Lazio elenca tutti i comuni (Roma in testa). `attach_territorial_identities --apply` collega i sindaci DAIT già in archivio; `publish_territorial_profiles --region Lazio` pubblica le bozze. Il presidente regionale compare solo se esiste un mandato ufficiale: non viene inventato.
-- **Demo live (senza reset)**: `python -m scripts.prepare_live_demo --author "Amedeo" --approver "Verificatore"` esegue partiti, gruppi, attacco Governo/DAIT, schede Meloni/Schlein/Conte, affiliazioni, stato RDC, ritratti, feed ufficiale, notizia a tre fonti e bozze territoriali del Lazio. Non cancella il database.
+- **Demo live (senza reset)**: `python -m scripts.prepare_live_demo --author "Amedeo" --approver "Verificatore"` esegue partiti, gruppi, attacco Governo/DAIT, schede Meloni/Schlein/Conte, affiliazioni, stato RDC, feed ufficiale, notizia a tre fonti e bozze territoriali del Lazio. Non cancella il database.
 - **Registrazione senza elenchi**: se partiti o regioni non sono ancora caricati, la registrazione lo dice e lascia proseguire; zona e partiti si impostano poi dal Profilo.
 - **Partiti del Governo e dell'opposizione**: `scripts\seed_government_parties.cmd` inserisce Fratelli d'Italia, Lega per Salvini Premier, Forza Italia, Noi Moderati, Partito Democratico, Movimento 5 Stelle e Alleanza Verdi e Sinistra (dati Wikidata: nome, sigla, sito, logo). AVS è un'alleanza elettorale, non solo un partito Q7278. Passano dal flusso normale (proposta «Sincronizzazione Wikidata», approvazione «Direzione VeraPolitica»), quindi compaiono nel registro e in Registrati. Un logo senza licenza libera su Commons non viene scaricato: la redazione carica il file ufficiale dalla console.
 - **Modifiche**: ogni partito ha «Modifica» (nome, sigla, sito, rimozione del logo, con il motivo) e «Sostituisci logo». Le modifiche si applicano quando le approva un'altra persona.

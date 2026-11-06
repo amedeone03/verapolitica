@@ -1377,3 +1377,30 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .office-holder-role { margin: 0; color: var(--color-text-muted); font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .office-holder { margin: 0; font-weight: 700; }
 .search-notice { margin: 0 0 var(--space-5); padding: 12px 16px; border-radius: 14px; background: var(--color-accent-light); color: var(--color-primary); font-size: .9375rem; }
+
+/* Procedimenti giudiziari / Controversie: one line on what belongs in each box. */
+.block-lede { margin: -4px 0 14px; color: var(--color-text-muted, #5b6472); font-size: .92rem; line-height: 1.45; }
+
+/* Politica · Territori: "your zone" card, comune search, then plain rows.
+   Pattern: weather apps' "My places" (saved place first, search, then browse). */
+.zone-card { margin-bottom: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); }
+.zone-card[aria-busy="true"] { min-height: 96px; }
+.zone-card p { margin: 0; }
+.zone-label small, .zone-holder small { display: block; color: var(--color-text-muted); font-size: .8125rem; font-weight: 600; }
+.zone-label strong { font-size: 1.0625rem; }
+.zone-copy { margin: 6px 0 var(--space-3) !important; color: var(--color-text-muted); font-size: .9375rem; line-height: 1.45; }
+.zone-cta { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-3); padding: 0 18px; border-radius: 999px; background: var(--color-primary); color: #fff; font-weight: 700; text-decoration: none; transition: transform .12s ease; }
+.zone-cta:active { transform: scale(.97); }
+.zone-holders { display: grid; gap: 10px; margin: var(--space-3) 0; padding: 0; list-style: none; }
+@media (min-width: 700px) { .zone-holders { grid-template-columns: 1fr 1fr; } }
+.zone-holder { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.zone-holder .office-holder-photo { width: 44px; height: 44px; font-size: .875rem; }
+.zone-holder strong { font-size: .9375rem; }
+.zone-holder strong a { color: var(--color-text); text-decoration: none; }
+.zone-holder strong a:hover { text-decoration: underline; }
+.territory-find { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-bottom: var(--space-3); padding: 0 14px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text-muted); }
+.territory-find:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-accent-light); }
+.territory-find input { flex: 1; min-width: 0; min-height: 42px; border: 0; background: transparent; color: var(--color-text); font: 500 .9375rem var(--font-body); }
+.territory-find input:focus { outline: none; }
+.territory-results { margin-bottom: var(--space-3); }
+@media (prefers-reduced-motion: reduce) { .zone-cta { transition: none; } }

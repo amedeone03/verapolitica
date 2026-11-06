@@ -33,7 +33,6 @@ from scripts.seed_government_parties import seed as seed_parties
 from scripts.seed_meloni_showcase import seed as seed_meloni
 from scripts.seed_official_feed import seed as seed_feed
 from scripts.seed_official_notizia import seed as seed_notizia
-from scripts.seed_official_portraits import seed as seed_portraits
 from scripts.seed_opposition_showcase import seed as seed_opposition
 from scripts.seed_party_affiliations import seed as seed_affiliations
 from scripts.seed_rdc_verdict import seed as seed_verdict
@@ -50,7 +49,6 @@ class Report:
     opposition: dict = field(default_factory=dict)
     affiliations: dict = field(default_factory=dict)
     verdict: dict = field(default_factory=dict)
-    portraits: dict = field(default_factory=dict)
     feed: dict = field(default_factory=dict)
     notizia: dict = field(default_factory=dict)
     offices: dict = field(default_factory=dict)
@@ -63,7 +61,6 @@ def prepare(
     author: str,
     approver: str,
     party_approver: str,
-    portraits_path: Path | None,
     raw_storage: Path,
     camera_legislature: int | str = 19,
     get=sync_symbols.quick_get,
@@ -138,15 +135,6 @@ def prepare(
     except Exception as error:
         report.errors.append(f"stato-rdc: {error}")
 
-    if portraits_path is not None:
-        try:
-            portraits = seed_portraits(session_factory, portraits_path)
-            report.portraits = asdict(portraits)
-        except Exception as error:
-            report.errors.append(f"ritratti: {error}")
-    else:
-        report.portraits = {"skipped": "VERAPOLITICA_PORTRAITS_PATH non impostato"}
-
     try:
         feed = seed_feed(service, session_factory, author=author, approver=approver)
         report.feed = asdict(feed)
@@ -181,7 +169,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--approver", required=True)
     parser.add_argument("--party-approver", default="Direzione VeraPolitica")
     parser.add_argument("--database-url")
-    parser.add_argument("--portraits-path", type=Path)
     args = parser.parse_args(argv)
     if args.author.strip() == args.approver.strip():
         raise SystemExit("chi approva deve essere diverso da chi scrive")
@@ -200,7 +187,6 @@ def main(argv: list[str] | None = None) -> int:
             author=args.author,
             approver=args.approver,
             party_approver=args.party_approver,
-            portraits_path=args.portraits_path or settings.portraits_path,
             raw_storage=settings.raw_storage_path,
             camera_legislature=settings.camera_legislature,
         )

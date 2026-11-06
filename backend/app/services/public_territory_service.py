@@ -24,7 +24,6 @@ from backend.app.schemas import (
     PublicRegionSummary,
     PublicTerritorialSource,
 )
-from backend.app.services.official_images import official_https_image_url
 
 
 class PublicTerritoryQueryService:
@@ -186,13 +185,11 @@ class PublicTerritoryQueryService:
         result: dict[int, PublicOfficeHolder] = {}
         for territory_id, (mandate, politician, version) in holders.items():
             published = version is not None and version.published_at is not None
-            profile = version.profile_data if published and isinstance(version.profile_data, dict) else {}
             result[territory_id] = PublicOfficeHolder(
                 politician_id=politician.id if published else None,
                 given_name=politician.canonical_given_name,
                 family_name=politician.canonical_family_name,
                 start_date=mandate.start_date,
-                image_url=official_https_image_url(profile.get("image_url")),
             )
         return result
 

@@ -30,11 +30,14 @@ def test_console_is_self_contained_and_in_cambridge_colours(tmp_path):
     assert not re.search(r'<script[^>]+src="https?://', page)
     assert "--color-primary: #0F2747" in styles and "--color-accent: #85B09A" in styles
     # The writing models drive the console.
-    for text in ("Modello Politico", "Modello Notizia", "Cosa scrivere", "Da evitare",
-                 "Chi scrive non è chi verifica", "Come si assegna lo stato a una promessa",
-                 "Registro modifiche", "Parentesi quadre: nessuna rimasta aperta nel testo."):
+    for text in ("Cosa scrivere", "Da evitare", "Come si scrive", "Pubblica un admin",
+                 "Come si assegna lo stato a una promessa", "Registro",
+                 "Parentesi quadre: nessuna rimasta aperta nel testo."):
         assert text in script or text in page
-    assert "Approva e pubblica" in script and "data-check" in script
+    # One «Pubblica» button for admins; no checklist to tick before publishing.
+    assert 'data-action="approva">Pubblica<' in script and "data-check" not in script
+    assert 'imageFields("pol", "Foto")' in script and 'imageFields("party", "Logo")' in script
+    assert "bindTerritoryPicker" in script and "type=municipality" in script
     assert 'href="#/identita"' in page and "Identità da risolvere" in script
     assert 'data-action="collega"' in script and "pending_identities" in script
     assert "Elimina la notizia" in script and "data-discard" in script

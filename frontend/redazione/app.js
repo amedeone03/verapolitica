@@ -78,7 +78,16 @@ async function api(path, { method = "GET", body } = {}) {
   return data;
 }
 
+function foldEmptyBlocks(findings = []) {
+  // «Blocco vuoto» repeated for every block reads like noise: one line says how many.
+  const empty = findings.filter((f) => f.code === "blocco_vuoto");
+  if (empty.length < 2) return findings;
+  const level = empty.some((f) => f.level === "error") ? "error" : "warning";
+  return [{ level, code: "blocchi_vuoti", message: `${empty.length} blocchi ancora vuoti.` }, ...findings.filter((f) => f.code !== "blocco_vuoto")];
+}
+
 function findingsList(findings) {
+  findings = foldEmptyBlocks(findings);
   if (!findings?.length) return `<ul class="findings"><li class="ok">Nessun problema rilevato dai controlli automatici.</li></ul>`;
   return `<ul class="findings">${findings.map((f) => `<li class="${f.level === "error" ? "error" : "warning"}">${esc(f.message)}</li>`).join("")}</ul>`;
 }
@@ -107,13 +116,20 @@ const SOURCE_AREAS = [
   ["tecnica", "Tecnica (ISTAT, Banca d'Italia…)"],
   ["altro", "Altro"],
 ];
-const PROCEEDING_TYPES = [
-  ["judicial_proceeding", "Procedimento giudiziario"],
-  ["investigation", "Indagine"],
-  ["political_controversy", "Controversia politica"],
-  ["legal_controversy", "Controversia legale"],
-  ["media_controversy", "Controversia mediatica"],
+// Procedimenti giudiziari: only what concerns the politician in court.
+const JUDICIAL_TYPES = [
+  ["judicial_proceeding", "Processo a suo carico"],
+  ["investigation", "Indagine a suo carico"],
 ];
+// Controversie: public matters that do not necessarily involve an investigation of the politician.
+const CONTROVERSY_TYPES = [
+  ["political_controversy", "Controversia politica"],
+  ["media_controversy", "Controversia mediatica"],
+  ["legal_controversy", "Controversia legale (non a suo carico)"],
+  ["related_investigation", "Indagine su una persona vicina (familiare, collaboratore)"],
+];
+const PROCEEDING_TYPES = [...JUDICIAL_TYPES, ...CONTROVERSY_TYPES];
+const PROCEEDING_TYPE_LABELS = Object.fromEntries(PROCEEDING_TYPES);
 const OUTCOMES = [["", "—"], ["ongoing", "In corso"], ["archived", "Archiviato"], ["dismissed", "Prosciolto / assolto"], ["unknown", "Non noto"]];
 const options = (pairs, selected) => pairs.map(([value, label]) => `<option value="${esc(value)}"${value === selected ? " selected" : ""}>${esc(label)}</option>`).join("");
 
@@ -184,6 +200,71 @@ function updateCounter(field) {
   counter.className = `counter ${count === 0 ? "" : count >= min && count <= max ? "in-range" : "out-range"}`;
 }
 const counted = (min, max) => `data-count="${min}-${max}"`;
+
+// Admins publish what they save. Everyone else saves a draft for an admin.
+const isLead = () => Boolean(state.me?.admin ?? state.me?.lead);
+const leadPublishToggle = () => "";
+const publishNow = () => undefined;
+const saveLabel = (draft = "Salva") => (isLead() ? "Pubblica" : draft);
+// Photo (politician) or logo (party) inside the creation form: file, credit, optional link.
+function imageFields(prefix, label) {
+  return `<fieldset class="image-fields"><legend>${esc(label)} <span class="hint">facoltativa</span></legend>
+    <div class="image-row"><span class="image-preview" data-image-preview="${prefix}" aria-hidden="true"></span>
+      <div class="grid-2" style="flex:1">
+        <div class="field"><label for="${prefix}-img">File</label><input id="${prefix}-img" type="file" accept="image/png,image/jpeg,image/webp" data-image-file="${prefix}" /></div>
+        <div class="field"><label for="${prefix}-credit">Credito <span class="hint">es. «Camera dei deputati»</span></label><input id="${prefix}-credit" name="image_credit" type="text" maxlength="300" /></div>
+        <div class="field"><label for="${prefix}-src">Link della fonte <span class="hint">facoltativo</span></label><input id="${prefix}-src" name="image_source_url" type="url" placeholder="https://" /></div>
+      </div></div>
+  </fieldset>`;
+}
+
+function readImage(file, { photo = true } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      if (photo) {
+        const side = Math.min(img.width, img.height);
+        const sy = Math.max(0, Math.min(img.height - side, (img.height - side) * 0.25));
+        ctx.drawImage(img, (img.width - side) / 2, sy, side, side, 0, 0, 256, 256);
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
+      } else {
+        const k = Math.min(232 / img.width, 232 / img.height);
+        ctx.drawImage(img, (256 - img.width * k) / 2, (256 - img.height * k) / 2, img.width * k, img.height * k);
+        resolve(canvas.toDataURL("image/png"));
+      }
+    };
+    img.onerror = () => reject(new Error("Immagine non leggibile."));
+    reader.onload = () => { img.src = reader.result; };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadImageFields(form, prefix, alt, { photo = true } = {}) {
+  const file = form.querySelector(`[data-image-file="${prefix}"]`)?.files?.[0];
+  if (!file) return { image_credit: undefined, image_source_url: undefined };
+  const data = await readImage(file, { photo });
+  const image = await api("/immagini", { method: "POST", body: { data, alt } });
+  return { image_id: image.id };
+}
+
+function bindImagePreviews(root) {
+  root.querySelectorAll("[data-image-file]").forEach((input) => input.addEventListener("change", async () => {
+    const box = root.querySelector(`[data-image-preview="${input.dataset.imageFile}"]`);
+    if (!box) return;
+    const file = input.files?.[0];
+    box.style.backgroundImage = file ? `url("${await readImage(file, { photo: input.dataset.imageFile !== "party" })}")` : "";
+  }));
+}
+
+function savedToast(result, waiting) {
+  if (result?.published) return toast("Pubblicato.");
+  if (result?.publish_error) return toast(`Salvato, ma non ancora pubblicabile: ${result.publish_error}`, true);
+  return toast(waiting);
+}
 
 // --------------------------------------------------------------------- shell
 function setSection(section) {
@@ -284,52 +365,196 @@ window.addEventListener("hashchange", route);
 
 // --------------------------------------------------------------------- queue
 let queueFilter = "all";
+const QUEUE_GROUPS = [
+  ["verify", "Da verificare da te", "Contenuti scritti da altri: controlla le fonti e decidi."],
+  ["self", "Tuoi, da verificare tu", "Sei capo squadra: puoi pubblicarli direttamente."],
+  ["mine", "Tuoi, in attesa di un'altra persona", "Li verifica un'altra persona della redazione."],
+  ["blocked", "Bloccati", "Hanno errori da correggere prima della verifica."],
+  ["other", "Altri in attesa", "Hai già dato la tua approvazione, oppure servono due persone."],
+];
+
+function queueGroup(item) {
+  if (item.can_approve) return "verify";
+  if (item.can_self_verify) return "self";
+  if (item.blocked) return "blocked";
+  if (item.own) return "mine";
+  return "other";
+}
+
+function ago(value) {
+  const then = new Date(value);
+  if (Number.isNaN(then.getTime())) return "";
+  const hours = Math.round((Date.now() - then.getTime()) / 36e5);
+  if (hours < 1) return "ora";
+  if (hours < 24) return `${hours} h fa`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "ieri" : `${days} giorni fa`;
+}
+
+function initials(name) {
+  const words = String(name || "").split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] || "") + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase() || "·";
+}
+
+// ---------------------------------------------------------------- home
+// One page for whoever writes: find a scheda, create something, see what is
+// waiting for you. Pattern references (Appllama): Any.do «My Lists Home» and
+// Tasks «Home» (rounded search field, two-column create cards, short lists),
+// Notion «Workspace Home» (search first, everything else one tap away).
+let homeOpen = "";
+const HOME_PREVIEW = 4;
+
+function homeSection(key, title, hint, items, { emptyText = "" } = {}) {
+  if (!items.length && !emptyText) return "";
+  const open = homeOpen === key;
+  const shown = open ? items : items.slice(0, HOME_PREVIEW);
+  return `<section class="home-section" data-home="${key}">
+    <div class="home-section-head"><h2>${esc(title)} <span class="count">${items.length}</span></h2>${hint ? `<p class="small muted">${esc(hint)}</p>` : ""}</div>
+    ${items.length ? `<div class="row-list">${shown.map(queueCard).join("")}</div>
+      ${items.length > HOME_PREVIEW ? `<button type="button" class="link-more" data-home-toggle="${key}">${open ? "Mostra meno" : `Vedi tutti (${items.length})`}</button>` : ""}`
+      : `<p class="home-empty">${esc(emptyText)}</p>`}
+  </section>`;
+}
+
+function rejectedList(rows) {
+  if (!rows.length) return "";
+  return `<section class="home-section" data-home="rejected">
+    <div class="home-section-head"><h2>Respinti <span class="count">${rows.length}</span></h2></div>
+    <ul class="row-list rejected-list">${rows.map((row) => `<li>
+      <span class="queue-dot is-red" aria-hidden="true"></span>
+      <div><strong>${esc(String(row.summary || "").split(" Motivo:")[0].replace(/^Respinto:\s*/, ""))}</strong>${row.note ? `<p class="small">«${esc(row.note)}» — ${esc(row.by)}</p>` : `<p class="small muted">${esc(row.by)}</p>`}</div>
+      ${row.politician_id ? `<a class="button button-secondary" href="#/politici/${row.politician_id}">Apri la scheda</a>` : row.object_kind === "news" ? `<a class="button button-secondary" href="#/notizie/${row.object_id}">Apri la notizia</a>` : ""}
+    </li>`).join("")}</ul>
+  </section>`;
+}
+
 async function showQueue() {
-  const items = await api("/coda");
-  const toVerify = items.filter((item) => item.can_approve);
-  const mine = items.filter((item) => item.own);
-  const blocked = items.filter((item) => item.blocked);
-  const kinds = [...new Map(items.map((item) => [item.kind, item.kind_label])).entries()];
-  const shown = items.filter((item) => queueFilter === "all" || (queueFilter === "verify" ? item.can_approve : queueFilter === "mine" ? item.own : item.kind === queueFilter));
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Ciclo di lavoro</p><h1>Da verificare</h1>
-    <p>Scrive il redattore, verifica un'altra persona, poi si pubblica. Nulla di quello che vedi qui è visibile al cittadino finché non viene approvato. Se manca una fonte, il contenuto resta in attesa. Una notizia in bozza si può eliminare: non è ancora pubblica. Una notizia già pubblicata non si cancella.</p></div></div>
-    <div class="summary-strip">
-      <div class="tile"><strong>${toVerify.length}</strong><span>da verificare da te</span></div>
-      <div class="tile"><strong>${mine.length}</strong><span>scritti da te, in attesa di un'altra persona</span></div>
-      <div class="tile"><strong>${blocked.length}</strong><span>bloccati da errori da correggere</span></div>
-      <div class="tile"><strong>${items.length}</strong><span>in attesa in totale</span></div>
+  const [items, overview] = await Promise.all([api("/coda"), api("/panoramica").catch(() => null)]);
+  const lead = isLead();
+  const groups = Object.fromEntries(QUEUE_GROUPS.map(([key]) => [key, []]));
+  for (const item of items) groups[queueGroup(item)].push(item);
+  const hello = (state.me?.name || "").split(/\s+/)[0];
+  const rejected = overview?.my_rejected || [];
+  const toFix = groups.blocked.filter((item) => item.own);
+  const todo = groups.verify.length + groups.self.length + toFix.length + rejected.length;
+  const total = overview?.public_schede || 0;
+  const withBio = overview?.schede_with_bio || 0;
+  view.innerHTML = `<div class="home">
+    <header class="home-head">
+      <h1>Da fare</h1>
+      <p class="home-sub">${todo ? `${todo} ${todo === 1 ? "elemento" : "elementi"}` : "Niente in sospeso."}${lead ? " · admin" : ""}</p>
+    </header>
+
+    <form class="home-search" role="search" id="home-search">
+      <label class="visually-hidden" for="home-q">Cerca un politico</label>
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="home-q" type="search" placeholder="Cerca un politico" autocomplete="off" />
+      <ul class="home-results" id="home-results" hidden></ul>
+    </form>
+
+    <nav class="home-create" aria-label="Crea">
+      <a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a>
+      <a class="button button-secondary" href="#/politici" data-create="politico">Nuovo politico</a>
+      <a class="button button-secondary" href="#/simboli/party" data-create="partito">Nuovo partito</a>
+    </nav>
+
+    <div class="home-todo">
+      ${rejectedList(rejected)}
+      ${homeSection("fix", "Da correggere", "", toFix)}
+      ${homeSection("verify", "Da pubblicare", "", groups.verify, { emptyText: lead ? "Niente da pubblicare." : "" })}
+      ${lead ? homeSection("self", "Tuoi, da pubblicare", "", groups.self) : ""}
+      ${homeSection("mine", "Inviati, in attesa", "", groups.mine)}
+      ${homeSection("other", "Altri in attesa", "", groups.other)}
     </div>
-    <div class="filters" role="group" aria-label="Filtra">
-      ${[["all", "Tutti"], ["verify", "Da verificare da me"], ["mine", "Scritti da me"], ...kinds].map(([key, label]) => `<button type="button" data-filter="${esc(key)}" aria-pressed="${queueFilter === key}">${esc(label)}</button>`).join("")}
-    </div>
-    <div id="queue-list">${shown.length ? shown.map(queueCard).join("") : `<div class="empty">Niente in attesa${queueFilter === "all" ? "" : " con questo filtro"}.</div>`}</div>`;
-  view.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => { queueFilter = button.dataset.filter; showQueue(); }));
+
+    ${overview ? `<footer class="home-stats" aria-label="Numeri">
+      <span><strong>${overview.published_week || 0}</strong> pubblicati in 7 giorni</span>
+      <span><strong>${withBio}/${total}</strong> schede con «Chi è»</span>
+      <a href="#/registro">Registro</a>
+    </footer>` : ""}
+  </div>`;
+
+  view.querySelectorAll("[data-home-toggle]").forEach((button) => button.addEventListener("click", () => {
+    homeOpen = homeOpen === button.dataset.homeToggle ? "" : button.dataset.homeToggle;
+    showQueue();
+  }));
+  view.querySelectorAll("[data-create]").forEach((link) => link.addEventListener("click", () => {
+    try { sessionStorage.setItem(`vp-open-new-${link.dataset.create}`, "1"); } catch { /* storage off */ }
+  }));
+  bindHomeSearch();
   bindQueueActions(view, showQueue);
+}
+
+function bindHomeSearch() {
+  const input = view.querySelector("#home-q");
+  const list = view.querySelector("#home-results");
+  let timer = 0;
+  let seq = 0;
+  const render = (rows, q) => {
+    list.hidden = !q;
+    list.innerHTML = rows.length
+      ? rows.map((row) => `<li><a href="#/politici/${row.id}"><strong>${esc(row.name)}</strong><span class="small muted">${row.public ? "Scheda pubblica" : "Non pubblicata"}${row.pending ? ` · ${row.pending} in attesa` : ""}</span></a></li>`).join("")
+      : `<li class="muted small" style="padding:10px 14px">Nessun politico con questo nome. <a href="#/politici" data-create="politico">Aggiungilo</a></li>`;
+  };
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { list.hidden = true; return; }
+    timer = setTimeout(async () => {
+      const mine = ++seq;
+      try {
+        const rows = await api(`/politici?q=${encodeURIComponent(q)}&limit=8`);
+        if (mine === seq) render(rows, q);
+      } catch { /* ignore */ }
+    }, 200);
+  });
+  view.querySelector("#home-search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const first = list.querySelector("a[href^='#/politici/']");
+    if (first) location.hash = first.getAttribute("href");
+  });
+  input.addEventListener("keydown", (event) => { if (event.key === "Escape") { input.value = ""; list.hidden = true; } });
+  list.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest('[data-create="politico"]')) {
+      try { sessionStorage.setItem("vp-open-new-politico", "1"); } catch { /* storage off */ }
+    }
+  });
 }
 
 function queueCard(item) {
   const approvals = item.approvals_required > 1 ? `<span class="chip chip-pending">${item.approvals.length} di ${item.approvals_required} approvazioni</span>` : "";
   const politician = item.politician_id ? `<a href="#/politici/${item.politician_id}">${esc(item.politician_name || "Politico")}</a>` : "";
   const needsClassification = item.kind === "promise" && !item.preview?.classification;
-  return `<article class="card queue-card" data-kind="${esc(item.kind)}" data-id="${item.id}">
-    <div class="card-head"><div>
-      <div class="item-meta"><span class="chip chip-kind">${esc(item.kind_label)}</span>${politician}<span>Scritto da <strong>${esc(item.author)}</strong></span><span>${dateTime(item.created_at)}</span>${approvals}</div>
-      <h3>${esc(item.title)}</h3></div></div>
-    ${previewFor(item)}
-    ${findingsList(item.findings)}
-    ${item.own ? `<p class="own-note">Scritto da te: lo verifica un'altra persona della redazione.</p>` : item.can_approve ? `
+  const group = queueGroup(item);
+  const self = item.can_self_verify;
+  const stateLabel = { verify: "Da pubblicare", self: "Tuo, da pubblicare", mine: "In attesa", blocked: "Da correggere", other: "In attesa" }[group];
+  const decision = item.can_approve || self ? `
       <form class="decision" data-kind="${esc(item.kind)}" data-id="${item.id}">
         ${needsClassification ? classificationFields("approve", {}) : ""}
-        <ul class="checklist">${CHECKLIST.map((text, index) => `<li><label class="check"><input type="checkbox" data-check="${index}" />${esc(text)}</label></li>`).join("")}</ul>
-        <div class="field" style="margin-top:12px"><label for="note-${item.kind}-${item.id}">Nota per chi ha scritto</label><textarea id="note-${item.kind}-${item.id}" name="note" rows="2" placeholder="Obbligatoria se respingi: cosa va corretto."></textarea></div>
+        <div class="field"><label for="note-${item.kind}-${item.id}">Nota</label><textarea id="note-${item.kind}-${item.id}" name="note" rows="2" placeholder="Serve solo se respingi: cosa va corretto."></textarea></div>
         <div class="actions">
-          <button type="submit" class="button button-approve" data-action="approva" disabled>Approva e pubblica</button>
-          <button type="button" class="button button-danger" data-action="rifiuta">Respingi</button>
-          <span class="small muted" data-checklist-hint>Spunta la checklist per approvare.</span>
+          <button type="submit" class="button button-approve" data-action="approva">Pubblica</button>
+          ${self ? "" : `<button type="button" class="button button-secondary" data-action="rifiuta">Respingi</button>`}
         </div>
-      </form>` : item.blocked ? `<p class="own-note">Bloccato: va corretto da chi scrive prima della verifica.</p>` : `<p class="own-note">Hai già dato la tua approvazione: serve un'altra persona.</p>`}
-    ${item.can_discard ? `<div class="actions"><button type="button" class="button button-danger" data-discard="${item.id}" data-title="${esc(item.title)}">Elimina la notizia</button><span class="small muted">Toglie la bozza dalla coda. Non arriva al cittadino.</span></div>` : ""}
-  </article>`;
+      </form>` : group === "mine" ? `<p class="own-note">In attesa di un admin.</p>`
+      : group === "blocked" ? `<p class="own-note">Va corretto da chi l'ha scritto.</p>`
+      : `<p class="own-note">In attesa di un admin.</p>`;
+  return `<details class="queue-row is-${group}" data-kind="${esc(item.kind)}" data-id="${item.id}">
+    <summary>
+      <span class="queue-dot" aria-hidden="true"></span>
+      <span class="queue-main"><span class="queue-title">${esc(item.title)}</span>
+        <span class="queue-sub"><span class="chip chip-kind">${esc(item.kind_label)}</span>${item.politician_name ? `<span>${esc(item.politician_name)}</span>` : ""}<span>${esc(item.author)}</span><span>${ago(item.created_at)}</span></span></span>
+      <span class="queue-state">${esc(stateLabel)}</span>
+      <span class="queue-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="queue-body">
+      <div class="item-meta">${politician}<span>Scritto da <strong>${esc(item.author)}</strong></span><span>${dateTime(item.created_at)}</span>${approvals}</div>
+      ${previewFor(item)}
+      ${findingsList(item.findings)}
+      ${decision}
+      ${item.can_discard ? `<div class="actions"><button type="button" class="button button-danger" data-discard="${item.id}" data-title="${esc(item.title)}">Elimina la notizia</button><span class="small muted">Toglie la bozza dalla coda. Non arriva al cittadino.</span></div>` : ""}
+    </div>
+  </details>`;
 }
 
 function previewFor(item) {
@@ -367,13 +592,7 @@ function newsPreview(blocks = {}) {
 function bindQueueActions(root, reload) {
   root.querySelectorAll("form.decision").forEach((form) => {
     const approve = form.querySelector('[data-action="approva"]');
-    const hint = form.querySelector("[data-checklist-hint]");
-    const sync = () => {
-      const all = [...form.querySelectorAll("[data-check]")].every((box) => box.checked);
-      approve.disabled = !all;
-      hint.hidden = all;
-    };
-    form.addEventListener("change", sync);
+    const sync = () => { approve.disabled = false; };
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       approve.disabled = true;
@@ -386,7 +605,7 @@ function bindQueueActions(root, reload) {
         refreshCount();
       } catch (error) { toast(error.message, true); sync(); }
     });
-    form.querySelector('[data-action="rifiuta"]').addEventListener("click", async () => {
+    form.querySelector('[data-action="rifiuta"]')?.addEventListener("click", async () => {
       if (!form.note.value.trim()) { form.note.focus(); return toast("Scrivi nella nota cosa va corretto.", true); }
       try {
         const result = await api(`/coda/${form.dataset.kind}/${form.dataset.id}/rifiuta`, { method: "POST", body: { note: form.note.value } });
@@ -434,8 +653,8 @@ function identityStatusLabel(status) {
 async function showIdentities() {
   const payload = await api("/identita?status=pending&limit=100");
   const items = payload.items || [];
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Coda quotidiana</p><h1>Identità da risolvere</h1>
-    <p>governo.it e l'elenco DAIT dei sindaci spesso non hanno la data di nascita. Il bootstrap automatico non crea quelle persone. Qui una persona della redazione collega il nome all'archivio, crea una nuova identità o lascia il caso in attesa. Il nome di chi decide finisce nel registro.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Identità da risolvere</h1>
+    <p>Nomi arrivati senza data di nascita: collegali all'archivio o crea una nuova persona.</p></div></div>
     <div class="summary-strip">
       <div class="tile"><strong>${payload.total || 0}</strong><span>casi in attesa</span></div>
     </div>
@@ -538,8 +757,7 @@ async function showPoliticians(query = "") {
     api("/coda"),
   ]);
   const pending = queue.filter((item) => item.kind === "change" && item.preview?.kind === "politico");
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Politico</p><h1>Politici</h1>
-    <p>La scheda di una persona con un ruolo pubblico. Si scrive solo da fonti pubbliche: il politico non scrive mai la propria scheda.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Politici</h1></div></div>
     ${newPoliticianForm(pending)}
     <form id="politician-search" class="card" role="search" style="margin-bottom:16px"><label for="pq">Cerca per nome o cognome</label>
       <div class="actions" style="margin-top:4px"><input id="pq" type="search" value="${esc(query)}" style="flex:1 1 260px" /><button class="button button-primary" type="submit">Cerca</button></div></form>
@@ -550,12 +768,15 @@ async function showPoliticians(query = "") {
     event.preventDefault();
     showPoliticians(view.querySelector("#pq").value);
   });
+  bindImagePreviews(view);
   view.querySelector("#politician-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     try {
-      await api("/politici", { method: "POST", body: Object.fromEntries(new FormData(form)) });
-      toast("Politico proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      const body = Object.fromEntries(new FormData(form));
+      Object.assign(body, await uploadImageFields(form, "pol", `Foto: ${body.given_name} ${body.family_name}`));
+      const result = await api("/politici", { method: "POST", body });
+      savedToast(result, "Inviato all'admin.");
       showPoliticians(query);
       refreshCount();
     } catch (error) {
@@ -586,7 +807,9 @@ const GOVERNMENT_OFFICES = [
 ];
 
 function newPoliticianForm(pending) {
-  return `<details class="card new-party"><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
+  let open = false;
+  try { open = sessionStorage.getItem("vp-open-new-politico") === "1"; sessionStorage.removeItem("vp-open-new-politico"); } catch { /* storage off */ }
+  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
     <form id="politician-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
         <div class="field"><label for="pol-given">Nome</label><input id="pol-given" name="given_name" type="text" required minlength="2" maxlength="200" /></div>
@@ -596,7 +819,8 @@ function newPoliticianForm(pending) {
         <div class="field"><label for="pol-office">Incarico di Governo</label><select id="pol-office" name="office">${GOVERNMENT_OFFICES.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}</select></div>
         <div class="field"><label for="pol-start">Inizio incarico</label><input id="pol-start" name="start_date" type="date" /><span class="hint">Obbligatorio solo se scegli un incarico di Governo.</span></div>
       </div>
-      <div class="actions"><button class="button button-primary" type="submit">Proponi il politico</button></div>
+      ${imageFields("pol", "Foto")}
+      <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
     </form>
   </details>
   ${pending.length ? `<section class="card pending-parties"><h2>Politici proposti <span class="count">${pending.length}</span></h2>
@@ -614,8 +838,9 @@ const BLOCK_GUIDE = {
   career_entry: { n: 2, title: "Cosa ha fatto", what: "Elenco cronologico di incarichi e mandati, ognuno con data.", length: "Elenco", avoid: "Date mancanti o approssimate." },
   position: { n: 3, title: "Posizioni su temi chiave", what: "3–5 temi. Ogni posizione si basa su una dichiarazione o un voto verificabile, con data e fonte.", length: "3–5 righe", avoid: "Riassumere «l'ideologia» della persona." },
   promise: { n: 4, title: "Le promesse", what: "Tabella: promessa, quando e dove è stata fatta, stato, aggiornamento, fonte.", length: "Tabella", avoid: "Promesse senza data o senza fonte." },
-  proceeding: { n: 5, title: "Procedimenti e controversie", what: "Solo se documentati. Linguaggio giudiziario preciso. Se non ce ne sono, si omette il blocco.", length: "Solo se serve", avoid: "Presentare un'indagine come colpa." },
-  news: { n: 6, title: "Notizie collegate e fonti", what: "Link alle Notizie che riguardano la persona e fonti usate per la scheda.", length: "Elenco", avoid: "Fonti scritte dal diretto interessato come unica fonte." },
+  proceeding: { n: 5, title: "Procedimenti giudiziari", what: "Solo indagini e processi a carico del politico, documentati. Linguaggio giudiziario preciso.", length: "Solo se serve", avoid: "Presentare un'indagine come colpa. Mettere qui vicende che non lo riguardano in giudizio." },
+  controversy: { n: 6, title: "Controversie", what: "Vicende di rilevanza pubblica che non comportano necessariamente indagini a suo carico: una frase, un busto, un familiare indagato.", length: "Solo se serve", avoid: "Far sembrare la persona indagata quando non lo è: scrivi chi è indagato." },
+  news: { n: 7, title: "Notizie collegate e fonti", what: "Link alle Notizie che riguardano la persona e fonti usate per la scheda.", length: "Elenco", avoid: "Fonti scritte dal diretto interessato come unica fonte." },
 };
 function guide(key) {
   const g = BLOCK_GUIDE[key];
@@ -623,48 +848,79 @@ function guide(key) {
 }
 function blockHead(key, extra = "") {
   const g = BLOCK_GUIDE[key];
-  return `<div class="card-head"><h2><span class="block-number">${g.n}</span>${esc(g.title)}</h2>${extra}</div>${guide(key)}`;
+  // The writing rules stay one click away: the block itself comes first.
+  return `<div class="card-head"><h2><span class="block-number">${g.n}</span>${esc(g.title)}</h2>${extra}</div><details class="block-help"><summary>Come si scrive</summary>${guide(key)}</details>`;
+}
+
+// Progress strip of the scheda: one chip per block, coloured by what the citizen sees.
+function schedaProgress(s) {
+  const steps = ["biography", "career_entry", "position", "promise", "proceeding", "controversy", "news"].map((kind) => {
+    let items = [];
+    if (kind === "promise") items = (s.promises || []).map((p) => ({ status: p.published ? "published" : "pending" }));
+    else if (kind === "news") items = (s.news || []).map((n) => ({ status: n.status === "published" ? "published" : "pending" }));
+    else items = blockItems(s, kind) || [];
+    const published = items.filter((item) => item.status === "published").length;
+    const pending = items.filter((item) => item.status === "pending").length;
+    const state = published ? "is-published" : pending ? "is-pending" : "is-empty";
+    return { kind, state, published, pending, title: BLOCK_GUIDE[kind].title };
+  });
+  const core = steps.filter((step) => ["biography", "career_entry", "position"].includes(step.kind));
+  const ready = core.filter((step) => step.state === "is-published").length;
+  return `<nav class="scheda-progress" aria-label="Blocchi della scheda">
+    <div class="scheda-progress-head"><strong>${ready} di ${core.length} blocchi essenziali pubblicati</strong><span class="small muted">Verde pubblicato · giallo in attesa · grigio vuoto</span></div>
+    <div class="scheda-steps">${steps.map((step) => `<a class="scheda-step ${step.state}" href="#blocco-${step.kind}" data-jump="blocco-${step.kind}"><span class="dot" aria-hidden="true"></span>${esc(step.title)}${step.published || step.pending ? ` <span class="muted">${step.published + step.pending}</span>` : ""}</a>`).join("")}</div>
+  </nav>`;
 }
 
 async function showScheda(politicianId, focus) {
-  const s = await api(`/politici/${politicianId}`);
+  const [s, portraits] = await Promise.all([
+    api(`/politici/${politicianId}`),
+    fetch("/portraits").then((response) => (response.ok ? response.json() : {})).catch(() => ({})),
+  ]);
+  s.photo = portraits[String(politicianId)] || null;
   const q = s.scheda_rapida;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/politici">Politici</a> · Modello Politico</p><h1>${esc(s.name)}</h1></div>
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/politici">Politici</a></p><h1>${esc(s.name)}</h1></div>
       <div class="actions">${s.public_url ? `<a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a>` : `<span class="chip chip-muted">Profilo non ancora pubblico</span>`}
       <a class="button button-secondary" href="#/registro" data-log-politician="${s.id}">Registro di questa scheda</a></div></div>
-    <div class="layout-side"><div>
-      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Scheda rapida</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Nome, data e luogo di nascita, partito, incarico attuale e da quando, «Aggiornato al».</div><div><b>Lunghezza</b>Riquadro</div><div class="avoid"><b>Da evitare</b>Titoli onorifici o aggettivi.</div></div>
+    ${schedaProgress(s)}
+    <div class="scheda-body">
+      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Scheda rapida</h2>${s.photo ? `<figure class="scheda-photo"><img src="${esc(s.photo.url)}" alt="" width="72" height="72" /><figcaption class="small muted">${esc(s.photo.credit)}</figcaption></figure>` : ""}</div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Nome, data e luogo di nascita, partito, incarico attuale e da quando, «Aggiornato al».</div><div><b>Lunghezza</b>Riquadro</div><div class="avoid"><b>Da evitare</b>Titoli onorifici o aggettivi.</div></div></details>
         <div class="preview" style="max-height:none"><dl><dt>Nascita</dt><dd>${q.birth_date ? `${longDate(q.birth_date)}${q.birth_place ? `, ${esc(q.birth_place)}` : ""}` : "Non indicata"}</dd><dt>Incarico attuale</dt><dd>${q.office ? `${esc(q.office)}${q.office_since ? ` dal ${longDate(q.office_since)}` : ""}` : "Non indicato"}</dd><dt>Partito</dt><dd>${esc(q.party || "Non indicato")}</dd></dl></div>
-        <p class="small muted">Aggiornato al ${q.updated_at ? longDate(q.updated_at) : "—"} · Redattore ${esc(q.writers.join(", ") || "—")} · Verificatore ${esc(q.verifiers.join(", ") || "—")}</p>
-        <p class="small muted">Questi dati arrivano dall'importazione ufficiale (Camera, Senato, Governo): non si scrivono a mano.</p>
+        <p class="small muted">Aggiornato al ${q.updated_at ? longDate(q.updated_at) : "—"} · Scritto da ${esc(q.writers.join(", ") || "—")} · Pubblicato da ${esc(q.verifiers.join(", ") || "—")}</p>
+        <details class="writer photo-writer"><summary>${s.photo ? "Cambia la foto" : "Aggiungi la foto"}</summary>
+          <form class="photo-form stack">${imageFields("photo", "Foto")}<div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div></form>
+        </details>
       </section>
       ${profileBlock(s, "biography")}
       ${profileBlock(s, "career_entry")}
       ${profileBlock(s, "position")}
       ${promisesBlock(s)}
       ${profileBlock(s, "proceeding")}
+      ${profileBlock(s, "controversy")}
       ${newsBlock(s)}
-    </div>
-    <aside class="card side-panel"><h3>Prima di pubblicare la scheda</h3>
-      <ul class="findings">${s.checklist.map((c) => `<li class="${c.ok ? "ok" : "warning"}">${esc(c.label)}</li>`).join("")}</ul>
-      ${s.changes.length ? `<h3 style="margin-top:16px">Modifiche in attesa</h3><ul class="item-sources">${s.changes.map((c) => `<li>${esc(c.summary)} — ${esc(c.created_by)}</li>`).join("")}</ul>` : ""}
-      <p class="small muted" style="margin-top:12px">Ogni salvataggio crea una bozza: il cittadino la vede solo dopo l'approvazione di un'altra persona. Tutte le modifiche finiscono nel registro.</p>
-    </aside></div>`;
+    </div>`;
   bindScheda(s);
   if (focus) document.getElementById(focus)?.scrollIntoView();
 }
 
+// Proceedings and controversies share one table; each box shows its own category.
+const blockItems = (s, kind) => kind === "controversy"
+  ? (s.blocks.proceeding || []).filter((item) => item.data.category === "controversy")
+  : kind === "proceeding"
+    ? (s.blocks.proceeding || []).filter((item) => item.data.category !== "controversy")
+    : s.blocks[kind];
+
 function profileBlock(s, kind) {
-  const items = s.blocks[kind];
+  const items = blockItems(s, kind);
   const published = items.filter((i) => i.status === "published");
   const pending = items.filter((i) => i.status === "pending");
   const extra = kind === "position" ? `<span class="chip ${published.length >= 3 && published.length <= 5 ? "chip-published" : "chip-pending"}">${published.length} pubblicate · indicazione 3–5</span>` : "";
   const single = kind === "biography";
-  const writerLabel = single ? (published.length || pending.length ? "Modifica «Chi è»" : "Scrivi «Chi è»") : `Aggiungi ${kind === "career_entry" ? "un incarico" : kind === "position" ? "una posizione" : "un procedimento"}`;
+  const writerLabel = single ? (published.length || pending.length ? "Modifica «Chi è»" : "Scrivi «Chi è»") : `Aggiungi ${kind === "career_entry" ? "un incarico" : kind === "position" ? "una posizione" : kind === "controversy" ? "una controversia" : "un procedimento"}`;
   const starting = single ? (pending[0] || published[0]) : null;
   return `<section class="card" id="blocco-${kind}">${blockHead(kind, extra)}
-    ${items.length ? items.map((item) => contentItem(kind, item)).join("") : `<p class="muted">${kind === "proceeding" ? "Non risultano procedimenti giudiziari documentati: il blocco non compare al cittadino." : "Ancora vuoto."}</p>`}
+    ${items.length ? items.map((item) => contentItem(kind, item)).join("") : `<p class="muted">${kind === "proceeding" ? "Non risultano procedimenti giudiziari documentati a suo carico." : kind === "controversy" ? "Ancora vuoto: il cittadino vede «nessun elemento pubblicato», non «nessuna controversia»." : "Ancora vuoto."}</p>`}
     ${kind === "proceeding" ? judicialFormulas() : ""}
     <details class="writer"><summary>${esc(writerLabel)}</summary>${blockForm(kind, starting ? { ...starting.data, identity_key: starting.identity_key, sources: starting.data.sources } : {})}</details>
   </section>`;
@@ -679,12 +935,12 @@ function contentItem(kind, item) {
   if (kind === "biography") body = `<p class="item-body">${esc(d.body)}</p>`;
   if (kind === "career_entry") body = `<p><strong>${esc(d.role)}</strong> — ${esc(d.institution)}${d.party_or_group ? ` · ${esc(d.party_or_group)}` : ""}<br /><span class="small muted">${longDate(d.start_date)} – ${d.is_current ? "in corso" : longDate(d.end_date) || "—"}</span></p>`;
   if (kind === "position") body = `<p><strong>${esc(d.topic)}</strong>: ${esc(d.position_statement)}</p><p class="small muted">${esc(d.verifiable_statement)} · ${longDate(d.statement_date) || "data mancante"}</p>`;
-  if (kind === "proceeding") body = `<p><strong>${esc(d.title)}</strong> · ${longDate(d.event_date) || "data non indicata"}</p><p class="small">${esc(d.summary)}</p>${d.outcome_summary ? `<p class="small"><strong>Esito:</strong> ${esc(d.outcome_summary)}</p>` : ""}`;
+  if (kind === "proceeding" || kind === "controversy") body = `<p><strong>${esc(d.title)}</strong> · ${esc(PROCEEDING_TYPE_LABELS[(d.proceeding_types || [])[0]] || "")} · ${longDate(d.event_date) || "data non indicata"}</p><p class="small">${esc(d.summary)}</p>${d.outcome_summary ? `<p class="small"><strong>Esito:</strong> ${esc(d.outcome_summary)}</p>` : ""}`;
   const edit = kind === "biography" ? "" : `<details class="writer"><summary>Modifica</summary>${blockForm(kind, { ...d, identity_key: item.identity_key })}</details>`;
   return `<div class="item ${item.status === "published" ? "is-published" : "is-pending"}">
     <div class="item-meta">${status}<span>scritto da ${esc(item.created_by)}</span></div>
     ${body}${sourcesList(d.sources)}
-    ${item.status === "pending" ? findingsList(item.findings) : `<div class="actions"><button type="button" class="button-link" data-withdraw="${kind}:${item.id}">Ritira dal profilo pubblico</button></div>`}
+    ${item.status === "pending" ? findingsList(item.findings) : `<div class="actions"><button type="button" class="button-link" data-withdraw="${kind === "controversy" ? "proceeding" : kind}:${item.id}">Ritira dal profilo pubblico</button></div>`}
     ${edit}
   </div>`;
 }
@@ -699,22 +955,23 @@ function blockForm(kind, d = {}) {
   if (kind === "position") fields = `<div class="field-row"><div class="field"><label for="${id}-topic">Tema</label><input id="${id}-topic" type="text" name="topic" value="${esc(d.topic || "")}" required /></div><div class="field"><label for="${id}-date">Data della dichiarazione o del voto</label><input id="${id}-date" type="date" name="statement_date" value="${esc(d.statement_date || "")}" required /></div></div>
     <div class="field"><label for="${id}-pos">Posizione <span class="hint">Come l'ha espressa la persona, attribuita: «ha dichiarato…», «ha votato…».</span></label><textarea id="${id}-pos" name="position_statement" required>${esc(d.position_statement || "")}</textarea></div>
     <div class="field"><label for="${id}-ver">Dichiarazione o voto verificabile</label><textarea id="${id}-ver" name="verifiable_statement" rows="2" required>${esc(d.verifiable_statement || "")}</textarea></div>`;
-  if (kind === "proceeding") fields = `<div class="field"><label for="${id}-title">Vicenda</label><input id="${id}-title" type="text" name="title" value="${esc(d.title || "")}" required /></div>
-    <div class="field-row"><div class="field"><label for="${id}-type">Tipo</label><select id="${id}-type" name="proceeding_types">${options(PROCEEDING_TYPES, (d.proceeding_types || [])[0])}</select></div><div class="field"><label for="${id}-date">Data</label><input id="${id}-date" type="date" name="event_date" value="${esc(d.event_date || "")}" /></div><div class="field"><label for="${id}-out">Stato</label><select id="${id}-out" name="outcome">${options(OUTCOMES, d.outcome || "")}</select></div><div class="field"><label for="${id}-outd">Data dell'esito</label><input id="${id}-outd" type="date" name="outcome_date" value="${esc(d.outcome_date || "")}" /></div></div>
-    <div class="field"><label for="${id}-sum">Sintesi <span class="hint">[corte], [data], [grado di giudizio], [reato]. Un'indagine non è una colpa.</span></label><textarea id="${id}-sum" name="summary" required>${esc(d.summary || "")}</textarea></div>
+  if (kind === "proceeding" || kind === "controversy") fields = `<input type="hidden" name="category" value="${kind}" /><div class="field"><label for="${id}-title">Vicenda</label><input id="${id}-title" type="text" name="title" value="${esc(d.title || "")}" required /></div>
+    <div class="field-row"><div class="field"><label for="${id}-type">Tipo</label><select id="${id}-type" name="proceeding_types">${options(kind === "controversy" ? CONTROVERSY_TYPES : JUDICIAL_TYPES, (d.proceeding_types || [])[0])}</select></div><div class="field"><label for="${id}-date">Data</label><input id="${id}-date" type="date" name="event_date" value="${esc(d.event_date || "")}" /></div><div class="field"><label for="${id}-out">Stato</label><select id="${id}-out" name="outcome">${options(OUTCOMES, d.outcome || "")}</select></div><div class="field"><label for="${id}-outd">Data dell'esito</label><input id="${id}-outd" type="date" name="outcome_date" value="${esc(d.outcome_date || "")}" /></div></div>
+    <div class="field"><label for="${id}-sum">Sintesi <span class="hint">${kind === "controversy" ? "Cosa è successo, quando, e chi è coinvolto. Se c'è un'indagine, scrivi chi è indagato e che il politico non lo è." : "[corte], [data], [grado di giudizio], [reato]. Un'indagine non è una colpa."}</span></label><textarea id="${id}-sum" name="summary" required>${esc(d.summary || "")}</textarea></div>
     <div class="field"><label for="${id}-outs">Esito, con la formula esatta della sentenza</label><textarea id="${id}-outs" name="outcome_summary" rows="2">${esc(d.outcome_summary || "")}</textarea></div>`;
-  return `<form class="block-form" data-kind="${kind}">${key}${fields}${sourcesEditor(`${id}-src`, d.sources || [])}
-    <div class="actions"><button class="button button-primary" type="submit">Salva e invia alla verifica</button><span class="small muted">Il cittadino non lo vede finché un'altra persona non approva.</span></div></form>`;
+  const apiKind = kind === "controversy" ? "proceeding" : kind;
+  return `<form class="block-form" data-kind="${apiKind}" data-block="blocco-${kind}">${key}${fields}${sourcesEditor(`${id}-src`, d.sources || [])}
+    <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div></form>`;
 }
 
 function readBlockForm(form) {
   const kind = form.dataset.kind;
   const get = (name) => form.elements[name]?.value?.trim() ?? "";
-  const payload = { identity_key: get("identity_key") || undefined, sources: readSources(form, form.querySelector("[data-sources]")?.dataset.sources) };
+  const payload = { identity_key: get("identity_key") || undefined, sources: readSources(form, form.querySelector("[data-sources]")?.dataset.sources), publish_now: publishNow(form) };
   if (kind === "biography") payload.body = get("body");
   if (kind === "career_entry") Object.assign(payload, { role: get("role"), institution: get("institution"), party_or_group: get("party_or_group"), start_date: get("start_date"), end_date: get("end_date") || null, is_current: form.elements.is_current.checked });
   if (kind === "position") Object.assign(payload, { topic: get("topic"), statement_date: get("statement_date"), position_statement: get("position_statement"), verifiable_statement: get("verifiable_statement") });
-  if (kind === "proceeding") Object.assign(payload, { title: get("title"), proceeding_types: [get("proceeding_types")], event_date: get("event_date") || null, outcome: get("outcome") || null, outcome_date: get("outcome_date") || null, summary: get("summary"), outcome_summary: get("outcome_summary") });
+  if (kind === "proceeding") Object.assign(payload, { category: get("category") || "proceeding", title: get("title"), proceeding_types: [get("proceeding_types")], event_date: get("event_date") || null, outcome: get("outcome") || null, outcome_date: get("outcome_date") || null, summary: get("summary"), outcome_summary: get("outcome_summary") });
   return payload;
 }
 
@@ -754,7 +1011,7 @@ function promisesBlock(s) {
         <div class="field-row"><div class="field"><label for="pr-date">Data della dichiarazione</label><input id="pr-date" type="date" name="introduced_at" required /></div><div class="field"><label for="pr-where">Dove <span class="hint">Es. «Discorso alla Camera per la fiducia»</span></label><input id="pr-where" type="text" name="where" /></div></div>
         <div class="field-row"><div class="field"><label for="pr-sname">Fonte</label><input id="pr-sname" type="text" name="source_name" placeholder="Es. Adnkronos" required /></div><div class="field"><label for="pr-surl">Link</label><input id="pr-surl" type="url" name="source_url" placeholder="https://…" required /></div></div>
         ${classificationFields("new-promise")}
-        <div class="actions"><button class="button button-primary" type="submit">Salva e invia alla verifica</button></div>
+        <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
       </form></details>
   </section>`;
 }
@@ -784,13 +1041,32 @@ function newsBlock(s) {
 
 function bindScheda(s) {
   const reload = (focus) => showScheda(s.id, focus);
+  bindImagePreviews(view);
+  view.querySelector(".photo-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      const upload = await uploadImageFields(form, "photo", `Foto: ${s.name}`);
+      if (!upload.image_id) return toast("Scegli prima il file.", true);
+      const result = await api("/simboli", { method: "POST", body: { kind: "politician", key: String(s.id), image_id: upload.image_id, credit: form.image_credit.value.trim(), source_url: form.image_source_url.value.trim() } });
+      savedToast(result, "Inviata all'admin.");
+      reload();
+    } catch (error) { toast(error.findings?.map((f) => f.message).join(" ") || error.message, true); }
+  });
+  // In-page jumps: the console routes on the hash, so scroll instead of navigating.
+  view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const target = document.getElementById(link.dataset.jump);
+    target?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }));
   view.querySelectorAll("form.block-form").forEach((form) => form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
       const item = await api(`/politici/${s.id}/blocchi/${form.dataset.kind}`, { method: "POST", body: readBlockForm(form) });
       const errors = item.findings.filter((f) => f.level === "error").length;
-      toast(errors ? `Bozza salvata con ${errors} errori da correggere prima della verifica.` : "Bozza salvata e inviata alla verifica.", Boolean(errors));
-      reload(`blocco-${form.dataset.kind}`);
+      if (errors) toast(`Bozza salvata con ${errors} errori da correggere prima della verifica.`, true);
+      else savedToast(item, "Inviato all'admin.");
+      reload(form.dataset.block || `blocco-${form.dataset.kind}`);
     } catch (error) { toast(error.message, true); }
   }));
   view.querySelectorAll("[data-withdraw]").forEach((button) => button.addEventListener("click", async () => {
@@ -813,10 +1089,11 @@ function bindScheda(s) {
       where: form.where.value.trim(),
       source: { name: form.source_name.value.trim(), url: form.source_url.value.trim() },
       classification: readClassification(form, "new-promise"),
+      publish_now: publishNow(form),
     };
     try {
-      await api(`/politici/${s.id}/promesse`, { method: "POST", body });
-      toast("Promessa salvata e inviata alla verifica.");
+      const result = await api(`/politici/${s.id}/promesse`, { method: "POST", body });
+      savedToast(result, "Inviata all'admin.");
       reload("blocco-promise");
     } catch (error) { toast(error.findings?.length ? error.findings.map((f) => f.message).join(" ") : error.message, true); }
   });
@@ -858,12 +1135,63 @@ function bindScheda(s) {
 }
 
 // ---------------------------------------------------------------------- news
+// Where a news item belongs: the whole country, a region, a province or a comune,
+// chosen by name (regions from the list, comuni by search).
+function bindTerritoryPicker(form, post) {
+  const scope = form.scope;
+  const hidden = form.territory;
+  const regionSelect = form.querySelector("[data-region-select]");
+  const town = form.querySelector("#n-town");
+  const results = form.querySelector("[data-town-results]");
+  const show = () => {
+    form.querySelectorAll("[data-scope-field]").forEach((field) => { field.hidden = field.dataset.scopeField !== scope.value; });
+    if (scope.value === "region") hidden.value = regionSelect.value;
+  };
+  fetch("/regions?limit=100").then((response) => response.json()).then((payload) => {
+    const items = (payload.items || []).slice().sort((a, b) => a.name.localeCompare(b.name, "it"));
+    regionSelect.innerHTML = `<option value="">Scegli…</option>${items.map((item) => `<option value="${item.id}"${post.region_id === item.id ? " selected" : ""}>${esc(item.name)}</option>`).join("")}`;
+    show();
+  }).catch(() => { regionSelect.innerHTML = `<option value="">Elenco non disponibile</option>`; });
+  if (post.municipality_id) {
+    fetch(`/municipalities/${post.municipality_id}`).then((response) => response.json()).then((item) => { town.value = item.name || ""; }).catch(() => {});
+  }
+  regionSelect.addEventListener("change", () => { hidden.value = regionSelect.value; form.dispatchEvent(new Event("change")); });
+  scope.addEventListener("change", show);
+  let timer = 0;
+  town.addEventListener("input", () => {
+    clearTimeout(timer);
+    hidden.value = "";
+    const q = town.value.trim();
+    if (q.length < 2) { results.hidden = true; return; }
+    timer = setTimeout(async () => {
+      try {
+        const payload = await (await fetch(`/search?type=municipality&limit=8&q=${encodeURIComponent(q)}`)).json();
+        const items = payload.items || [];
+        results.hidden = false;
+        results.innerHTML = items.length
+          ? items.map((item) => `<li><a href="#" data-town="${item.metadata?.id}" data-name="${esc(item.title)}"><strong>${esc(item.title)}</strong><span class="small muted">${esc(item.subtitle || "")}</span></a></li>`).join("")
+          : `<li class="small muted" style="padding:10px 14px">Nessun comune con questo nome.</li>`;
+      } catch { results.hidden = true; }
+    }, 200);
+  });
+  results.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("[data-town]") : null;
+    if (!link) return;
+    event.preventDefault();
+    hidden.value = link.dataset.town;
+    town.value = link.dataset.name;
+    results.hidden = true;
+    form.dispatchEvent(new Event("change"));
+  });
+  show();
+}
+
 async function showNews() {
   const list = await api("/notizie");
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modello Notizia</p><h1>Notizie</h1>
-    <p>Una sintesi imparziale di un fatto politico che incide sulla vita delle persone. Nove blocchi, sempre nello stesso ordine. Obiettivo: 2–4 sintesi a settimana.</p></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Notizie</h1>
+    <p>Nazionali, regionali, provinciali o di un comune.</p></div>
     <a class="button button-primary" href="#/notizie/nuova">Nuova notizia</a></div>
-    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Redattore</th><th>Verificatore</th><th>Data</th><th></th></tr></thead><tbody>
+    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
     ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="empty">Nessuna notizia. <a href="#/notizie/nuova">Scrivi la prima</a>.</div>`}`;
   bindDiscardButtons(view, showNews);
@@ -891,34 +1219,36 @@ async function showNewsEditor(postId) {
   const editable = post.status === "pending" || !postId;
   const b = post.blocks || {};
   const blocks = state.rules.news_blocks;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a> · Modello Notizia</p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a></p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
       ${postId ? `<p>Scritta da ${esc(post.created_by)}${post.reviewed_by ? ` · verificata da ${esc(post.reviewed_by)}` : ""} · <span class="chip ${post.status === "published" ? "chip-published" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa di verifica" }[post.status]}</span></p>` : ""}</div>
       ${post.public_url || post.can_discard ? `<div class="actions" style="margin-top:0">${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}${post.can_discard ? `<button type="button" class="button button-danger" id="n-discard">Elimina la notizia</button>` : ""}</div>` : ""}</div>
     ${!editable ? `<p class="own-note" style="margin-bottom:16px">Una notizia pubblicata non si modifica: un errore si corregge in modo visibile con una rettifica («Corretto il [data]: …»).</p>` : ""}
     <div class="layout-side"><form id="news-form" class="stack">
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo e sommario</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div></details>
         <div class="field"><label for="n-title">Titolo</label><input id="n-title" type="text" name="title" maxlength="300" value="${esc(post.title)}" required /></div>
         <div class="field"><label for="n-sommario">Sommario <span class="hint">È il testo della card nel feed.</span></label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
       </section>
       ${composer.html()}
       ${blocks.map((block, index) => `<section class="card"><div class="card-head"><h2><span class="block-number">${index + 1}</span>${esc(block.label)}</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
         <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
         ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
         ${block.key === "sinistra" ? `<div class="label">Equilibrio destra / sinistra</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
       </section>`).join("")}
       <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti</h2></div>
-        <div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Elencare fonti non lette.</div></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Elencare fonti non lette.</div></div></details>
         ${newsSourcesEditor(post.sources)}
         <div class="field-row"><div class="field"><label for="n-scope">Ambito</label><select id="n-scope" name="scope">${options([["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"]], post.scope || "national")}</select></div>
-          <div class="field"><label for="n-region">Codice regione / comune</label><input id="n-region" type="number" name="territory" min="1" value="${esc(post.region_id || post.municipality_id || "")}" /><span class="hint">Solo per notizie locali (id del territorio).</span></div>
-          <div class="field"><label for="n-prov">Sigla provincia</label><input id="n-prov" type="text" name="province" maxlength="2" value="${esc(post.province_abbreviation || "")}" /></div></div>
+          <input type="hidden" name="territory" value="${esc(post.region_id || post.municipality_id || "")}" />
+          <div class="field" data-scope-field="region" hidden><label for="n-region">Regione</label><select id="n-region" data-region-select><option value="">Caricamento…</option></select></div>
+          <div class="field territory-search" data-scope-field="municipality" hidden><label for="n-town">Comune</label><input id="n-town" type="search" autocomplete="off" placeholder="Scrivi il nome del comune" /><ul class="home-results" data-town-results hidden></ul></div>
+          <div class="field" data-scope-field="province" hidden><label for="n-prov">Sigla provincia</label><input id="n-prov" type="text" name="province" maxlength="2" placeholder="es. MI" value="${esc(post.province_abbreviation || "")}" /></div></div>
         <div class="field"><label for="n-pol">Politici citati <span class="hint">La notizia compare in «Notizie collegate» nel loro profilo.</span></label>
           <div class="actions" style="margin-top:0"><input id="n-pol" type="search" placeholder="Cerca un politico" style="flex:1 1 220px" /><button type="button" class="button button-secondary" id="n-pol-add">Aggiungi</button></div>
           <ul class="item-sources" id="n-pol-list">${(post.politicians || []).map(politicianChip).join("")}</ul></div>
       </section>
-      ${editable ? `<div class="actions"><button class="button button-primary" type="submit">${postId ? "Salva le modifiche" : "Salva e invia alla verifica"}</button><span class="small muted">Fonti: Redattore e Verificatore compaiono in fondo alla notizia pubblicata.</span></div>` : ""}
+      ${editable ? `<div class="actions"><button class="button button-primary" type="submit">${saveLabel(postId ? "Salva" : "Invia all'admin")}</button></div>` : ""}
     </form>
     <aside class="card side-panel"><h3>Anteprima nel feed</h3>
       <div id="card-preview" class="card-preview"></div>
@@ -950,6 +1280,7 @@ async function showNewsEditor(postId) {
       municipality_id: scope === "municipality" ? territory : null,
       province_abbreviation: scope === "province" ? form.province.value.trim().toUpperCase() : null,
       politician_ids: [...view.querySelectorAll("#n-pol-list [data-politician]")].map((el) => Number(el.dataset.politician)),
+      publish_now: publishNow(form),
       card: composer.value(),
     };
   };
@@ -993,12 +1324,14 @@ async function showNewsEditor(postId) {
   balance();
   preview();
   bindPoliticianPicker();
+  bindTerritoryPicker(form, post);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
       const saved = await api(postId ? `/notizie/${postId}` : "/notizie", { method: postId ? "PUT" : "POST", body: collect() });
       const errors = saved.findings.filter((f) => f.level === "error").length;
-      toast(errors ? `Salvata con ${errors} errori: va corretta prima della verifica.` : "Notizia salvata e inviata alla verifica.", Boolean(errors));
+      if (errors) toast(`Salvata con ${errors} errori: va corretta prima della verifica.`, true);
+      else savedToast(saved, "Inviata all'admin.");
       location.hash = `#/notizie/${saved.id}`;
       if (postId) showNewsEditor(saved.id);
     } catch (error) { toast(error.message, true); }
@@ -1070,7 +1403,7 @@ function createCardComposer(initial, initialPublic) {
   const stepOptions = () => opts.iter_steps[c.iter.first].map((label, i) => [String(i + 1), `${i + 1}. ${label}`]);
 
   const html = () => `<section class="card" id="card-composer"><div class="card-head"><h2><span class="block-number">F</span>La card nel feed</h2><span class="chip chip-kind">Così appare nella timeline</span></div>
-      <div class="block-guide"><div><b>Cosa scrivere</b>Il tipo di contenuto, l'etichetta con la data, chi è coinvolto (con foto rotonda), l'ente. Titolo e sommario sono quelli del blocco 0.</div><div><b>Persone</b>Fino a 3</div><div class="avoid"><b>Da evitare</b>Foto senza diritti d'uso: indica sempre il credito.</div></div>
+      <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Il tipo di contenuto, l'etichetta con la data, chi è coinvolto (con foto rotonda), l'ente. Titolo e sommario sono quelli del blocco 0.</div><div><b>Persone</b>Fino a 3</div><div class="avoid"><b>Da evitare</b>Foto senza diritti d'uso: indica sempre il credito.</div></div></details>
       <div class="field-row">
         <div class="field"><label for="c-category">Tipo</label><select id="c-category" data-c="category">${options(opts.categories.map((x) => [x.key, x.label]), c.category)}</select></div>
         <div class="field"><label for="c-badge">Etichetta</label><input id="c-badge" type="text" list="c-badge-presets" data-c="badge.label" value="${esc(c.badge.label)}" /><datalist id="c-badge-presets">${opts.badge_presets.map((x) => `<option value="${esc(x)}"></option>`).join("")}</datalist></div>
@@ -1365,8 +1698,8 @@ async function showLog(offset = 0) {
   if (logFilter.politico) params.set("politico", logFilter.politico);
   if (logFilter.utente) params.set("utente", logFilter.utente);
   const log = await api(`/registro?${params}`);
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Trasparenza interna</p><h1>Registro modifiche</h1>
-    <p>Ogni scrittura, modifica, approvazione, rifiuto, ritiro, assegnazione di stato ed eliminazione di una bozza, con chi l'ha fatta e quando. Il registro non si può modificare né cancellare.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Registro</h1>
+    <p>Chi ha fatto cosa e quando. Non si modifica.</p></div></div>
     <form id="log-filter" class="card" style="margin-bottom:16px"><div class="field-row">
       <div class="field"><label for="lf-user">Persona</label><select id="lf-user"><option value="">Tutte</option>${state.me.members.map((m) => `<option${m === logFilter.utente ? " selected" : ""}>${esc(m)}</option>`).join("")}</select></div>
       <div class="field"><label for="lf-pol">Politico (id)</label><input id="lf-pol" type="number" min="1" value="${esc(logFilter.politico || "")}" /></div>
@@ -1397,10 +1730,10 @@ function showRules() {
     ["Numeri con fonte e data", "Cifra, unità, anno, fonte. Se due fonti divergono si riportano entrambe e si spiega la differenza."],
     ["Linguaggio semplice", "Frasi corte, termini tecnici spiegati subito. Si scrive per chi non ha studiato politica."],
     ["Titoli neutri", "Dicono cosa è successo, non cosa pensare. Niente «finalmente», «scandalo», «storico», «attacca», «affonda»."],
-    ["Due persone per contenuto", "Chi scrive non è chi verifica. Ogni scheda riporta data di aggiornamento, redattore e verificatore."],
+    ["Pubblica un admin", "Chi scrive salva; pubblica un admin della redazione. Ogni scheda riporta data di aggiornamento e chi l'ha pubblicata."],
   ];
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Modelli di scrittura</p><h1>Le otto regole che valgono sempre</h1>
-    <p>Valgono per ogni contenuto, dal Presidente del Consiglio al consigliere di un piccolo comune. Se un modello e una regola sembrano in conflitto, vince la regola. La console controlla in automatico quelle verificabili.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Regole</h1>
+    <p>Valgono per ogni contenuto. Se un modello e una regola sembrano in conflitto, vince la regola.</p></div></div>
     <div class="rules-grid">${rules.map(([title, text], i) => `<div class="rule"><b>${i + 1}</b><h3>${esc(title)}</h3><p class="small">${esc(text)}</p></div>`).join("")}</div>
     <section class="card" style="margin-top:20px"><h2>Convenzioni di scrittura</h2><div class="table-wrap" style="margin-top:10px"><table class="data-table"><thead><tr><th>Cosa</th><th>Come si scrive</th></tr></thead><tbody>
       <tr><td>Date</td><td>Per esteso: «16 settembre 2026». Mai «16/9». Orari 24 ore.</td></tr>
@@ -1432,8 +1765,14 @@ else showLogin();
 const SYMBOL_TABS = [["party", "Partiti"], ["region", "Regioni"], ["province", "Province"]];
 let symbolFilter = "";
 
-function symbolThumb(item) {
-  if (item.symbol) return `<img class="symbol-thumb" src="${esc(item.symbol.url)}" alt="" width="48" height="48" />`;
+function symbolThumb(item, stored = null, kind = "") {
+  const photo = kind === "politician";
+  if (item.symbol) return `<img class="symbol-thumb${photo ? " is-photo" : ""}" src="${esc(item.symbol.url)}" alt="" width="48" height="48" />`;
+  if (stored) return `<img class="symbol-thumb is-photo" src="${esc(stored.url)}" alt="" width="48" height="48" />`;
+  if (photo) {
+    const words = item.name.split(/\s+/).filter(Boolean);
+    return `<span class="symbol-thumb is-empty" aria-hidden="true">${esc(`${[...words[0]][0]}${[...words[words.length - 1]][0]}`.toUpperCase())}</span>`;
+  }
   const source = item.abbreviation || (/^[A-Z]{2}$/.test(item.key) ? item.key : item.name);
   const letters = String(source).replace(/[^\p{L}\p{N}]/gu, "").slice(0, 3);
   return `<span class="symbol-thumb is-empty" aria-hidden="true">${esc(letters.toUpperCase())}</span>`;
@@ -1446,24 +1785,32 @@ async function showSymbols(kind) {
   const withLogo = items.filter((item) => item.symbol).length;
   const q = symbolFilter.trim().toLocaleLowerCase("it");
   const shown = items.filter((item) => !q || `${item.name} ${item.abbreviation || ""} ${item.key}`.toLocaleLowerCase("it").includes(q));
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow">Elenchi</p><h1>Partiti e territori</h1>
-    <p>Loghi dei partiti e stemmi di regioni e province: li vede il cittadino nella registrazione, nel feed e nelle schede. Ogni logo serve con credito, licenza e pagina di provenienza, e va approvato da un'altra persona.</p></div></div>
+  const photo = kind === "politician";
+  const noun = photo ? "foto" : "logo";
+  // Photos already stored on the site before the redazione flow: they stay until replaced.
+  let stored = {};
+  if (photo) {
+    try { stored = await (await fetch("/portraits")).json(); } catch { stored = {}; }
+  }
+  const storedFor = (item) => (photo && !item.symbol && stored[item.key]?.url?.startsWith("/portraits/") ? stored[item.key] : null);
+  view.innerHTML = `<div class="page-head"><div><h1>Partiti e territori</h1>
+    <p>Loghi dei partiti e stemmi di regioni e province, con credito e fonte.</p></div></div>
     <nav class="filters" aria-label="Elenco">${SYMBOL_TABS.map(([key, label]) => `<a class="filter-link" href="#/simboli/${key}" aria-current="${key === kind ? "page" : "false"}">${label} <span class="count">${data[key].length}</span></a>`).join("")}</nav>
     <div class="summary-strip">
-      <div class="tile"><strong>${items.length}</strong><span>${kind === "party" ? "partiti nell'elenco" : kind === "region" ? "regioni (ISTAT)" : "province (ISTAT)"}</span></div>
-      <div class="tile"><strong>${withLogo}</strong><span>con logo pubblicato</span></div>
-      <div class="tile"><strong>${items.filter((item) => item.pending.length).length}</strong><span>logo in verifica</span></div>
+      <div class="tile"><strong>${items.length}</strong><span>${kind === "party" ? "partiti nell'elenco" : kind === "region" ? "regioni (ISTAT)" : kind === "province" ? "province (ISTAT)" : "schede pubblicate"}</span></div>
+      <div class="tile"><strong>${withLogo}</strong><span>con ${noun} della redazione${photo ? ` (${items.filter((item) => storedFor(item)).length} con foto già presente)` : ""}</span></div>
+      <div class="tile"><strong>${items.filter((item) => item.pending.length).length}</strong><span>${noun} in verifica</span></div>
     </div>
     ${kind === "party" ? newPartyForm(data.new_parties) : ""}
-    ${kind !== "party" && items.length < (kind === "region" ? 20 : 100) ? `<p class="notice">L'elenco ISTAT non è completo in questo database. Per caricare tutte le regioni, province e comuni esegui <code>scripts\\sync_reference_data.cmd</code> (serve internet).</p>` : ""}
+    ${(kind === "region" || kind === "province") && items.length < (kind === "region" ? 20 : 100) ? `<p class="notice">L'elenco ISTAT non è completo in questo database. Per caricare tutte le regioni, province e comuni esegui <code>scripts\\sync_reference_data.cmd</code> (serve internet).</p>` : ""}
     <div class="field symbol-search"><label for="symbol-q">Cerca</label><input id="symbol-q" type="search" value="${esc(symbolFilter)}" autocomplete="off" /></div>
     <ul class="symbol-list">${shown.map((item) => `<li>
-      ${symbolThumb(item)}
+      ${symbolThumb(item, storedFor(item), kind)}
       <div class="symbol-text"><strong>${esc(item.name)}</strong>${item.abbreviation ? ` <span class="muted">${esc(item.abbreviation)}</span>` : ""}${kind === "province" ? ` <span class="muted">${esc(item.key)}</span>` : ""}
-        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : "Nessun logo pubblicato"}</p>
-        ${item.pending.length ? `<div class="pending-symbol"><img src="${esc(item.pending[0].payload.image_url)}" alt="Logo proposto" width="40" height="40" /><p class="small"><strong>Proposto</strong> da ${esc(item.pending[0].created_by)} · ${esc(item.pending[0].payload.credit)} · ${esc(item.pending[0].payload.license_label)} · ${sourceLink({ url: item.pending[0].payload.source_url, name: "fonte" })}</p></div>` : ""}</div>
+        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : storedFor(item) ? `Foto già presente · ${esc(storedFor(item).credit)} · resta finché non la sostituisci` : photo ? "Nessuna foto" : "Nessun logo pubblicato"}</p>
+        ${item.pending.length ? `<div class="pending-symbol"><img src="${esc(item.pending[0].payload.image_url)}" alt="${photo ? "Foto proposta" : "Logo proposto"}" width="40" height="40" /><p class="small"><strong>Proposto</strong> da ${esc(item.pending[0].created_by)} · ${esc(item.pending[0].payload.credit)} · ${esc(item.pending[0].payload.license_label)} · ${sourceLink({ url: item.pending[0].payload.source_url, name: "fonte" })}</p></div>` : ""}</div>
       <div class="symbol-actions">
-        ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol ? "Sostituisci logo" : "Carica logo"}</button>`}
+        ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol || storedFor(item) ? `Sostituisci ${noun}` : `Carica ${noun}`}</button>`}
         ${kind === "party" && !item.pending_edit.length ? `<button type="button" class="button button-secondary" data-edit-party="${esc(item.key)}">Modifica</button>` : ""}
       </div>
       ${item.pending_edit.length ? `<div class="pending-edit"><p class="small"><strong>Modifica proposta</strong> da ${esc(item.pending_edit[0].created_by)}: ${esc(item.pending_edit[0].summary)}. Motivo: ${esc(item.pending_edit[0].payload.reason)}</p>${reviewControls(item.pending_edit[0])}</div>` : ""}
@@ -1475,12 +1822,12 @@ async function showSymbols(kind) {
     showSymbols(kind).then(() => { const again = view.querySelector("#symbol-q"); again.focus(); again.setSelectionRange(position, position); }).catch(() => {});
   });
   view.querySelectorAll("[data-symbol]").forEach((button) => button.addEventListener("click", async () => {
-    const proposal = await symbolDialog(kind, button.dataset.symbolName, data.licenses);
+    const proposal = await symbolDialog(kind, button.dataset.symbolName, photo ? data.portrait_licenses : data.licenses);
     if (!proposal) return;
     try {
-      const image = await api("/immagini", { method: "POST", body: { data: proposal.data, credit: proposal.credit, alt: `Simbolo: ${button.dataset.symbolName}` } });
+      const image = await api("/immagini", { method: "POST", body: { data: proposal.data, credit: proposal.credit, alt: `${photo ? "Foto" : "Simbolo"}: ${button.dataset.symbolName}` } });
       await api("/simboli", { method: "POST", body: { kind, key: button.dataset.symbol, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
-      toast("Logo proposto: ora lo deve approvare un'altra persona.");
+      toast(photo ? "Foto proposta: ora la deve approvare un'altra persona." : "Logo proposto: ora lo deve approvare un'altra persona.");
       showSymbols(kind);
     } catch (error) {
       toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
@@ -1512,12 +1859,15 @@ async function showSymbols(kind) {
       toast(error.message, true);
     }
   }));
+  bindImagePreviews(view);
   view.querySelector("#party-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     try {
-      await api("/partiti", { method: "POST", body: Object.fromEntries(new FormData(form)) });
-      toast("Partito proposto: entra nell'elenco dopo l'approvazione di un'altra persona.");
+      const body = Object.fromEntries(new FormData(form));
+      Object.assign(body, await uploadImageFields(form, "party", `Logo: ${body.name}`, { photo: false }));
+      const result = await api("/partiti", { method: "POST", body });
+      savedToast(result, "Inviato all'admin.");
       showSymbols("party");
     } catch (error) {
       toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
@@ -1527,7 +1877,10 @@ async function showSymbols(kind) {
 
 const REJECT_REASONS = ["Non più attivo", "Non è un partito", "Duplicato di una voce esistente", "Logo non corretto o non ufficiale", "Licenza non verificabile"];
 function reviewControls(item) {
-  if (item.created_by === state.me?.name) return `<p class="small muted">In attesa di un'altra persona</p>`;
+  if (item.created_by === state.me?.name) {
+    if (!isLead()) return `<p class="small muted">In attesa di un admin</p>`;
+    return `<form class="review-inline" data-review="${esc(item.id)}"><button class="button button-approve" type="submit" value="approva">Pubblica</button></form>`;
+  }
   return `<form class="review-inline" data-review="${esc(item.id)}">
     <button class="button button-approve" type="submit" value="approva">Approva</button>
     <select name="reason" aria-label="Motivo">${REJECT_REASONS.map((reason) => `<option>${esc(reason)}</option>`).join("")}</select>
@@ -1536,7 +1889,9 @@ function reviewControls(item) {
 }
 
 function newPartyForm(pending) {
-  return `<details class="card new-party"><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
+  let open = false;
+  try { open = sessionStorage.getItem("vp-open-new-partito") === "1"; sessionStorage.removeItem("vp-open-new-partito"); } catch { /* storage off */ }
+  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un partito</strong> <span class="muted small">— nome ufficiale e una fonte che lo attesti</span></summary>
     <form id="party-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
         <div class="field"><label for="party-name">Nome ufficiale</label><input id="party-name" name="name" type="text" required minlength="2" maxlength="300" /></div>
@@ -1544,7 +1899,8 @@ function newPartyForm(pending) {
         <div class="field"><label for="party-site">Sito ufficiale <span class="hint">https://…</span></label><input id="party-site" name="website" type="url" /></div>
         <div class="field"><label for="party-source">Fonte <span class="hint">statuto, registro dei partiti, sito</span></label><input id="party-source" name="source_url" type="url" required /></div>
       </div>
-      <div class="actions"><button class="button button-primary" type="submit">Proponi il partito</button></div>
+      ${imageFields("party", "Logo")}
+      <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
     </form>
   </details>
   ${pending.length ? `<section class="card pending-parties"><h2>Partiti proposti <span class="count">${pending.length}</span></h2>
@@ -1592,8 +1948,10 @@ function symbolDialog(kind, name, licenses) {
     const dialog = document.createElement("dialog");
     dialog.className = "crop-dialog";
     dialog.innerHTML = `<form method="dialog" class="stack">
-      <h2>${kind === "party" ? "Logo" : "Stemma"}: ${esc(name)}</h2>
-      <p class="small muted">Usa il file ufficiale o quello di Wikimedia Commons. Niente ricostruzioni o versioni ridisegnate.</p>
+      <h2>${kind === "party" ? "Logo" : kind === "politician" ? "Foto" : "Stemma"}: ${esc(name)}</h2>
+      <p class="small muted">${kind === "politician"
+        ? "Carica una foto di cui conosci autore e licenza (per esempio da Wikimedia Commons o autorizzata dalla persona). Il volto al centro: verrà ritagliata in un quadrato."
+        : "Usa il file ufficiale o quello di Wikimedia Commons. Niente ricostruzioni o versioni ridisegnate."}</p>
       <div class="field"><label for="sym-file">Immagine <span class="hint">PNG, JPEG o WebP</span></label><input id="sym-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
       <div class="symbol-stage"><canvas width="256" height="256" aria-label="Anteprima"></canvas></div>
       <div class="field"><label for="sym-credit">Titolare o autore</label><input id="sym-credit" type="text" required maxlength="300" /></div>
@@ -1614,10 +1972,18 @@ function symbolDialog(kind, name, licenses) {
       const reader = new FileReader();
       const img = new Image();
       img.onload = () => {
-        const k = Math.min(232 / img.width, 232 / img.height);
-        const w = img.width * k, h = img.height * k;
         ctx.clearRect(0, 0, 256, 256);
-        ctx.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h);
+        if (kind === "politician") {
+          // Fill the square: centre crop, slightly towards the top where the face usually is.
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2;
+          const sy = Math.max(0, Math.min(img.height - side, (img.height - side) * 0.25));
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, 256, 256);
+        } else {
+          const k = Math.min(232 / img.width, 232 / img.height);
+          const w = img.width * k, h = img.height * k;
+          ctx.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h);
+        }
         ready = true;
       };
       reader.onload = () => { img.src = reader.result; };
@@ -1626,7 +1992,7 @@ function symbolDialog(kind, name, licenses) {
     dialog.addEventListener("close", () => {
       const ok = dialog.returnValue === "ok" && ready;
       const result = ok ? {
-        data: canvas.toDataURL("image/png"),
+        data: kind === "politician" ? canvas.toDataURL("image/jpeg", 0.9) : canvas.toDataURL("image/png"),
         credit: dialog.querySelector("#sym-credit").value.trim(),
         license: dialog.querySelector("#sym-license").value,
         source_url: dialog.querySelector("#sym-source").value.trim(),

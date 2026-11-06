@@ -33,7 +33,8 @@ def test_welcome_and_registration_flow() -> None:
     assert 'class="ob-title">Come ti chiami?' in onboarding
     assert "Come ti chiamiamo?" not in onboarding
     assert 'class="ob-faces-slot"' in onboarding and "function nameFaces" in onboarding
-    assert "item.profile?.image_url" in onboarding
+    # Photos come only from /portraits (stored or approved by the redazione).
+    assert "image_url" not in onboarding and "portraitFor?.(person.id)" in onboarding
     assert "displayPersonName" in onboarding
     assert "photographed.length >= 8 ? photographed : [...photographed, ...rest]" in onboarding
     assert "loaders.zone()" in onboarding and "loaders.parties()" in onboarding
@@ -60,8 +61,8 @@ def test_logos_reach_every_view() -> None:
     assert "export function displayPersonName" in card
     # Writer and verifier are named on the news page, not repeated on every feed card.
     assert "vp-byline" not in card and "Scritto da" not in card
-    assert "· Redattore: ${escapeHtml(item.written_by)}" in script
-    assert "officialImageUrl" in card
+    assert "· Scritto da ${escapeHtml(item.written_by)}" in script
+    assert "export function hostedImageUrl" in card and "officialImageUrl" not in card
     assert "/^\\/media\\/\\d+$/" in onboarding and "listParties({ all: true })" in onboarding
     assert 'section === "simboli"' in console and "partyLogo(party)" in console
     assert 'api("/simboli", { method: "POST"' in console

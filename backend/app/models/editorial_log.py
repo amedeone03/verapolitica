@@ -106,13 +106,14 @@ class EditorialImage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
-SYMBOL_KINDS = ("party", "region", "province")
+SYMBOL_KINDS = ("party", "region", "province", "politician")
 
 
 class EditorialSymbol(Base):
-    """The approved logo of a party, or coat of arms of a region or province.
+    """The approved logo of a party, coat of arms of a region or province, or photo of a politician.
 
-    ``key`` is the party id, the region id, or the province abbreviation. A logo
+    ``key`` is the party id, the region id, the province abbreviation, or the
+    politician id. An image
     reaches this table only after a second redazione member approves it, with
     its credit, licence and source page.
     """

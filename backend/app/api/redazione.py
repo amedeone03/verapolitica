@@ -63,8 +63,11 @@ def current_member(
 Member = Annotated[str, Depends(current_member)]
 
 
-def get_service(factory: Annotated[sessionmaker[Session], Depends(get_session_factory)]) -> RedazioneService:
-    return RedazioneService(factory)
+def get_service(
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    settings: Annotated[Settings, Depends(get_api_settings)],
+) -> RedazioneService:
+    return RedazioneService(factory, leads=settings.redazione_lead_names)
 
 
 Service = Annotated[RedazioneService, Depends(get_service)]
@@ -78,6 +81,30 @@ def _run(call, *args, **kwargs) -> Any:
             status_code=error.status_code,
             content={"detail": str(error), "findings": error.findings},
         )
+
+
+def _create(service: RedazioneService, member: str, payload: dict, call, kind: str, item_id, *args) -> Any:
+    """Create an item; a capo squadra who ticks «pubblica subito» publishes it at once.
+
+    ``item_id`` takes the created result and returns the queue id.
+    """
+
+    try:
+        result = call(*args, payload, member=member)
+    except RedazioneError as error:
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"detail": str(error), "findings": error.findings},
+        )
+    # An admin publishes what they write; «publish_now: false» keeps a draft.
+    if payload.get("publish_now") is False or not service.can_self_verify(kind, member):
+        return result
+    try:
+        published = service.publish_own(kind, item_id(result), member=member)
+    except RedazioneError as error:
+        # Saved, but not publishable yet (e.g. a style error): it stays in the queue.
+        return {**result, "published": False, "publish_error": str(error), "publish_findings": error.findings}
+    return {**result, "published": True, "summary": published["summary"]}
 
 
 @router.get("/accesso")
@@ -96,6 +123,10 @@ def access(settings: Annotated[Settings, Depends(get_api_settings)]) -> dict:
 def me(member: Member, settings: Annotated[Settings, Depends(get_api_settings)]) -> dict:
     return {
         "name": member,
+        "lead": member in settings.redazione_lead_names,
+        "admin": member in settings.redazione_lead_names,
+        "admins_named": bool(settings.redazione_lead_names),
+        "leads": sorted(settings.redazione_lead_names),
         "members": sorted(set(settings.redazione_member_tokens.values())),
         "demo": not settings.is_production,
     }
@@ -179,7 +210,7 @@ def politicians(
 
 @router.post("/politici")
 def propose_politician(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
-    return _run(service.propose_politician, payload, member=member)
+    return _create(service, member, payload, service.propose_politician, "change", lambda r: r["id"])
 
 
 @router.get("/politici/{politician_id}")
@@ -195,7 +226,7 @@ def save_block(
     service: Service,
     payload: Annotated[dict, Body()],
 ) -> Any:
-    return _run(service.save_profile_block, politician_id, kind, payload, member=member)
+    return _create(service, member, payload, service.save_profile_block, kind, lambda r: r["id"], politician_id, kind)
 
 
 @router.post("/contenuti/{kind}/{content_id}/ritira")
@@ -216,7 +247,7 @@ def create_promise(
     service: Service,
     payload: Annotated[dict, Body()],
 ) -> Any:
-    return _run(service.create_promise, politician_id, payload, member=member)
+    return _create(service, member, payload, service.create_promise, "promise", lambda r: r["draft_id"], politician_id)
 
 
 @router.post("/promesse/{proposal_id}/stato")
@@ -252,12 +283,12 @@ def parties(member: Member, service: Service) -> Any:
 
 @router.post("/partiti")
 def propose_party(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
-    return _run(service.propose_party, payload, member=member)
+    return _create(service, member, payload, service.propose_party, "change", lambda r: r["id"])
 
 
 @router.put("/partiti/{party_id}")
 def propose_party_edit(party_id: int, member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
-    return _run(service.propose_party_edit, party_id, payload, member=member)
+    return _create(service, member, payload, service.propose_party_edit, "change", lambda r: r["id"], party_id)
 
 
 @router.get("/simboli")
@@ -268,7 +299,7 @@ def symbols(member: Member, service: Service) -> Any:
 
 @router.post("/simboli")
 def propose_symbol(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
-    return _run(service.propose_symbol, payload, member=member)
+    return _create(service, member, payload, service.propose_symbol, "change", lambda r: r["id"])
 
 
 @router.get("/card")
@@ -289,14 +320,14 @@ def news_detail(post_id: Annotated[int, Path(gt=0)], member: Member, service: Se
 
 @router.post("/notizie")
 def news_create(member: Member, service: Service, payload: Annotated[dict, Body()]) -> Any:
-    return _run(service.save_news, payload, member=member)
+    return _create(service, member, payload, service.save_news, "news", lambda r: r["id"])
 
 
 @router.put("/notizie/{post_id}")
 def news_update(
     post_id: Annotated[int, Path(gt=0)], member: Member, service: Service, payload: Annotated[dict, Body()]
 ) -> Any:
-    return _run(service.save_news, payload, member=member, post_id=post_id)
+    return _create(service, member, payload, lambda body, member: service.save_news(body, member=member, post_id=post_id), "news", lambda r: r["id"])
 
 
 @router.delete("/notizie/{post_id}")
