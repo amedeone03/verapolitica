@@ -20,6 +20,7 @@ from backend.app.api.public.scorecards import router as scorecards_router
 from backend.app.api.public.ask import router as ask_router
 from backend.app.api.public.search import router as search_router
 from backend.app.api.public.site import router as site_router
+from backend.app.api.public.territories import router as territories_router
 
 
 router = APIRouter()
@@ -34,6 +35,7 @@ router.include_router(politicians_router)
 router.include_router(proposals_router)
 router.include_router(scorecards_router)
 router.include_router(regions_router)
+router.include_router(territories_router)
 router.include_router(municipalities_router)
 router.include_router(groups_router)
 router.include_router(parties_router)

@@ -66,6 +66,34 @@ and a controversy among the proceedings. Existing rows were sorted by the
 migration `f3a7c9d21b48`: anything with an investigation or trial against the
 politician stays a proceeding.
 
+### Territori (Regione, Provincia, Comune)
+
+**Territori** in the console opens one scheda per regione, provincia and comune,
+written with the «Modelli di scrittura»:
+
+- **Regione** (Modello Regione): Scheda rapida, Il presidente, La giunta,
+  Il consiglio regionale, Promesse del mandato, Elezioni, then Notizie regionali
+  and Fonti.
+- **Comune** (Modello Città): Scheda rapida, Il sindaco, La giunta, Consiglio e
+  opposizione, Promesse del mandato, Elezioni (storico e prossime), then Notizie
+  locali and Fonti.
+- **Provincia** (the same rules, with the blocks a province has): Scheda rapida,
+  Il presidente, Il consiglio provinciale, Elezioni, then Notizie and Fonti.
+
+The **official base** (ISTAT names and counts, presidents and mayors from the
+DAIT registry) sits at the top of every scheda and is read-only: it is the
+reference every block is written against. Every block can always be rewritten,
+also after publication: each save is a new version (`territory_blocks`, migration
+`b4e1d7c93a52`), an admin publishes it at once or publishes another member's
+version, and the new version replaces the published one. Open `[parentesi]`, a
+missing source, a population without its year, a promise without a source or a
+«Non mantenuta» without the fact are errors that block publication.
+
+On the public site the schede live in **Politica** (`?region=`, `?province=`,
+`?municipality=`); the history of a region or province stays in the Archivio
+(`?history_region=`, `?history_province=`). The public API is
+`GET /territories/{region|province|municipality}/{id or sigla}`.
+
 ### Production VPS
 
 On the server, generate one token per editor (do not reuse the admin key):

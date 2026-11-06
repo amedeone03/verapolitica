@@ -87,6 +87,7 @@
         <section class="politics-block" aria-labelledby="government-title">
           <div class="block-head"><h2 id="government-title">Governo</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
           <div id="government-row" class="authority-cloud" aria-busy="true"></div>
+          <div id="government-chart" hidden></div>
           <p id="government-note" class="authority-note">Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.</p>
         </section>
 
@@ -192,6 +193,12 @@
         <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
         <div id="territory-history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della storia del territorio…</strong></div></div>
         <article id="territory-history" hidden></article>
+      </section>
+
+      <section id="province-detail-view" aria-labelledby="province-detail-title" hidden>
+        <a id="province-back" class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <div id="province-detail-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della provincia…</strong></div></div>
+        <article id="province-detail" class="territory-page" hidden></article>
       </section>
 
       <section id="referendum-archive-view" aria-labelledby="referendum-archive-title" hidden>
@@ -386,12 +393,12 @@
       </section>
 
       <section id="region-detail-view" aria-labelledby="region-detail-title" hidden>
-        <a class="back-link" href="./?view=regions"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutte le regioni</a>
+        <a class="back-link" href="./?view=politics#territories-title"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div id="region-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento della regione…</strong></div>
         </div>
-        <article id="region-detail" hidden></article>
+        <article id="region-detail" class="territory-page" hidden></article>
       </section>
 
       <section id="municipalities-view" aria-labelledby="municipalities-title" hidden>
@@ -475,12 +482,12 @@
       </section>
 
       <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>
-        <a class="back-link" href="./?view=municipalities"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Tutti i comuni</a>
+        <a class="back-link" href="./?view=politics#territories-title"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div id="municipality-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del comune…</strong></div>
         </div>
-        <article id="municipality-detail" hidden></article>
+        <article id="municipality-detail" class="territory-page" hidden></article>
       </section>
     </main>
 

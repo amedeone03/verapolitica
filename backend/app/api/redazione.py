@@ -229,6 +229,33 @@ def save_block(
     return _create(service, member, payload, service.save_profile_block, kind, lambda r: r["id"], politician_id, kind)
 
 
+# Territory schede: Regione, Provincia, Comune. Same flow as a politician's scheda.
+TerritoryKindPath = Annotated[str, Path(pattern=r"^(region|province|municipality)$")]
+TerritoryKeyPath = Annotated[str, Path(pattern=r"^[A-Za-z0-9]{1,12}$")]
+
+
+@router.get("/territori")
+def list_territories(member: Member, service: Service, q: Annotated[str, Query(max_length=80)] = "") -> Any:
+    return _run(service.territories.search, q)
+
+
+@router.get("/territori/{kind}/{key}")
+def territory_scheda(kind: TerritoryKindPath, key: TerritoryKeyPath, member: Member, service: Service) -> Any:
+    return _run(service.territory_scheda, kind, key, member=member)
+
+
+@router.post("/territori/{kind}/{key}/blocchi/{block}")
+def save_territory_block(
+    kind: TerritoryKindPath,
+    key: TerritoryKeyPath,
+    block: Annotated[str, Path(pattern=r"^[a-z_]{2,20}$")],
+    member: Member,
+    service: Service,
+    payload: Annotated[dict, Body()],
+) -> Any:
+    return _create(service, member, payload, service.save_territory_block, "territory", lambda r: r["id"], kind, key, block)
+
+
 @router.post("/contenuti/{kind}/{content_id}/ritira")
 def withdraw(
     kind: Annotated[str, Path(max_length=20)],

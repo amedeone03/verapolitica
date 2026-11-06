@@ -1005,6 +1005,94 @@ export function renderMunicipalityCard(municipality) {
   </article>`;
 }
 
+// ---------------------------------------------------------------------------
+// Territory schede (Modello Regione, Modello Città; the province follows the
+// same rules). The official base is always shown; the redazione's blocks
+// appear once published.
+const TERRITORY_PROMISE_TONE = { mantenuta: "kept", parzialmente_mantenuta: "partial", in_corso: "progress", non_mantenuta: "broken", da_compilare: "unrated" };
+
+function territoryFieldValue(block, key) {
+  const value = block?.data?.[key];
+  if (!value) return "";
+  const field = (block.fields || []).find((item) => item.key === key);
+  return field?.options?.[value] || value;
+}
+
+export function renderTerritoryFacts(t) {
+  const base = t.base;
+  const rapida = t.blocks.find((block) => block.key === "rapida");
+  const facts = [];
+  const add = (label, value, href = null) => { if (value) facts.push([label, value, href]); };
+  if (base.kind !== "region" && base.region) add("Regione", base.region.name, `./?region=${encodeURIComponent(base.region.id)}`);
+  if (base.province) add("Provincia", `${base.province.name} (${base.province.abbreviation})`, `./?province=${encodeURIComponent(base.province.abbreviation)}`);
+  add("Capoluogo", territoryFieldValue(rapida, "capoluogo"));
+  add("Tipo", territoryFieldValue(rapida, "tipo"));
+  if (base.province_count) add("Province", String(base.province_count));
+  if (base.municipality_count) add("Comuni", base.municipality_count.toLocaleString("it-IT"));
+  const people = territoryFieldValue(rapida, "popolazione") || territoryFieldValue(rapida, "abitanti");
+  const year = territoryFieldValue(rapida, "popolazione_anno") || territoryFieldValue(rapida, "abitanti_anno");
+  if (people) add(base.kind === "municipality" ? "Abitanti" : "Popolazione", `${people}${year ? ` (ISTAT, ${year})` : ""}`);
+  if (base.holder) add(base.holder.role, `${base.holder.name}${base.holder.since ? ` · dal ${formatDate(base.holder.since)}` : ""}`, base.holder.politician_id ? `./?politician=${encodeURIComponent(base.holder.politician_id)}` : null);
+  add("Coalizione", territoryFieldValue(rapida, "coalizione"));
+  add("Ultime elezioni", territoryFieldValue(rapida, "ultime_elezioni"));
+  add("Prossime elezioni", territoryFieldValue(rapida, "prossime_elezioni"));
+  return `<dl class="territory-facts">${facts.map(([label, value, href]) => `<div><dt>${escapeHtml(label)}</dt><dd>${href ? `<a href="${escapeHtml(href)}">${escapeHtml(value)}</a>` : escapeHtml(value)}</dd></div>`).join("")}</dl>
+    ${rapida?.data?.note ? `<p class="territory-note">${escapeHtml(rapida.data.note)}</p>` : ""}`;
+}
+
+function territoryBlockBody(block) {
+  const data = block.data || {};
+  if (block.type === "text") return newsText(data.body);
+  if (block.type === "rows") {
+    const rows = data.rows || [];
+    if (block.key === "giunta") {
+      return `<ul class="territory-people">${rows.map((row) => `<li><strong>${escapeHtml(row.nome)}</strong>${row.delega ? `<span>${escapeHtml(row.delega)}</span>` : ""}</li>`).join("")}</ul>${data.body ? newsText(data.body) : ""}`;
+    }
+    const columns = block.columns || [];
+    return `<div class="territory-table"><table><thead><tr>${columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => column.options
+      ? `<td><span class="verdict-chip tone-${TERRITORY_PROMISE_TONE[row[column.key]] || "unrated"}">${escapeHtml(column.options[row[column.key]] || row[column.key])}</span></td>`
+      : `<td>${escapeHtml(row[column.key])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${data.body ? newsText(data.body) : ""}`;
+  }
+  return "";
+}
+
+export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "" } = {}) {
+  const base = t.base;
+  const written = t.blocks.filter((block) => block.key !== "rapida" && block.data);
+  const total = t.blocks.filter((block) => block.key !== "rapida").length;
+  const meta = t.updated_at
+    ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(String(t.updated_at).slice(0, 10)))}${t.writers.length ? ` · Scritto da ${escapeHtml(t.writers.join(", "))}` : ""}${t.publishers.length ? ` · Pubblicato da ${escapeHtml(t.publishers.join(", "))}` : ""}</p>`
+    : "";
+  const sections = written.map((block) => `<section class="territory-block" id="t-${escapeHtml(block.key)}" aria-labelledby="t-${escapeHtml(block.key)}-title">
+      <h2 id="t-${escapeHtml(block.key)}-title">${escapeHtml(block.title)}</h2>
+      ${territoryBlockBody(block)}
+      ${block.sources?.length ? `<p class="territory-sources">Fonti: ${block.sources.map((source) => {
+        const url = safeExternalUrl(source.url);
+        return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.name || new URL(url).hostname)}</a>` : escapeHtml(source.name);
+      }).join(" · ")}</p>` : ""}
+    </section>`).join("");
+  const index = written.length > 1
+    ? `<nav class="territory-index" aria-label="In questa scheda">${written.map((block) => `<a href="#t-${escapeHtml(block.key)}">${escapeHtml(block.title)}</a>`).join("")}<a href="#t-notizie">${escapeHtml(t.news_title)}</a></nav>`
+    : "";
+  return `<header class="territory-hero">
+      ${eyebrow ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}
+      <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
+      ${renderTerritoryFacts(t)}
+      ${meta}
+    </header>
+    ${index}
+    ${sections}
+    ${written.length < total ? `<p class="territory-pending">${written.length ? `La redazione sta completando questa scheda: ${written.length} di ${total} parti pubblicate.` : "La redazione non ha ancora scritto questa scheda: qui sopra ci sono solo i dati ufficiali."}</p>` : ""}
+    ${extra}
+    <div id="t-notizie" class="territory-news"></div>
+    <section class="territory-block territory-fonti" aria-labelledby="t-fonti-title"><h2 id="t-fonti-title">Fonti</h2>
+      <ul>${t.sources.map((source) => {
+        const url = safeExternalUrl(source.url);
+        return `<li>${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.name || url)} ${icon("external", { size: 13 })}</a>` : escapeHtml(source.name)}</li>`;
+      }).join("")}</ul>
+    </section>`;
+}
+
 export function renderRegionDetail(region, municipalities = []) {
   const sourceUrl = safeExternalUrl(region.source?.url);
   const ordered = [...municipalities].sort((left, right) => {
@@ -1806,6 +1894,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     },
     listProvinces: (regionId = null) => request(`/archive/provinces${regionId ? `?region=${encodeURIComponent(regionId)}` : ""}`),
     getProvinceHistory: (code) => request(`/archive/provinces/${encodeURIComponent(code)}`),
+    getTerritory: (kind, key) => request(`/territories/${encodeURIComponent(kind)}/${encodeURIComponent(key)}`),
     getRegionHistory: (id) => request(`/archive/regions/${encodeURIComponent(id)}`),
     listMunicipalitiesInProvince: async (province) => {
       const items = [];
@@ -2146,13 +2235,28 @@ async function showRegionDetail(api, regionId) {
   byId("archive-view").hidden = true;
   byId("region-detail-view").hidden = false;
   try {
-    const region = await api.getRegion(regionId);
-    const municipalities = await listAllMunicipalities(api, regionId);
+    const [region, municipalities, scheda] = await Promise.all([
+      api.getRegion(regionId),
+      listAllMunicipalities(api, regionId),
+      api.getTerritory("region", regionId).catch(() => null),
+    ]);
     byId("region-detail-status").hidden = true;
     byId("region-detail").hidden = false;
-    byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
+    if (scheda) {
+      const ordered = [...municipalities].sort((left, right) => left.name.localeCompare(right.name, "it"));
+      const provinces = scheda.base.provinces || [];
+      const extra = `${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province</h2>
+          <ul class="territory-links">${provinces.map((item) => `<li><a href="./?province=${encodeURIComponent(item.abbreviation)}"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></a></li>`).join("")}</ul></section>` : ""}
+        <section class="territory-block" aria-labelledby="t-comuni-title"><h2 id="t-comuni-title">Comuni</h2>
+          ${ordered.length ? `<ul class="territory-links is-compact">${ordered.map((item) => `<li><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.province_abbreviation)}</small></a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
+          <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p></section>`;
+      byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Regione", titleId: "region-detail-title", extra });
+      renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true });
+    } else {
+      byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
+      renderLocalNews(api, byId("region-news"), { region_id: region.id }, region.name);
+    }
     document.title = `${region.name} — VeraPolitica`;
-    renderLocalNews(api, byId("region-news"), { region_id: region.id }, region.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("region-detail-status"), missing ? "Questa regione non è disponibile." : "Non è stato possibile caricare questa regione.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -2697,12 +2801,20 @@ async function showMunicipalityDetail(api, municipalityId) {
   byId("archive-view").hidden = true;
   byId("municipality-detail-view").hidden = false;
   try {
-    const municipality = await api.getMunicipality(municipalityId);
+    const [municipality, scheda] = await Promise.all([
+      api.getMunicipality(municipalityId),
+      api.getTerritory("municipality", municipalityId).catch(() => null),
+    ]);
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
-    byId("municipality-detail").innerHTML = `${renderMunicipalityDetail(municipality)}<div id="municipality-news"></div>`;
+    if (scheda) {
+      byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Comune", titleId: "municipality-detail-title" });
+      renderLocalNews(api, byId("t-notizie"), { municipality_id: municipality.id }, scheda.news_title, { title: true });
+    } else {
+      byId("municipality-detail").innerHTML = `${renderMunicipalityDetail(municipality)}<div id="municipality-news"></div>`;
+      renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }, municipality.name);
+    }
     document.title = `Comune di ${municipality.name} — VeraPolitica`;
-    renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }, municipality.name);
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("municipality-detail-status"), missing ? "Questo comune non è disponibile." : "Non è stato possibile caricare questo comune.", missing ? "Potrebbe non essere ancora presente in archivio." : PUBLIC_UNAVAILABLE, true);
@@ -3146,7 +3258,7 @@ export function sectionFor(params) {
   if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
   if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")
     || params.get("province") || params.get("region") || params.get("municipality")) return "politics";
-  if (params.get("legislature") || params.get("history_region")) return "history";
+  if (params.get("legislature") || params.get("history_region") || params.get("history_province")) return "history";
   return "home";
 }
 
@@ -3172,7 +3284,7 @@ function syncPageMeta(params) {
   const description = VIEW_DESCRIPTIONS[params.get("view")];
   if (description) document.querySelector('meta[name="description"]')?.setAttribute("content", description);
   // Canonical URL: the view, the record id or the search query; no tracking or paging noise.
-  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary"];
+  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary", "history_region", "history_province"];
   const canonical = new URL(window.location.pathname, window.location.origin);
   for (const key of keep) if (params.get(key)) canonical.searchParams.set(key, params.get(key));
   let link = document.querySelector('link[rel="canonical"]');
@@ -3313,14 +3425,16 @@ const FEED_CHOICES = ["all", "national", "region", "province"];
 
 // Local news on a region or comune page: only items written for that territory
 // (the national ones are on the Feed). Comune pages also get the region's news.
-async function renderLocalNews(api, container, zone, placeName) {
-  container.innerHTML = `<section class="detail-card local-news" aria-labelledby="local-news-title"><h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2><p class="empty-note">Caricamento…</p></section>`;
+async function renderLocalNews(api, container, zone, placeName, { title = false } = {}) {
+  const heading = title ? placeName : `Notizie: ${placeName}`;
+  const wrapper = title ? "territory-block local-news" : "detail-card local-news";
+  container.innerHTML = `<section class="${wrapper}" aria-labelledby="local-news-title"><h2 id="local-news-title">${escapeHtml(heading)}</h2><p class="empty-note">Caricamento…</p></section>`;
   try {
     try { await loadPortraits(api); } catch { /* optional */ }
     const page = await api.getFeed({ scope: "all", zone, redazione: true });
     const items = (page.items || []).filter((item) => item.scope && item.scope !== "national").slice(0, 6);
     const section = container.querySelector(".local-news");
-    section.innerHTML = `<h2 id="local-news-title">Notizie: ${escapeHtml(placeName)}</h2>${items.length
+    section.innerHTML = `<h2 id="local-news-title">${escapeHtml(heading)}</h2>${items.length
       ? `<div class="feed-list local-news-list">${items.map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join("")}</div>`
       : `<p class="empty-note">Nessuna notizia locale pubblicata.</p>`}`;
     bindFeedCards(section, cardHandlers(api));
@@ -3528,7 +3642,7 @@ function authorityNode(person, diameter) {
   const mark = party
     ? partyLogo(party, 18) || `<span class="authority-abbr">${escapeHtml(party.abbreviation || party.name)}</span>`
     : "";
-  return `<a class="authority-node" href="./?politician=${encodeURIComponent(person.id)}" style="--d:${diameter}px" aria-label="${escapeHtml(`${name}, ${shortRole(person)}${party ? `, ${party.name}` : ""}`)}">
+  return `<a class="authority-node" data-party="${escapeHtml(party ? String(party.id ?? party.name) : "none")}" href="./?politician=${encodeURIComponent(person.id)}" style="--d:${diameter}px" aria-label="${escapeHtml(`${name}, ${shortRole(person)}${party ? `, ${party.name}` : ""}`)}">
     <span class="authority-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
     ${mark ? `<span class="authority-party" title="${escapeHtml(party.name)}">${mark}</span>` : ""}
     <span class="authority-name">${escapeHtml(name)}</span>
@@ -3615,6 +3729,81 @@ export function renderPersonBubble(person) {
   </a>`;
 }
 
+// ---------------------------------------------------------------------------
+// How the Government is made up: one thin segmented bar by party (counts in
+// the list beside it, so no number sits on the bar) and the members by rank.
+// Colours follow the party, never its size: they are assigned by name, and the
+// list carries every figure, so colour is never the only way to read it.
+const GOVERNMENT_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"];
+const GOVERNMENT_OTHER = "#7D8E8B";
+const GOVERNMENT_TIERS = ["Presidente del Consiglio", "Vicepresidenti del Consiglio", "Ministri con portafoglio", "Ministri senza portafoglio", "Sottosegretari"];
+
+export function governmentComposition(people) {
+  const groups = new Map();
+  for (const person of people) {
+    const party = person.current_party || currentParty(person);
+    const key = party ? String(party.id ?? party.name) : "none";
+    if (!groups.has(key)) groups.set(key, { key, party, members: [] });
+    groups.get(key).members.push(person);
+  }
+  const named = [...groups.values()].filter((group) => group.key !== "none")
+    .sort((a, b) => String(a.party.name).localeCompare(String(b.party.name), "it"));
+  // Up to six parties get a colour; the rest and the people without a party are grey.
+  const ranked = [...named].sort((a, b) => b.members.length - a.members.length || String(a.party.name).localeCompare(String(b.party.name), "it"));
+  const coloured = new Set(ranked.slice(0, GOVERNMENT_SLOTS.length).map((group) => group.key));
+  let slot = 0;
+  for (const group of named) group.color = coloured.has(group.key) ? GOVERNMENT_SLOTS[slot++] : GOVERNMENT_OTHER;
+  const none = groups.get("none");
+  if (none) none.color = GOVERNMENT_OTHER;
+  const order = [...ranked, ...(none ? [none] : [])];
+  const tiers = GOVERNMENT_TIERS.map((label, rank) => ({ label, members: people.filter((person) => governmentRank(person) === rank) })).filter((tier) => tier.members.length);
+  return { total: people.length, groups: order, tiers, byPerson: new Map(order.flatMap((group) => group.members.map((person) => [String(person.id), group]))) };
+}
+
+export function renderGovernmentComposition(people) {
+  const data = governmentComposition(people);
+  if (!data.total) return "";
+  const label = (group) => group.party ? group.party.name : "Senza partito o tecnici";
+  const short = (group) => group.party ? (group.party.abbreviation || group.party.name) : "Senza partito";
+  const summary = data.groups.map((group) => `${label(group)} ${group.members.length}`).join(", ");
+  return `<div class="gov-chart">
+    <p class="gov-chart-head"><strong>Com'è composto</strong><span>${data.total} ${data.total === 1 ? "componente" : "componenti"} · ${data.groups.filter((group) => group.party).length} partiti</span></p>
+    <div class="gov-bar" role="img" aria-label="Componenti del Governo per partito: ${escapeHtml(summary)}">${data.groups.map((group) => `<span class="gov-segment" data-party="${escapeHtml(group.key)}" style="flex-grow:${group.members.length};--c:${group.color}" title="${escapeHtml(`${label(group)}: ${group.members.length} su ${data.total}`)}"></span>`).join("")}</div>
+    <ul class="gov-legend" aria-label="Filtra per partito">${data.groups.map((group) => `<li><button type="button" class="gov-party" data-party="${escapeHtml(group.key)}" aria-pressed="false" style="--c:${group.color}">
+      <span class="gov-swatch" aria-hidden="true"></span>${group.party ? partyLogo(group.party, 18) : ""}<span class="gov-party-name">${escapeHtml(short(group))}</span><span class="gov-count">${group.members.length}</span>
+      <span class="visually-hidden">${escapeHtml(label(group))}: ${group.members.length} ${group.members.length === 1 ? "componente" : "componenti"}</span></button></li>`).join("")}</ul>
+    <div class="gov-tiers">${data.tiers.map((tier) => `<section class="gov-tier"><h3>${escapeHtml(tier.label)} <span>${tier.members.length}</span></h3>
+      <ul>${tier.members.map((person) => {
+        const group = data.byPerson.get(String(person.id));
+        const name = displayPersonName(person.given_name, person.family_name).trim();
+        const photo = personPhotoUrl(person);
+        const role = shortRole(person);
+        return `<li data-party="${escapeHtml(group.key)}"><a href="./?politician=${encodeURIComponent(person.id)}" style="--c:${group.color}">
+          <span class="gov-face">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${escapeHtml(initials(person))}</span>`}</span>
+          <span class="gov-who"><strong>${escapeHtml(name)}</strong><small>${escapeHtml([role !== tier.label ? role : "", short(group)].filter(Boolean).join(" · "))}</small></span></a></li>`;
+      }).join("")}</ul></section>`).join("")}</div>
+  </div>`;
+}
+
+// Choosing a party highlights its members in the chart and in the faces above.
+export function bindGovernmentComposition(root, cloud) {
+  root.governmentCloud = cloud;
+  if (root.dataset.bound) return;
+  root.dataset.bound = "1";
+  root.addEventListener("click", (event) => {
+    const cloud = root.governmentCloud;
+    const button = event.target instanceof Element ? event.target.closest(".gov-party") : null;
+    if (!button) return;
+    const active = button.getAttribute("aria-pressed") !== "true";
+    for (const item of root.querySelectorAll(".gov-party")) item.setAttribute("aria-pressed", String(active && item === button));
+    const key = active ? button.dataset.party : "";
+    root.dataset.focus = key;
+    for (const node of root.querySelectorAll(".gov-segment, .gov-tier li")) node.classList.toggle("is-dim", Boolean(key) && node.dataset.party !== key);
+    for (const tier of root.querySelectorAll(".gov-tier")) tier.classList.toggle("is-empty", Boolean(key) && !tier.querySelector(`li[data-party="${CSS.escape(key)}"]`));
+    if (cloud) for (const node of cloud.querySelectorAll(".authority-node")) node.classList.toggle("is-dim", Boolean(key) && node.dataset.party !== key);
+  });
+}
+
 const GOVERNMENT_NOTE = "Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.";
 const FEATURED_NOTE = "Schede verificate dalla redazione, con incarico in corso. Non è un giudizio.";
 
@@ -3628,12 +3817,20 @@ export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {
     if (note) { note.hidden = false; note.textContent = GOVERNMENT_NOTE; }
     cloud.className = "authority-cloud";
     renderAuthorityCloud(cloud, government);
+    const chart = byId("government-chart");
+    if (chart) {
+      chart.innerHTML = renderGovernmentComposition(government);
+      chart.hidden = false;
+      bindGovernmentComposition(chart, cloud);
+    }
     let lastWidth = cloud.clientWidth;
     if (typeof ResizeObserver === "function") {
       new ResizeObserver(() => {
         if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
         lastWidth = cloud.clientWidth;
         renderAuthorityCloud(cloud, government);
+        const focus = byId("government-chart")?.dataset.focus;
+        if (focus) for (const node of cloud.querySelectorAll(".authority-node")) node.classList.toggle("is-dim", node.dataset.party !== focus);
       }).observe(cloud);
     }
     return "governo";
@@ -4080,6 +4277,33 @@ async function showTerritoryHistory(api, { province = null, regionId = null }) {
   }
 }
 
+async function showProvinceDetail(api, code) {
+  byId("province-detail-view").hidden = false;
+  try {
+    const [scheda, towns] = await Promise.all([
+      api.getTerritory("province", code),
+      api.listMunicipalitiesInProvince(code).catch(() => []),
+    ]);
+    const base = scheda.base;
+    const back = byId("province-back");
+    if (base.region) {
+      back.href = `./?region=${encodeURIComponent(base.region.id)}`;
+      back.lastChild.textContent = ` ${base.region.name}`;
+    }
+    const ordered = [...towns].sort((left, right) => left.name.localeCompare(right.name, "it"));
+    const extra = `<section class="territory-block" aria-labelledby="t-comuni-title"><h2 id="t-comuni-title">Comuni</h2>
+        ${ordered.length ? `<ul class="territory-links is-compact">${ordered.map((item) => `<li><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong></a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune elencato.</p>`}
+        <p><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p></section>`;
+    byId("province-detail-status").hidden = true;
+    byId("province-detail").hidden = false;
+    byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });
+    renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true });
+    document.title = `${base.title} — VeraPolitica`;
+  } catch (error) {
+    showState(byId("province-detail-status"), error.status === 404 ? "Questa provincia non è disponibile." : "Non è stato possibile caricare la provincia.", error.status === 404 ? "Controlla la sigla." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
 async function showReferendumArchive(api) {
   byId("referendum-archive-view").hidden = false;
   document.title = "Referendum per anno — VeraPolitica";
@@ -4353,8 +4577,10 @@ async function start() {
   showParty(api, partyId);
 } else if (legislatureNumber && /^\d{1,2}$/.test(legislatureNumber) && view !== "proposals") {
   showLegislature(api, legislatureNumber);
-} else if (provinceCode && /^[A-Z]{2}$/.test(provinceCode)) {
-  showTerritoryHistory(api, { province: provinceCode });
+} else if (provinceCode && /^[A-Za-z]{2}$/.test(provinceCode)) {
+  showProvinceDetail(api, provinceCode.toUpperCase());
+} else if (params.get("history_province") && /^[A-Za-z]{2}$/.test(params.get("history_province"))) {
+  showTerritoryHistory(api, { province: params.get("history_province").toUpperCase() });
 } else if (view === "politics") {
   showPolitics(api);
 } else if (view === "politicians") {
