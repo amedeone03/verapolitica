@@ -1,15 +1,15 @@
 // VeraPolitica — feed card, shared by the public feed (/app) and the
 // redazione console preview (/redazione). One function, same markup.
 //
-//   [■ Kind (tone band)                       date]
-//   place                                       [badge]
+//   [CATEGORY BAND in the tone colour]
+//   [badge · date]                [aside]
 //   (o) Name     (o) Name        round image + party or role
 //   Institution
 //   Title
-//   Summary                       ("Altro" when long)
-//   [iter: 4 steps]  status · since
-//   [coverage]
-//   ♡ 12   ⟲   Fonti 3   Chiedi              [save] [share]
+//   Summary                       ("Mostra altro" when long)
+//   Info · Fonti · Chiedi
+//   [coverage]  [iter: 4 steps]  status · since
+//   ♡ 12  ⟲  [external link]               [save] [share]
 //
 // Reactions: tap the heart; press and hold (or ArrowUp on the keyboard) for
 // ❤️ 😡 🎉 😢. Drawn with the system emoji, so on iPhone and Mac they are Apple's.
@@ -26,6 +26,7 @@ const PATHS = {
   building: '<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 2 7h20Z"/>',
   swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
   stamp: '<path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5c0-.66-.26-1.3-.73-1.77Z"/><path d="M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13"/>',
+  info: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M8 9h2"/>',
   sources: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
   share: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
@@ -135,6 +136,7 @@ export function sourceCoverage(fonti = []) {
 
 function coverageBar(coverage) {
   if (!coverage) return "";
+  const total = coverage.centrosinistra + coverage.centro + coverage.centrodestra;
   const parts = [
     ["centrosinistra", "Centrosinistra", coverage.centrosinistra],
     ["centro", "Istituzionali e agenzie", coverage.centro],
@@ -143,7 +145,7 @@ function coverageBar(coverage) {
   const label = parts.map(([, name, n]) => `${n} ${name.toLowerCase()}`).join(", ");
   return `<div class="vp-coverage" role="img" aria-label="Fonti: ${esc(label)}">
       <div class="vp-coverage-bar">${parts.filter(([, , n]) => n).map(([key, , n]) => `<span class="cov-${key}" style="flex-grow:${n}"></span>`).join("")}</div>
-      <p class="vp-coverage-legend">${parts.filter(([, , n]) => n).map(([key, name, n]) => `<span class="cov-${key}">${esc(name)} ${n}</span>`).join("")}</p>
+      <p class="vp-coverage-legend">${parts.filter(([, , n]) => n).map(([key, name, n]) => `<span class="cov-${key}">${n} ${esc(name)}</span>`).join("")}<span class="vp-coverage-total">${total} ${total === 1 ? "fonte" : "fonti"}</span></p>
     </div>`;
 }
 
@@ -199,45 +201,48 @@ export function renderFeedCard(item, options = {}) {
   const href = options.preview ? "#" : item.url;
   const postId = options.preview ? null : postIdOf(item.url);
   const question = `Spiegami: ${item.title}`;
-  // "Dalla redazione" is every post: only a badge that says something is shown.
-  const showBadge = badge.label && !(badge.tone === "plain" && badge.label === "Dalla redazione");
-  const place = card.aside || item.place;
+  const badgeDate = badge.date || item.occurred_on;
+  const aside = card.aside || item.place;
   // Entrance (choreograph): only the first three cards, lead first, gaps shrinking (0, 60, 100ms).
   const ENTER = [[0, 10], [60, 6], [100, 6]];
   const enter = Number.isInteger(options.index) && options.index < ENTER.length ? ENTER[options.index] : null;
   const style = enter ? ` style="--vp-delay:${enter[0]}ms;--vp-rise:${enter[1]}px"` : "";
   return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}${options.preview ? " is-preview" : ""}${enter ? " is-entering" : ""}" data-card="${esc(key)}"${style}>
-    <header class="vp-band">
-      <span class="vp-kind">${cardIcon(CATEGORY_ICON[card.category] || "news", 15)}<span>${esc(card.category_label || "Notizia")}</span></span>
-      ${date ? `<time class="vp-date" datetime="${esc(String(badge.date || item.occurred_on || "").slice(0, 10))}">${esc(date)}</time>` : ""}
-    </header>
+    <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
+    <div class="vp-sub">
+      <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(feedDate(badgeDate))}` : ""}</span>
+      ${aside ? `<span class="vp-aside">${esc(aside)}</span>` : ""}
+    </div>
     <div class="vp-body">
-    ${place || showBadge ? `<p class="vp-sub">${place ? `<span class="vp-place">${esc(place)}</span>` : ""}${showBadge ? `<span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}</span>` : ""}</p>` : ""}
-    ${people.length ? `<ul class="vp-people">${people.map((person) => {
-      const name = displayPersonName(person.name);
-      return `<li>${avatar({ ...person, name }, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(name)}</a>` : `<strong>${esc(name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`;
-    }).join("")}</ul>` : ""}
-    ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti">${extraParties.map((party) => `<li title="${esc(party.name)}">${partyLogo(party)}${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
-    ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
-    <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
-    ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Altro</button>` : ""}` : ""}
-    ${iterData?.steps ? `<ol class="vp-iter" aria-label="Iter" style="--vp-progress:${Math.max(0, iterData.steps.findIndex((step) => step.state !== "done") === -1 ? 1 : iterData.steps.findIndex((step) => step.state !== "done") / (iterData.steps.length - 1))}">${iterData.steps.map((step, index) => `<li class="vp-step is-${esc(step.state)}"><span class="vp-step-dot">${cardIcon(STEP_ICON[index], 13)}</span><span class="vp-step-name">${esc(step.label)}</span><span class="vp-hidden"> (${esc({ done: "completato", current: "fase attuale", stopped: "fermo", todo: "da fare" }[step.state] || step.state)})</span></li>`).join("")}</ol>
-      ${iterData.status || iterData.since ? `<p class="vp-stage">${iterData.status ? `<strong>${esc(iterData.status)}</strong>` : ""}${iterData.status && iterData.since ? " · " : ""}${iterData.since ? `${esc(iterData.since_label || "Presentato il")} ${esc(longDate(iterData.since))}` : ""}</p>` : ""}` : ""}
-    ${coverageBar(item.coverage)}
-    ${link ? `<a class="vp-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(card.link.label)} ${cardIcon("external", 13)}</a>` : ""}
-    ${sources.length ? `<ul class="vp-sources" id="src-${esc(key)}" hidden>${sources.join("")}</ul>` : ""}
-    <footer class="vp-actions">
+      ${people.length ? `<ul class="vp-people">${people.map((person) => {
+        const name = displayPersonName(person.name);
+        return `<li>${avatar({ ...person, name }, options.resolvePortrait)}<span class="vp-person-text">${person.politician_id && !options.preview ? `<a href="./?politician=${encodeURIComponent(person.politician_id)}">${esc(name)}</a>` : `<strong>${esc(name)}</strong>`}${person.role ? `<small>${partyLogo(partyById.get(person.party_id))}${esc(person.role)}</small>` : ""}</span></li>`;
+      }).join("")}</ul>` : ""}
+      ${extraParties.length ? `<ul class="vp-parties" aria-label="Partiti coinvolti"><li class="vp-parties-label" aria-hidden="true">Anche</li>${extraParties.map((party) => `<li title="${esc(party.name)}">${partyLogo(party)}${esc(party.abbreviation || party.name)}</li>`).join("")}</ul>` : ""}
+      ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
+      <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
+      ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Mostra altro</button>` : ""}` : ""}
+      <div class="vp-pills">
+        <a class="vp-pill is-primary" href="${esc(href)}">${cardIcon("info", 15)}Info</a>
+        ${sources.length ? `<button type="button" class="vp-pill" data-card-sources="src-${esc(key)}" aria-expanded="false">${cardIcon("sources", 15)}Fonti <span class="vp-count">${sources.length}</span></button>` : ""}
+        <a class="vp-pill" href="${options.preview ? "#" : `./?view=ask&amp;prefill=${encodeURIComponent(question)}`}">${cardIcon("question", 15)}Chiedi</a>
+      </div>
+      ${sources.length ? `<ul class="vp-sources" id="src-${esc(key)}" hidden>${sources.join("")}</ul>` : ""}
+      ${coverageBar(item.coverage)}
+      ${iterData?.steps ? `<ol class="vp-iter" aria-label="Iter" style="--vp-progress:${Math.max(0, iterData.steps.findIndex((step) => step.state !== "done") === -1 ? 1 : iterData.steps.findIndex((step) => step.state !== "done") / (iterData.steps.length - 1))}">${iterData.steps.map((step, index) => `<li class="vp-step is-${esc(step.state)}"><span class="vp-step-dot">${cardIcon(STEP_ICON[index], 14)}</span><span class="vp-step-name">${esc(step.label)}</span><span class="vp-hidden"> (${esc({ done: "completato", current: "fase attuale", stopped: "fermo", todo: "da fare" }[step.state] || step.state)})</span></li>`).join("")}</ol>
+        ${iterData.status ? `<p class="vp-stage">${esc(iterData.status)}</p>` : ""}
+        ${iterData.since ? `<p class="vp-since">${esc(iterData.since_label || "Presentato il")} ${esc(longDate(iterData.since))}</p>` : ""}` : ""}
+    </div>
+    <footer class="vp-foot">
       <div class="vp-react-wrap">
         <button type="button" class="vp-action vp-react" ${postId ? `data-react-post="${postId}"` : "disabled"} data-mine="" aria-pressed="false" aria-haspopup="true" aria-label="${esc(reactionLabel(null, 0))}">${reactionInner(null, 0)}</button>
       </div>
       <button type="button" class="vp-action vp-repost" data-card-repost="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.shared ? "true" : "false"}" aria-label="${options.shared ? "Ricondivisa nel tuo profilo: togli" : "Ricondividi nel tuo profilo"}">${cardIcon("repost", 20)}</button>
-      ${sources.length ? `<button type="button" class="vp-action vp-text-action" data-card-sources="src-${esc(key)}" aria-expanded="false">${cardIcon("sources", 18)}<span>Fonti</span><span class="vp-count">${sources.length}</span></button>` : ""}
-      <a class="vp-action vp-text-action" href="${options.preview ? "#" : `./?view=ask&amp;prefill=${encodeURIComponent(question)}`}">${cardIcon("question", 18)}<span>Chiedi</span></a>
-      <span class="vp-actions-spacer"></span>
+      ${link ? `<a class="vp-outline" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(card.link.label)} ${cardIcon("external", 14)}</a>` : ""}
+      <span class="vp-foot-spacer"></span>
       <button type="button" class="vp-action vp-save" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Salvata nel profilo: togli" : "Salva nel profilo"}">${cardIcon("bookmark", 20, options.saved)}</button>
-      <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Invia">${cardIcon("share", 20)}</button>
+      <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Condividi">${cardIcon("share", 20)}</button>
     </footer>
-    </div>
   </article>`;
 }
 
@@ -426,7 +431,7 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
       const open = more.getAttribute("aria-expanded") !== "true";
       text?.classList.toggle("is-clamped", !open);
       more.setAttribute("aria-expanded", String(open));
-      more.textContent = open ? "Meno" : "Altro";
+      more.textContent = open ? "Mostra meno" : "Mostra altro";
       return;
     }
     const toggle = target.closest("[data-card-sources]");
