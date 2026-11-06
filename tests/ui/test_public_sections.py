@@ -21,7 +21,12 @@ def test_bottom_bar_and_header():
     assert '<section id="archive-view" aria-labelledby="archive-title" hidden>' in html
     # The home is only the redazione's timeline.
     assert 'id="feed-choice"' in html and 'class="feed-timeline"' in html
-    assert 'class="feed-rail"' in html and "Come si scrive" in html
+    # No side column: the feed is one timeline.
+    assert 'class="feed-rail"' not in html and "Come si scrive" not in html
+    choice = html.split('id="feed-choice"')[1].split("</div>\n        </div>")[0]
+    labels = [part.split(">", 1)[1].split("<", 1)[0] for part in choice.split('<button type="button" data-feed=')[1:]]
+    assert labels == ["Per te", "Nazionale", "Regionale", "Provinciale"]
+    assert 'data-feed="saved"' not in html and 'data-feed="local"' not in html
     home = html.split('id="home-view"')[1].split("</section>")[0]
     assert "shortcut-grid" not in home and "home-hero" not in home
     assert "Il tuo profilo." in html

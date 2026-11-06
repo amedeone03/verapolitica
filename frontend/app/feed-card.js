@@ -1,15 +1,18 @@
 // VeraPolitica — feed card, shared by the public feed (/app) and the
 // redazione console preview (/redazione). One function, same markup.
 //
-//   [category band]
+//   [CATEGORY BAND in the tone colour]
 //   [badge · date]                [aside]
 //   (o) Name     (o) Name        round image + party or role
 //   Institution
 //   Title
 //   Summary                       ("Mostra altro" when long)
 //   Info · Fonti · Chiedi
-//   [iter: 4 steps]  status · since
-//   [external link]        [save] [share]
+//   [coverage]  [iter: 4 steps]  status · since
+//   ♡ 12  ⟲  [external link]               [save] [share]
+//
+// Reactions: tap the heart; press and hold (or ArrowUp on the keyboard) for
+// ❤️ 😡 🎉 😢. Drawn with the system emoji, so on iPhone and Mac they are Apple's.
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -29,10 +32,21 @@ const PATHS = {
   share: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   chevron: '<path d="m9 18 6-6-6-6"/>',
+  heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  repost: '<path d="m2 9 3-3 3 3"/><path d="M13 18H7a2 2 0 0 1-2-2V6"/><path d="m22 15-3 3-3-3"/><path d="M11 6h6a2 2 0 0 1 2 2v10"/>',
 };
 export function cardIcon(name, size = 16, filled = false) {
   return `<svg class="vp-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="${size}" height="${size}" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PATHS[name] || ""}</svg>`;
 }
+
+// The four reactions, in picker order. Codes match the API.
+export const REACTIONS = [
+  { code: "heart", emoji: "❤️", label: "Cuore" },
+  { code: "angry", emoji: "😡", label: "Arrabbiato" },
+  { code: "party", emoji: "🎉", label: "Festa" },
+  { code: "tears", emoji: "😢", label: "Lacrime" },
+];
+const REACTION = Object.fromEntries(REACTIONS.map((item) => [item.code, item]));
 
 const CATEGORY_ICON = {
   notizia: "news", pubblicazione: "doc", disegno_di_legge: "doc", proposta_di_legge: "doc", decreto: "doc",
@@ -51,6 +65,17 @@ export function longDate(value) {
   const [y, m, d] = String(value || "").slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return "";
   return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+// "Oggi", "Ieri", else the short date: how timelines read.
+export function feedDate(value, now = new Date()) {
+  const [y, m, d] = String(value || "").slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const day = Date.UTC(y, m - 1, d);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((today - day) / 86400000);
+  if (diff === 0) return "Oggi";
+  if (diff === 1) return "Ieri";
+  return shortDate(value);
 }
 const NAME_PARTICLES = new Set(["di", "de", "del", "della", "delle", "dei", "degli", "da", "dal", "lo", "la", "le", "e", "y", "van", "von"]);
 
@@ -95,7 +120,7 @@ function avatar(person, resolvePortrait) {
   let url = person.image_url;
   if (url && url.startsWith("politician:")) url = resolvePortrait ? resolvePortrait(Number(url.split(":")[1])) : null;
   const src = url ? safeUrl(url) : null;
-  return `<span class="vp-avatar">${src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" width="64" height="64" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${esc(initials(displayPersonName(person.name)))}</span>`}</span>`;
+  return `<span class="vp-avatar">${src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" width="56" height="56" referrerpolicy="no-referrer" />` : `<span aria-hidden="true">${esc(initials(displayPersonName(person.name)))}</span>`}</span>`;
 }
 
 // Where the sources come from, as counts: a fact, not a judgement on the news.
@@ -120,20 +145,45 @@ function coverageBar(coverage) {
   const label = parts.map(([, name, n]) => `${n} ${name.toLowerCase()}`).join(", ");
   return `<div class="vp-coverage" role="img" aria-label="Fonti: ${esc(label)}">
       <div class="vp-coverage-bar">${parts.filter(([, , n]) => n).map(([key, , n]) => `<span class="cov-${key}" style="flex-grow:${n}"></span>`).join("")}</div>
-      <p class="vp-coverage-legend">${parts.map(([key, name, n]) => `<span class="cov-${key}">${n} ${esc(name)}</span>`).join("")}<span class="vp-coverage-total">${total} fonti</span></p>
+      <p class="vp-coverage-legend">${parts.filter(([, , n]) => n).map(([key, name, n]) => `<span class="cov-${key}">${n} ${esc(name)}</span>`).join("")}<span class="vp-coverage-total">${total} ${total === 1 ? "fonte" : "fonti"}</span></p>
     </div>`;
+}
+
+/** The post id behind a card URL ("./?post=12" → 12), or null. */
+export function postIdOf(url) {
+  const match = /^\.\/\?post=(\d{1,9})$/.exec(String(url || ""));
+  return match ? Number(match[1]) : null;
+}
+
+function reactionInner(mine, total) {
+  const icon = mine && REACTION[mine]
+    ? `<span class="vp-react-emoji" aria-hidden="true">${REACTION[mine].emoji}</span>`
+    : `<span class="vp-react-heart">${cardIcon("heart", 20)}</span>`;
+  return `${icon}<span class="vp-react-count"${total ? "" : " hidden"}>${total ? compactCount(total) : ""}</span>`;
+}
+
+// 9 · 999 · 1.284 → "1,3 mila": counts never push the action row off one line.
+const COUNT = typeof Intl !== "undefined" ? new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 }) : null;
+export function compactCount(value) {
+  const n = Number(value) || 0;
+  return n < 1000 || !COUNT ? String(n) : COUNT.format(n).replace(/\s/g, "\u00a0");
+}
+
+function reactionLabel(mine, total) {
+  const own = mine && REACTION[mine] ? `La tua reazione: ${REACTION[mine].label}` : "Reagisci con un cuore";
+  return `${own}${total ? `, ${total} ${total === 1 ? "reazione" : "reazioni"}` : ""}. Tieni premuto per altre reazioni`;
 }
 
 /**
  * item: { key, url, title, summary, occurred_on, place, sources: [{title,url}], card }
- * options: { resolvePortrait(id) -> url, saved: bool, preview: bool }
+ * options: { resolvePortrait(id) -> url, saved: bool, shared: bool, preview: bool, index: number }
  */
 export function renderFeedCard(item, options = {}) {
   const card = item.card || {};
   const key = String(item.key || item.url || "card").replace(/[^a-z0-9_-]/gi, "-");
   const tone = card.tone || "navy";
   const badge = card.badge || { label: "Dalla redazione", tone: "plain" };
-  const badgeDate = badge.date || item.occurred_on;
+  const date = feedDate(badge.date || item.occurred_on);
   const people = card.people || [];
   const feature = people.length === 1;
   // Parties already shown under a person are not repeated.
@@ -145,19 +195,23 @@ export function renderFeedCard(item, options = {}) {
     return url ? `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source.title || source.name || new URL(url).hostname)} ${cardIcon("external", 13)}</a></li>` : "";
   }).filter(Boolean);
   const summary = item.summary || "";
-  const long = summary.length > 260;
+  const long = summary.length > 220;
   const iterData = card.iter;
   const link = card.link && safeUrl(card.link.url);
   const href = options.preview ? "#" : item.url;
+  const postId = options.preview ? null : postIdOf(item.url);
   const question = `Spiegami: ${item.title}`;
-  const byline = item.written_by
-    ? `<p class="vp-byline">Redattore: ${esc(item.written_by)}${item.verified_by ? ` · Verificatore: ${esc(item.verified_by)}` : ""}</p>`
-    : "";
-  return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}" data-card="${esc(key)}">
+  const badgeDate = badge.date || item.occurred_on;
+  const aside = card.aside || item.place;
+  // Entrance (choreograph): only the first three cards, lead first, gaps shrinking (0, 60, 100ms).
+  const ENTER = [[0, 10], [60, 6], [100, 6]];
+  const enter = Number.isInteger(options.index) && options.index < ENTER.length ? ENTER[options.index] : null;
+  const style = enter ? ` style="--vp-delay:${enter[0]}ms;--vp-rise:${enter[1]}px"` : "";
+  return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}${options.preview ? " is-preview" : ""}${enter ? " is-entering" : ""}" data-card="${esc(key)}"${style}>
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
     <div class="vp-sub">
-      <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(shortDate(badgeDate))}` : ""}</span>
-      ${card.aside ? `<span class="vp-aside">${esc(card.aside)}</span>` : item.place ? `<span class="vp-aside">${esc(item.place)}</span>` : ""}
+      <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(feedDate(badgeDate))}` : ""}</span>
+      ${aside ? `<span class="vp-aside">${esc(aside)}</span>` : ""}
     </div>
     <div class="vp-body">
       ${people.length ? `<ul class="vp-people">${people.map((person) => {
@@ -180,22 +234,197 @@ export function renderFeedCard(item, options = {}) {
         ${iterData.since ? `<p class="vp-since">${esc(iterData.since_label || "Presentato il")} ${esc(longDate(iterData.since))}</p>` : ""}` : ""}
     </div>
     <footer class="vp-foot">
+      <div class="vp-react-wrap">
+        <button type="button" class="vp-action vp-react" ${postId ? `data-react-post="${postId}"` : "disabled"} data-mine="" aria-pressed="false" aria-haspopup="true" aria-label="${esc(reactionLabel(null, 0))}">${reactionInner(null, 0)}</button>
+      </div>
+      <button type="button" class="vp-action vp-repost" data-card-repost="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.shared ? "true" : "false"}" aria-label="${options.shared ? "Ricondivisa nel tuo profilo: togli" : "Ricondividi nel tuo profilo"}">${cardIcon("repost", 20)}</button>
       ${link ? `<a class="vp-outline" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(card.link.label)} ${cardIcon("external", 14)}</a>` : ""}
-      ${byline}
       <span class="vp-foot-spacer"></span>
-      <button type="button" class="vp-icon-button" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Rimuovi dai salvati" : "Salva"}">${cardIcon("bookmark", 20, options.saved)}</button>
-      <button type="button" class="vp-icon-button" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Condividi">${cardIcon("share", 20)}</button>
+      <button type="button" class="vp-action vp-save" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Salvata nel profilo: togli" : "Salva nel profilo"}">${cardIcon("bookmark", 20, options.saved)}</button>
+      <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Condividi">${cardIcon("share", 20)}</button>
     </footer>
   </article>`;
 }
 
-/** One delegated listener per container: "Mostra altro", "Fonti", share. */
-export function bindFeedCards(container, { onSave } = {}) {
+/** Fill reaction counts and the reader's own reaction into rendered cards. */
+export function applyReactions(container, summaries = []) {
+  if (!container) return;
+  for (const summary of summaries) {
+    for (const button of container.querySelectorAll(`[data-react-post="${Number(summary.post_id)}"]`)) {
+      setReactionButton(button, summary, false);
+    }
+  }
+}
+
+function setReactionButton(button, summary, animate) {
+  const mine = summary.mine && REACTION[summary.mine] ? summary.mine : null;
+  const total = Number(summary.total) || 0;
+  const changed = button.dataset.mine !== (mine || "");
+  button.dataset.mine = mine || "";
+  button.dataset.counts = JSON.stringify(summary.counts || {});
+  button.setAttribute("aria-pressed", String(Boolean(mine)));
+  button.setAttribute("aria-label", reactionLabel(mine, total));
+  button.innerHTML = reactionInner(mine, total);
+  if (animate && changed && mine) button.querySelector(".vp-react-emoji")?.classList.add("is-popping");
+}
+
+const LONG_PRESS_MS = 380;
+const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * One delegated listener per container: "Altro", "Fonti", reactions, re-share, save, share.
+ * handlers: {
+ *   onSave(url, title) -> bool,
+ *   onRepost(url, title) -> bool,
+ *   onReact(postId, code|null) -> Promise<summary|null>   (null: not allowed, keep as it was)
+ * }
+ */
+export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
   if (!container || container.dataset.cardsBound) return;
   container.dataset.cardsBound = "1";
+  let press = null;       // { button, timer, opened, pointerId }
+  let picker = null;      // { root, button, keyboard }
+  let swallowClick = false;
+
+  const react = async (button, code) => {
+    if (!onReact) return;
+    const before = { mine: button.dataset.mine || null, counts: JSON.parse(button.dataset.counts || "{}") };
+    const counts = { ...before.counts };
+    if (before.mine) counts[before.mine] = Math.max(0, (counts[before.mine] || 0) - 1);
+    if (code) counts[code] = (counts[code] || 0) + 1;
+    const optimistic = { mine: code, counts, total: Object.values(counts).reduce((sum, n) => sum + (Number(n) || 0), 0) };
+    setReactionButton(button, optimistic, !reduceMotion());
+    try {
+      const result = await onReact(Number(button.dataset.reactPost), code);
+      if (result === null) setReactionButton(button, { ...before, total: Object.values(before.counts).reduce((s, n) => s + (Number(n) || 0), 0) }, false);
+      else if (result) setReactionButton(button, result, false);
+    } catch {
+      setReactionButton(button, { ...before, total: Object.values(before.counts).reduce((s, n) => s + (Number(n) || 0), 0) }, false);
+    }
+  };
+
+  const closePicker = (restoreFocus = false) => {
+    if (!picker) return;
+    const { root, button } = picker;
+    picker = null;
+    button.setAttribute("aria-expanded", "false");
+    if (restoreFocus) button.focus();
+    if (reduceMotion() || root.dataset.keyboard) { root.remove(); return; }
+    root.classList.add("is-leaving");
+    root.addEventListener("transitionend", () => root.remove(), { once: true });
+    setTimeout(() => root.remove(), 200);
+  };
+
+  const openPicker = (button, { keyboard = false } = {}) => {
+    closePicker();
+    const counts = JSON.parse(button.dataset.counts || "{}");
+    const mine = button.dataset.mine;
+    const root = document.createElement("div");
+    root.className = "vp-picker";
+    root.setAttribute("role", "menu");
+    root.setAttribute("aria-label", "Reazioni");
+    if (keyboard) root.dataset.keyboard = "1";
+    root.innerHTML = REACTIONS.map((item, index) => `<button type="button" role="menuitemradio" aria-checked="${mine === item.code}" class="vp-picker-item${mine === item.code ? " is-mine" : ""}" data-react-code="${item.code}" style="--vp-delay:${[0, 25, 45, 60][index]}ms" aria-label="${esc(item.label)}${counts[item.code] ? `, ${counts[item.code]}` : ""}"><span class="vp-picker-emoji" aria-hidden="true">${item.emoji}</span><span class="vp-picker-count" aria-hidden="true">${counts[item.code] ? compactCount(counts[item.code]) : ""}</span></button>`).join("");
+    button.parentElement.appendChild(root);
+    button.setAttribute("aria-expanded", "true");
+    picker = { root, button };
+    if (keyboard) root.querySelector(".vp-picker-item")?.focus();
+    else requestAnimationFrame(() => root.classList.add("is-open"));
+    if (keyboard) root.classList.add("is-open");
+  };
+
+  const choose = (code) => {
+    if (!picker) return;
+    const { button, root } = picker;
+    const next = button.dataset.mine === code ? null : code;
+    closePicker(Boolean(root.dataset.keyboard));
+    react(button, next);
+  };
+
+  // Press and hold: the picker opens under the finger; slide onto an emoji and let go.
+  container.addEventListener("pointerdown", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest("[data-react-post]");
+    if (!button || event.button > 0) return;
+    swallowClick = false;
+    press = {
+      button,
+      pointerId: event.pointerId,
+      opened: false,
+      timer: setTimeout(() => {
+        if (!press) return;
+        press.opened = true;
+        swallowClick = true;
+        try { navigator.vibrate?.(8); } catch { /* no haptics */ }
+        openPicker(button);
+      }, LONG_PRESS_MS),
+    };
+  });
+  const hovered = (event) => {
+    const under = document.elementFromPoint(event.clientX, event.clientY);
+    return under instanceof Element ? under.closest("[data-react-code]") : null;
+  };
+  container.addEventListener("pointermove", (event) => {
+    if (!press?.opened || !picker) return;
+    const over = hovered(event);
+    for (const item of picker.root.querySelectorAll("[data-react-code]")) item.classList.toggle("is-hover", item === over);
+  });
+  const endPress = (event) => {
+    if (!press) return;
+    clearTimeout(press.timer);
+    const { opened } = press;
+    press = null;
+    if (opened && event?.type === "pointerup") {
+      const over = hovered(event);
+      if (over) choose(over.dataset.reactCode);
+    }
+  };
+  container.addEventListener("pointerup", endPress);
+  container.addEventListener("pointercancel", () => { if (press) { clearTimeout(press.timer); press = null; } });
+  container.addEventListener("contextmenu", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-react-post]") : null;
+    if (!button) return;
+    event.preventDefault();
+    if (!picker) openPicker(button);
+  });
+  container.addEventListener("keydown", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    if (target.matches("[data-react-post]") && event.key === "ArrowUp") {
+      event.preventDefault();
+      openPicker(target, { keyboard: true });
+      return;
+    }
+    if (!picker || !target.closest(".vp-picker")) return;
+    const items = [...picker.root.querySelectorAll("[data-react-code]")];
+    const index = items.indexOf(target.closest("[data-react-code]"));
+    if (event.key === "Escape") { event.preventDefault(); closePicker(true); }
+    else if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      items[(index + (event.key === "ArrowRight" ? 1 : -1) + items.length) % items.length].focus();
+    } else if (event.key === "Tab") closePicker(false);
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!picker) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest(".vp-picker") || target === picker.button || picker.button.contains(target)) return;
+    closePicker();
+  });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && picker) closePicker(true); });
+
   container.addEventListener("click", async (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
+    const pick = target.closest("[data-react-code]");
+    if (pick) { choose(pick.dataset.reactCode); return; }
+    const reactButton = target.closest("[data-react-post]");
+    if (reactButton) {
+      if (swallowClick) { swallowClick = false; return; }
+      if (picker) { closePicker(); return; }
+      // A tap is the heart; tapping again removes whatever reaction is set.
+      react(reactButton, reactButton.dataset.mine ? null : "heart");
+      return;
+    }
     const more = target.closest("[data-card-more]");
     if (more) {
       const text = document.getElementById(more.dataset.cardMore);
@@ -213,11 +442,25 @@ export function bindFeedCards(container, { onSave } = {}) {
       if (list) list.hidden = !open;
       return;
     }
+    const repost = target.closest("[data-card-repost]");
+    if (repost) {
+      if (!onRepost) return;
+      const shared = onRepost(repost.dataset.cardRepost, repost.dataset.cardTitle);
+      repost.setAttribute("aria-pressed", String(shared));
+      repost.setAttribute("aria-label", shared ? "Ricondivisa nel tuo profilo: togli" : "Ricondividi nel tuo profilo");
+      if (shared && !reduceMotion()) {
+        repost.classList.remove("is-turning");
+        void repost.offsetWidth;
+        repost.classList.add("is-turning");
+      }
+      return;
+    }
     const save = target.closest("[data-card-save]");
-    if (save && onSave) {
+    if (save) {
+      if (!onSave) return;
       const saved = onSave(save.dataset.cardSave, save.dataset.cardTitle);
       save.setAttribute("aria-pressed", String(saved));
-      save.setAttribute("aria-label", saved ? "Rimuovi dai salvati" : "Salva");
+      save.setAttribute("aria-label", saved ? "Salvata nel profilo: togli" : "Salva nel profilo");
       save.innerHTML = cardIcon("bookmark", 20, saved);
       return;
     }

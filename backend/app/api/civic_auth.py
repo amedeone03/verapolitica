@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,9 +22,11 @@ from backend.app.services.civic_account_service import (
     CivicAuthError,
     CivicAuthNotFound,
 )
+from backend.app.services.post_reaction_service import PostReactionService
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+reactions_router = APIRouter(prefix="/reactions", tags=["reactions"])
 COOKIE_NAME = "vp_civic"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
@@ -50,6 +52,7 @@ class ProfileBody(BaseModel):
     favorites: list[dict[str, Any]] | None = None
     parties: list[dict[str, Any]] | None = None
     saved: list[dict[str, Any]] | None = None
+    shared: list[dict[str, Any]] | None = None
 
 
 def get_limiter(request: Request) -> AttemptLimiter:
@@ -184,3 +187,78 @@ def update_profile(
 ) -> dict[str, Any]:
     account_id = _run(_account_id_from_cookie, request, settings)
     return _run(service.update_profile, account_id, body.model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Reactions on published posts. Counts are public; reacting needs an account.
+
+
+class ReactionBody(BaseModel):
+    reaction: str | None = Field(default=None, max_length=8)
+
+
+def get_reaction_service(
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> PostReactionService:
+    return PostReactionService(factory)
+
+
+def get_reaction_limiter(request: Request) -> AttemptLimiter:
+    limiter = getattr(request.app.state, "reaction_limiter", None)
+    if limiter is None:
+        limiter = AttemptLimiter(limit=120, window_seconds=60)
+        request.app.state.reaction_limiter = limiter
+    return limiter
+
+
+def _optional_account_id(request: Request, settings: Settings) -> int | None:
+    if not request.cookies.get(COOKIE_NAME) or not settings.session_signing_key:
+        return None
+    try:
+        return _account_id_from_cookie(request, settings)
+    except CivicAuthNotFound:
+        return None
+
+
+def _reaction_payload(post_id: int, summary: dict[str, Any]) -> dict[str, Any]:
+    return {"post_id": post_id, **summary}
+
+
+@reactions_router.get("")
+def list_reactions(
+    request: Request,
+    response: Response,
+    settings: Annotated[Settings, Depends(get_api_settings)],
+    service: Annotated[PostReactionService, Depends(get_reaction_service)],
+    posts: Annotated[str, Query(pattern=r"^\d{1,9}(,\d{1,9}){0,49}$")],
+) -> dict[str, Any]:
+    """Counts per post for the cards on screen, plus the caller's own reaction."""
+
+    account_id = _optional_account_id(request, settings)
+    summaries = service.summaries((int(part) for part in posts.split(",")), account_id)
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"items": [_reaction_payload(post_id, summary) for post_id, summary in summaries.items()]}
+
+
+@reactions_router.put("/{post_id}")
+def set_reaction(
+    body: ReactionBody,
+    request: Request,
+    response: Response,
+    post_id: Annotated[int, Path(gt=0)],
+    settings: Annotated[Settings, Depends(get_api_settings)],
+    service: Annotated[PostReactionService, Depends(get_reaction_service)],
+    limiter: Annotated[AttemptLimiter, Depends(get_reaction_limiter)],
+) -> dict[str, Any]:
+    """Set, change or remove (``null``) the caller's reaction. Registered readers only."""
+
+    account_id = _run(_account_id_from_cookie, request, settings)
+    if not limiter.allow(f"react:{account_id}"):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "troppe reazioni, riprova tra poco",
+            headers={"Retry-After": "60"},
+        )
+    summary = _run(service.react, account_id, post_id, body.reaction)
+    response.headers["Cache-Control"] = "private, no-store"
+    return _reaction_payload(post_id, summary)
