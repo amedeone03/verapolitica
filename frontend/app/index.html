@@ -46,32 +46,23 @@
       <section id="home-view" class="feed-view" aria-labelledby="home-title" hidden>
         <h1 id="home-title" class="visually-hidden">Feed della redazione</h1>
         <div class="feed-bar">
-          <a class="feed-bar-icon" href="./?view=profile" aria-label="La tua zona e i preferiti"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></a>
-          <div id="feed-choice" class="feed-segments" role="group" aria-label="Mostra">
+          <div id="feed-choice" class="feed-segments" role="group" aria-label="Mostra" style="--n:4;--a:0">
             <button type="button" data-feed="all" aria-pressed="true">Per te</button>
             <button type="button" data-feed="national" aria-pressed="false">Nazionale</button>
-            <button type="button" data-feed="local" aria-pressed="false">Zona</button>
-            <button type="button" data-feed="saved" aria-pressed="false">Salvati</button>
-          </div>
-          <div class="feed-bar-actions">
-            <a class="feed-bar-icon" href="./?view=methodology" aria-label="Come lavora la redazione"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
+            <button type="button" data-feed="region" aria-pressed="false">Regionale</button>
+            <button type="button" data-feed="province" aria-pressed="false">Provinciale</button>
+            <div class="feed-segments-active" aria-hidden="true"><span>Per te</span><span>Nazionale</span><span>Regionale</span><span>Provinciale</span></div>
           </div>
         </div>
         <p id="home-zone" class="feed-zone"></p>
-        <div class="feed-layout">
-          <div class="feed-main">
-            <div id="feed-status" class="state-card loading-state" role="status">
-              <span class="loading-mark" aria-hidden="true"></span>
-              <div><strong>Caricamento del feed…</strong></div>
-            </div>
-            <div id="feed-list" class="feed-timeline" hidden></div>
-            <button id="feed-more" class="ghost-button feed-more" type="button" hidden>Carica altri</button>
+        <div class="feed-main">
+          <div id="feed-status" class="feed-skeleton" role="status" aria-label="Caricamento del feed">
+            <div class="skeleton-item" aria-hidden="true"><span class="sk-line is-meta"></span><span class="sk-line is-title"></span><span class="sk-line"></span><span class="sk-line is-short"></span></div>
+            <div class="skeleton-item" aria-hidden="true"><span class="sk-line is-meta"></span><span class="sk-line is-title"></span><span class="sk-line"></span><span class="sk-line is-short"></span></div>
+            <div class="skeleton-item" aria-hidden="true"><span class="sk-line is-meta"></span><span class="sk-line is-title"></span><span class="sk-line"></span><span class="sk-line is-short"></span></div>
           </div>
-          <aside class="feed-rail" aria-label="Come lavora la redazione">
-            <h2>Come si scrive</h2>
-            <p>Ogni notizia pubblica ha un redattore e un verificatore diversi. Le fonti restano in vista.</p>
-            <a href="./?view=methodology">Il metodo</a>
-          </aside>
+          <div id="feed-list" class="feed-timeline" hidden></div>
+          <button id="feed-more" class="ghost-button feed-more" type="button" hidden>Carica altri</button>
         </div>
       </section>
 
@@ -196,37 +187,58 @@
         <div id="referendum-archive" hidden></div>
       </section>
 
-      <section id="profile-view" aria-labelledby="profile-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="profile-title">Profilo</h1>
-          <p id="profile-copy" class="hero-copy">Il tuo profilo.</p>
+      <section id="profile-view" class="profile-view" aria-labelledby="profile-title" hidden>
+        <div class="profile-head">
+          <span id="profile-avatar" class="profile-avatar" aria-hidden="true"></span>
+          <div class="profile-id">
+            <h1 id="profile-title">Profilo</h1>
+            <p id="profile-copy" class="profile-copy">Il tuo profilo.</p>
+          </div>
         </div>
         <section id="profile-demo" class="detail-card demo-card" hidden>
           <h2>Stai consultando senza account</h2>
-          <p>Puoi leggere le notizie pubblicate, ma non salvare preferiti, post o zona. Con la registrazione scegli politici, partiti e territorio da seguire nel tuo Per te.</p>
+          <p>Puoi leggere le notizie pubblicate. Con un account reagisci, ricondividi e salvi le notizie qui nel tuo profilo, e scegli politici, partiti e territorio per il tuo Per te.</p>
           <a class="button" href="./?view=registrati">Registrati</a>
           <a class="button" href="./?view=accedi">Accedi</a>
         </section>
-        <section id="profile-member" class="detail-card" aria-labelledby="follows-title" hidden><h2 id="follows-title">Partiti che segui</h2>
-          <div id="profile-parties" class="favorite-chips"></div>
-          <div class="zone-actions"><a class="button" href="./?view=registrati">Modifica le scelte</a><button type="button" id="profile-delete" class="ghost-button">Cancella il profilo</button></div>
-        </section>
-        <section id="zone-section" class="detail-card" aria-labelledby="zone-title"><h2 id="zone-title">Zona</h2>
-          <form id="zone-form" class="zone-form">
-            <label for="zone-region">Regione</label><select id="zone-region"><option value="">Scegli una regione</option></select>
-            <label for="zone-province">Provincia</label><select id="zone-province" disabled><option value="">Scegli una provincia</option></select>
-            <label for="zone-municipality">Comune</label><select id="zone-municipality" disabled><option value="">Scegli un comune</option></select>
-            <div class="zone-actions"><button type="submit">Salva zona</button><button type="button" id="zone-clear" class="ghost-button">Rimuovi</button></div>
-          </form>
-          <p id="zone-saved" class="empty-note" role="status"></p>
-        </section>
-        <section id="favorites-section" class="detail-card" aria-labelledby="favorites-title"><h2 id="favorites-title">Politici che segui</h2>
-          <p class="empty-note">Usa la stella sulla scheda di un politico.</p>
-          <div id="profile-favorites" class="favorite-chips"></div>
-        </section>
-        <section class="detail-card" aria-labelledby="report-title"><h2 id="report-title">Segnala un errore</h2>
-          <p>Scrivi alla redazione indicando la pagina e la fonte.</p>
-        </section>
+        <div id="profile-space" hidden>
+          <div id="profile-tabs" class="feed-segments profile-tabs" role="tablist" aria-label="Il tuo profilo" style="--n:3;--a:0">
+            <button type="button" role="tab" id="profile-tab-saved" data-tab="saved" aria-selected="true" aria-controls="profile-panel-saved">Salvati <span class="tab-count" data-count="saved"></span></button>
+            <button type="button" role="tab" id="profile-tab-shared" data-tab="shared" aria-selected="false" aria-controls="profile-panel-shared" tabindex="-1">Condivisi <span class="tab-count" data-count="shared"></span></button>
+            <button type="button" role="tab" id="profile-tab-follows" data-tab="follows" aria-selected="false" aria-controls="profile-panel-follows" tabindex="-1">Seguiti</button>
+            <div class="feed-segments-active" aria-hidden="true"><span>Salvati <span class="tab-count" data-count="saved"></span></span><span>Condivisi <span class="tab-count" data-count="shared"></span></span><span>Seguiti</span></div>
+          </div>
+          <div id="profile-panel-saved" class="profile-panel" role="tabpanel" aria-labelledby="profile-tab-saved">
+            <div id="profile-saved" class="feed-timeline"></div>
+          </div>
+          <div id="profile-panel-shared" class="profile-panel" role="tabpanel" aria-labelledby="profile-tab-shared" hidden>
+            <div id="profile-shared" class="feed-timeline"></div>
+          </div>
+          <div id="profile-panel-follows" class="profile-panel" role="tabpanel" aria-labelledby="profile-tab-follows" hidden>
+            <section id="profile-member" class="profile-group" aria-labelledby="follows-title" hidden><h2 id="follows-title">Partiti</h2>
+              <div id="profile-parties" class="favorite-chips"></div>
+              <a class="profile-edit" href="./?view=registrati">Modifica partiti e politici</a>
+            </section>
+            <section id="favorites-section" class="profile-group" aria-labelledby="favorites-title"><h2 id="favorites-title">Politici</h2>
+              <div id="profile-favorites" class="favorite-chips"></div>
+              <p class="empty-note">Usa la stella sulla scheda di un politico.</p>
+            </section>
+            <section id="zone-section" class="profile-group" aria-labelledby="zone-title"><h2 id="zone-title">Zona</h2>
+              <p class="profile-hint">Serve ai feed Regionale e Provinciale.</p>
+              <form id="zone-form" class="zone-form">
+                <label for="zone-region">Regione</label><select id="zone-region"><option value="">Scegli una regione</option></select>
+                <label for="zone-province">Provincia</label><select id="zone-province" disabled><option value="">Scegli una provincia</option></select>
+                <label for="zone-municipality">Comune</label><select id="zone-municipality" disabled><option value="">Scegli un comune</option></select>
+                <div class="zone-actions"><button type="submit">Salva zona</button><button type="button" id="zone-clear" class="ghost-button">Rimuovi</button></div>
+              </form>
+              <p id="zone-saved" class="empty-note" role="status"></p>
+            </section>
+          </div>
+          <div class="profile-foot">
+            <p>Hai trovato un errore? Scrivi alla redazione indicando la pagina e la fonte.</p>
+            <button type="button" id="profile-delete" class="ghost-button">Esci</button>
+          </div>
+        </div>
       </section>
 
       <section id="archive-view" aria-labelledby="archive-title" hidden>

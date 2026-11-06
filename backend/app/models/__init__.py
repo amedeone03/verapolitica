@@ -107,7 +107,7 @@ from backend.app.models.ingestion_job import (
     IngestionJobStatus,
     IngestionJobTrigger,
 )
-from backend.app.models.civic_account import CivicAccount
+from backend.app.models.civic_account import CivicAccount, CivicPostReaction
 from backend.app.models.civic import (
     GeographicScopeType,
     GlossaryTerm,
@@ -239,6 +239,7 @@ __all__ = [
     "IngestionJobStatus",
     "IngestionJobTrigger",
     "CivicAccount",
+    "CivicPostReaction",
     "GeographicScopeType",
     "GlossaryTerm",
     "ImmutableCivicRecordError",

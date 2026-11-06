@@ -1,4 +1,4 @@
-import { bindFeedCards, displayPersonName, officialImageUrl, partyLogo, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { applyReactions, bindFeedCards, displayPersonName, officialImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
 export { displayPersonName, officialImageUrl };
 const byId = (id) => document.getElementById(id);
@@ -15,6 +15,8 @@ const ICON_PATHS = {
   share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
   badgeCheck: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+  repost: '<path d="m2 9 3-3 3 3"/><path d="M13 18H7a2 2 0 0 1-2-2V6"/><path d="m22 15-3 3-3-3"/><path d="M11 6h6a2 2 0 0 1 2 2v10"/>',
   ask: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
@@ -1853,6 +1855,8 @@ export function createPublicApiClient(fetchImpl = fetch) {
     login: (body) => request("/auth/login", { method: "POST", body }),
     logout: () => request("/auth/logout", { method: "POST", body: {} }),
     saveAccountProfile: (profile) => request("/auth/profile", { method: "PUT", body: profile }),
+    listReactions: (postIds) => request(`/reactions?posts=${encodeURIComponent(postIds.slice(0, 50).join(","))}`),
+    react: (postId, reaction) => request(`/reactions/${encodeURIComponent(postId)}`, { method: "PUT", body: { reaction } }),
   };
 }
 
@@ -2876,11 +2880,12 @@ export function loadReaderProfile(storage = globalThis.localStorage) {
       zone: value && typeof value.zone === "object" && value.zone ? value.zone : null,
       favorites: Array.isArray(value?.favorites) ? value.favorites.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
       saved: Array.isArray(value?.saved) ? value.saved.filter((item) => item && typeof item.url === "string" && item.url.startsWith("./?post=")) : [],
+      shared: Array.isArray(value?.shared) ? value.shared.filter((item) => item && typeof item.url === "string" && item.url.startsWith("./?post=")) : [],
       parties: Array.isArray(value?.parties) ? value.parties.filter((item) => item && /^\d+$/.test(String(item.id))) : [],
       member: value && typeof value.member === "object" && value.member && typeof value.member.name === "string" ? { name: value.member.name.slice(0, 40), since: value.member.since || null } : null,
     };
   } catch {
-    return { zone: null, favorites: [], saved: [], parties: [], member: null };
+    return { zone: null, favorites: [], saved: [], shared: [], parties: [], member: null };
   }
 }
 
@@ -2888,7 +2893,7 @@ export function saveReaderProfile(profile, storage = globalThis.localStorage) {
   try {
     storage?.setItem(PROFILE_KEY, JSON.stringify({
       zone: profile.zone || null, favorites: profile.favorites || [], saved: profile.saved || [],
-      parties: profile.parties || [], member: profile.member || null,
+      shared: profile.shared || [], parties: profile.parties || [], member: profile.member || null,
     }));
     return true;
   } catch {
@@ -2995,10 +3000,23 @@ function demoNotice() {
     document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
     note = byId("demo-notice");
   }
-  note.innerHTML = `Senza account puoi solo consultare. <a href="./?view=registrati">Registrati</a> per salvare.`;
+  note.innerHTML = `Senza account puoi solo leggere. <a href="./?view=registrati">Registrati</a> per reagire, ricondividere e salvare.`;
   note.classList.add("is-visible");
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 4000);
+}
+
+// Short confirmation at the bottom of the screen ("Salvata nel profilo · Vedi").
+function toast(html) {
+  let note = byId("demo-notice");
+  if (!note) {
+    document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
+    note = byId("demo-notice");
+  }
+  note.innerHTML = html;
+  note.classList.add("is-visible");
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 2600);
 }
 
 function markReaderMode() {
@@ -3174,9 +3192,6 @@ function syncPageMeta(params) {
 
 // ---------------------------------------------------------------------------
 // Home: verified feed.
-const FEED_FILTERS = [
-  ["all", "Tutti"], ["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"],
-];
 const FEED_KIND_LABELS = {
   proposal_status: "Proposta di legge",
   pledge_verdict: "Promessa",
@@ -3216,13 +3231,80 @@ function resolvePortrait(politicianId) {
 export function toggleSavedPost(profile, url, title) {
   const saved = profile.saved || [];
   const exists = saved.some((item) => item.url === url);
-  return { ...profile, saved: exists ? saved.filter((item) => item.url !== url) : [{ url, title }, ...saved].slice(0, 100) };
+  return { ...profile, saved: exists ? saved.filter((item) => item.url !== url) : [{ url, title, at: todayIso() }, ...saved].slice(0, 50) };
 }
 
-export function renderFeedTimelineItem(item, profile = { saved: [] }) {
-  const entry = cardItem(item);
-  return renderFeedCard(entry, { resolvePortrait, saved: (profile.saved || []).some((saved) => saved.url === entry.url) });
+// Re-share a post into the reader's own profile (newest first).
+export function toggleSharedPost(profile, url, title) {
+  const shared = profile.shared || [];
+  const exists = shared.some((item) => item.url === url);
+  return { ...profile, shared: exists ? shared.filter((item) => item.url !== url) : [{ url, title, at: todayIso() }, ...shared].slice(0, 50) };
 }
+
+function todayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function renderFeedTimelineItem(item, profile = { saved: [], shared: [] }, index = null) {
+  const entry = cardItem(item);
+  return renderFeedCard(entry, {
+    resolvePortrait,
+    saved: (profile.saved || []).some((saved) => saved.url === entry.url),
+    shared: (profile.shared || []).some((shared) => shared.url === entry.url),
+    index,
+  });
+}
+
+// Save, re-share and react: registered readers only. The demo gets a nudge to register.
+function cardHandlers(api, { onChange } = {}) {
+  return {
+    onSave: (url, title) => {
+      if (!isMember()) { demoNotice(); return false; }
+      const profile = toggleSavedPost(loadReaderProfile(), url, title);
+      persistReaderProfile(profile);
+      const saved = profile.saved.some((item) => item.url === url);
+      toast(saved ? `Salvata nel profilo · <a href="./?view=profile&amp;tab=saved">Vedi</a>` : "Tolta dai salvati");
+      onChange?.();
+      return saved;
+    },
+    onRepost: (url, title) => {
+      if (!isMember()) { demoNotice(); return false; }
+      const profile = toggleSharedPost(loadReaderProfile(), url, title);
+      persistReaderProfile(profile);
+      const shared = profile.shared.some((item) => item.url === url);
+      toast(shared ? `Ricondivisa nel tuo profilo · <a href="./?view=profile&amp;tab=shared">Vedi</a>` : "Tolta dal tuo profilo");
+      onChange?.();
+      return shared;
+    },
+    onReact: async (postId, reaction) => {
+      if (!isMember()) { demoNotice(); return null; }
+      try {
+        return await api.react(postId, reaction);
+      } catch (error) {
+        if (error?.status === 401) toast(`Accedi per reagire · <a href="./?view=accedi">Accedi</a>`);
+        else if (error?.status === 429) toast("Troppe reazioni in poco tempo. Riprova tra un minuto.");
+        else toast("Reazione non salvata. Riprova.");
+        return null;
+      }
+    },
+  };
+}
+
+// Counts for the cards on screen that have not been filled yet.
+async function loadReactions(api, container) {
+  const buttons = [...container.querySelectorAll("[data-react-post]:not([data-loaded])")];
+  const ids = [...new Set(buttons.map((button) => Number(button.dataset.reactPost)))];
+  buttons.forEach((button) => { button.dataset.loaded = "1"; });
+  for (let start = 0; start < ids.length; start += 50) {
+    try {
+      const page = await api.listReactions(ids.slice(start, start + 50));
+      applyReactions(container, page.items || []);
+    } catch { /* counts are optional */ }
+  }
+}
+
+const FEED_CHOICES = ["all", "national", "region", "province"];
 
 async function showHome(api) {
   byId("home-view").hidden = false;
@@ -3232,73 +3314,63 @@ async function showHome(api) {
   const segments = byId("feed-choice");
   const choice = { value: "all" };
   let forYouFallback = false;
-  if (!isMember()) segments.querySelector('[data-feed="all"]').textContent = "Tutte";
   const list = byId("feed-list");
   const more = byId("feed-more");
   const status = byId("feed-status");
   let offset = 0;
   try { await loadPortraits(api); } catch { /* portraits are optional */ }
-  bindFeedCards(list, {
-    onSave: (url, title) => {
-      if (!isMember()) { demoNotice(); return false; }
-      profile = toggleSavedPost(loadReaderProfile(), url, title);
-      persistReaderProfile(profile);
-      return profile.saved.some((item) => item.url === url);
-    },
-  });
+  bindFeedCards(list, cardHandlers(api));
   const zoneLine = () => {
-    byId("home-zone").innerHTML = choice.value === "local"
-      ? (zone ? `${escapeHtml(zoneLabel(zone))} · <a href="./?view=profile">Cambia zona</a>` : `<a href="./?view=profile">Imposta la tua zona</a> per vedere le notizie del tuo territorio.`)
-      : "";
+    const line = byId("home-zone");
+    if (choice.value === "region") {
+      line.innerHTML = zone?.region_id ? `${escapeHtml(zone.region_name || "La tua regione")} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+    } else if (choice.value === "province") {
+      line.innerHTML = zone?.province ? `Provincia di ${escapeHtml(zone.province_name || zone.province)} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+    } else line.textContent = "";
   };
-  const scopeFor = () => {
-    if (choice.value === "national") return "national";
-    if (choice.value === "local") return zone?.municipality_id ? "municipality" : zone?.province ? "province" : "region";
-    return "all";
+  // Only the territory the segment asks for, so "Regionale" is not narrowed to the comune.
+  const zoneFor = () => {
+    if (choice.value === "region") return zone?.region_id ? { region_id: zone.region_id } : null;
+    if (choice.value === "province") return zone?.province ? { province: zone.province } : null;
+    return {};
   };
-  const showEmpty = (title, detail) => {
+  const showEmpty = (title, detail, action = "") => {
     list.hidden = true;
     more.hidden = true;
     showState(status, title, detail);
+    if (action) status.querySelector("div")?.insertAdjacentHTML("beforeend", action);
   };
-  const load = async (append) => {
+  const load = async (append, { animate = true } = {}) => {
     zoneLine();
-    if (choice.value === "saved") {
-      const saved = loadReaderProfile().saved || [];
-      more.hidden = true;
-      if (!saved.length) return showEmpty("Nessun post salvato.", "Usa il segnalibro su una card per ritrovarla qui.");
-      const items = await Promise.all(saved.map((entry) => {
-        const id = new URLSearchParams(entry.url.split("?")[1] || "").get("post");
-        return id ? api.getPost(id).catch(() => null) : null;
-      }));
-      status.hidden = true;
-      list.hidden = false;
-      list.innerHTML = items.filter(Boolean).map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join("") || "";
-      return;
+    const territory = zoneFor();
+    if (!territory) {
+      const what = choice.value === "region" ? "la tua regione" : "la tua provincia";
+      return showEmpty(`Scegli ${what}.`, "La imposti una volta nel profilo; resta salvata su questo dispositivo e nel tuo account.", `<a class="button feed-empty-action" href="./?view=profile&amp;tab=follows">Imposta la zona</a>`);
     }
-    if (choice.value === "local" && !zone) return showEmpty("Nessuna zona impostata.", "Imposta comune, provincia o regione nel Profilo.");
     more.disabled = true;
     if (!append) list.setAttribute("aria-busy", "true");
     try {
       const follows = choice.value === "all" && !forYouFallback ? followsOf(profile) : null;
-      let page = await api.getFeed({ scope: scopeFor(), zone: zone || {}, offset, redazione: true, follows });
+      let page = await api.getFeed({ scope: choice.value, zone: territory, offset, redazione: true, follows });
       if (follows && !append && !page.items.length) {
         // Nothing yet about what the reader follows: show everything, and say so.
         forYouFallback = true;
         page = await api.getFeed({ scope: "all", zone: {}, offset, redazione: true });
       }
       if (forYouFallback && choice.value === "all") {
-        byId("home-zone").textContent = "Ancora nessuna notizia su chi segui o sulla tua zona: ecco tutte le notizie della redazione.";
+        byId("home-zone").textContent = "Ancora niente su chi segui: ecco tutte le notizie della redazione.";
       }
       status.hidden = true;
       if (!append) list.innerHTML = "";
       if (!page.items.length && !append) {
-        showEmpty("Nessun post della redazione per questa scelta.", "I post compaiono qui dopo la verifica di una seconda persona della redazione.");
+        showEmpty("Nessuna notizia qui, per ora.", "Le notizie compaiono dopo la verifica di una seconda persona della redazione.");
       } else {
         list.hidden = false;
-        list.insertAdjacentHTML("beforeend", page.items.map((item) => renderFeedTimelineItem(item, loadReaderProfile())).join(""));
+        const current = loadReaderProfile();
+        list.insertAdjacentHTML("beforeend", page.items.map((item, index) => renderFeedTimelineItem(item, current, animate ? index : null)).join(""));
         more.hidden = !page.has_more;
         offset += page.items.length;
+        loadReactions(api, list);
       }
     } catch {
       showEmpty("Non è stato possibile caricare il feed.", PUBLIC_UNAVAILABLE);
@@ -3311,10 +3383,12 @@ async function showHome(api) {
     const button = event.target instanceof Element ? event.target.closest("[data-feed]") : null;
     if (!button || button.dataset.feed === choice.value) return;
     choice.value = button.dataset.feed;
+    segments.style.setProperty("--a", String(FEED_CHOICES.indexOf(choice.value)));
     for (const item of segments.querySelectorAll("[data-feed]")) item.setAttribute("aria-pressed", String(item === button));
     offset = 0;
     forYouFallback = false;
-    load(false);
+    // Switching is frequent: the list swaps without the cascade.
+    load(false, { animate: false });
   });
   more.addEventListener("click", () => load(true));
   await load(false);
@@ -3371,14 +3445,8 @@ async function showPost(api, postId) {
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
     ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Redattore: ${escapeHtml(item.written_by)}` : ""}${item.verified_by ? ` · Verificatore: ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
-    bindFeedCards(detail, {
-      onSave: (url, title) => {
-        if (!isMember()) { demoNotice(); return false; }
-        const profile = toggleSavedPost(loadReaderProfile(), url, title);
-        persistReaderProfile(profile);
-        return profile.saved.some((entry) => entry.url === url);
-      },
-    });
+    bindFeedCards(detail, cardHandlers(api));
+    loadReactions(api, detail);
     document.title = `${item.title} — VeraPolitica`;
   } catch (error) {
     showState(byId("post-status"), error.status === 404 ? "Questo aggiornamento non è disponibile." : "Non è stato possibile caricare l'aggiornamento.", error.status === 404 ? "Potrebbe non essere ancora pubblicato." : PUBLIC_UNAVAILABLE, true);
@@ -3946,6 +4014,80 @@ async function showReferendumArchive(api) {
 
 // ---------------------------------------------------------------------------
 // Profilo.
+const PROFILE_TABS = ["saved", "shared", "follows"];
+
+// Saved and re-shared posts are shown as the same cards as the feed, newest first.
+async function renderProfileList(api, kind) {
+  const target = byId(kind === "saved" ? "profile-saved" : "profile-shared");
+  const entries = (loadReaderProfile()[kind] || []).slice(0, 50);
+  for (const count of document.querySelectorAll(`[data-count="${kind}"]`)) count.textContent = entries.length ? String(entries.length) : "";
+  if (!entries.length) {
+    target.innerHTML = kind === "saved"
+      ? `<div class="profile-empty"><span class="profile-empty-icon" aria-hidden="true">${icon("bookmark", { size: 22 })}</span><strong>Ancora nessuna notizia salvata</strong><p>Tocca il segnalibro sotto una notizia per ritrovarla qui.</p><a class="button" href="./">Vai al feed</a></div>`
+      : `<div class="profile-empty"><span class="profile-empty-icon" aria-hidden="true">${icon("repost", { size: 22 })}</span><strong>Non hai ancora ricondiviso nulla</strong><p>Tocca le due frecce sotto una notizia per tenerla nel tuo profilo.</p><a class="button" href="./">Vai al feed</a></div>`;
+    return;
+  }
+  target.setAttribute("aria-busy", "true");
+  const items = await Promise.all(entries.map((entry) => {
+    const id = postIdOf(entry.url);
+    return id ? api.getPost(id).then((item) => ({ item, entry })).catch(() => ({ item: null, entry })) : { item: null, entry };
+  }));
+  const profile = loadReaderProfile();
+  target.innerHTML = items.map(({ item, entry }, index) => {
+    if (!item) return `<p class="profile-missing">${escapeHtml(entry.title || "Notizia")} non è più disponibile.</p>`;
+    const when = entry.at ? ` il ${escapeHtml(formatDate(entry.at))}` : "";
+    const label = kind === "shared" ? `<p class="profile-repost-label">${icon("repost", { size: 14 })}Hai ricondiviso${when}</p>` : "";
+    return `${label}${renderFeedTimelineItem(item, profile, index)}`;
+  }).join("");
+  target.removeAttribute("aria-busy");
+  loadReactions(api, target);
+}
+
+function setupProfileTabs(api) {
+  const tabs = byId("profile-tabs");
+  const requested = new URLSearchParams(window.location.search).get("tab");
+  let current = PROFILE_TABS.includes(requested) ? requested : "saved";
+  const loaded = new Set();
+  const show = (tab, { focus = false } = {}) => {
+    current = tab;
+    tabs.style.setProperty("--a", String(PROFILE_TABS.indexOf(tab)));
+    for (const button of tabs.querySelectorAll("[data-tab]")) {
+      const active = button.dataset.tab === tab;
+      button.setAttribute("aria-selected", String(active));
+      button.tabIndex = active ? 0 : -1;
+      if (active && focus) button.focus();
+    }
+    for (const name of PROFILE_TABS) byId(`profile-panel-${name}`).hidden = name !== tab;
+    if (tab !== "follows" && !loaded.has(tab)) {
+      loaded.add(tab);
+      renderProfileList(api, tab);
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    history.replaceState(history.state, "", url);
+  };
+  tabs.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-tab]") : null;
+    if (button && button.dataset.tab !== current) show(button.dataset.tab);
+  });
+  tabs.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const step = event.key === "ArrowRight" ? 1 : -1;
+    show(PROFILE_TABS[(PROFILE_TABS.indexOf(current) + step + PROFILE_TABS.length) % PROFILE_TABS.length], { focus: true });
+  });
+  // Unsaving or un-sharing from the profile updates the counts; the card stays until reload.
+  const refreshCounts = () => {
+    const profile = loadReaderProfile();
+    for (const kind of ["saved", "shared"]) {
+      for (const count of document.querySelectorAll(`[data-count="${kind}"]`)) count.textContent = (profile[kind] || []).length ? String(profile[kind].length) : "";
+    }
+  };
+  for (const name of ["profile-saved", "profile-shared"]) bindFeedCards(byId(name), cardHandlers(api, { onChange: refreshCounts }));
+  refreshCounts();
+  show(current);
+}
+
 async function showProfile(api) {
   byId("profile-view").hidden = false;
   document.title = "Profilo — VeraPolitica";
@@ -3953,16 +4095,18 @@ async function showProfile(api) {
   const member = isMember(profile);
   byId("profile-demo").hidden = member;
   byId("profile-member").hidden = !member;
-  for (const id of ["zone-section", "favorites-section"]) byId(id).hidden = !member;
+  byId("profile-space").hidden = !member;
   if (!member) return;
   byId("profile-title").textContent = profile.member.name;
+  byId("profile-avatar").textContent = profile.member.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   byId("profile-copy").textContent = civicAccount
-    ? `Account ${civicAccount.email}${profile.member.since ? ` · dal ${formatDate(profile.member.since)}` : ""}.`
-    : `Profilo su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}.`;
+    ? `${civicAccount.email}${profile.member.since ? ` · dal ${formatDate(profile.member.since)}` : ""}`
+    : `Su questo dispositivo${profile.member.since ? ` dal ${formatDate(profile.member.since)}` : ""}`;
+  setupProfileTabs(api);
   byId("profile-parties").innerHTML = (profile.parties || []).length
     ? profile.parties.map((party) => `<a class="topic-chip" href="./?political_party=${encodeURIComponent(party.id)}">${partyLogo(party)}${escapeHtml(party.abbreviation || party.name)}</a>`).join("")
     : `<p class="empty-note">Nessun partito.</p>`;
-  byId("profile-delete").textContent = civicAccount ? "Esci" : "Cancella il profilo";
+  byId("profile-delete").textContent = civicAccount ? "Esci" : "Cancella il profilo da questo dispositivo";
   byId("profile-delete").addEventListener("click", async () => {
     try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
     if (civicAccount) {
@@ -4018,7 +4162,7 @@ async function showProfile(api) {
     }
     const text = (select) => select.selectedOptions[0]?.textContent || "";
     profile = {
-      ...profile,
+      ...loadReaderProfile(),
       zone: {
         region_id: Number(regionSelect.value),
         region_name: text(regionSelect),
@@ -4033,7 +4177,7 @@ async function showProfile(api) {
       : "Questo browser non permette di salvare la zona.";
   });
   byId("zone-clear").addEventListener("click", () => {
-    profile = { ...profile, zone: null };
+    profile = { ...loadReaderProfile(), zone: null };
     persistReaderProfile(profile);
     regionSelect.value = "";
     fillProvinces("", null);
@@ -4041,7 +4185,7 @@ async function showProfile(api) {
   });
   byId("profile-favorites").addEventListener("click", (event) => {
     if (!(event.target instanceof Element) || event.target.id !== "favorites-clear") return;
-    profile = { ...profile, favorites: [] };
+    profile = { ...loadReaderProfile(), favorites: [] };
     persistReaderProfile(profile);
     renderFavorites();
   });

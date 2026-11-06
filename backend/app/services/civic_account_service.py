@@ -25,6 +25,8 @@ MAX_PASSWORD_LENGTH = 128
 MAX_FAVORITES = 24
 MAX_PARTIES = 24
 MAX_SAVED = 50
+MAX_SHARED = 50
+_ISO_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class CivicAuthError(Exception):
@@ -107,16 +109,8 @@ def sanitize_profile(value: object, *, display_name: str = "", since: str | None
         )
         if len(parties) >= MAX_PARTIES:
             break
-    saved: list[dict[str, str]] = []
-    for item in data.get("saved") or []:
-        if not isinstance(item, dict):
-            continue
-        url = item.get("url")
-        if not isinstance(url, str) or not url.startswith("./?post="):
-            continue
-        saved.append({"url": url[:300], "title": str(item.get("title") or "")[:200]})
-        if len(saved) >= MAX_SAVED:
-            break
+    saved = _post_links(data.get("saved"), MAX_SAVED)
+    shared = _post_links(data.get("shared"), MAX_SHARED)
     incoming_member = data.get("member") if isinstance(data.get("member"), dict) else {}
     member_since = since or incoming_member.get("since") or date.today().isoformat()
     member_name = name or str(incoming_member.get("name") or "").strip()[:40]
@@ -124,9 +118,32 @@ def sanitize_profile(value: object, *, display_name: str = "", since: str | None
         "zone": _zone(data.get("zone")),
         "favorites": favorites,
         "saved": saved,
+        "shared": shared,
         "parties": parties,
         "member": {"name": member_name, "since": str(member_since)[:10]} if member_name else None,
     }
+
+
+def _post_links(value: object, limit: int) -> list[dict[str, str]]:
+    """Saved or re-shared posts: links to published posts only, newest first."""
+
+    links: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in value if isinstance(value, list) else []:
+        if not isinstance(item, dict):
+            continue
+        url = item.get("url")
+        if not isinstance(url, str) or not re.fullmatch(r"\./\?post=\d{1,9}", url) or url in seen:
+            continue
+        seen.add(url)
+        entry = {"url": url, "title": str(item.get("title") or "")[:200]}
+        at = item.get("at")
+        if isinstance(at, str) and _ISO_DAY.fullmatch(at[:10]):
+            entry["at"] = at[:10]
+        links.append(entry)
+        if len(links) >= limit:
+            break
+    return links
 
 
 def _zone(value: object) -> dict[str, Any] | None:
