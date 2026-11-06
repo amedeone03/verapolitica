@@ -297,6 +297,9 @@ async function route() {
   try {
     if (section === "politici" && id) await showScheda(Number(id), extra);
     else if (section === "politici") await showPoliticians();
+    else if (section === "politica") await showPoliticaAttuale(id || "governo");
+    else if (section === "territori" && id && extra) await showTerritoryScheda(id, decodeURIComponent(extra), location.hash.split("/")[4]);
+    else if (section === "territori") await showTerritories();
     else if (section === "notizie" && id) await showNewsEditor(id === "nuova" ? null : Number(id));
     else if (section === "notizie") await showNews();
     else if (section === "registro") await showLog();
@@ -523,7 +526,8 @@ function bindHomeSearch() {
 
 function queueCard(item) {
   const approvals = item.approvals_required > 1 ? `<span class="chip chip-pending">${item.approvals.length} di ${item.approvals_required} approvazioni</span>` : "";
-  const politician = item.politician_id ? `<a href="#/politici/${item.politician_id}">${esc(item.politician_name || "Politico")}</a>` : "";
+  const politician = item.politician_id ? `<a href="#/politici/${item.politician_id}">${esc(item.politician_name || "Politico")}</a>`
+    : item.territory ? `<a href="#/territori/${item.territory.kind}/${encodeURIComponent(item.territory.key)}">${esc(item.territory.title)}</a>` : "";
   const needsClassification = item.kind === "promise" && !item.preview?.classification;
   const group = queueGroup(item);
   const self = item.can_self_verify;
@@ -570,6 +574,8 @@ function previewFor(item) {
   }
   if (item.kind === "status") return `<div class="preview"><dl><dt>Stato proposto</dt><dd>${verdictChip(p.verdict, p.verdict_label)}</dd><dt>Aggiornamento</dt><dd>${esc(p.rationale)}</dd><dt>Data del fatto</dt><dd>${longDate(p.effective_at) || "—"}</dd><dt>Passaggio della fonte</dt><dd>«${esc(p.quoted_excerpt)}»</dd><dt>Fonte</dt><dd>${sourceLink({ url: p.source_url })}</dd>${p.approvals?.length ? `<dt>Già approvato da</dt><dd>${esc(p.approvals.join(", "))}</dd>` : ""}</dl></div>`;
   if (item.kind === "news") return `${p.card ? `<div class="queue-card-preview"><p class="small muted">Come appare nel feed</p>${renderFeedCard({ key: `q-${item.id}`, url: "#", title: p.title || item.title, summary: p.blocks?.sommario, occurred_on: new Date().toISOString().slice(0, 10), sources: (p.sources || []).map((src) => ({ title: src.name, url: src.url })), card: { ...p.card, composed: true } }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null })}</div>` : ""}<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
+  if (item.kind === "politica") return `<div class="preview"><dl>${Object.entries(p.data || {}).filter(([key, value]) => value !== "" && value !== null && value !== false && key !== "restore").map(([key, value]) => `<dt>${esc(key.replace(/_/g, " "))}</dt><dd>${esc(value === true ? "sì" : value)}</dd>`).join("")}${p.data?.restore ? "<dt>Richiesta</dt><dd>Torna il dato ufficiale</dd>" : ""}<dt>Perché</dt><dd>${esc(p.reason || "—")}</dd></dl>${p.data?.restore ? "" : sourcesList(p.sources)}</div>`;
+  if (item.kind === "territory") return `<div class="preview">${p.data?.body ? `<p class="item-body">${esc(p.data.body)}</p>` : ""}${p.data?.rows?.length ? `<ul>${p.data.rows.map((row) => `<li>${esc(Object.values(row).filter(Boolean).join(" · "))}</li>`).join("")}</ul>` : ""}${p.data && !p.data.body && !p.data.rows ? `<dl>${Object.entries(p.data).filter(([, value]) => value).map(([key, value]) => `<dt>${esc(key.replace(/_/g, " "))}</dt><dd>${esc(value)}</dd>`).join("")}</dl>` : ""}${sourcesList(p.sources)}</div>`;
   if (item.kind === "change" && p.kind === "simbolo") return `<div class="preview symbol-preview"><img src="${esc(p.payload.image_url)}" alt="" width="96" height="96" /><div><p><strong>${esc(p.payload.name)}</strong></p><p class="small">${esc(p.payload.credit)} · ${esc(p.payload.license_label)}<br />Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div></div>`;
   if (item.kind === "change" && p.kind === "partito_modifica") return `<div class="preview"><dl>${["name", "abbreviation", "website"].filter((k) => p.payload.before[k] !== p.payload.after[k]).map((k) => `<dt>${{ name: "Nome", abbreviation: "Sigla", website: "Sito" }[k]}</dt><dd><s>${esc(p.payload.before[k] || "—")}</s> → <strong>${esc(p.payload.after[k] || "—")}</strong></dd>`).join("")}${p.payload.remove_logo ? "<dt>Logo</dt><dd>rimosso</dd>" : ""}<dt>Motivo</dt><dd>${esc(p.payload.reason)}</dd></dl></div>`;
   if (item.kind === "change" && p.kind === "partito") return `<div class="preview"><p><strong>${esc(p.payload.name)}</strong>${p.payload.abbreviation ? ` (${esc(p.payload.abbreviation)})` : ""}</p><p class="small">${p.payload.website ? `Sito: ${sourceLink({ url: p.payload.website })}<br />` : ""}Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div>`;
@@ -2003,4 +2009,422 @@ function symbolDialog(kind, name, licenses) {
     });
     dialog.showModal();
   });
+}
+
+// ------------------------------------------------------------------ territori
+// Regione, Provincia e Comune: the same scheda as a politician. The official
+// base (ISTAT, DAIT) is the fixed reference at the top; every block of the
+// model can always be rewritten, and the new version replaces the published
+// one once an admin (or a second member) publishes it.
+const TERRITORY_KIND_LABEL = { region: "Regioni", province: "Province", municipality: "Comuni" };
+
+async function showTerritories(query = "") {
+  const rows = await api(`/territori${query ? `?q=${encodeURIComponent(query)}` : ""}`);
+  const groups = ["region", "province", "municipality"].map((kind) => [kind, rows.filter((row) => row.kind === kind)]).filter(([, list]) => list.length);
+  view.innerHTML = `<div class="page-head"><div><h1>Territori</h1><p class="muted">Regioni, province e comuni: una scheda per ognuno, scritta con i modelli Regione e Città.</p></div></div>
+    <form id="territory-search" class="card" role="search" style="margin-bottom:16px"><label for="tq">Cerca una regione, una provincia o un comune</label>
+      <div class="actions" style="margin-top:4px"><input id="tq" type="search" value="${esc(query)}" placeholder="es. Lombardia, MI, Bergamo" style="flex:1 1 260px" autocomplete="off" /><button class="button button-primary" type="submit">Cerca</button></div>
+      ${query ? "" : `<p class="small muted" style="margin:8px 0 0">Senza ricerca vedi le regioni, le province e i comuni che hanno già una scheda.</p>`}</form>
+    ${groups.length ? groups.map(([kind, list]) => `<section class="card territory-group"><h2>${TERRITORY_KIND_LABEL[kind]} <span class="count">${list.length}</span></h2>
+      <ul class="territory-list">${list.map((row) => `<li><a href="#/territori/${row.kind}/${encodeURIComponent(row.key)}">
+        <span><strong>${esc(row.title)}</strong>${row.detail ? `<small>${esc(row.detail)}</small>` : ""}</span>
+        <span class="territory-progress" aria-label="${row.published_blocks} blocchi pubblicati su ${row.total_blocks}"><span class="bar"><span style="width:${Math.round((row.published_blocks / row.total_blocks) * 100)}%"></span></span><span class="small muted">${row.published_blocks}/${row.total_blocks}</span>${row.pending ? `<span class="chip chip-pending">${row.pending} in attesa</span>` : ""}</span>
+      </a></li>`).join("")}</ul></section>`).join("") : `<div class="empty">Nessun territorio trovato${query ? ` per «${esc(query)}»` : ""}.</div>`}`;
+  const form = view.querySelector("#territory-search");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    showTerritories(form.querySelector("#tq").value.trim());
+  });
+}
+
+function territoryGuide(spec) {
+  const g = spec.guide || {};
+  return `<details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>${esc(g.what)}</div><div><b>Lunghezza</b>${esc(g.length)}</div><div class="avoid"><b>Da evitare</b>${esc(g.avoid)}</div></div></details>`;
+}
+
+function territoryBase(base) {
+  const holder = base.holder
+    ? `<dt>${esc(base.holder.role)}</dt><dd>${base.holder.politician_id ? `<a href="#/politici/${base.holder.politician_id}">${esc(base.holder.name)}</a>` : esc(base.holder.name)}${base.holder.since ? ` · dal ${longDate(base.holder.since)}` : ""}</dd>`
+    : `<dt>${base.kind === "municipality" ? "Sindaco" : "Presidente"}</dt><dd class="muted">Non collegato all'anagrafe ufficiale: scrivilo nel blocco 1 con la fonte.</dd>`;
+  const rows = [
+    base.region && base.kind !== "region" ? `<dt>Regione</dt><dd>${esc(base.region.name)}</dd>` : "",
+    base.province ? `<dt>Provincia</dt><dd>${esc(base.province.name)} (${esc(base.province.abbreviation)})</dd>` : "",
+    base.istat_code ? `<dt>Codice ISTAT</dt><dd>${esc(base.istat_code)}</dd>` : "",
+    base.province_count !== undefined ? `<dt>Province</dt><dd>${base.province_count}</dd>` : "",
+    base.municipality_count !== undefined ? `<dt>Comuni</dt><dd>${base.municipality_count}</dd>` : "",
+    holder,
+  ].join("");
+  return `<section class="card base-card" id="blocco-base"><div class="card-head"><h2>Base ufficiale</h2><span class="chip chip-muted">Riferimento fisso</span></div>
+    <p class="small muted" style="margin-top:0">Dati dall'archivio ufficiale. Non si modificano qui: ogni blocco si scrive partendo da questi.</p>
+    <dl class="base-list">${rows}</dl>
+    ${base.provinces?.length ? `<p class="small" style="margin:8px 0 0">${base.provinces.map((p) => `<a href="#/territori/province/${encodeURIComponent(p.abbreviation)}">${esc(p.name)}</a>`).join(" · ")}</p>` : ""}
+    <p class="small muted" style="margin:8px 0 0">Fonte: ${sourceLink(base.source)}</p></section>`;
+}
+
+function territoryValue(spec, data) {
+  if (!data) return "";
+  if (spec.type === "fields") {
+    const filled = spec.fields.filter((field) => data[field.key]);
+    return `<dl class="base-list">${filled.map((field) => `<dt>${esc(field.label)}</dt><dd>${esc(field.options?.[data[field.key]] || data[field.key])}</dd>`).join("")}</dl>${data.note ? `<p class="small">${esc(data.note)}</p>` : ""}`;
+  }
+  if (spec.type === "text") return `<p class="item-body">${esc(data.body)}</p>`;
+  const rows = data.rows || [];
+  return `${rows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr>${spec.columns.map((c) => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${spec.columns.map((c) => `<td>${c.options ? `<span class="chip ${row[c.key] === "mantenuta" ? "chip-published" : row[c.key] === "non_mantenuta" ? "chip-rejected" : row[c.key] === "da_compilare" ? "chip-muted" : "chip-pending"}">${esc(c.options[row[c.key]] || row[c.key])}</span>` : esc(row[c.key])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}${data.body ? `<p class="small">${esc(data.body)}</p>` : ""}`;
+}
+
+function territoryVersion(spec, item, label) {
+  const chip = item.status === "published"
+    ? `<span class="chip chip-published">Pubblicato</span><span>da ${esc(item.reviewed_by || "—")} il ${longDate(item.published_at)}</span>`
+    : item.status === "rejected"
+      ? `<span class="chip chip-rejected">Respinto</span><span>da ${esc(item.reviewed_by || "—")}: ${esc(item.review_note || "")}</span>`
+      : `<span class="chip chip-pending">${esc(label || "In attesa")}</span>`;
+  return `<div class="item ${item.status === "published" ? "is-published" : "is-pending"}">
+    <div class="item-meta">${chip}<span>scritto da ${esc(item.created_by)}</span></div>
+    ${territoryValue(spec, item.data)}${sourcesList(item.sources)}
+    ${item.status === "pending" ? findingsList(item.findings) : ""}
+  </div>`;
+}
+
+function territoryForm(spec, start) {
+  const id = `t-${spec.key}`;
+  const data = start?.data || {};
+  let fields = "";
+  if (spec.type === "fields") {
+    fields = `<div class="grid-2">${spec.fields.map((field) => `<div class="field"><label for="${id}-${field.key}">${esc(field.label)}</label>${field.options
+      ? `<select id="${id}-${field.key}" name="${field.key}"><option value="">—</option>${options(Object.entries(field.options), data[field.key] || "")}</select>`
+      : `<input id="${id}-${field.key}" name="${field.key}" type="text" value="${esc(data[field.key] || "")}" />`}</div>`).join("")}</div>
+      <div class="field"><label for="${id}-note">Nota <span class="hint">facoltativa, una riga</span></label><input id="${id}-note" name="note" type="text" value="${esc(data.note || "")}" /></div>`;
+  } else if (spec.type === "text") {
+    const [min, max] = spec.words || [0, 0];
+    fields = `<div class="field"><label for="${id}-body">Testo <span class="counter"></span></label><textarea id="${id}-body" name="body" class="tall" ${max ? counted(min, max) : ""}>${esc(data.body || "")}</textarea><span class="hint">Solo fatti, con la fonte. Le parti da compilare vanno tra [parentesi quadre]: con parentesi aperte non si pubblica.</span></div>`;
+  } else {
+    const rows = (data.rows?.length ? data.rows : [{}]).map((row) => territoryRow(spec, row)).join("");
+    fields = `<div class="rows-editor" data-rows>${rows}</div>
+      <button type="button" class="button-link" data-add-row>+ Aggiungi riga</button>
+      <div class="field"><label for="${id}-body">Nota sotto la tabella <span class="hint">facoltativa</span></label><textarea id="${id}-body" name="body" rows="2">${esc(data.body || "")}</textarea></div>`;
+  }
+  return `<form class="territory-form stack" data-block="${esc(spec.key)}">${fields}${sourcesEditor(`${id}-src`, start?.sources || [], { area: false })}
+    <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div></form>`;
+}
+
+function territoryRow(spec, row = {}) {
+  return `<div class="row-edit">${spec.columns.map((c) => c.options
+    ? `<select aria-label="${esc(c.label)}" data-col="${c.key}">${options(Object.entries(c.options), row[c.key] || Object.keys(c.options)[0])}</select>`
+    : `<input type="text" aria-label="${esc(c.label)}" placeholder="${esc(c.label)}" data-col="${c.key}" value="${esc(row[c.key] || "")}" />`).join("")}
+    <button type="button" class="button-link" data-remove-row>Rimuovi</button></div>`;
+}
+
+function readTerritoryForm(spec, form) {
+  const body = { sources: readSources(form, `t-${spec.key}-src`) };
+  if (spec.type === "fields") {
+    body.fields = Object.fromEntries(spec.fields.map((field) => [field.key, form.elements[field.key]?.value.trim() || ""]));
+    body.note = form.elements.note?.value.trim() || "";
+  } else if (spec.type === "text") {
+    body.body = form.elements.body.value.trim();
+  } else {
+    body.rows = [...form.querySelectorAll(".row-edit")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-col]")].map((input) => [input.dataset.col, input.value.trim()])));
+    body.body = form.elements.body?.value.trim() || "";
+  }
+  return body;
+}
+
+function territoryProgress(s) {
+  const steps = s.definitions.map((spec) => {
+    const block = s.blocks[spec.key];
+    const state = block.published ? "is-published" : block.pending.length ? "is-pending" : "is-empty";
+    return { key: spec.key, title: spec.title, state };
+  });
+  const ready = steps.filter((step) => step.state === "is-published").length;
+  return `<nav class="scheda-progress" aria-label="Blocchi della scheda">
+    <div class="scheda-progress-head"><strong>${ready} di ${steps.length} blocchi pubblicati</strong><span class="small muted">Verde pubblicato · giallo in attesa · grigio vuoto</span></div>
+    <div class="scheda-steps"><a class="scheda-step is-published" href="#blocco-base" data-jump="blocco-base"><span class="dot" aria-hidden="true"></span>Base ufficiale</a>${steps.map((step) => `<a class="scheda-step ${step.state}" href="#blocco-${step.key}" data-jump="blocco-${step.key}"><span class="dot" aria-hidden="true"></span>${esc(step.title)}</a>`).join("")}<a class="scheda-step ${s.news.length ? "is-published" : "is-empty"}" href="#blocco-notizie" data-jump="blocco-notizie"><span class="dot" aria-hidden="true"></span>${esc(s.news_title)}</a></div>
+  </nav>`;
+}
+
+async function showTerritoryScheda(kind, key, focus) {
+  const s = await api(`/territori/${kind}/${encodeURIComponent(key)}`);
+  const base = s.base;
+  const blocks = s.definitions.map((spec) => {
+    const block = s.blocks[spec.key];
+    const pending = block.pending;
+    const start = pending.find((item) => item.own) || pending[pending.length - 1] || block.published || null;
+    const hasContent = block.published || pending.length;
+    return `<section class="card" id="blocco-${spec.key}"><div class="card-head"><h2><span class="block-number">${spec.n}</span>${esc(spec.title)}</h2></div>
+      ${territoryGuide(spec)}
+      ${block.published ? territoryVersion(spec, block.published) : ""}
+      ${pending.map((item) => territoryVersion(spec, item, item.own ? "Tua versione, in attesa" : "Nuova versione in attesa")).join("")}
+      ${block.rejected.map((item) => territoryVersion(spec, item)).join("")}
+      ${hasContent ? "" : `<p class="muted">Ancora vuoto: il cittadino non vede questo blocco.</p>`}
+      <details class="writer"${hasContent ? "" : " open"}><summary>${block.published ? "Modifica" : pending.length ? "Riscrivi" : "Scrivi"} «${esc(spec.title)}»</summary>${territoryForm(spec, start)}</details>
+    </section>`;
+  }).join("");
+  const newsNumber = s.definitions.length;
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/territori">Territori</a></p><h1>${esc(base.title)}</h1></div>
+      <div class="actions"><a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a></div></div>
+    ${territoryProgress(s)}
+    <div class="scheda-body">
+      ${territoryBase(base)}
+      ${blocks}
+      <section class="card" id="blocco-notizie"><div class="card-head"><h2><span class="block-number">${newsNumber}</span>${esc(s.news_title)}</h2><a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a></div>
+        <p class="small muted" style="margin-top:0">2–4 sintesi recenti con il modello Notizia. Compaiono qui le notizie scritte per questo territorio.</p>
+        ${s.news.length ? `<ul class="item-sources">${s.news.map((n) => `<li><a href="#/notizie/${n.id}">${esc(n.title)}</a> <span class="chip ${n.status === "published" ? "chip-published" : "chip-pending"}">${n.status === "published" ? "Pubblicata" : "In attesa"}</span></li>`).join("")}</ul>` : `<p class="muted small">Nessuna notizia per questo territorio.</p>`}
+      </section>
+      <section class="card" id="blocco-fonti"><div class="card-head"><h2><span class="block-number">${newsNumber + 1}</span>Fonti</h2></div>
+        <p class="small muted" style="margin-top:0">Si raccolgono da sole: la base ufficiale e le fonti di ogni blocco pubblicato.</p>
+        ${sourcesList([base.source, ...s.definitions.flatMap((spec) => s.blocks[spec.key].published?.sources || [])])}
+      </section>
+    </div>`;
+  view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    document.getElementById(link.dataset.jump)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }));
+  view.querySelectorAll("[data-count]").forEach(updateCounter);
+  view.querySelectorAll("form.territory-form").forEach((form) => {
+    const spec = s.definitions.find((item) => item.key === form.dataset.block);
+    form.addEventListener("click", (event) => {
+      if (event.target.closest("[data-add-row]")) {
+        form.querySelector("[data-rows]").insertAdjacentHTML("beforeend", territoryRow(spec));
+        form.querySelector("[data-rows]").lastElementChild.querySelector("input")?.focus();
+      }
+      const remove = event.target.closest("[data-remove-row]");
+      if (remove) {
+        const box = form.querySelector("[data-rows]");
+        if (box.children.length > 1) remove.closest(".row-edit").remove();
+        else remove.closest(".row-edit").querySelectorAll("input").forEach((input) => { input.value = ""; });
+      }
+    });
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const item = await api(`/territori/${kind}/${encodeURIComponent(base.key)}/blocchi/${spec.key}`, { method: "POST", body: readTerritoryForm(spec, form) });
+        const errors = (item.findings || []).filter((f) => f.level === "error").length;
+        if (errors && !item.published) toast(`Bozza salvata con ${errors} ${errors === 1 ? "errore" : "errori"} da correggere prima della pubblicazione.`, true);
+        else savedToast(item, "Inviato all'admin.");
+        showTerritoryScheda(kind, base.key, `blocco-${spec.key}`);
+      } catch (error) {
+        toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+        button.disabled = false;
+      }
+    });
+  });
+  if (focus) document.getElementById(focus)?.scrollIntoView();
+}
+
+// ---------------------------------------------------------- politica attuale
+// Everything the Politica page shows, with the official value next to the
+// redazione's correction. A correction needs a source and a reason; an admin
+// publishes it (or a second member, when no admin is named). «Torna al dato
+// ufficiale» publishes a version that removes the correction.
+const POLITICA_TABS = [["governo", "Governo"], ["regioni", "Regioni"], ["parlamento", "Camera e Senato"], ["testi", "Testi"]];
+
+function publicJson(path) {
+  return fetch(path, { headers: { Accept: "application/json" } }).then((response) => (response.ok ? response.json() : null)).catch(() => null);
+}
+
+function officialCabinet(person) {
+  const mandates = person.profile?.mandates || [];
+  const open = mandates.filter((item) => !item.end_date);
+  const pick = open.find((item) => /presidente del consiglio|ministr|sottosegretar/i.test(`${item.office || ""} ${item.mandate_type || ""}`)) || open[0] || null;
+  return pick ? String(pick.mandate_type || pick.office || "").replace(/\s+dal\s+\d{1,2}\/\d{1,2}\/\d{4}\s*$/i, "") : "";
+}
+function officialParty(person) {
+  const party = (person.political_parties || []).find((item) => !item.end_date);
+  return party ? `${party.name}${party.abbreviation ? ` (${party.abbreviation})` : ""}` : "";
+}
+
+function editState(key, data) {
+  const live = data.published[key];
+  const pending = data.pending[key] || [];
+  const chips = [
+    live ? `<span class="chip chip-published">Correzione pubblicata</span>` : "",
+    ...pending.map((item) => item.status === "rejected"
+      ? `<span class="chip chip-rejected" title="${esc(item.review_note || "")}">Respinta: ${esc(item.review_note || "")}</span>`
+      : `<span class="chip chip-pending">${item.own ? "Tua versione in attesa" : `In attesa (${esc(item.created_by)})`}</span>`),
+  ].join(" ");
+  const errors = pending.filter((item) => item.status === "pending").flatMap((item) => item.findings || []);
+  return { live, pending, chips, findings: errors.length ? findingsList(errors) : "" };
+}
+
+function editForm(key, fields, live, { canRestore = true } = {}) {
+  const id = `pe-${key.replace(/[^a-z0-9]/gi, "-")}`;
+  return `<form class="politica-form stack" data-key="${esc(key)}">
+    ${fields}
+    ${key.startsWith("text:") ? "" : sourcesEditor(`${id}-src`, live?.sources || [], { area: false })}
+    <div class="field"><label for="${id}-reason">Perché correggi <span class="hint">obbligatorio: compare nel registro e, sul sito, accanto al dato</span></label><input id="${id}-reason" name="reason" type="text" maxlength="600" value="" required /></div>
+    <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button>
+      ${canRestore && live ? `<button class="button button-secondary" type="button" data-restore="${esc(key)}">Torna al dato ufficiale</button>` : ""}</div>
+  </form>`;
+}
+
+function governmentRow(person, data) {
+  const key = `government:${person.id}`;
+  const state = editState(key, data);
+  const live = state.live || {};
+  const name = `${person.given_name || ""} ${person.family_name || ""}`.trim() || person.name || `Politico ${person.id}`;
+  const fields = `<div class="grid-2">
+      <div class="field"><label>Partito mostrato</label><input name="party_name" type="text" value="${esc(live.party_name || "")}" placeholder="${esc(officialParty(person) || "Nessun partito nei dati ufficiali")}" /></div>
+      <div class="field"><label>Sigla</label><input name="party_abbreviation" type="text" value="${esc(live.party_abbreviation || "")}" /></div>
+      <div class="field"><label>Ruolo nel grafico</label><select name="tier"><option value="">Come nei dati ufficiali</option>${options(Object.entries(data.tiers), live.tier || "")}</select></div>
+      <div class="field"><label>Incarico mostrato</label><input name="role_label" type="text" value="${esc(live.role_label || "")}" placeholder="${esc(officialCabinet(person) || "es. Ministro della Difesa")}" /></div>
+    </div>
+    <label class="check"><input type="checkbox" name="hidden"${live.hidden ? " checked" : ""} />Non mostrare questa persona nel Governo</label>`;
+  return `<li class="politica-row${state.live ? " is-edited" : ""}">
+    <div class="politica-row-head"><div><a href="#/politici/${person.id}"><strong>${esc(name)}</strong></a>
+      <p class="small muted">Dati ufficiali: ${esc(officialCabinet(person) || "incarico non indicato")} · ${esc(officialParty(person) || "partito non indicato")}</p>
+      ${state.live ? `<p class="small">Sul sito: ${esc([...new Set([live.hidden ? "nascosto" : "", live.party_name, live.tier ? data.tiers[live.tier] : "", live.role_label].filter(Boolean))].join(" · "))}</p>` : ""}</div>
+      <div class="politica-chips">${state.chips}</div></div>
+    ${state.findings}
+    <details class="writer"><summary>Modifica</summary>${editForm(key, fields, state.live)}</details>
+  </li>`;
+}
+
+function regionRow(item, data) {
+  const key = `region:${item.id}`;
+  const state = editState(key, data);
+  const live = state.live || {};
+  const official = item.official || { coalition: item.coalition, president: item.president, next_election: item.next_election };
+  const fields = `<div class="grid-2">
+      <div class="field"><label>Coalizione del presidente</label><select name="coalition"><option value="">Come nella scheda della regione</option>${options(Object.entries(data.coalitions), live.coalition || "")}</select></div>
+      <div class="field"><label>Prossime elezioni</label><input name="next_election" type="text" value="${esc(live.next_election || "")}" placeholder="${esc(official.next_election || "es. primavera 2028")}" /></div>
+      <div class="field"><label>Presidente mostrato</label><input name="president_name" type="text" value="${esc(live.president_name || "")}" placeholder="${esc(official.president?.name || "Non collegato all'anagrafe")}" /></div>
+      <div class="field"><label>Scheda del presidente <span class="hint">numero del politico, facoltativo</span></label><input name="president_politician_id" type="text" inputmode="numeric" value="${esc(live.president_politician_id || "")}" /></div>
+    </div>`;
+  return `<li class="politica-row${state.live ? " is-edited" : ""}">
+    <div class="politica-row-head"><div><a href="#/territori/region/${item.id}"><strong>${esc(item.name)}</strong></a>
+      <p class="small muted">Dati ufficiali: ${esc(official.president?.name || "presidente non collegato")} · ${esc(data.coalitions[official.coalition] || "coalizione da compilare")}</p>
+      ${state.live ? `<p class="small">Sul sito: ${esc([item.president?.name, item.coalition_label, item.next_election].filter(Boolean).join(" · "))}</p>` : ""}</div>
+      <div class="politica-chips">${state.chips}</div></div>
+    ${state.findings}
+    <details class="writer"><summary>Modifica</summary>${editForm(key, fields, state.live)}</details>
+  </li>`;
+}
+
+function groupRow(chamber, group, data) {
+  const key = group.id ? `chamber:${chamber}:group:${group.id}` : `chamber:${chamber}:extra:${group.key}`;
+  const state = editState(key, data);
+  const live = state.live || {};
+  const official = group.official || (group.id ? group : null);
+  const fields = `<div class="grid-2">
+      <div class="field"><label>Nome</label><input name="name" type="text" value="${esc(live.name || (group.id ? "" : group.name))}" placeholder="${esc(official?.name || "")}" /></div>
+      <div class="field"><label>Sigla</label><input name="abbreviation" type="text" value="${esc(live.abbreviation || "")}" placeholder="${esc(official?.abbreviation || "")}" /></div>
+      <div class="field"><label>Seggi</label><input name="seats" type="number" min="0" max="700" value="${esc(live.seats ?? "")}" placeholder="${esc(official?.seats ?? "")}" /></div>
+    </div>
+    ${group.id ? `<label class="check"><input type="checkbox" name="hidden"${live.hidden ? " checked" : ""} />Non mostrare questo gruppo</label>` : ""}`;
+  return `<li class="politica-row${state.live ? " is-edited" : ""}">
+    <div class="politica-row-head"><div><strong>${esc(group.name)}</strong> <span class="small muted">${esc(group.abbreviation || "")}</span>
+      <p class="small muted">${group.id ? `Dati ufficiali: ${esc(official?.seats ?? group.seats)} seggi` : "Gruppo aggiunto dalla redazione"}${state.live && group.id ? ` · sul sito: ${esc(group.seats)}` : ""}</p></div>
+      <div class="politica-chips"><span class="count">${esc(group.seats)}</span> ${state.chips}</div></div>
+    ${state.findings}
+    <details class="writer"><summary>Modifica</summary>${editForm(key, fields, state.live)}</details>
+  </li>`;
+}
+
+async function showPoliticaAttuale(tab = "governo") {
+  const [data, government, regions, parliament] = await Promise.all([
+    api("/politica"),
+    publicJson("/politicians?role=governo&offset=0&limit=100"),
+    publicJson("/territories/regions"),
+    publicJson("/parliament/composition"),
+  ]);
+  const people = (government?.items || []).slice();
+  const known = new Set(people.map((person) => String(person.id)));
+  // People added by the redazione (published or waiting) appear too.
+  const added = Object.keys({ ...data.published, ...data.pending }).filter((key) => key.startsWith("government:") && !known.has(key.split(":")[1]));
+  const extra = await Promise.all(added.map((key) => publicJson(`/politicians/${key.split(":")[1]}`)));
+  for (const person of extra.filter(Boolean)) people.push(person);
+  const panels = {
+    governo: `<p class="muted small">Chi compare nel Governo, con quale partito e in quale riga del grafico. Per aggiungere una persona, scegli il politico qui sotto.</p>
+      <form id="pa-add-gov" class="card add-row" role="search"><label for="pa-gov-q">Aggiungi al Governo</label>
+        <div class="actions" style="margin-top:4px"><input id="pa-gov-q" type="search" placeholder="Nome del politico" style="flex:1 1 240px" autocomplete="off" /><button class="button button-secondary" type="submit">Cerca</button></div>
+        <ul id="pa-gov-results" class="pa-results"></ul></form>
+      <ul class="politica-list">${people.length ? people.map((person) => governmentRow(person, data)).join("") : `<li class="muted">Nessun componente del Governo nei dati.</li>`}</ul>`,
+    regioni: `<p class="muted small">La coalizione colora il quadro delle Regioni. Si può impostare anche nella scheda della regione: qui vince la correzione.</p>
+      <ul class="politica-list">${(regions?.items || []).map((item) => regionRow(item, data)).join("") || `<li class="muted">Nessuna regione nei dati.</li>`}</ul>`,
+    parlamento: ["camera", "senato"].map((chamber) => {
+      const info = parliament?.[chamber];
+      return `<section class="card"><h2>${chamber === "camera" ? "Camera dei deputati" : "Senato della Repubblica"} <span class="count">${info?.counted ?? 0} seggi</span></h2>
+        <ul class="politica-list">${(info?.groups || []).map((group) => groupRow(chamber, group, data)).join("") || `<li class="muted">Nessun gruppo nei dati ufficiali.</li>`}</ul>
+        <details class="writer"><summary>Aggiungi un gruppo</summary>${editForm(`chamber:${chamber}:extra:nuovo`, `<div class="grid-2"><div class="field"><label>Nome</label><input name="name" type="text" required /></div><div class="field"><label>Sigla</label><input name="abbreviation" type="text" /></div><div class="field"><label>Seggi</label><input name="seats" type="number" min="1" max="700" required /></div></div>`, null, { canRestore: false })}</details>
+      </section>`;
+    }).join(""),
+    testi: `<ul class="politica-list">${Object.entries(data.texts).map(([name, label]) => {
+      const key = `text:${name}`;
+      const state = editState(key, data);
+      return `<li class="politica-row${state.live ? " is-edited" : ""}"><div class="politica-row-head"><div><strong>${esc(label)}</strong>${state.live ? `<p class="small">Sul sito: ${esc(state.live.body)}</p>` : `<p class="small muted">Sul sito c'è la nota predefinita.</p>`}</div><div class="politica-chips">${state.chips}</div></div>
+        <details class="writer"><summary>Modifica</summary>${editForm(key, `<div class="field"><label>Testo</label><textarea name="body" rows="3">${esc(state.live?.body || "")}</textarea></div>`, state.live)}</details></li>`;
+    }).join("")}</ul>`,
+  };
+  view.innerHTML = `<div class="page-head"><div><h1>Politica attuale</h1><p class="muted">Tutto quello che il cittadino vede in Politica. Il dato ufficiale resta sotto ogni correzione.</p></div>
+      <div class="actions"><a class="button button-secondary" href="/app/?view=politics" target="_blank" rel="noopener">Vedi la pagina Politica</a></div></div>
+    <nav class="filters" aria-label="Parti della pagina">${POLITICA_TABS.map(([key, label]) => `<a class="filter-link" href="#/politica/${key}" aria-current="${key === tab ? "page" : "false"}">${label}</a>`).join("")}</nav>
+    <div class="politica-panel">${panels[tab] || panels.governo}</div>`;
+  bindPoliticaForms(tab);
+}
+
+function readPoliticaForm(form) {
+  const body = { reason: form.elements.reason?.value.trim() || "" };
+  for (const name of ["party_name", "party_abbreviation", "tier", "role_label", "coalition", "president_name", "president_politician_id", "next_election", "name", "abbreviation", "seats", "body"]) {
+    if (form.elements[name]) body[name] = form.elements[name].value.trim();
+  }
+  if (form.elements.hidden) body.hidden = form.elements.hidden.checked;
+  const box = form.querySelector("[data-sources]");
+  if (box) body.sources = readSources(form, box.dataset.sources);
+  return body;
+}
+
+function slug(text) {
+  return String(text || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "gruppo";
+}
+
+function bindPoliticaForms(tab) {
+  const reload = () => showPoliticaAttuale(tab);
+  view.querySelectorAll("form.politica-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      let key = form.dataset.key;
+      const body = readPoliticaForm(form);
+      if (key.endsWith(":extra:nuovo")) key = key.replace(/nuovo$/, slug(body.name));
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const item = await api(`/politica/${encodeURIComponent(key)}`, { method: "POST", body });
+        const errors = (item.findings || []).filter((f) => f.level === "error").length;
+        if (errors && !item.published) toast(`Salvata con ${errors} ${errors === 1 ? "errore" : "errori"} da correggere: ${item.findings.filter((f) => f.level === "error").map((f) => f.message).join(" ")}`, true);
+        else savedToast(item, "Inviata all'admin.");
+        reload();
+      } catch (error) {
+        toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+        button.disabled = false;
+      }
+    });
+    form.querySelector("[data-restore]")?.addEventListener("click", async (event) => {
+      const reason = form.elements.reason.value.trim() || prompt("Perché torni al dato ufficiale?") || "";
+      if (!reason) return;
+      try {
+        const item = await api(`/politica/${encodeURIComponent(event.currentTarget.dataset.restore)}`, { method: "POST", body: { restore: true, reason } });
+        savedToast(item, "Inviata all'admin.");
+        reload();
+      } catch (error) { toast(error.message, true); }
+    });
+  });
+  const add = view.querySelector("#pa-add-gov");
+  add?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const q = add.querySelector("#pa-gov-q").value.trim();
+    if (q.length < 2) return;
+    const rows = await api(`/politici?q=${encodeURIComponent(q)}&limit=8`);
+    add.querySelector("#pa-gov-results").innerHTML = rows.length
+      ? rows.map((row) => `<li><button type="button" class="button-link" data-add-gov="${row.id}">${esc(row.name)}</button></li>`).join("")
+      : `<li class="muted small">Nessun politico con questo nome.</li>`;
+  });
+  add?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-add-gov]");
+    if (!button) return;
+    const id = button.dataset.addGov;
+    add.insertAdjacentHTML("afterend", `<div class="card" id="pa-new-gov"><h3>Aggiungi ${esc(button.textContent)}</h3>${editForm(`government:${id}`, `<div class="grid-2"><div class="field"><label>Ruolo nel grafico</label><select name="tier" required>${options(Object.entries({ 0: "Presidente del Consiglio", 1: "Vicepresidente del Consiglio", 2: "Ministro con portafoglio", 3: "Ministro senza portafoglio", 4: "Sottosegretario" }), "2")}</select></div><div class="field"><label>Incarico</label><input name="role_label" type="text" placeholder="es. Ministro della Difesa" /></div><div class="field"><label>Partito</label><input name="party_name" type="text" /></div><div class="field"><label>Sigla</label><input name="party_abbreviation" type="text" /></div></div>`, null, { canRestore: false })}</div>`);
+    document.getElementById("pa-new-gov")?.scrollIntoView({ block: "nearest" });
+    bindPoliticaForms(tab);
+  }, { once: true });
 }

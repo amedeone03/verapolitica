@@ -108,6 +108,8 @@ from backend.app.models.ingestion_job import (
     IngestionJobTrigger,
 )
 from backend.app.models.civic_account import CivicAccount, CivicPostReaction
+from backend.app.models.territory_block import TerritoryBlock, TerritoryBlockStatus, TerritoryKind
+from backend.app.models.politics_edit import PoliticsEdit
 from backend.app.models.civic import (
     GeographicScopeType,
     GlossaryTerm,
@@ -243,6 +245,10 @@ __all__ = [
     "IngestionJobTrigger",
     "CivicAccount",
     "CivicPostReaction",
+    "TerritoryBlock",
+    "PoliticsEdit",
+    "TerritoryBlockStatus",
+    "TerritoryKind",
     "GeographicScopeType",
     "GlossaryTerm",
     "ImmutableCivicRecordError",

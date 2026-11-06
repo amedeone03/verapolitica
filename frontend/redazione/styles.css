@@ -518,3 +518,35 @@ details.block-help[open] > summary { margin-bottom: 8px; }
 .home-head h1 { margin-bottom: 2px; }
 @media (min-width: 900px) { .image-fields .grid-2 { grid-template-columns: 1fr 1fr 1fr; } }
 .image-fields .field .hint { display: inline; }
+
+/* Territori: list with progress, base card, rows editor. */
+.territory-group h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 1rem; }
+.territory-list { margin: 0; padding: 0; list-style: none; }
+.territory-list li + li { border-top: 1px solid var(--color-border); }
+.territory-list a { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; padding: 10px 4px; color: var(--color-text); text-decoration: none; }
+.territory-list a > span:first-child { display: grid; }
+.territory-list small { color: var(--color-text-muted, #526570); }
+@media (hover: hover) and (pointer: fine) { .territory-list a:hover { background: var(--color-background); } }
+.territory-progress { display: inline-flex; align-items: center; gap: 8px; }
+.territory-progress .bar { display: block; width: 72px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--color-border); }
+.territory-progress .bar span { display: block; height: 100%; background: #2F6B4F; }
+.base-card { border-left: 4px solid var(--color-secondary); }
+.base-list { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: .9375rem; }
+.base-list dt { color: var(--color-text-muted, #526570); font-weight: 600; }
+.base-list dd { margin: 0; }
+.rows-editor { display: grid; gap: 8px; }
+.row-edit { display: grid; gap: 8px; padding: 8px; background: var(--color-background); border-radius: var(--radius-sm); }
+@media (min-width: 900px) { .row-edit { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) auto; align-items: center; } }
+.row-edit input, .row-edit select { min-height: 38px; }
+
+/* Politica attuale: one row per thing the citizen sees, official value under the correction. */
+.politica-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.politica-row { padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.politica-row.is-edited { border-left: 4px solid #2F6B4F; }
+.politica-row-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 16px; }
+.politica-row-head p { margin: 2px 0 0; }
+.politica-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.politica-row .writer { margin-top: 8px; }
+.add-row { margin: 12px 0; }
+.pa-results { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; padding: 0; list-style: none; }
+.politica-panel .card + .card { margin-top: 12px; }

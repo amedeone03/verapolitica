@@ -167,10 +167,13 @@ def test_region_and_comune_pages_show_their_local_news():
     from pathlib import Path
 
     script = Path("frontend/app/app.js").read_text(encoding="utf-8")
-    assert "async function renderLocalNews(api, container, zone, placeName)" in script
+    assert "async function renderLocalNews(api, container, zone, placeName, { title = false } = {})" in script
     assert 'item.scope !== "national"' in script
+    # With a scheda, news fill its «Notizie» block; without, the older page keeps them.
+    assert 'renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true })' in script
+    assert 'renderLocalNews(api, byId("t-notizie"), { municipality_id: municipality.id }, scheda.news_title, { title: true })' in script
+    assert 'renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true })' in script
     assert '<div id="region-news"></div>' in script
-    assert 'renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }' in script
 
 
 def test_politica_holds_regions_provinces_and_comuni():
@@ -187,3 +190,70 @@ def test_politica_holds_regions_provinces_and_comuni():
     assert 'provinces: "politics", regions: "politics", municipalities: "politics"' in script
     archive = html.split('id="history-view"')[1].split("</section>\n      </section>")[0]
     assert "?view=regions" not in archive and "?view=provinces" not in archive
+
+
+def test_territory_schede_live_in_politica():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    # A province opens its own scheda in Politica; its history stays in the Archivio.
+    assert 'id="province-detail-view"' in html and 'showProvinceDetail(api, provinceCode.toUpperCase())' in script
+    assert 'showTerritoryHistory(api, { province: params.get("history_province").toUpperCase() })' in script
+    # Region and comune pages go back to Politica, never to the Archivio.
+    for view in ("region-detail-view", "municipality-detail-view", "province-detail-view"):
+        block = html.split(f'id="{view}"')[1].split("</section>")[0]
+        assert "./?view=politics" in block and "Archivio" not in block
+    # The scheda shows the official base first, then the model's blocks, news and sources.
+    assert "export function renderTerritoryScheda(t" in script and "export function renderTerritoryFacts(t)" in script
+    assert 'getTerritory: (kind, key) => request(`/territories/' in script
+
+
+def test_government_chart_shows_the_parties_and_the_ranks():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    styles = (APP / "styles.css").read_text(encoding="utf-8")
+    assert 'id="government-chart"' in html
+    assert "export function governmentComposition(people)" in script and "export function renderGovernmentComposition(people)" in script
+    for tier in ("Presidente del Consiglio", "Vicepresidenti del Consiglio", "Ministri con portafoglio", "Ministri senza portafoglio"):
+        assert tier in script
+    # Colours follow the party (assigned by name), counts are in the legend, not on the bar.
+    assert "String(a.party.name).localeCompare(String(b.party.name)" in script
+    assert 'role="img" aria-label="Componenti del Governo per partito' in script
+    assert ".gov-bar { display: flex; gap: 2px;" in styles
+
+
+def test_politica_opens_with_regioni_camera_senato():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
+    # Three tabs above the Governo block, one panel.
+    assert view.index('id="quadro-title"') < view.index('id="government-title"')
+    for tab in ("regioni", "camera", "senato"):
+        assert f'data-quadro="{tab}"' in view
+    # Regions are coloured only by the coalition the redazione published; the rest is «Da compilare».
+    assert 'const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];' in script
+    assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
+    assert 'getParliament: () => request("/parliament/composition")' in script
+    assert 'getRegionsOverview: () => request("/territories/regions")' in script
+
+
+def test_redazione_corrections_reach_the_politica_page():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    assert 'getPoliticsEdits: () => request("/parliament/edits")' in script
+    # Governo: hide, change party/row/title, add people; texts and captions replaced.
+    assert "export async function applyGovernmentEdits(people, edits, loadPerson)" in script
+    assert "if (person.edited_tier !== undefined" in script and "if (person.edited_role) return person.edited_role;" in script
+    assert 'texts["text:regions_caption"]' in script and 'live["text:government_note"]' in script
+    # A corrected value says so, in words.
+    assert script.count("editedMark(") >= 4
+
+
+def test_redazione_has_a_politica_attuale_page():
+    console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    html = (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
+    assert 'href="#/politica" data-section="politica"' in html and "Politica attuale" in html
+    assert 'else if (section === "politica") await showPoliticaAttuale(' in console
+    for tab in ("governo", "regioni", "parlamento", "testi"):
+        assert f'["{tab}",' in console
+    # Each row keeps the official value beside the correction, and can go back to it.
+    assert "Dati ufficiali:" in console and "Torna al dato ufficiale" in console
+    assert 'if (item.kind === "politica")' in console
