@@ -86,12 +86,11 @@
 
         <section class="politics-block quadro" aria-labelledby="quadro-title">
           <div class="block-head"><h2 id="quadro-title">Il quadro</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
-          <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:4;--a:0">
+          <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:3;--a:0">
             <button type="button" role="tab" id="quadro-tab-governo" data-quadro="governo" aria-selected="true" aria-controls="quadro-governo">Governo</button>
             <button type="button" role="tab" id="quadro-tab-camera" data-quadro="camera" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Camera</button>
             <button type="button" role="tab" id="quadro-tab-senato" data-quadro="senato" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Senato</button>
-            <button type="button" role="tab" id="quadro-tab-regioni" data-quadro="regioni" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Regioni</button>
-            <div class="feed-segments-active" aria-hidden="true"><span>Governo</span><span>Camera</span><span>Senato</span><span>Regioni</span></div>
+            <div class="feed-segments-active" aria-hidden="true"><span>Governo</span><span>Camera</span><span>Senato</span></div>
           </div>
           <div id="quadro-governo" class="quadro-governo" role="tabpanel" aria-labelledby="quadro-tab-governo" tabindex="0">
             <h3 id="government-title" class="visually-hidden">Governo</h3>
@@ -122,6 +121,10 @@
             <noscript><button type="submit">Mostra</button></noscript>
           </form>
           <div id="my-zone" class="territorio-view" aria-live="polite" aria-busy="true"></div>
+          <details id="territorio-regioni" class="territorio-regioni">
+            <summary>Chi governa le regioni</summary>
+            <div id="territorio-regioni-panel" class="quadro-panel" aria-busy="true"></div>
+          </details>
           <form id="territory-find" class="territory-find" action="./" method="get" role="search">
             <input type="hidden" name="view" value="search" />
             <input type="hidden" name="type" value="municipality" />

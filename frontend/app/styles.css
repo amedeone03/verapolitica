@@ -1597,3 +1597,12 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .territorio-towns a:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: -3px; border-radius: 8px; }
 .territorio-towns small { color: var(--color-text-muted); font-size: .8125rem; }
 .territorio-card .ghost-button { margin: var(--space-3) var(--space-3) 0 0; }
+.territorio-regioni { margin: 0 0 var(--space-4); border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); }
+.territorio-regioni > summary { display: flex; align-items: center; min-height: 48px; padding: 0 var(--space-4); font-weight: 700; cursor: pointer; }
+.territorio-regioni > summary:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; border-radius: 20px; }
+.territorio-regioni > .quadro-panel { padding: 0 var(--space-4) var(--space-4); }
+.territorio-regioni > summary { justify-content: space-between; list-style: none; }
+.territorio-regioni > summary::-webkit-details-marker { display: none; }
+.territorio-regioni > summary::after { content: ""; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-3px); transition: transform .15s ease; }
+.territorio-regioni[open] > summary::after { transform: rotate(-135deg) translateY(-3px); }
+@media (prefers-reduced-motion: reduce) { .territorio-regioni > summary::after { transition: none; } }

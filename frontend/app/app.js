@@ -3697,7 +3697,7 @@ export function renderPersonBubble(person) {
 }
 
 // ---------------------------------------------------------------------------
-// «Il quadro»: Regioni, Camera, Senato as a hemicycle, a summary bar and a list.
+// «Il quadro»: Governo, then Camera and Senato as a hemicycle, a summary bar and a list.
 // Regions are coloured by the coalition of their president as the redazione
 // published it (the official results are the source); a region still to be
 // filled in is dashed, never guessed. Seats come from the official group
@@ -3709,7 +3709,8 @@ const GROUP_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#00
 // Seat positions on concentric arcs, left to right: the classic parliament chart.
 export function hemicycle(count, { rows, inner = 0.45, width = 400 } = {}) {
   if (!count) return { seats: [], radius: 0 };
-  const lines = rows || (count <= 30 ? 4 : count <= 250 ? 8 : 12);
+  // Never more rows than seats, or the balancing loop below cannot finish.
+  const lines = Math.min(count, rows || (count <= 30 ? 4 : count <= 250 ? 8 : 12));
   const outer = width / 2 - 12;
   const radii = Array.from({ length: lines }, (_, index) => outer * (inner + ((1 - inner) * index) / Math.max(1, lines - 1)));
   const total = radii.reduce((sum, value) => sum + value, 0);
@@ -3812,20 +3813,17 @@ async function renderQuadro(api) {
   const tabs = byId("quadro-tabs");
   const panel = byId("quadro-panel");
   if (!tabs || !panel) return;
-  const [regions, parliament, edits] = await Promise.all([
-    api.getRegionsOverview().catch(() => null),
+  const [parliament, edits] = await Promise.all([
     api.getParliament().catch(() => null),
     (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
   ]);
   const texts = edits?.items || {};
-  if (regions && texts["text:regions_caption"]?.body) regions.caption = texts["text:regions_caption"].body;
   for (const name of ["camera", "senato"]) if (parliament?.[name] && texts[`text:${name}_caption`]?.body) parliament[name].caption = texts[`text:${name}_caption`].body;
-  // «Governo» is its own panel (faces and composition stay painted); the
-  // other tabs share one panel that is redrawn on each switch.
+  // «Governo» is its own panel (faces and composition stay painted); Camera
+  // and Senato share one panel that is redrawn on each switch.
   const governo = byId("quadro-governo");
-  const names = ["governo", "camera", "senato", "regioni"];
+  const names = ["governo", "camera", "senato"];
   const render = (name) => {
-    if (name === "regioni") return regions?.items?.length ? renderRegionsQuadro(regions) : `<p class="empty-note">Le regioni non sono ancora disponibili.</p>`;
     return parliament ? renderChamberQuadro(parliament[name]) : `<p class="empty-note">La composizione del Parlamento non è disponibile al momento.</p>`;
   };
   const show = (name, { focus = false } = {}) => {
@@ -4089,7 +4087,7 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
   }).finally(() => byId("party-list").removeAttribute("aria-busy"));
-  await Promise.all([people, parties, renderQuadro(api), renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
+  await Promise.all([people, parties, renderQuadro(api), renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api)), Promise.resolve(bindRegionsOverview(api))]);
 }
 
 function zoneHolderRow(holder, role) {
@@ -4237,6 +4235,27 @@ async function renderMyZone(api, container) {
     if (!chip) return;
     provinceSelect.value = chip.dataset.province;
     show().then(() => byId("territorio-province-title")?.focus?.());
+  });
+}
+
+// The national picture of the regions (coalition of each president, as the
+// redazione published it) lives in Territorio, loaded the first time it opens.
+function bindRegionsOverview(api) {
+  const box = byId("territorio-regioni");
+  const panel = byId("territorio-regioni-panel");
+  if (!box || !panel) return;
+  let loaded = false;
+  box.addEventListener("toggle", async () => {
+    if (!box.open || loaded) return;
+    loaded = true;
+    const [regions, edits] = await Promise.all([
+      api.getRegionsOverview().catch(() => null),
+      (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
+    ]);
+    const texts = edits?.items || {};
+    if (regions && texts["text:regions_caption"]?.body) regions.caption = texts["text:regions_caption"].body;
+    panel.innerHTML = regions?.items?.length ? renderRegionsQuadro(regions) : `<p class="empty-note">Le regioni non sono ancora disponibili.</p>`;
+    panel.removeAttribute("aria-busy");
   });
 }
 

@@ -225,10 +225,11 @@ def test_politica_opens_with_regioni_camera_senato():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
     view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    # Il quadro opens on Governo; Camera, Senato and Regioni share one panel.
+    # Il quadro holds only Governo (default), Camera and Senato.
     quadro = view.split('id="quadro-title"')[1].split('id="parties-title"')[0]
-    for tab in ("governo", "camera", "senato", "regioni"):
+    for tab in ("governo", "camera", "senato"):
         assert f'data-quadro="{tab}"' in quadro
+    assert 'data-quadro="regioni"' not in quadro
     assert quadro.index('data-quadro="governo"') < quadro.index('data-quadro="camera"')
     assert 'id="government-row"' in quadro and 'id="government-chart"' in quadro
     assert 'id="quadro-governo"' in quadro and 'show("governo");' in script
