@@ -223,17 +223,20 @@ function readImage(file, { photo = true } = {}) {
     const reader = new FileReader();
     const img = new Image();
     img.onload = () => {
+      // Square, sharp enough for a hero on a 2x screen; the server compresses it again.
+      const size = photo ? 800 : 512;
       const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 256;
+      canvas.width = canvas.height = size;
       const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
       if (photo) {
         const side = Math.min(img.width, img.height);
         const sy = Math.max(0, Math.min(img.height - side, (img.height - side) * 0.25));
-        ctx.drawImage(img, (img.width - side) / 2, sy, side, side, 0, 0, 256, 256);
-        resolve(canvas.toDataURL("image/jpeg", 0.9));
+        ctx.drawImage(img, (img.width - side) / 2, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
       } else {
-        const k = Math.min(232 / img.width, 232 / img.height);
-        ctx.drawImage(img, (256 - img.width * k) / 2, (256 - img.height * k) / 2, img.width * k, img.height * k);
+        const k = Math.min((size * 0.9) / img.width, (size * 0.9) / img.height);
+        ctx.drawImage(img, (size - img.width * k) / 2, (size - img.height * k) / 2, img.width * k, img.height * k);
         resolve(canvas.toDataURL("image/png"));
       }
     };
@@ -247,7 +250,7 @@ async function uploadImageFields(form, prefix, alt, { photo = true } = {}) {
   const file = form.querySelector(`[data-image-file="${prefix}"]`)?.files?.[0];
   if (!file) return { image_credit: undefined, image_source_url: undefined };
   const data = await readImage(file, { photo });
-  const image = await api("/immagini", { method: "POST", body: { data, alt } });
+  const image = await api("/immagini", { method: "POST", body: { data, alt, purpose: photo ? "portrait" : "logo" } });
   return { image_id: image.id };
 }
 
@@ -1766,9 +1769,9 @@ else showLogin();
 
 
 // ------------------------------------------------------------------ symbols
-// Party logos and coats of arms of regions and provinces. Each upload is a
-// proposal: it goes public only when another member approves it in the queue.
-const SYMBOL_TABS = [["party", "Partiti"], ["region", "Regioni"], ["province", "Province"]];
+// «Partiti»: name, abbreviation, website and logo of every party. Coats of
+// arms and photos of regions, provinces and comuni live in «Territorio».
+const SYMBOL_TABS = [["party", "Partiti"]];
 let symbolFilter = "";
 
 function symbolThumb(item, stored = null, kind = "") {
@@ -1788,7 +1791,6 @@ async function showSymbols(kind) {
   if (!SYMBOL_TABS.some(([key]) => key === kind)) kind = "party";
   const data = await api("/simboli");
   const items = data[kind];
-  const withLogo = items.filter((item) => item.symbol).length;
   const q = symbolFilter.trim().toLocaleLowerCase("it");
   const shown = items.filter((item) => !q || `${item.name} ${item.abbreviation || ""} ${item.key}`.toLocaleLowerCase("it").includes(q));
   const photo = kind === "politician";
@@ -1799,21 +1801,14 @@ async function showSymbols(kind) {
     try { stored = await (await fetch("/portraits")).json(); } catch { stored = {}; }
   }
   const storedFor = (item) => (photo && !item.symbol && stored[item.key]?.url?.startsWith("/portraits/") ? stored[item.key] : null);
-  view.innerHTML = `<div class="page-head"><div><h1>Partiti e territori</h1>
-    <p>Loghi dei partiti e stemmi di regioni e province, con credito e fonte.</p></div></div>
-    <nav class="filters" aria-label="Elenco">${SYMBOL_TABS.map(([key, label]) => `<a class="filter-link" href="#/simboli/${key}" aria-current="${key === kind ? "page" : "false"}">${label} <span class="count">${data[key].length}</span></a>`).join("")}</nav>
-    <div class="summary-strip">
-      <div class="tile"><strong>${items.length}</strong><span>${kind === "party" ? "partiti nell'elenco" : kind === "region" ? "regioni (ISTAT)" : kind === "province" ? "province (ISTAT)" : "schede pubblicate"}</span></div>
-      <div class="tile"><strong>${withLogo}</strong><span>con ${noun} della redazione${photo ? ` (${items.filter((item) => storedFor(item)).length} con foto già presente)` : ""}</span></div>
-      <div class="tile"><strong>${items.filter((item) => item.pending.length).length}</strong><span>${noun} in verifica</span></div>
-    </div>
-    ${kind === "party" ? newPartyForm(data.new_parties) : ""}
-    ${(kind === "region" || kind === "province") && items.length < (kind === "region" ? 20 : 100) ? `<p class="notice">L'elenco ISTAT non è completo in questo database. Per caricare tutte le regioni, province e comuni esegui <code>scripts\\sync_reference_data.cmd</code> (serve internet).</p>` : ""}
+  view.innerHTML = `<div class="page-head"><div><h1>Partiti</h1>
+    <p class="muted">Nome, sigla, sito e logo di ogni partito. Stemmi e foto dei territori sono in <a href="#/territori">Territorio</a>.</p></div></div>
+    ${newPartyForm(data.new_parties)}
     <div class="field symbol-search"><label for="symbol-q">Cerca</label><input id="symbol-q" type="search" value="${esc(symbolFilter)}" autocomplete="off" /></div>
     <ul class="symbol-list">${shown.map((item) => `<li>
       ${symbolThumb(item, storedFor(item), kind)}
       <div class="symbol-text"><strong>${esc(item.name)}</strong>${item.abbreviation ? ` <span class="muted">${esc(item.abbreviation)}</span>` : ""}${kind === "province" ? ` <span class="muted">${esc(item.key)}</span>` : ""}
-        <p class="small muted">${item.symbol ? `Pubblicato · ${esc(item.symbol.credit)} · ${esc(item.symbol.license)} · approvato da ${esc(item.symbol.approved_by)}` : storedFor(item) ? `Foto già presente · ${esc(storedFor(item).credit)} · resta finché non la sostituisci` : photo ? "Nessuna foto" : "Nessun logo pubblicato"}</p>
+        <p class="small muted">${item.symbol ? `${esc(item.symbol.credit)} · ${esc(item.symbol.license)}` : storedFor(item) ? esc(storedFor(item).credit) : photo ? "Nessuna foto" : "Nessun logo"}</p>
         ${item.pending.length ? `<div class="pending-symbol"><img src="${esc(item.pending[0].payload.image_url)}" alt="${photo ? "Foto proposta" : "Logo proposto"}" width="40" height="40" /><p class="small"><strong>Proposto</strong> da ${esc(item.pending[0].created_by)} · ${esc(item.pending[0].payload.credit)} · ${esc(item.pending[0].payload.license_label)} · ${sourceLink({ url: item.pending[0].payload.source_url, name: "fonte" })}</p></div>` : ""}</div>
       <div class="symbol-actions">
         ${item.pending.length ? reviewControls(item.pending[0]) : `<button type="button" class="button button-secondary" data-symbol="${esc(item.key)}" data-symbol-name="${esc(item.name)}">${item.symbol || storedFor(item) ? `Sostituisci ${noun}` : `Carica ${noun}`}</button>`}
@@ -1831,7 +1826,7 @@ async function showSymbols(kind) {
     const proposal = await symbolDialog(kind, button.dataset.symbolName, photo ? data.portrait_licenses : data.licenses);
     if (!proposal) return;
     try {
-      const image = await api("/immagini", { method: "POST", body: { data: proposal.data, credit: proposal.credit, alt: `${photo ? "Foto" : "Simbolo"}: ${button.dataset.symbolName}` } });
+      const image = await api("/immagini", { method: "POST", body: { data: proposal.data, purpose: photo ? "portrait" : "logo", credit: proposal.credit, alt: `${photo ? "Foto" : "Simbolo"}: ${button.dataset.symbolName}` } });
       await api("/simboli", { method: "POST", body: { kind, key: button.dataset.symbol, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
       toast(photo ? "Foto proposta: ora la deve approvare un'altra persona." : "Logo proposto: ora lo deve approvare un'altra persona.");
       showSymbols(kind);
@@ -1959,7 +1954,7 @@ function symbolDialog(kind, name, licenses) {
         ? "Carica una foto di cui conosci autore e licenza (per esempio da Wikimedia Commons o autorizzata dalla persona). Il volto al centro: verrà ritagliata in un quadrato."
         : "Usa il file ufficiale o quello di Wikimedia Commons. Niente ricostruzioni o versioni ridisegnate."}</p>
       <div class="field"><label for="sym-file">Immagine <span class="hint">PNG, JPEG o WebP</span></label><input id="sym-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
-      <div class="symbol-stage"><canvas width="256" height="256" aria-label="Anteprima"></canvas></div>
+      <div class="symbol-stage"><canvas width="512" height="512" aria-label="Anteprima"></canvas></div>
       <div class="field"><label for="sym-credit">Titolare o autore</label><input id="sym-credit" type="text" required maxlength="300" /></div>
       <div class="field"><label for="sym-license">Licenza</label><select id="sym-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
       <div class="field"><label for="sym-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="sym-source" type="url" required /></div>
@@ -1972,23 +1967,23 @@ function symbolDialog(kind, name, licenses) {
     dialog.querySelector("#sym-file").addEventListener("change", (event) => {
       const file = event.target.files[0];
       ready = false;
-      ctx.clearRect(0, 0, 256, 256);
+      ctx.clearRect(0, 0, 512, 512);
       if (!file) return;
       if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast("Usa un file PNG, JPEG o WebP.", true); return; }
       const reader = new FileReader();
       const img = new Image();
       img.onload = () => {
-        ctx.clearRect(0, 0, 256, 256);
+        ctx.clearRect(0, 0, 512, 512);
         if (kind === "politician") {
           // Fill the square: centre crop, slightly towards the top where the face usually is.
           const side = Math.min(img.width, img.height);
           const sx = (img.width - side) / 2;
           const sy = Math.max(0, Math.min(img.height - side, (img.height - side) * 0.25));
-          ctx.drawImage(img, sx, sy, side, side, 0, 0, 256, 256);
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, 512, 512);
         } else {
-          const k = Math.min(232 / img.width, 232 / img.height);
+          const k = Math.min(464 / img.width, 464 / img.height);
           const w = img.width * k, h = img.height * k;
-          ctx.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h);
+          ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
         }
         ready = true;
       };
@@ -2017,24 +2012,262 @@ function symbolDialog(kind, name, licenses) {
 // model can always be rewritten, and the new version replaces the published
 // one once an admin (or a second member) publishes it.
 const TERRITORY_KIND_LABEL = { region: "Regioni", province: "Province", municipality: "Comuni" };
+let territoryTab = "region";
+const TERRITORY_REJECT_REASONS = ["Fonte mancante o non valida", "Testo da correggere", "Immagine non adatta", "Licenza non verificabile", "Doppione"];
+const TERRITORY_IMAGE_KINDS = {
+  region: "region", region_photo: "region", province: "province", province_photo: "province",
+  municipality: "municipality", municipality_photo: "municipality",
+};
 
+function territoryThumb(row) {
+  if (row.logo_url) return `<img class="t-thumb" src="${esc(row.logo_url)}" alt="" width="40" height="40" loading="lazy" />`;
+  const letters = String(row.name || row.title).replace(/^(Regione|Provincia di|Comune di)\s+/i, "").replace(/[^\p{L}]/gu, "").slice(0, 2).toUpperCase();
+  return `<span class="t-thumb is-empty" aria-hidden="true">${esc(row.kind === "province" ? row.key : letters)}</span>`;
+}
+
+function territoryState(row) {
+  if (row.pending) return `<span class="chip chip-pending">In attesa</span>`;
+  if (row.published_blocks >= row.total_blocks) return `<span class="chip chip-published">Completa</span>`;
+  if (row.published_blocks) return `<span class="chip chip-muted">In corso</span>`;
+  return `<span class="t-state-empty">Da scrivere</span>`;
+}
+
+function territoryRowHtml(row) {
+  return `<li><a class="t-row" href="#/territori/${row.kind}/${encodeURIComponent(row.key)}">
+      ${territoryThumb(row)}
+      <span class="t-row-text"><strong>${esc(row.name || row.title)}</strong>${row.detail || row.kind === "province" ? `<small>${esc(row.kind === "province" ? [row.key, row.detail].filter(Boolean).join(" · ") : row.detail)}</small>` : ""}</span>
+      ${territoryState(row)}
+    </a></li>`;
+}
+
+// What waits for a second person, for every territory: blocks of a scheda and
+// coats of arms or photos. Approve or reject right here.
+function territoryWaiting(queue) {
+  const items = queue.filter((item) => item.kind === "territory"
+    || (item.kind === "change" && item.preview?.kind === "simbolo" && TERRITORY_IMAGE_KINDS[item.preview?.target_kind]));
+  if (!items.length) return "";
+  const link = (item) => {
+    if (item.kind === "territory") return `#/territori/${item.territory.kind}/${encodeURIComponent(item.territory.key)}`;
+    return `#/territori/${TERRITORY_IMAGE_KINDS[item.preview.target_kind]}/${encodeURIComponent(item.preview.payload.key)}`;
+  };
+  const controls = (item) => {
+    const kind = item.kind === "territory" ? "territory" : "change";
+    if (item.can_approve) return `<form class="t-review" data-review-kind="${kind}" data-review-id="${esc(item.id)}">
+        <button class="button button-approve" type="submit" value="approva">Approva</button>
+        <select name="reason" aria-label="Motivo se la respingi">${TERRITORY_REJECT_REASONS.map((reason) => `<option>${esc(reason)}</option>`).join("")}</select>
+        <button class="button button-danger" type="submit" value="rifiuta">Respingi</button></form>`;
+    if (item.can_self_verify) return `<form class="t-review" data-review-kind="${kind}" data-review-id="${esc(item.id)}"><button class="button button-approve" type="submit" value="approva">Pubblica</button></form>`;
+    return `<span class="small muted">${item.own ? "Tua proposta: la verifica un'altra persona" : item.blocked ? "Da correggere prima" : "Verifica di un admin"}</span>`;
+  };
+  return `<section class="t-waiting" aria-labelledby="t-waiting-title">
+    <h2 id="t-waiting-title">In attesa di verifica <span class="count">${items.length}</span></h2>
+    <ul>${items.map((item) => `<li>
+      ${item.kind === "change" ? `<img class="t-thumb" src="${esc(item.preview.payload.image_url)}" alt="" width="40" height="40" />` : `<span class="t-thumb is-empty" aria-hidden="true">${esc(String(item.territory?.title || "").replace(/^(Regione|Provincia di|Comune di)\s+/i, "").replace(/[^\p{L}]/gu, "").slice(0, 2).toUpperCase())}</span>`}
+      <a class="t-waiting-text" href="${link(item)}"><strong>${esc(item.kind === "change" ? item.preview.summary : item.title)}</strong><small>${esc(item.author)}${item.created_at ? ` · ${longDate(item.created_at)}` : ""}</small></a>
+      ${controls(item)}
+    </li>`).join("")}</ul>
+  </section>`;
+}
+
+// «Territorio»: as simple as possible. What waits for verification first, then
+// one search and three tabs. Each row: coat of arms, name, state of the scheda.
 async function showTerritories(query = "") {
-  const rows = await api(`/territori${query ? `?q=${encodeURIComponent(query)}` : ""}`);
-  const groups = ["region", "province", "municipality"].map((kind) => [kind, rows.filter((row) => row.kind === kind)]).filter(([, list]) => list.length);
-  view.innerHTML = `<div class="page-head"><div><h1>Territori</h1><p class="muted">Regioni, province e comuni: una scheda per ognuno, scritta con i modelli Regione e Città.</p></div></div>
-    <form id="territory-search" class="card" role="search" style="margin-bottom:16px"><label for="tq">Cerca una regione, una provincia o un comune</label>
-      <div class="actions" style="margin-top:4px"><input id="tq" type="search" value="${esc(query)}" placeholder="es. Lombardia, MI, Bergamo" style="flex:1 1 260px" autocomplete="off" /><button class="button button-primary" type="submit">Cerca</button></div>
-      ${query ? "" : `<p class="small muted" style="margin:8px 0 0">Senza ricerca vedi le regioni, le province e i comuni che hanno già una scheda.</p>`}</form>
-    ${groups.length ? groups.map(([kind, list]) => `<section class="card territory-group"><h2>${TERRITORY_KIND_LABEL[kind]} <span class="count">${list.length}</span></h2>
-      <ul class="territory-list">${list.map((row) => `<li><a href="#/territori/${row.kind}/${encodeURIComponent(row.key)}">
-        <span><strong>${esc(row.title)}</strong>${row.detail ? `<small>${esc(row.detail)}</small>` : ""}</span>
-        <span class="territory-progress" aria-label="${row.published_blocks} blocchi pubblicati su ${row.total_blocks}"><span class="bar"><span style="width:${Math.round((row.published_blocks / row.total_blocks) * 100)}%"></span></span><span class="small muted">${row.published_blocks}/${row.total_blocks}</span>${row.pending ? `<span class="chip chip-pending">${row.pending} in attesa</span>` : ""}</span>
-      </a></li>`).join("")}</ul></section>`).join("") : `<div class="empty">Nessun territorio trovato${query ? ` per «${esc(query)}»` : ""}.</div>`}`;
-  const form = view.querySelector("#territory-search");
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    showTerritories(form.querySelector("#tq").value.trim());
+  const [rows, queue] = await Promise.all([
+    api(`/territori${query ? `?q=${encodeURIComponent(query)}` : ""}`),
+    query ? Promise.resolve([]) : api("/coda").catch(() => []),
+  ]);
+  const tabs = query ? ["region", "province", "municipality"].filter((kind) => rows.some((row) => row.kind === kind)) : ["region", "province", "municipality"];
+  if (!tabs.includes(territoryTab)) territoryTab = tabs[0] || "region";
+  const list = rows.filter((row) => row.kind === territoryTab);
+  view.innerHTML = `<div class="page-head"><div><h1>Territorio</h1><p class="muted">Regioni, province e comuni: scheda, stemma e foto.</p></div></div>
+    ${query ? "" : territoryWaiting(Array.isArray(queue) ? queue : queue.items || [])}
+    <form id="territory-search" class="t-search" role="search">
+      <label class="visually-hidden" for="tq">Cerca una regione, una provincia o un comune</label>
+      <input id="tq" type="search" value="${esc(query)}" placeholder="Cerca regione, provincia (MI) o comune" autocomplete="off" />
+    </form>
+    <div class="t-tabs" role="group" aria-label="Livello">${tabs.map((kind) => `<button type="button" data-tab="${kind}" aria-pressed="${kind === territoryTab}">${TERRITORY_KIND_LABEL[kind]}</button>`).join("")}</div>
+    ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">Cerca un comune per nome, oppure aprilo dalla sua provincia.</p>` : ""}
+    ${list.length ? `<ul class="t-list">${list.map(territoryRowHtml).join("")}</ul>` : territoryTab === "municipality" && !query ? "" : `<div class="empty">Nessun risultato${query ? ` per «${esc(query)}»` : ""}.</div>`}`;
+  const input = view.querySelector("#tq");
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => showTerritories(input.value.trim()).then(() => {
+      const again = view.querySelector("#tq");
+      again.focus();
+      again.setSelectionRange(again.value.length, again.value.length);
+    }), 250);
   });
+  view.querySelector("#territory-search").addEventListener("submit", (event) => { event.preventDefault(); clearTimeout(timer); showTerritories(input.value.trim()); });
+  view.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => { territoryTab = button.dataset.tab; showTerritories(query); }));
+  view.querySelectorAll(".t-review").forEach((form) => form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    const note = action === "rifiuta" ? form.reason.value : "";
+    try {
+      await api(`/coda/${form.dataset.reviewKind}/${form.dataset.reviewId}/${action}`, { method: "POST", body: action === "rifiuta" ? { note } : {} });
+      toast(action === "approva" ? "Pubblicato." : "Respinto.");
+      showTerritories(query);
+      refreshCount();
+    } catch (error) { toast(error.findings?.map((f) => f.message).join(" ") || error.message, true); }
+  }));
+}
+
+// --- Stemma e foto -----------------------------------------------------------
+// The browser shrinks the file first (so it fits the upload limit on any
+// connection); the server then checks, cleans and compresses it for its use.
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine non leggibile.")); };
+    img.src = url;
+  });
+}
+
+async function shrinkForUpload(img, { photo }) {
+  const maxSide = photo ? 2400 : 1024;
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext("2d");
+  if (photo) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const limit = 3_200_000; // characters of base64, under the 4 MB upload ceiling
+  if (!photo) {
+    const png = canvas.toDataURL("image/png");
+    if (png.length <= limit) return png;
+  }
+  for (const quality of [0.92, 0.85, 0.78, 0.7]) {
+    let data = canvas.toDataURL("image/webp", quality);
+    if (!data.startsWith("data:image/webp")) data = canvas.toDataURL("image/jpeg", quality);
+    if (data.length <= limit) return data;
+  }
+  throw new Error("L'immagine è troppo pesante anche dopo la compressione: usane una più piccola.");
+}
+
+function territoryImageDialog(slot, name, licenses) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "crop-dialog t-image-dialog";
+    const what = slot.photo ? "Foto" : "Stemma";
+    dialog.innerHTML = `<form method="dialog" class="stack">
+      <h2>${what}: ${esc(name)}</h2>
+      <p class="small muted">${slot.photo
+        ? "Una foto del luogo (piazza, municipio, panorama) di cui conosci autore e licenza, per esempio da Wikimedia Commons. Orizzontale, almeno 1600 pixel di larghezza: il sito la ottimizza da solo."
+        : "Lo stemma ufficiale: dal sito dell'ente o da Wikimedia Commons. Meglio PNG o SVG convertito con sfondo trasparente. Niente versioni ridisegnate."}</p>
+      <div class="field"><label for="ti-file">File <span class="hint">JPEG, PNG o WebP, anche grande</span></label><input id="ti-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
+      <div class="t-preview ${slot.photo ? "is-photo" : "is-logo"}" aria-live="polite"><span class="muted small">Anteprima</span></div>
+      <div class="field"><label for="ti-credit">${slot.photo ? "Autore" : "Titolare"}</label><input id="ti-credit" type="text" required maxlength="300" placeholder="${slot.photo ? "es. Mario Rossi / Wikimedia Commons" : "es. Comune di Bergamo"}" /></div>
+      <div class="field"><label for="ti-license">Licenza</label><select id="ti-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
+      <div class="field"><label for="ti-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="ti-source" type="url" required /></div>
+      <div class="actions"><button class="button button-primary" value="ok">Proponi</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+    </form>`;
+    document.body.append(dialog);
+    const preview = dialog.querySelector(".t-preview");
+    let picked = null;
+    dialog.querySelector("#ti-file").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      picked = null;
+      if (!file) return;
+      try {
+        const { img, url } = await loadImageFile(file);
+        const small = slot.photo && img.naturalWidth < 1200;
+        preview.innerHTML = `<img src="${url}" alt="Anteprima" /><span class="t-preview-meta small">${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(1)} MB${small ? " · <strong>piccola per una copertina</strong>" : ""}</span>`;
+        picked = img;
+      } catch (error) { toast(error.message, true); }
+    });
+    dialog.addEventListener("close", async () => {
+      const ok = dialog.returnValue === "ok";
+      if (ok && !picked) toast("Scegli prima il file.", true);
+      const result = ok && picked ? {
+        img: picked,
+        credit: dialog.querySelector("#ti-credit").value.trim(),
+        license: dialog.querySelector("#ti-license").value,
+        source_url: dialog.querySelector("#ti-source").value.trim(),
+      } : null;
+      dialog.remove();
+      resolve(result);
+    });
+    dialog.showModal();
+  });
+}
+
+async function territoryImagesCard(kind, base) {
+  const data = await api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`).catch(() => null);
+  if (!data) return "";
+  const slot = (item) => {
+    const current = item.symbol;
+    const pending = item.pending[0];
+    const img = pending ? pending.payload.image_url : current?.url;
+    return `<div class="t-slot ${item.photo ? "is-photo" : "is-logo"}">
+      <div class="t-slot-media">${img ? `<img src="${esc(img)}" alt="${esc(item.label)}" loading="lazy" />` : `<span class="muted small">Nessun${item.photo ? "a foto" : "o stemma"}</span>`}${pending ? `<span class="chip chip-pending t-slot-chip">Proposta</span>` : ""}</div>
+      <div class="t-slot-body">
+        <strong>${esc(item.label)}</strong>
+        <p class="small muted">${pending
+          ? `Proposta da ${esc(pending.created_by)} · ${esc(pending.payload.credit)} · ${esc(pending.payload.license_label)} · ${sourceLink({ url: pending.payload.source_url, name: "fonte" })}`
+          : current ? `${esc(current.credit)} · ${esc(current.license)}` : item.photo ? "In alto nella scheda pubblica." : "Nella scheda e negli elenchi."}</p>
+        ${pending ? reviewControls(pending) : `<button type="button" class="button button-secondary" data-slot="${esc(item.kind)}">${current ? "Sostituisci" : "Carica"} ${item.photo ? "foto" : "stemma"}</button>`}
+      </div>
+    </div>`;
+  };
+  return { html: `<section class="card" id="blocco-immagini"><div class="card-head"><h2>Stemma e foto</h2></div>
+      <div class="t-slots">${data.slots.map(slot).join("")}</div></section>`, data };
+}
+
+function bindTerritoryImages(kind, base, data) {
+  view.querySelectorAll("#blocco-immagini [data-slot]").forEach((button) => button.addEventListener("click", async () => {
+    const slot = data.slots.find((item) => item.kind === button.dataset.slot);
+    const proposal = await territoryImageDialog(slot, base.name, slot.photo ? data.photo_licenses : data.licenses);
+    if (!proposal) return;
+    button.disabled = true;
+    button.textContent = "Ottimizzo…";
+    try {
+      const upload = await shrinkForUpload(proposal.img, { photo: slot.photo });
+      const image = await api("/immagini", { method: "POST", body: { data: upload, purpose: slot.photo ? "photo" : "logo", credit: proposal.credit, alt: `${slot.label}: ${base.name}` } });
+      await api("/simboli", { method: "POST", body: { kind: slot.kind, key: base.key, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
+      toast(`Inviata per la verifica: ${image.width}×${image.height}, ${Math.max(1, Math.round(image.bytes / 1024))} KB${image.saved_percent ? ` (−${image.saved_percent}%)` : ""}.`);
+      showTerritoryScheda(kind, base.key, "blocco-immagini");
+      refreshCount();
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+      button.disabled = false;
+      button.textContent = `Carica ${slot.photo ? "foto" : "stemma"}`;
+    }
+  }));
+  view.querySelectorAll("#blocco-immagini [data-review]").forEach((form) => form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    try {
+      if (action === "approva") await api(`/coda/change/${form.dataset.review}/approva`, { method: "POST", body: {} });
+      else await api(`/coda/change/${form.dataset.review}/rifiuta`, { method: "POST", body: { note: form.reason.value } });
+      toast(action === "approva" ? "Approvato e pubblicato." : "Respinto.");
+      showTerritoryScheda(kind, base.key, "blocco-immagini");
+      refreshCount();
+    } catch (error) { toast(error.message, true); }
+  }));
+}
+
+// The comuni of a province, inside its scheda: every comune is one click away.
+async function provinceTownsCard(base) {
+  const towns = await publicJson(`/municipalities?province=${encodeURIComponent(base.key)}&limit=100`).then(async (first) => {
+    if (!first) return [];
+    const items = [...first.items];
+    for (let offset = 100; offset < (first.total || 0) && offset < 1000; offset += 100) {
+      const next = await publicJson(`/municipalities?province=${encodeURIComponent(base.key)}&limit=100&offset=${offset}`);
+      if (!next) break;
+      items.push(...next.items);
+    }
+    return items;
+  });
+  if (!towns.length) return "";
+  towns.sort((a, b) => a.name.localeCompare(b.name, "it"));
+  return `<section class="card" id="blocco-comuni"><div class="card-head"><h2>Comuni della provincia <span class="count">${towns.length}</span></h2></div>
+    <div class="field"><label for="town-filter">Filtra</label><input id="town-filter" type="search" autocomplete="off" placeholder="Nome del comune" /></div>
+    <ul class="t-towns">${towns.map((town) => `<li data-name="${esc(town.name.toLocaleLowerCase("it"))}"><a href="#/territori/municipality/${encodeURIComponent(town.id)}">${esc(town.name)}</a></li>`).join("")}</ul></section>`;
 }
 
 function territoryGuide(spec) {
@@ -2159,11 +2392,16 @@ async function showTerritoryScheda(kind, key, focus) {
     </section>`;
   }).join("");
   const newsNumber = s.definitions.length;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/territori">Territori</a></p><h1>${esc(base.title)}</h1></div>
+  const [images, towns] = await Promise.all([
+    territoryImagesCard(kind, base),
+    kind === "province" ? provinceTownsCard(base) : Promise.resolve(""),
+  ]);
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/territori">Territorio</a>${base.region && kind !== "region" ? ` · <a href="#/territori/region/${encodeURIComponent(base.region.id)}">${esc(base.region.name)}</a>` : ""}${base.province ? ` · <a href="#/territori/province/${encodeURIComponent(base.province.abbreviation)}">${esc(base.province.abbreviation)}</a>` : ""}</p><h1>${esc(base.title)}</h1></div>
       <div class="actions"><a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a></div></div>
     ${territoryProgress(s)}
     <div class="scheda-body">
       ${territoryBase(base)}
+      ${images ? images.html : ""}
       ${blocks}
       <section class="card" id="blocco-notizie"><div class="card-head"><h2><span class="block-number">${newsNumber}</span>${esc(s.news_title)}</h2><a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a></div>
         <p class="small muted" style="margin-top:0">2–4 sintesi recenti con il modello Notizia. Compaiono qui le notizie scritte per questo territorio.</p>
@@ -2173,7 +2411,14 @@ async function showTerritoryScheda(kind, key, focus) {
         <p class="small muted" style="margin-top:0">Si raccolgono da sole: la base ufficiale e le fonti di ogni blocco pubblicato.</p>
         ${sourcesList([base.source, ...s.definitions.flatMap((spec) => s.blocks[spec.key].published?.sources || [])])}
       </section>
+      ${towns}
     </div>`;
+  if (images) bindTerritoryImages(kind, base, images.data);
+  const townFilter = view.querySelector("#town-filter");
+  townFilter?.addEventListener("input", () => {
+    const q = townFilter.value.trim().toLocaleLowerCase("it");
+    view.querySelectorAll(".t-towns li").forEach((li) => { li.hidden = Boolean(q) && !li.dataset.name.includes(q); });
+  });
   view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
     event.preventDefault();
     document.getElementById(link.dataset.jump)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -2335,7 +2580,7 @@ async function showPoliticaAttuale(tab = "governo") {
   const extra = await Promise.all(added.map((key) => publicJson(`/politicians/${key.split(":")[1]}`)));
   for (const person of extra.filter(Boolean)) people.push(person);
   const panels = {
-    governo: `<p class="muted small">Chi compare nel Governo, con quale partito e in quale riga del grafico. Per aggiungere una persona, scegli il politico qui sotto.</p>
+    governo: `<p class="muted small">Il grafico del Governo è la prima scheda de «Il quadro» in Politica: più grande = ruolo più alto. Qui decidi chi compare, con quale partito e in quale riga del grafico. Per aggiungere una persona, scegli il politico qui sotto.</p>
       <form id="pa-add-gov" class="card add-row" role="search"><label for="pa-gov-q">Aggiungi al Governo</label>
         <div class="actions" style="margin-top:4px"><input id="pa-gov-q" type="search" placeholder="Nome del politico" style="flex:1 1 240px" autocomplete="off" /><button class="button button-secondary" type="submit">Cerca</button></div>
         <ul id="pa-gov-results" class="pa-results"></ul></form>

@@ -14,7 +14,22 @@ from backend.app.services import normalize_person_name
 from backend.app.services.redazione.service import RedazioneConflict, RedazioneService, RedazioneValidation
 
 NOW = datetime(2026, 11, 5, tzinfo=timezone.utc)
-JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64  # stand-in for a file already on disk
+
+
+def _real_jpeg(colour=(180, 40, 40)) -> bytes:
+    """A real photo for uploads: the server decodes and re-encodes every image."""
+
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (40, 50), colour).save(buffer, format="JPEG", quality=90)
+    return buffer.getvalue()
+
+
+PHOTO = _real_jpeg()
 
 
 def _person(factory, given: str, family: str, image_url: str | None = None) -> str:
@@ -52,7 +67,7 @@ def setup(tmp_path):
 
 
 def _propose_photo(service: RedazioneService, key: str, *, member: str = "Anna") -> int:
-    image = service.upload_image({"data": base64.b64encode(JPEG).decode(), "credit": "Mario Bianchi"}, member=member)
+    image = service.upload_image({"data": base64.b64encode(PHOTO).decode(), "credit": "Mario Bianchi", "purpose": "portrait"}, member=member)
     proposal = service.propose_symbol(
         {
             "kind": "politician", "key": key, "image_id": image["id"], "credit": "Mario Bianchi",
@@ -111,7 +126,8 @@ def test_the_redazione_uploads_a_photo_and_a_second_member_approves_it(setup):
         assert photo["url"].startswith("/media/")
         assert photo["license"] == "CC BY-SA"
         assert photo["origin"] == "Redazione VeraPolitica"
-        assert client.get(photo["url"]).content == JPEG
+        served = client.get(photo["url"])
+        assert served.headers["content-type"] in {"image/webp", "image/jpeg"} and served.content[:4] in {b"RIFF", b"\xff\xd8\xff\xe0"}
     listed = next(item for item in service.symbols()["politician"] if item["key"] == person)
     assert listed["symbol"]["approved_by"] == "Luca"
 
@@ -120,7 +136,7 @@ def test_a_photo_cannot_claim_the_coat_of_arms_licence(setup):
     _, factory, _ = setup
     person = _person(factory, "Giuseppe", "Conte")
     service = RedazioneService(factory)
-    image = service.upload_image({"data": base64.b64encode(JPEG).decode()}, member="Anna")
+    image = service.upload_image({"data": base64.b64encode(PHOTO).decode()}, member="Anna")
     with pytest.raises(RedazioneValidation):
         service.propose_symbol(
             {"kind": "politician", "key": person, "image_id": image["id"], "credit": "Camera",

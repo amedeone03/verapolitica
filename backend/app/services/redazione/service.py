@@ -47,6 +47,7 @@ from backend.app.models import (
     Municipality,
     Region,
     SYMBOL_KINDS,
+    TERRITORY_IMAGE_KINDS,
     PledgeAssessment,
     PledgeAssessmentDraft,
     PledgeAssessmentDraftStatus,
@@ -86,6 +87,7 @@ from backend.app.core.text import normalize_search_text
 from backend.app.services.matching_service import normalize_person_name
 from backend.app.schemas import ProposalObservation
 from backend.app.services import symbols as symbols_module
+from backend.app.services import images as images_module
 from backend.app.schemas.feed import Citation, EditorialPostRequest
 from backend.app.schemas.politician import PoliticianVersionProfile
 from backend.app.schemas.pledge import PledgeAssessmentProposal, PledgeClassificationRequest
@@ -1519,7 +1521,12 @@ class RedazioneService:
         "region": "Stemma della regione",
         "province": "Stemma della provincia",
         "politician": "Foto del politico",
+        "municipality": "Stemma del comune",
+        "region_photo": "Foto della regione",
+        "province_photo": "Foto della provincia",
+        "municipality_photo": "Foto del comune",
     }
+    PHOTO_KINDS = ("politician", "region_photo", "province_photo", "municipality_photo")
 
     @staticmethod
     def _provinces(session: Session) -> dict[str, dict]:
@@ -1559,6 +1566,57 @@ class RedazioneService:
                 for pid, given, family in rows
             }
         raise RedazioneValidation("Tipo di simbolo sconosciuto.")
+
+    def _symbol_target(self, session: Session, kind: str, key: str) -> dict | None:
+        """One target, without listing ~8,000 comuni for the territory kinds."""
+
+        if kind in ("region_photo",):
+            region = session.get(Region, int(key)) if key.isdigit() else None
+            return {"key": key, "name": region.canonical_name} if region else None
+        if kind == "province_photo":
+            return self._provinces(session).get(key)
+        if kind in ("municipality", "municipality_photo"):
+            town = session.get(Municipality, int(key)) if key.isdigit() else None
+            return {"key": key, "name": town.canonical_name} if town else None
+        return self._symbol_targets(session, kind).get(key)
+
+    def territory_images(self, kind: str, key: str) -> dict:
+        """Coat of arms and cover photo of one region, province or comune: approved and pending."""
+
+        slots = {
+            "region": (("region", "Stemma"), ("region_photo", "Foto")),
+            "province": (("province", "Stemma"), ("province_photo", "Foto")),
+            "municipality": (("municipality", "Stemma"), ("municipality_photo", "Foto")),
+        }.get(kind)
+        if slots is None:
+            raise RedazioneNotFound("Tipo di territorio sconosciuto.")
+        key = key.upper() if kind == "province" else key
+        with self.session_factory() as session:
+            result = []
+            for symbol_kind, label in slots:
+                if self._symbol_target(session, symbol_kind, key) is None:
+                    raise RedazioneNotFound("Territorio non trovato.")
+                approved = session.scalar(select(EditorialSymbol).where(EditorialSymbol.kind == symbol_kind, EditorialSymbol.key == key))
+                pending = [
+                    {"id": row.id, "created_by": row.created_by, "summary": row.summary, "payload": row.payload}
+                    for row in session.scalars(
+                        select(EditorialChangeRequest).where(
+                            EditorialChangeRequest.status == ChangeRequestStatus.PENDING,
+                            EditorialChangeRequest.kind == "simbolo",
+                            EditorialChangeRequest.target_kind == symbol_kind,
+                        ).order_by(EditorialChangeRequest.id)
+                    )
+                    if str(row.payload.get("key")) == key
+                ]
+                result.append({
+                    "kind": symbol_kind, "key": key, "label": label, "photo": symbol_kind in self.PHOTO_KINDS,
+                    "symbol": symbols_module.symbol_dict(approved), "pending": pending,
+                })
+            return {
+                "slots": result,
+                "licenses": [{"key": k, "label": v} for k, v in symbols_module.LICENSES.items()],
+                "photo_licenses": [{"key": k, "label": v} for k, v in symbols_module.licenses_for("politician").items()],
+            }
 
     def symbols(self) -> dict:
         """Parties, regions, provinces and politicians with their approved image and pending proposals."""
@@ -1604,28 +1662,28 @@ class RedazioneService:
         license_key = str(payload.get("license") or "")
         source_url = _clean(payload.get("source_url"))
         errors = {}
-        photo = kind == "politician"
+        photo = kind in self.PHOTO_KINDS
         what = "la foto" if photo else "il logo"
-        if kind not in SYMBOL_KINDS:
-            errors["kind"] = "Scegli partito, regione, provincia o politico."
+        if kind not in SYMBOL_KINDS and kind not in TERRITORY_IMAGE_KINDS:
+            errors["kind"] = "Scegli partito, regione, provincia, comune o politico."
         if not credit:
             errors["credit"] = f"Indica il titolare o l'autore del{'la foto' if photo else ' logo'}."
         if photo and not license_key:
             license_key = "nel-credito"
-        if license_key not in symbols_module.licenses_for(kind):
+        if license_key not in symbols_module.licenses_for("politician" if photo else kind):
             errors["license"] = f"Scegli la licenza con cui {what} può essere pubblicat{'a' if photo else 'o'}."
         if (source_url or not photo) and (not source_url.startswith("https://") or not urlsplit(source_url).netloc):
             errors["source_url"] = f"Indica la pagina https da cui proviene {what}."
         if errors:
             raise RedazioneValidation("Controlla i campi del logo.", [{"level": "error", "field": f, "message": m} for f, m in errors.items()])
         with self.session_factory.begin() as session:
-            targets = self._symbol_targets(session, kind)
-            if key not in targets:
-                raise RedazioneNotFound("Partito, regione o provincia non trovato.")
+            target = self._symbol_target(session, kind, key)
+            if target is None:
+                raise RedazioneNotFound("Partito, territorio o politico non trovato.")
             image = session.get(EditorialImage, int(payload.get("image_id") or 0))
             if image is None:
                 raise RedazioneValidation(f"Carica prima l'immagine del{'la foto' if photo else ' logo'}.")
-            name = targets[key]["name"]
+            name = target["name"]
             request = EditorialChangeRequest(
                 kind="simbolo",
                 target_kind=kind,
@@ -1773,37 +1831,43 @@ class RedazioneService:
             return {"id": request.id, "summary": request.summary}
 
     # ---------------------------------------------------------------- images
-    IMAGE_TYPES = {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "image/webp"}
-    MAX_IMAGE_BYTES = 400_000
+    MAX_IMAGE_BYTES = images_module.MAX_INPUT_BYTES
 
     def upload_image(self, payload: dict, *, member: str) -> dict:
-        """A square image for a feed card, cropped and resized by the console."""
+        """Any image the redazione publishes: checked, cleaned and compressed once.
+
+        ``purpose`` picks the size: card (feed portrait), portrait (politician),
+        logo (party, coat of arms) or photo (territory cover). See images.py.
+        """
 
         raw = str(payload.get("data") or "")
         if "," in raw and raw.startswith("data:"):
             raw = raw.split(",", 1)[1]
         try:
-            data = base64.b64decode(raw, validate=True)
+            original = base64.b64decode(raw, validate=True)
         except (ValueError, binascii.Error) as error:
             raise RedazioneValidation("Immagine non leggibile.") from error
-        if not data or len(data) > self.MAX_IMAGE_BYTES:
-            raise RedazioneValidation("L'immagine deve pesare meno di 400 KB.")
-        content_type = next((kind for magic, kind in self.IMAGE_TYPES.items() if data.startswith(magic)), None)
-        if content_type == "image/webp" and data[8:12] != b"WEBP":
-            content_type = None
-        if content_type is None:
-            raise RedazioneValidation("Formato non supportato: usa JPEG, PNG o WebP.")
+        purpose = str(payload.get("purpose") or images_module.DEFAULT_PURPOSE)
+        if purpose not in images_module.PURPOSES:
+            purpose = images_module.DEFAULT_PURPOSE
+        try:
+            optimized = images_module.optimize(original, purpose)
+        except images_module.ImageRejected as error:
+            raise RedazioneValidation(str(error)) from error
+        data = optimized.data
+        content_type = optimized.content_type
         digest = hashlib.sha256(data).hexdigest()
         with self.session_factory.begin() as session:
             existing = session.scalar(select(EditorialImage).where(EditorialImage.sha256 == digest))
             if existing is not None:
-                return {"id": existing.id, "url": f"/media/{existing.id}"}
+                return {"id": existing.id, "url": f"/media/{existing.id}", "width": existing.width, "height": existing.height,
+                        "bytes": len(existing.data), "saved_percent": optimized.saved_percent}
             image = EditorialImage(
                 content_type=content_type,
                 data=data,
                 sha256=digest,
-                width=int(payload["width"]) if str(payload.get("width") or "").isdigit() else None,
-                height=int(payload["height"]) if str(payload.get("height") or "").isdigit() else None,
+                width=optimized.width,
+                height=optimized.height,
                 alt=_clean(payload.get("alt"))[:300] or None,
                 credit=_clean(payload.get("credit"))[:300] or None,
                 uploaded_by=member,
@@ -1817,10 +1881,14 @@ class RedazioneService:
                 action="immagine",
                 object_kind="image",
                 object_id=image.id,
-                summary=f"Caricata un'immagine per le card del feed ({len(data) // 1024} KB).",
+                summary=(
+                    f"Caricata un'immagine ({images_module.PURPOSE_LABELS.get(purpose, purpose)}, {optimized.width}×{optimized.height}, "
+                    f"{max(1, len(data) // 1024)} KB, {optimized.saved_percent}% in meno dell'originale)."
+                ),
                 details={"credit": image.credit, "alt": image.alt},
             )
-            return {"id": image.id, "url": f"/media/{image.id}"}
+            return {"id": image.id, "url": f"/media/{image.id}", "width": optimized.width, "height": optimized.height,
+                    "bytes": len(data), "saved_percent": optimized.saved_percent}
 
     # ------------------------------------------------------- change requests
     def _change_requests(self, session: Session, *, politician_id: int | None = None, member: str) -> list[dict]:

@@ -62,7 +62,7 @@
 .vp-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .vp-person-text { display: grid; line-height: 1.25; min-width: 0; }
 .vp-person-text a, .vp-person-text strong { color: var(--vp-ink); font-weight: 700; font-size: .9375rem; text-decoration: none; }
-.vp-person-text a:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) { .vp-person-text a:hover { text-decoration: underline; } }
 .vp-person-text small { color: var(--vp-muted); font-size: .8125rem; }
 .vp-institution { margin: 0 0 6px; color: var(--vp-muted); font-size: .875rem; font-weight: 600; }
 .vp-title { margin: 6px 0 8px; font-family: var(--font-heading, "Inter", system-ui, sans-serif); font-size: 1.3125rem; font-weight: 800; line-height: 1.24; letter-spacing: -0.01em; overflow-wrap: anywhere; text-wrap: pretty; }
@@ -70,7 +70,7 @@
 .vp-card.is-feature .vp-title { font-size: 1.4375rem; }
 .vp-card.is-feature .vp-people { margin-bottom: 12px; }
 .vp-title a { color: var(--vp-ink); text-decoration: none; }
-.vp-title a:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) { .vp-title a:hover { text-decoration: underline; } }
 .vp-summary { margin: 0; font-size: 1rem; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
 .vp-summary.is-clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .vp-more { margin: 4px 0 0; padding: 0; min-height: 32px; border: 0; background: none; color: var(--vp-navy); font: 700 .9375rem var(--font-body, sans-serif); cursor: pointer; }
@@ -161,7 +161,7 @@
 
 /* Press feedback: on pointer-down, not on release. */
 .vp-pill, .vp-outline, .vp-more { transition: transform 120ms var(--vp-ease-out), background-color 150ms ease, border-color 150ms ease; }
-.vp-pill:active, .vp-outline:active, .vp-action:active { transform: scale(.96); }
+.vp-pill:active, .vp-outline:active, .vp-action:active { transform: scale(.97); }
 
 /* Reactions: tap for the heart, press and hold for the picker. */
 .vp-react-wrap { position: relative; }
@@ -213,7 +213,13 @@
   .vp-pill:active, .vp-outline:active, .vp-action:active, .vp-picker-item:active .vp-picker-emoji { transform: none; }
   .vp-card.is-entering { animation: vp-fade 200ms ease both; animation-delay: 0ms; }
   .vp-picker, .vp-picker.is-leaving, .vp-picker-item { transform: none; transition: opacity 150ms ease; transition-delay: 0ms; }
-  .vp-picker-item.is-hover .vp-picker-emoji, .vp-picker-item:hover .vp-picker-emoji { transform: none; }
+  .vp-picker-item.is-hover .vp-picker-emoji { transform: none; }
+@media (hover: hover) and (pointer: fine) { .vp-picker-item:hover .vp-picker-emoji { transform: none; } }
   .vp-react-emoji.is-popping, .vp-repost.is-turning .vp-icon { animation: none; }
 }
 
+
+/* Numbers that change keep their width; avatars get a hairline inner edge. */
+.vp-count, .vp-react-count, .vp-picker-count { font-variant-numeric: tabular-nums; }
+.vp-avatar { position: relative; }
+.vp-avatar:has(img)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); pointer-events: none; }

@@ -681,7 +681,6 @@ export function renderTrustBlock() {
   return `<section class="detail-card profile-block profile-trust" id="metodologia-profilo">
     <h2>Come vengono verificati questi dati?</h2>
     <p>VeraPolitica utilizza fonti pubbliche e documenti verificabili. Le valutazioni delle promesse vengono pubblicate solo dopo revisione.</p>
-    <a class="profile-link" href="./?view=methodology">Metodologia ${icon("arrowRight")}</a>
   </section>`;
 }
 
@@ -841,7 +840,7 @@ export function renderPromiseSummary(items, total) {
   const note = unrated === promises.length
     ? "Nessuna di queste promesse ha ancora una valutazione. Ogni valutazione cita un documento ufficiale ed è approvata da un secondo membro della redazione."
     : "Ogni valutazione cita un documento ufficiale ed è approvata da un secondo membro della redazione.";
-  return `<div class="block-head"><h2 id="proposal-summary-title">Come stanno le promesse</h2><a class="block-link" href="./?view=methodology">Il metodo</a></div>
+  return `<div class="block-head"><h2 id="proposal-summary-title">Come stanno le promesse</h2></div>
     <div class="proposal-summary-card">
       <p class="proposal-summary-count"><strong>${promises.length}</strong> ${promises.length === 1 ? "promessa" : "promesse"}${escapeHtml(scope)}</p>
       ${renderCompositionBar(entries)}
@@ -1027,15 +1026,14 @@ export function renderTerritoryFacts(t) {
   if (base.province) add("Provincia", `${base.province.name} (${base.province.abbreviation})`, `./?province=${encodeURIComponent(base.province.abbreviation)}`);
   add("Capoluogo", territoryFieldValue(rapida, "capoluogo"));
   add("Tipo", territoryFieldValue(rapida, "tipo"));
-  if (base.province_count) add("Province", String(base.province_count));
-  if (base.municipality_count) add("Comuni", base.municipality_count.toLocaleString("it-IT"));
   const people = territoryFieldValue(rapida, "popolazione") || territoryFieldValue(rapida, "abitanti");
   const year = territoryFieldValue(rapida, "popolazione_anno") || territoryFieldValue(rapida, "abitanti_anno");
   if (people) add(base.kind === "municipality" ? "Abitanti" : "Popolazione", `${people}${year ? ` (ISTAT, ${year})` : ""}`);
-  if (base.holder) add(base.holder.role, `${base.holder.name}${base.holder.since ? ` · dal ${formatDate(base.holder.since)}` : ""}`, base.holder.politician_id ? `./?politician=${encodeURIComponent(base.holder.politician_id)}` : null);
   add("Coalizione", territoryFieldValue(rapida, "coalizione"));
   add("Ultime elezioni", territoryFieldValue(rapida, "ultime_elezioni"));
   add("Prossime elezioni", territoryFieldValue(rapida, "prossime_elezioni"));
+  // Province and comuni counts live in the hero line; an empty grid is not drawn.
+  if (!facts.length && !rapida?.data?.note) return "";
   return `<dl class="territory-facts">${facts.map(([label, value, href]) => `<div><dt>${escapeHtml(label)}</dt><dd>${href ? `<a href="${escapeHtml(href)}">${escapeHtml(value)}</a>` : escapeHtml(value)}</dd></div>`).join("")}</dl>
     ${rapida?.data?.note ? `<p class="territory-note">${escapeHtml(rapida.data.note)}</p>` : ""}`;
 }
@@ -1056,6 +1054,92 @@ function territoryBlockBody(block) {
   return "";
 }
 
+// The top of a territory scheda, in the same family as a politician's profile:
+// a picture (the cover photo, or the coat of arms on a quiet panel), the coat
+// of arms as a badge, the name, a one-line summary and who governs it.
+const TERRITORY_COALITION_TONE = { centrosinistra: "#C2410C", centrodestra: "#1D4ED8", altro: "#047857" };
+
+function territoryMonogram(base) {
+  if (base.kind === "province") return base.key;
+  return String(base.name || "").replace(/[^\p{L}\s]/gu, "").split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+}
+
+export function renderTerritoryHolder(holder, { portrait = null } = {}) {
+  if (!holder) return "";
+  const photo = safeImageUrl(holder.photo_url) || portrait;
+  const href = holder.politician_id ? `./?politician=${encodeURIComponent(holder.politician_id)}` : null;
+  const inner = `<span class="t-holder-photo${photo ? " has-photo" : ""}">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(String(holder.name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase())}</span>`}</span>
+    <span class="t-holder-text"><small>${escapeHtml(holder.role)}</small><strong>${escapeHtml(holder.name)}</strong>${holder.since ? `<small>In carica dal ${escapeHtml(formatDate(holder.since))}</small>` : ""}</span>
+    ${href ? `<span class="t-holder-go" aria-hidden="true">${icon("arrowRight", { size: 18 })}</span>` : ""}`;
+  return href ? `<a class="t-holder" href="${href}">${inner}</a>` : `<div class="t-holder">${inner}</div>`;
+}
+
+export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = null } = {}) {
+  const base = t.base;
+  const images = t.images || {};
+  const photo = images.photo ? safeImageUrl(images.photo.url) : null;
+  const logo = images.logo ? safeImageUrl(images.logo.url) : null;
+  const rapida = t.blocks.find((block) => block.key === "rapida");
+  const coalitionKey = rapida?.data?.coalizione;
+  const coalition = territoryFieldValue(rapida, "coalizione");
+  const parts = [];
+  const capital = territoryFieldValue(rapida, "capoluogo");
+  if (capital) parts.push(`Capoluogo ${capital}`);
+  if (base.kind === "municipality" && base.province) parts.push(`${base.province.name} (${base.province.abbreviation})`);
+  if (base.province_count) parts.push(`${base.province_count} province`);
+  if (base.municipality_count) parts.push(`${base.municipality_count.toLocaleString("it-IT")} ${base.municipality_count === 1 ? "comune" : "comuni"}`);
+  const where = base.kind !== "region" && base.region ? base.region.name : "";
+  const credit = (item, label) => item ? `<p class="t-hero-credit">${label}: ${escapeHtml(item.credit)}${item.license ? ` · ${escapeHtml(item.license)}` : ""}${safeExternalUrl(item.source_url) ? ` · <a href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">fonte</a>` : ""}</p>` : "";
+  return `<header class="t-hero${photo ? " has-photo" : ""}">
+      <div class="t-hero-media">
+        ${photo
+          ? `<img class="t-hero-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(images.photo.credit ? `${base.name}. Foto: ${images.photo.credit}` : base.name)}" decoding="async" fetchpriority="high" />`
+          : `<span class="t-hero-pattern" aria-hidden="true"></span>`}
+        <span class="t-hero-badge${logo ? "" : " is-empty"}">${logo ? `<img src="${escapeHtml(logo)}" alt="Stemma: ${escapeHtml(base.name)}" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(territoryMonogram(base))}</span>`}</span>
+      </div>
+      <div class="t-hero-intro">
+        <p class="t-hero-eyebrow">${escapeHtml(eyebrow || KIND_EYEBROW[base.kind] || "")}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
+        <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
+        ${parts.length ? `<p class="t-hero-sub">${parts.map(escapeHtml).join('<span aria-hidden="true"> · </span>')}</p>` : ""}
+        ${coalition ? `<p class="t-hero-chips"><span class="t-chip" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#526570"}">${escapeHtml(coalition)}</span></p>` : ""}
+        ${renderTerritoryHolder(base.holder, { portrait })}
+      </div>
+      ${photo || logo ? `<div class="t-hero-credits">${credit(images.photo, "Foto")}${credit(images.logo, "Stemma")}</div>` : ""}
+    </header>`;
+}
+const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune" };
+
+// A list of comuni that stays usable with 1,500 names: a labelled filter, a
+// polite count, links in a grid.
+export function renderTownDirectory(towns, { id = "t-comuni", title = "Comuni", withProvince = false, footer = "" } = {}) {
+  const ordered = [...towns].sort((left, right) => left.name.localeCompare(right.name, "it"));
+  const filter = ordered.length > 12
+    ? `<div class="t-dir-filter"><label for="${id}-q">Cerca tra i ${ordered.length.toLocaleString("it-IT")} comuni</label><input id="${id}-q" type="search" autocomplete="off" placeholder="Nome del comune" aria-controls="${id}-list" aria-describedby="${id}-count" /><p id="${id}-count" class="t-dir-count" role="status"></p></div>`
+    : "";
+  return `<section class="territory-block" aria-labelledby="${id}-title"><h2 id="${id}-title">${escapeHtml(title)} <span class="t-count-pill">${ordered.length.toLocaleString("it-IT")}</span></h2>
+      ${filter}
+      ${ordered.length ? `<ul id="${id}-list" class="t-dir">${ordered.map((item) => `<li data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}"><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong>${withProvince ? `<small>${escapeHtml(item.province_abbreviation)}</small>` : item.current_mayor ? `<small>${escapeHtml(displayPersonName(item.current_mayor.given_name, item.current_mayor.family_name))}</small>` : ""}</a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune elencato.</p>`}
+      ${footer}
+    </section>`;
+}
+
+export function bindTownDirectory(root, id = "t-comuni") {
+  const field = root.querySelector(`#${id}-q`);
+  const items = [...root.querySelectorAll(`#${id}-list > li`)];
+  const count = root.querySelector(`#${id}-count`);
+  if (!field) return;
+  field.addEventListener("input", () => {
+    const q = field.value.trim().toLocaleLowerCase("it");
+    let shown = 0;
+    for (const item of items) {
+      const match = !q || item.dataset.name.includes(q);
+      item.hidden = !match;
+      if (match) shown += 1;
+    }
+    count.textContent = q ? (shown ? `${shown} ${shown === 1 ? "comune" : "comuni"}` : "Nessun comune con questo nome") : "";
+  });
+}
+
 export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "" } = {}) {
   const base = t.base;
   const written = t.blocks.filter((block) => block.key !== "rapida" && block.data);
@@ -1074,12 +1158,9 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
   const index = written.length > 1
     ? `<nav class="territory-index" aria-label="In questa scheda">${written.map((block) => `<a href="#t-${escapeHtml(block.key)}">${escapeHtml(block.title)}</a>`).join("")}<a href="#t-notizie">${escapeHtml(t.news_title)}</a></nav>`
     : "";
-  return `<header class="territory-hero">
-      ${eyebrow ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}
-      <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
-      ${renderTerritoryFacts(t)}
-      ${meta}
-    </header>
+  const portrait = base.holder?.politician_id ? resolvePortrait(base.holder.politician_id) : null;
+  return `${renderTerritoryHero(t, { eyebrow, titleId, portrait })}
+    <div class="territory-summary">${renderTerritoryFacts(t)}${meta}</div>
     ${index}
     ${sections}
     ${written.length < total ? `<p class="territory-pending">${written.length ? `La redazione sta completando questa scheda: ${written.length} di ${total} parti pubblicate.` : "La redazione non ha ancora scritto questa scheda: qui sopra ci sono solo i dati ufficiali."}</p>` : ""}
@@ -1161,7 +1242,7 @@ export function renderSources(citations) {
 }
 
 // ---------------------------------------------------------------------------
-// Commitment record ("detto / fatto"). Methodology: /methodology/scoring.
+// Commitment record ("detto / fatto").
 // Composition comes before the number, roles are never mixed, and the score is
 // withheld when too few commitments are closed.
 
@@ -1398,10 +1479,6 @@ export function renderScorecard(scorecard) {
   const pledges = scorecard.pledges || [];
   const counts = countPledgeVerdicts(pledges);
   return `<div class="scorecard">
-    <div class="method-note">
-      <p>Il punteggio conta solo le promesse concluse e si calcola separatamente per ciascun ruolo istituzionale, perché governo e opposizione hanno poteri molto diversi. Ogni valutazione cita un documento ufficiale.</p>
-      <a class="profile-link" href="./?view=methodology">Come funziona il punteggio ${icon("arrowRight")}</a>
-    </div>
     ${renderVerdictLegend()}
     ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
     <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
@@ -1416,7 +1493,7 @@ export function renderScorecard(scorecard) {
       <p class="pledge-filter-empty empty-note" hidden aria-live="polite">Nessuna promessa pubblicata con questo stato.</p>
     </div>
     ${scorecard.excluded_vague_pledges ? `<p class="empty-note">${scorecard.excluded_vague_pledges === 1 ? "1 promessa è troppo vaga da verificare ed è esclusa da ogni punteggio." : `${scorecard.excluded_vague_pledges} promesse sono troppo vaghe da verificare e sono escluse da ogni punteggio.`}</p>` : ""}
-    <p class="publication-meta">Metodologia ${escapeHtml(scorecard.methodology_version)} · Dati al ${escapeHtml(formatDate(scorecard.as_of))}</p>
+    <p class="publication-meta">Dati al ${escapeHtml(formatDate(scorecard.as_of))}</p>
   </div>`;
 }
 
@@ -1664,24 +1741,6 @@ function bindProfileMotion(root) {
   for (const node of root.querySelectorAll("[data-count-to]")) node.textContent = String(node.dataset.countTo);
 }
 
-export function renderMethodology(method) {
-  const rows = [
-    ["Formula", "(kept + ½ × partially_kept) ÷ closed. Invariata: pledge-score/v1."],
-    ["Etichette pubbliche", "Mantenuta (kept, conclusa), Mantenuta parzialmente (partially_kept, conclusa), In corso (in_progress, aperta), Iter bloccato (stalled, aperta), Non mantenuta (broken, conclusa), Non ancora valutata (not_yet_rated: nessuna valutazione pubblicata)."],
-    ["Denominatore", "Solo le promesse concluse entrano nel punteggio: kept, partially_kept, broken. Gli stati aperti (in_progress, stalled, not_yet_rated) sono elencati ma non conteggiati."],
-    ["Ruoli", "I punteggi si calcolano separatamente per governo monocolore, governo di coalizione e opposizione, e non vengono mai sommati o ordinati tra ruoli."],
-    ["Numeri piccoli", `Con meno di ${method.min_closed_for_rate} promesse concluse il punteggio non viene calcolato. Viene sempre mostrato un intervallo plausibile al ${percent(method.interval.level)}.`],
-    ["Promesse vaghe", "Le promesse troppo vaghe da verificare sono elencate ma escluse da ogni punteggio."],
-    ["Elementi di verifica", "Ogni valutazione cita un documento ufficiale parola per parola. Non mantenuta (broken) richiede due controlli editoriali indipendenti. Sul tabellone pubblico compaiono solo le valutazioni pubblicate."],
-  ];
-  return `<section class="detail-card">
-    <p class="eyebrow">Metodologia ${escapeHtml(method.version)}</p>
-    <h2>Come funziona il punteggio delle promesse</h2>
-    ${renderVerdictLegend()}
-    <dl class="facts">${rows.map(([label, value]) => fact(label, value)).join("")}</dl>
-  </section>`;
-}
-
 export function profileTopics(person, scorecard = null) {
   // Key topics come only from published content: position topics first, then pledge CAP topics.
   const topics = [];
@@ -1862,7 +1921,6 @@ export function createPublicApiClient(fetchImpl = fetch) {
     explainPledge: (id) => request(`/proposals/${encodeURIComponent(id)}/explanation`),
     ask: (question) => request("/ask", { method: "POST", body: { question } }),
     getPortraits: () => request("/portraits"),
-    getScoringMethodology: () => request("/methodology/scoring"),
     listProposals: (filters = {}) => {
       const params = new URLSearchParams({ offset: "0", limit: "50" });
       for (const [key, value] of Object.entries(filters)) if (value) params.set(key, String(value));
@@ -2238,22 +2296,28 @@ async function showRegionDetail(api, regionId) {
   byId("archive-view").hidden = true;
   byId("region-detail-view").hidden = false;
   try {
+    const portraitsReady = loadPortraits(api);
     const [region, municipalities, scheda] = await Promise.all([
       api.getRegion(regionId),
       listAllMunicipalities(api, regionId),
       api.getTerritory("region", regionId).catch(() => null),
     ]);
+    const regionBack = byId("region-detail-view").querySelector(".back-link");
+    if (regionBack && region.istat_code) regionBack.href = `./?view=territory&regione=${encodeURIComponent(region.istat_code)}`;
+    await portraitsReady;
     byId("region-detail-status").hidden = true;
     byId("region-detail").hidden = false;
     if (scheda) {
-      const ordered = [...municipalities].sort((left, right) => left.name.localeCompare(right.name, "it"));
       const provinces = scheda.base.provinces || [];
-      const extra = `${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province</h2>
-          <ul class="territory-links">${provinces.map((item) => `<li><a href="./?province=${encodeURIComponent(item.abbreviation)}"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></a></li>`).join("")}</ul></section>` : ""}
-        <section class="territory-block" aria-labelledby="t-comuni-title"><h2 id="t-comuni-title">Comuni</h2>
-          ${ordered.length ? `<ul class="territory-links is-compact">${ordered.map((item) => `<li><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.province_abbreviation)}</small></a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune è al momento elencato per questa regione.</p>`}
-          <p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p></section>`;
+      const logos = new Map((await api.listProvinces(region.id).catch(() => ({ items: [] }))).items.map((item) => [item.abbreviation, safeImageUrl(item.logo_url)]));
+      const extra = `${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province <span class="t-count-pill">${provinces.length}</span></h2>
+          <ul class="t-cards">${provinces.map((item) => `<li><a href="./?province=${encodeURIComponent(item.abbreviation)}">
+            <span class="t-card-logo${logos.get(item.abbreviation) ? "" : " is-empty"}">${logos.get(item.abbreviation) ? `<img src="${escapeHtml(logos.get(item.abbreviation))}" alt="" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(item.abbreviation)}</span>`}</span>
+            <span class="t-card-text"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></span>
+            <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>` : ""}
+        ${renderTownDirectory(municipalities, { withProvince: true, footer: `<p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>` })}`;
       byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Regione", titleId: "region-detail-title", extra });
+      bindTownDirectory(byId("region-detail"));
       renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true });
     } else {
       byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
@@ -2804,10 +2868,14 @@ async function showMunicipalityDetail(api, municipalityId) {
   byId("archive-view").hidden = true;
   byId("municipality-detail-view").hidden = false;
   try {
+    const portraitsReady = loadPortraits(api);
     const [municipality, scheda] = await Promise.all([
       api.getMunicipality(municipalityId),
       api.getTerritory("municipality", municipalityId).catch(() => null),
     ]);
+    const townBack = byId("municipality-detail-view").querySelector(".back-link");
+    if (townBack && municipality.province_abbreviation) townBack.href = `./?view=territory&provincia=${encodeURIComponent(municipality.province_abbreviation)}`;
+    await portraitsReady;
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
     if (scheda) {
@@ -2962,19 +3030,6 @@ async function showGlossary(api, slug) {
   } catch {
     byId("glossary-count").textContent = "Non disponibile";
     showState(byId("glossary-status"), "Non è stato possibile caricare il glossario.", PUBLIC_UNAVAILABLE, true);
-  }
-}
-
-async function showMethodology(api) {
-  byId("archive-view").hidden = true;
-  byId("methodology-view").hidden = false;
-  try {
-    const method = await api.getScoringMethodology();
-    byId("methodology-status").hidden = true;
-    byId("methodology-detail").hidden = false;
-    byId("methodology-detail").innerHTML = renderMethodology(method);
-  } catch {
-    showState(byId("methodology-status"), "Non è stato possibile caricare la metodologia.", PUBLIC_UNAVAILABLE, true);
   }
 }
 
@@ -3250,17 +3305,17 @@ document.addEventListener("touchstart", () => {}, { passive: true });
 // Section tabs: Home, Politica, Archivio, Profilo.
 const SECTION_BY_VIEW = {
   politics: "politics", politicians: "politics", proposals: "politics", compare: "politics",
-  methodology: "politics", ask: "politics", search: "search",
+  ask: "politics", search: "search",
   history: "history", parliamentarians: "history", "referendum-archive": "history",
-  provinces: "politics", regions: "politics", municipalities: "politics",
+  territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory",
   profile: "profile",
 };
 
 export function sectionFor(params) {
   const view = params.get("view");
   if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
-  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")
-    || params.get("province") || params.get("region") || params.get("municipality")) return "politics";
+  if (params.get("province") || params.get("region") || params.get("municipality")) return "territory";
+  if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")) return "politics";
   if (params.get("legislature") || params.get("history_region") || params.get("history_province")) return "history";
   return "home";
 }
@@ -3275,11 +3330,11 @@ function markSection(section) {
 // Mobile menu: a modal dialog with focus trap, Escape, scroll lock and focus return.
 
 const VIEW_DESCRIPTIONS = {
-  politics: "Partiti, politici e proposte, con promesse valutate secondo un metodo pubblico.",
+  politics: "Governo, Parlamento e partiti: chi governa e cosa ha promesso.",
+  territory: "La mappa di regioni e province: chi governa, i comuni e le notizie del territorio.",
   history: "Legislature dal 1946, parlamentari, referendum e territori, con fonti ufficiali.",
   profile: "La tua zona e i tuoi politici preferiti, salvati solo su questo dispositivo.",
   proposals: "Proposte di legge e promesse esplicite verificate, con la cronologia ufficiale.",
-  methodology: "Come VeraPolitica valuta le promesse: formula, intervalli e revisione editoriale.",
   referendums: "Referendum e consultazioni con quesiti ufficiali e date.",
 };
 
@@ -3735,7 +3790,7 @@ export function renderPersonBubble(person) {
 }
 
 // ---------------------------------------------------------------------------
-// «Il quadro»: Regioni, Camera, Senato as a hemicycle, a summary bar and a list.
+// «Il quadro»: Governo, then Camera and Senato as a hemicycle, a summary bar and a list.
 // Regions are coloured by the coalition of their president as the redazione
 // published it (the official results are the source); a region still to be
 // filled in is dashed, never guessed. Seats come from the official group
@@ -3747,7 +3802,8 @@ const GROUP_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#00
 // Seat positions on concentric arcs, left to right: the classic parliament chart.
 export function hemicycle(count, { rows, inner = 0.45, width = 400 } = {}) {
   if (!count) return { seats: [], radius: 0 };
-  const lines = rows || (count <= 30 ? 4 : count <= 250 ? 8 : 12);
+  // Never more rows than seats, or the balancing loop below cannot finish.
+  const lines = Math.min(count, rows || (count <= 30 ? 4 : count <= 250 ? 8 : 12));
   const outer = width / 2 - 12;
   const radii = Array.from({ length: lines }, (_, index) => outer * (inner + ((1 - inner) * index) / Math.max(1, lines - 1)));
   const total = radii.reduce((sum, value) => sum + value, 0);
@@ -3850,17 +3906,17 @@ async function renderQuadro(api) {
   const tabs = byId("quadro-tabs");
   const panel = byId("quadro-panel");
   if (!tabs || !panel) return;
-  const [regions, parliament, edits] = await Promise.all([
-    api.getRegionsOverview().catch(() => null),
+  const [parliament, edits] = await Promise.all([
     api.getParliament().catch(() => null),
     (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
   ]);
   const texts = edits?.items || {};
-  if (regions && texts["text:regions_caption"]?.body) regions.caption = texts["text:regions_caption"].body;
   for (const name of ["camera", "senato"]) if (parliament?.[name] && texts[`text:${name}_caption`]?.body) parliament[name].caption = texts[`text:${name}_caption`].body;
-  const names = ["regioni", "camera", "senato"];
+  // «Governo» is its own panel (faces and composition stay painted); Camera
+  // and Senato share one panel that is redrawn on each switch.
+  const governo = byId("quadro-governo");
+  const names = ["governo", "camera", "senato"];
   const render = (name) => {
-    if (name === "regioni") return regions?.items?.length ? renderRegionsQuadro(regions) : `<p class="empty-note">Le regioni non sono ancora disponibili.</p>`;
     return parliament ? renderChamberQuadro(parliament[name]) : `<p class="empty-note">La composizione del Parlamento non è disponibile al momento.</p>`;
   };
   const show = (name, { focus = false } = {}) => {
@@ -3871,6 +3927,11 @@ async function renderQuadro(api) {
       button.tabIndex = active ? 0 : -1;
       if (active && focus) button.focus();
     }
+    const isGoverno = name === "governo";
+    if (governo) governo.hidden = !isGoverno;
+    panel.hidden = isGoverno;
+    if (isGoverno) return;
+    for (const button of tabs.querySelectorAll("[data-quadro]")) if (button.dataset.quadro !== "governo") button.setAttribute("aria-controls", "quadro-panel");
     panel.setAttribute("aria-labelledby", `quadro-tab-${name}`);
     panel.innerHTML = render(name);
     panel.removeAttribute("aria-busy");
@@ -3901,7 +3962,7 @@ async function renderQuadro(api) {
   }
   panel.addEventListener("focusin", focusGroup);
   panel.addEventListener("focusout", () => focusGroup({ target: null }));
-  show("regioni");
+  show("governo");
 }
 
 // ---------------------------------------------------------------------------
@@ -4029,7 +4090,8 @@ export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {
     let lastWidth = cloud.clientWidth;
     if (typeof ResizeObserver === "function") {
       new ResizeObserver(() => {
-        if (Math.abs(cloud.clientWidth - lastWidth) < 8) return;
+        // A hidden tab has no width: keep the last layout until it shows again.
+        if (!cloud.clientWidth || Math.abs(cloud.clientWidth - lastWidth) < 8) return;
         lastWidth = cloud.clientWidth;
         renderAuthorityCloud(cloud, government);
         const focus = byId("government-chart")?.dataset.focus;
@@ -4039,7 +4101,7 @@ export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {
     return "governo";
   }
   if (featured.length) {
-    if (title) title.textContent = "Profili pubblicati";
+    if (title) { title.textContent = "Profili pubblicati"; title.classList.remove("visually-hidden"); }
     if (note) { note.hidden = false; note.textContent = FEATURED_NOTE; }
     cloud.className = "people-row";
     cloud.innerHTML = featured.map(renderPersonBubble).join("");
@@ -4118,77 +4180,80 @@ async function showPolitics(api) {
   }).catch(() => {
     byId("party-list").innerHTML = `<li class="row-empty">Non è stato possibile caricare i partiti.</li>`;
   }).finally(() => byId("party-list").removeAttribute("aria-busy"));
-  await Promise.all([people, parties, renderQuadro(api), renderMyZone(api, byId("my-zone")), Promise.resolve(bindTerritoryFind(api))]);
+  await Promise.all([people, parties, renderQuadro(api)]);
 }
 
-function zoneHolderRow(holder, role) {
-  return `<li class="zone-holder">${officeHolderPhoto(holder)}<span><small>${escapeHtml(role)}</small><strong>${holderLabel(holder)}</strong></span></li>`;
+// «Territorio» — the comuni of a province inside the map sheet: a labelled
+// filter, a polite count, the first few shown and «Mostra tutti».
+const TOWNS_SHOWN = 12;
+
+export function renderTownFilter(towns) {
+  const rows = towns.map((town, index) => {
+    const mayor = town.current_mayor ? displayPersonName(town.current_mayor.given_name, town.current_mayor.family_name) : "";
+    return `<li data-name="${escapeHtml(town.name.toLocaleLowerCase("it"))}"${index >= TOWNS_SHOWN ? " hidden" : ""}><a href="./?municipality=${encodeURIComponent(town.id)}"><strong>${escapeHtml(town.name)}</strong><small>${mayor ? `Sindaco: ${escapeHtml(mayor)}` : "Sindaco non collegato"}</small></a></li>`;
+  }).join("");
+  return `<div class="tmap-towns-head"><label for="tmap-town-q">Comuni <span>${towns.length}</span></label>
+      <input id="tmap-town-q" type="search" autocomplete="off" placeholder="Filtra per nome" aria-controls="tmap-towns" aria-describedby="tmap-town-count" /></div>
+    <p id="tmap-town-count" class="tmap-count" role="status">${towns.length > TOWNS_SHOWN ? `Primi ${TOWNS_SHOWN} di ${towns.length}.` : `${towns.length} comuni.`}</p>
+    <ul id="tmap-towns" class="tmap-towns">${rows}</ul>
+    ${towns.length > TOWNS_SHOWN ? `<button type="button" class="tmap-secondary" data-towns-all>Mostra tutti i ${towns.length} comuni</button>` : ""}`;
 }
 
-export function renderZoneCard(zone, { municipality = null, region = null } = {}) {
-  if (!zone) {
-    return `<p><strong>La tua zona</strong></p>
-      <p class="zone-copy">Scegli il comune: qui vedrai sindaco, presidente di regione e le notizie del territorio. La scelta resta su questo dispositivo.</p>
-      <a class="zone-cta" href="./?view=profile">Scegli la zona</a>`;
-  }
-  const holders = [];
-  if (municipality?.current_mayor) holders.push(zoneHolderRow(municipality.current_mayor, `Sindaco di ${zone.municipality_name || "comune"}`));
-  if (region?.current_president) holders.push(zoneHolderRow(region.current_president, `Presidente ${zone.region_name ? `della regione ${zone.region_name}` : "di regione"}`));
-  const links = [
-    zone.municipality_id ? [`./?municipality=${encodeURIComponent(zone.municipality_id)}`, "Comune"] : null,
-    zone.province ? [`./?province=${encodeURIComponent(zone.province)}`, "Provincia"] : null,
-    zone.region_id ? [`./?region=${encodeURIComponent(zone.region_id)}`, "Regione"] : null,
-  ].filter(Boolean);
-  return `<p class="zone-label"><small>La tua zona</small><strong>${escapeHtml(zoneLabel(zone))}</strong></p>
-    ${holders.length ? `<ul class="zone-holders">${holders.join("")}</ul>` : `<p class="zone-copy">Sindaco e presidente non sono ancora collegati a una scheda pubblicata.</p>`}
-    <div class="favorite-chips">${links.map(([href, label]) => `<a class="topic-chip" href="${escapeHtml(href)}">${label}</a>`).join("")}</div>`;
-}
-
-async function renderMyZone(api, container) {
-  const zone = loadReaderProfile().zone;
-  byId("zone-change").hidden = !zone;
-  try {
-    const [municipality, region] = await Promise.all([
-      zone?.municipality_id ? api.getMunicipality(zone.municipality_id).catch(() => null) : null,
-      zone?.region_id ? api.getRegion(zone.region_id).catch(() => null) : null,
-    ]);
-    container.innerHTML = renderZoneCard(zone, { municipality, region });
-  } finally {
-    container.removeAttribute("aria-busy");
-  }
-}
-
-function bindTerritoryFind(api) {
-  const field = byId("territory-q");
-  const list = byId("territory-results");
-  let timer = null;
-  let controller = null;
-  field.addEventListener("input", () => {
-    clearTimeout(timer);
-    const q = field.value.trim();
-    if (q.length < 2) {
-      list.hidden = true;
-      list.innerHTML = "";
-      return;
+export function bindTownFilter(container) {
+  const field = container.querySelector("#tmap-town-q");
+  const list = container.querySelector("#tmap-towns");
+  const count = container.querySelector("#tmap-town-count");
+  const more = container.querySelector("[data-towns-all]");
+  if (!field || !list) return;
+  const items = [...list.children];
+  let all = false;
+  const apply = () => {
+    const q = field.value.trim().toLocaleLowerCase("it");
+    let shown = 0;
+    let matches = 0;
+    for (const item of items) {
+      const match = !q || item.dataset.name.includes(q);
+      if (match) matches += 1;
+      const visible = match && (all || q || shown < TOWNS_SHOWN);
+      if (visible) shown += 1;
+      item.hidden = !visible;
     }
-    timer = setTimeout(async () => {
-      controller?.abort();
-      controller = new AbortController();
-      try {
-        const payload = await api.search({ q, type: "municipality", limit: 6, signal: controller.signal });
-        const items = (payload.items || []).filter((item) => item.metadata?.id);
-        list.innerHTML = items.length
-          ? items.map((item) => `<li><a class="row-link" href="./?municipality=${encodeURIComponent(item.metadata.id)}"><span class="row-icon" aria-hidden="true">${icon("mapPin", { size: 18 })}</span><span class="row-text"><strong>${escapeHtml(item.title)}</strong>${item.subtitle ? `<small>${escapeHtml(item.subtitle)}</small>` : ""}</span><span class="row-chevron" aria-hidden="true">${icon("chevronRight", { size: 18 })}</span></a></li>`).join("")
-          : `<li class="row-empty">Nessun comune trovato.</li>`;
-        list.hidden = false;
-      } catch (error) {
-        if (error?.name !== "AbortError") {
-          list.innerHTML = `<li class="row-empty">Ricerca non disponibile.</li>`;
-          list.hidden = false;
-        }
-      }
-    }, 220);
-  });
+    if (more) more.hidden = Boolean(q) || all || matches <= TOWNS_SHOWN;
+    count.textContent = q
+      ? (matches ? `${matches} ${matches === 1 ? "comune trovato" : "comuni trovati"}.` : "Nessun comune con questo nome.")
+      : (shown < matches ? `Primi ${shown} di ${matches}.` : `${matches} comuni.`);
+  };
+  field.addEventListener("input", apply);
+  more?.addEventListener("click", () => { all = true; apply(); field.focus(); });
+}
+
+async function showTerritory(api) {
+  const view = byId("territory-view");
+  view.hidden = false;
+  document.body.classList.add("is-map");
+  document.title = "Territorio — VeraPolitica";
+  const [, edits] = await Promise.all([
+    loadPortraits(api).catch(() => null),
+    (api.getPoliticsEdits ? api.getPoliticsEdits() : Promise.resolve(null)).catch(() => null),
+  ]);
+  // The redazione's caption for the regions (Politica attuale → Testi).
+  const texts = edits?.items || {};
+  try {
+    const { mountTerritoryMap } = await import("./territory-map.js");
+    await mountTerritoryMap({
+      caption: texts["text:regions_caption"]?.body || "",
+      api,
+      root: byId("tmap"),
+      escapeHtml,
+      portrait: resolvePortrait,
+      coalitionColor: COALITION_COLOR,
+      zone: loadReaderProfile().zone,
+      towns: { render: (item, list) => renderTownFilter(list), bind: bindTownFilter },
+    });
+  } catch {
+    byId("tmap-sheet-body").innerHTML = `<p class="tmap-note">Il territorio non è disponibile al momento. <a href="./?view=regions">Vai all'elenco delle regioni</a>.</p>`;
+    byId("tmap-sheet-body").removeAttribute("aria-busy");
+  }
 }
 
 function renderMemberList(members, emptyText) {
@@ -4200,10 +4265,7 @@ export function renderPartyScorecard(card) {
   const contributors = card.contributors.length
     ? `<p class="empty-note">Promesse dei membri incluse: ${card.contributors.map((item) => `<a href="./?politician=${encodeURIComponent(item.politician_id)}">${escapeHtml(item.name)}</a> (${item.pledges})`).join(", ")}.</p>`
     : "";
-  return `<div class="method-note party-method">
-      <p>Il punteggio del partito <strong>non è una media dei punteggi dei suoi esponenti</strong>: somma le promesse del partito e quelle dei membri iscritti alla data della promessa, poi applica lo stesso metodo, ruolo per ruolo.</p>
-    </div>
-    ${renderScorecard(card)}
+  return `${renderScorecard(card)}
     ${contributors}
     ${card.unattributed_member_pledges ? `<p class="empty-note">${card.unattributed_member_pledges} promesse di membri non hanno una data utilizzabile e non sono attribuite.</p>` : ""}`;
 }
@@ -4256,7 +4318,7 @@ export function renderComparison(result) {
   const overlap = result.overlapping_intervals
     ? `<p class="method-note">Gli intervalli plausibili si sovrappongono: con i dati attuali la differenza tra queste persone <strong>non è distinguibile</strong> dal caso.</p>`
     : "";
-  return `${overlap}<div class="compare-grid">${rows}</div><p class="publication-meta">Ruolo: ${escapeHtml(ROLE_LABELS[result.role] || result.role)} · Metodologia ${escapeHtml(result.methodology_version)} · Dati al ${escapeHtml(formatDate(result.as_of))}</p>`;
+  return `${overlap}<div class="compare-grid">${rows}</div><p class="publication-meta">Ruolo: ${escapeHtml(ROLE_LABELS[result.role] || result.role)} · Dati al ${escapeHtml(formatDate(result.as_of))}</p>`;
 }
 
 async function showCompare(api) {
@@ -4487,23 +4549,20 @@ async function showTerritoryHistory(api, { province = null, regionId = null }) {
 async function showProvinceDetail(api, code) {
   byId("province-detail-view").hidden = false;
   try {
+    const portraitsReady = loadPortraits(api);
     const [scheda, towns] = await Promise.all([
       api.getTerritory("province", code),
       api.listMunicipalitiesInProvince(code).catch(() => []),
     ]);
     const base = scheda.base;
-    const back = byId("province-back");
-    if (base.region) {
-      back.href = `./?region=${encodeURIComponent(base.region.id)}`;
-      back.lastChild.textContent = ` ${base.region.name}`;
-    }
-    const ordered = [...towns].sort((left, right) => left.name.localeCompare(right.name, "it"));
-    const extra = `<section class="territory-block" aria-labelledby="t-comuni-title"><h2 id="t-comuni-title">Comuni</h2>
-        ${ordered.length ? `<ul class="territory-links is-compact">${ordered.map((item) => `<li><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong></a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune elencato.</p>`}
-        <p><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p></section>`;
+    // Back to the map, on this province.
+    byId("province-back").href = `./?view=territory&provincia=${encodeURIComponent(base.key)}`;
+    await portraitsReady;
+    const extra = renderTownDirectory(towns, { footer: `<p><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>` });
     byId("province-detail-status").hidden = true;
     byId("province-detail").hidden = false;
     byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });
+    bindTownDirectory(byId("province-detail"));
     renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true });
     document.title = `${base.title} — VeraPolitica`;
   } catch (error) {
@@ -4739,6 +4798,8 @@ const provinceCode = params.get("province");
 const historyRegionId = params.get("history_region");
 const postId = params.get("post");
 const view = params.get("view");
+// The public scoring page was removed: old links land on Politica.
+if (view === "methodology") window.location.replace("./?view=politics");
 const municipalityOffset = Number.parseInt(params.get("offset") || "0", 10);
 const isId = (value) => Boolean(value) && /^\d+$/.test(value);
 markSection(sectionFor(params));
@@ -4788,6 +4849,8 @@ async function start() {
   showProvinceDetail(api, provinceCode.toUpperCase());
 } else if (params.get("history_province") && /^[A-Za-z]{2}$/.test(params.get("history_province"))) {
   showTerritoryHistory(api, { province: params.get("history_province").toUpperCase() });
+} else if (view === "territory") {
+  showTerritory(api);
 } else if (view === "politics") {
   showPolitics(api);
 } else if (view === "politicians") {
@@ -4816,8 +4879,6 @@ async function start() {
   showRegions(api);
 } else if (view === "municipalities") {
   showMunicipalities(api, Number.isFinite(municipalityOffset) ? municipalityOffset : 0);
-} else if (view === "methodology") {
-  showMethodology(api);
 } else if (view === "ask") {
   showAsk(api);
   } else if (view === "search") {

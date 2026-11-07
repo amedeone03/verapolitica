@@ -102,7 +102,8 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "Nessun risultato per «" in script.text
     assert "Caricamento delle promesse" in script.text
     assert "Presentata" in script.text
-    assert "Come funziona il punteggio delle promesse" in script.text
+    # The public scoring page was removed everywhere.
+    assert "Come funziona il punteggio" not in script.text and "Come si calcola" not in archive.text
     assert "Know who represents you" not in archive.text
     assert "Loading verified profiles" not in archive.text
     assert "Current office" not in script.text
@@ -122,7 +123,7 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert ".pledge-summary-grid" in styles.text
     assert ".pledge-distribution" in styles.text
     assert ".pledge-item .verdict-chip" in styles.text
-    assert "view=methodology" in archive.text
+    assert "view=methodology" not in archive.text
     assert "view=ask" in archive.text
     assert "Chiedi a VeraPolitica" in archive.text
     assert "Es. Quali promesse di Giorgia Meloni sono ancora in corso?" in archive.text

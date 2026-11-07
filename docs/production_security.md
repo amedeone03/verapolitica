@@ -107,6 +107,22 @@ In-process (per gunicorn worker, **not** a cluster-wide limiter):
 **Reverse proxy must rate-limit** public GET traffic and cap
 `client_max_body_size` (for example 1m). Do not add Redis for this milestone.
 
+Image uploads from the redazione console (`POST /redazione/api/immagini`) have
+their own ceiling, `VERAPOLITICA_MAX_IMAGE_UPLOAD_BYTES` (default 4 MiB). The
+console shrinks every file in the browser before sending (photos to 2400 px,
+logos to 1024 px) so most uploads stay well under 1 MiB; to accept the rest,
+give that one location a matching proxy limit:
+
+```nginx
+location = /redazione/api/immagini { client_max_body_size 4m; proxy_pass http://app; }
+```
+
+The server then decodes the file with Pillow (refusing non-images and
+decompression bombs), applies the camera orientation, drops all metadata
+(including GPS), resizes it for its use and stores it as WebP
+(`backend/app/services/images.py`). `/media/{id}` serves the stored bytes with
+a one-year immutable cache, so the CPU cost is paid once per upload.
+
 Admin POST bodies are still attacker-usable **after** the bearer token is
 stolen; keep the key off the citizen UI.
 

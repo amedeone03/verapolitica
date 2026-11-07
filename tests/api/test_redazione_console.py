@@ -482,7 +482,8 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     assert image.status_code == 200, image.text
     image_id = image.json()["id"]
     media = client.get(image.json()["url"])
-    assert media.status_code == 200 and media.headers["content-type"] == "image/png"
+    # Every upload is re-encoded by the server (images.py): smallest of WebP and the clean original.
+    assert media.status_code == 200 and media.headers["content-type"] in {"image/webp", "image/png"}
     assert "immutable" in media.headers["cache-control"]
     options = client.get("/redazione/api/card", headers=ANNA).json()
     assert {item["key"] for item in options["categories"]} >= {

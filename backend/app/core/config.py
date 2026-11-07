@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
     forwarded_allow_ips: str = ""
     max_request_body_bytes: int = Field(default=1_048_576, ge=65_536, le=52_428_800)
+    # Redazione image uploads only (/redazione/api/immagini): the console already
+    # shrinks files before sending; the server compresses them again (images.py).
+    max_image_upload_bytes: int = Field(default=4_194_304, ge=65_536, le=16_777_216)
     log_format: str = ""
     log_level: str = "INFO"
     enable_demo_ui: bool | None = None
