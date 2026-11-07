@@ -121,7 +121,7 @@ def test_proposals_section_layout() -> None:
     for marker in ("renderProposalState(proposal)", "Le parole esatte", "Chi l'ha promesso", "Cronologia", "Fonti ufficiali"):
         assert marker in detail
     assert 'bindExplainPledges(byId("proposal-detail"), api)' in script
-    assert ".proposals-tabs a:active { transform: scale(.95); }" in css
+    assert ".proposals-tabs a:active { transform: scale(.97); }" in css
 
 
 def test_government_cloud_sizes_by_institutional_role() -> None:
