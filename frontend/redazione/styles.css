@@ -572,26 +572,15 @@ details.block-help[open] > summary { margin-bottom: 8px; }
 a, button, summary { -webkit-tap-highlight-color: transparent; }
 
 /* ------------------------------------------------------------------ Territorio
-   A simple, scannable dashboard: four numbers, one search, three tabs, rows
-   that say coat of arms · photo · blocks at a glance. */
-.t-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
-@media (max-width: 720px) { .t-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.t-stats > div { display: grid; gap: 2px; padding: 14px 16px; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border); }
-.t-stats b { color: var(--color-primary); font-size: 1.5rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.t-stats b small { color: var(--color-text-muted); font-size: .875rem; font-weight: 600; }
-.t-stats span { color: var(--color-text-muted); font-size: .8125rem; }
-.t-stats .is-alert b { color: var(--color-warning); }
+   As simple as possible: what waits for verification, one search, three
+   tabs, rows with coat of arms, name and the state of the scheda. */
 .t-search { display: flex; gap: 8px; margin: 0 0 12px; }
 .t-search input { flex: 1; min-height: 46px; padding: 0 14px; border-radius: 10px; font-size: 1rem; }
-.t-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
 .t-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #EDF1EF; }
 .t-tabs button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--color-text-muted); font: 600 .875rem var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 150ms ease, color 150ms ease, transform 120ms cubic-bezier(.23, 1, .32, 1); }
-.t-tabs button[aria-selected="true"] { background: #fff; color: var(--color-primary); box-shadow: 0 1px 2px rgba(15, 39, 71, .08), 0 0 0 1px rgba(15, 39, 71, .04); }
+.t-tabs button[aria-pressed="true"] { background: #fff; color: var(--color-primary); box-shadow: 0 1px 2px rgba(15, 39, 71, .08), 0 0 0 1px rgba(15, 39, 71, .04); }
 .t-tabs button:active { transform: scale(.97); }
 .t-tabs button:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 1px; }
-.t-tab-count { margin-left: 4px; font-variant-numeric: tabular-nums; opacity: .7; }
-.t-missing { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; color: var(--color-text); font-size: .875rem; cursor: pointer; }
-.t-missing input { width: 18px; height: 18px; accent-color: var(--color-accent-strong); }
 .t-hint { margin: 0 0 10px; }
 .t-list { display: grid; gap: 0; margin: 0; padding: 0; overflow: hidden; list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border); }
 .t-list li + li { box-shadow: 0 -1px 0 var(--color-border); }
@@ -603,17 +592,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; }
 .t-row-text { display: grid; gap: 1px; min-width: 0; }
 .t-row-text strong { overflow: hidden; color: var(--color-primary); font-size: .9375rem; text-overflow: ellipsis; white-space: nowrap; }
 .t-row-text small { overflow: hidden; color: var(--color-text-muted); font-size: .8125rem; text-overflow: ellipsis; white-space: nowrap; }
-.t-row-meta { display: inline-flex; align-items: center; gap: 10px; }
-.t-flags { display: inline-flex; gap: 4px; }
-.t-flag { padding: 2px 7px; border-radius: 999px; background: #F1F4F3; color: #8A9A97; font-size: .6875rem; font-weight: 700; }
-.t-flag.is-on { background: var(--verdict-kept-bg); color: var(--verdict-kept); }
-.t-bar { position: relative; width: 64px; height: 6px; overflow: hidden; border-radius: 999px; background: #E6ECE9; }
-.t-bar > span { position: absolute; inset: 0; background: var(--color-accent-strong); transform-origin: left center; }
-.t-count { min-width: 30px; color: var(--color-text-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; text-align: right; }
-@media (max-width: 720px) {
-  .t-row { grid-template-columns: 40px minmax(0, 1fr); }
-  .t-row-meta { grid-column: 2; flex-wrap: wrap; gap: 8px; }
-}
 
 /* Stemma e foto in a scheda: two slots, preview first. */
 .t-slots { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 14px; }
@@ -636,3 +614,25 @@ a, button, summary { -webkit-tap-highlight-color: transparent; }
 .t-towns a { display: flex; align-items: center; min-height: 40px; padding: 0 6px; border-radius: 6px; color: var(--color-primary); font-size: .9375rem; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .t-towns a:hover { background: #F4F7F6; text-decoration: underline; } }
 @media (prefers-reduced-motion: reduce) { .t-tabs button, .t-row { transition: none; } .t-tabs button:active { transform: none; } }
+
+/* Territorio, simplified: waiting items first, then search, tabs, rows. */
+.t-tabs { margin: 0 0 12px; }
+.t-state-empty { color: var(--color-text-muted); font-size: .8125rem; white-space: nowrap; }
+.t-waiting { margin: 0 0 20px; padding: 16px; border-radius: var(--radius-lg); background: var(--color-warning-light); box-shadow: inset 0 0 0 1px rgba(122, 75, 0, .14); }
+.t-waiting h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 1.0625rem; }
+.t-waiting h2 .count { min-width: 24px; padding: 0 7px; border-radius: 12px; background: #fff; color: var(--color-warning); font-size: .8125rem; line-height: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.t-waiting ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.t-waiting li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #fff; }
+.t-waiting-text { display: grid; gap: 1px; min-width: 0; color: var(--color-text); text-decoration: none; }
+.t-waiting-text strong { overflow: hidden; color: var(--color-primary); font-size: .9375rem; text-overflow: ellipsis; white-space: nowrap; }
+.t-waiting-text small { color: var(--color-text-muted); font-size: .8125rem; }
+@media (hover: hover) and (pointer: fine) { .t-waiting-text:hover strong { text-decoration: underline; } }
+.t-waiting-text:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; border-radius: 6px; }
+.t-review { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.t-review select { min-height: 38px; max-width: 200px; font-size: .8125rem; }
+@media (max-width: 720px) {
+  .t-waiting li { grid-template-columns: 40px minmax(0, 1fr); }
+  .t-review { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+  .t-review select { grid-column: 1 / -1; grid-row: 1; max-width: none; }
+  .t-review .button { justify-content: center; }
+}

@@ -22,8 +22,11 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-# A 50-megapixel camera photo is fine; a crafted 1-gigapixel PNG is not.
-Image.MAX_IMAGE_PIXELS = 60_000_000
+# A 40-megapixel camera photo is fine; a crafted 1-gigapixel PNG is not. The
+# check is explicit (Pillow only warns between 1x and 2x its own limit), and the
+# ceiling keeps a decode under ~160 MB of memory on a small VPS.
+MAX_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 MAX_INPUT_BYTES = 15 * 1024 * 1024
 
 # Longest side in pixels and WebP quality (None = logo rules: transparency kept,
@@ -82,10 +85,14 @@ def optimize(data: bytes, purpose: str = DEFAULT_PURPOSE) -> OptimizedImage:
     try:
         with Image.open(io.BytesIO(data)) as probe:
             source_format = probe.format
+            if probe.size[0] * probe.size[1] > MAX_PIXELS:
+                raise ImageRejected("L'immagine ha troppi pixel: riducila sotto i 40 megapixel.")
             probe.verify()
         image = Image.open(io.BytesIO(data))
         image.seek(0)  # first frame of an animated file
         image.load()
+    except ImageRejected:
+        raise
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError) as error:
         raise ImageRejected("Il file non è un'immagine leggibile: usa JPEG, PNG o WebP.") from error
     if source_format not in {"JPEG", "PNG", "WEBP", "MPO", "AVIF", "HEIF", "GIF"}:

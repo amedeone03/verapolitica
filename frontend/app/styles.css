@@ -1407,16 +1407,12 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
    no entrance motion, only the in-page jumps scroll smoothly (and not at all
    when the reader asks for reduced motion). */
 .territory-page { max-width: 720px; margin-inline: auto; }
-.territory-hero { padding: var(--space-2) 0 var(--space-5); border-bottom: 1px solid var(--color-border); }
-.territory-hero .eyebrow { margin: 0 0 var(--space-1); }
-.territory-hero h1 { margin: 0 0 var(--space-4); font-size: clamp(1.75rem, 5vw, 2.25rem); line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .territory-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
 .territory-facts > div { padding: 10px 14px; box-shadow: 1px 0 0 var(--color-border), 0 1px 0 var(--color-border); }
 .territory-facts dt { margin: 0 0 2px; color: var(--color-text-muted); font-size: .75rem; font-weight: 600; }
 .territory-facts dd { margin: 0; color: var(--color-primary); font-size: .9375rem; font-weight: 700; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .territory-facts a { color: inherit; text-underline-offset: 3px; }
 .territory-note { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: .875rem; }
-.territory-hero .publication-meta { margin: var(--space-3) 0 0; }
 .territory-index { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; margin: 0 -16px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
 .territory-index::-webkit-scrollbar { display: none; }
 @media (min-width: 900px) { .territory-index { top: 72px; margin: 0; padding-inline: 0; } }
@@ -1436,19 +1432,12 @@ body.is-gate .site-header, body.is-gate .bottom-nav, body.is-gate main, body.is-
 .territory-table table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: .875rem; }
 .territory-table th { padding: 8px 12px; background: var(--color-background); color: var(--color-text-muted); font-size: .75rem; font-weight: 700; text-align: left; }
 .territory-table td { padding: 10px 12px; border-top: 1px solid var(--color-border); vertical-align: top; }
-.territory-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 0 0 var(--space-3); padding: 0; list-style: none; }
-.territory-links a { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-primary); text-decoration: none; transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1), border-color 150ms ease; }
-.territory-links a:active { transform: scale(.98); }
-@media (hover: hover) and (pointer: fine) { .territory-links a:hover { border-color: var(--color-secondary); } }
-.territory-links small { color: var(--color-text-muted); font-size: .75rem; }
-.territory-links.is-compact { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-.territory-links.is-compact a { padding: 8px 12px; font-size: .875rem; }
 .territory-pending { margin: var(--space-4) 0 0; padding: 12px 14px; border-radius: 10px; background: var(--color-accent-light); color: var(--color-primary); font-size: .875rem; }
 .territory-news .local-news h2 { font-size: 1.1875rem; }
 .territory-fonti ul { margin: 0; padding-left: 1.1em; font-size: .875rem; }
 .territory-fonti a { color: var(--color-secondary); }
 @media (prefers-reduced-motion: no-preference) { html:has(.territory-page:not([hidden])) { scroll-behavior: smooth; } }
-@media (prefers-reduced-motion: reduce) { .territory-index a:active, .territory-links a:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .territory-index a:active { transform: none; } }
 
 /* Government: thin segmented bar by party, legend that filters, members by rank. */
 .gov-chart { display: grid; gap: var(--space-3); margin: var(--space-4) 0 0; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); }

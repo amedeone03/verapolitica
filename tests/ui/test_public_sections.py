@@ -293,7 +293,11 @@ def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_ima
     assert ".t-hero { " in css and "aspect-ratio: 4 / 5" in css
     # Console: «Territorio» in the menu, a simple dashboard, coat of arms and photo per scheda.
     assert '<span class="nav-text">Territorio</span>' in html
-    assert "Regioni complete" in console and "Solo da completare" in console
+    # Simple dashboard: what waits for verification first, no counters of logos or photos.
+    assert "In attesa di verifica" in console and "function territoryWaiting(queue)" in console
+    assert "Stemmi pubblicati" not in console and "Foto pubblicate" not in console
+    assert '<span class="nav-text">Partiti</span>' in html and "Partiti e territori" not in html
+    assert 'const SYMBOL_TABS = [["party", "Partiti"]];' in console
     assert 'api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`)' in console
     assert 'purpose: slot.photo ? "photo" : "logo"' in console and "async function shrinkForUpload(img" in console
     assert "provinceTownsCard(base)" in console
