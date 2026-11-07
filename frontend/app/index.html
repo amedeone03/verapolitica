@@ -85,21 +85,21 @@
         </form>
 
         <section class="politics-block quadro" aria-labelledby="quadro-title">
-          <div class="block-head"><h2 id="quadro-title">Il quadro</h2></div>
-          <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:3;--a:0">
-            <button type="button" role="tab" id="quadro-tab-regioni" data-quadro="regioni" aria-selected="true" aria-controls="quadro-panel">Regioni</button>
+          <div class="block-head"><h2 id="quadro-title">Il quadro</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
+          <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:4;--a:0">
+            <button type="button" role="tab" id="quadro-tab-governo" data-quadro="governo" aria-selected="true" aria-controls="quadro-governo">Governo</button>
             <button type="button" role="tab" id="quadro-tab-camera" data-quadro="camera" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Camera</button>
             <button type="button" role="tab" id="quadro-tab-senato" data-quadro="senato" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Senato</button>
-            <div class="feed-segments-active" aria-hidden="true"><span>Regioni</span><span>Camera</span><span>Senato</span></div>
+            <button type="button" role="tab" id="quadro-tab-regioni" data-quadro="regioni" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Regioni</button>
+            <div class="feed-segments-active" aria-hidden="true"><span>Governo</span><span>Camera</span><span>Senato</span><span>Regioni</span></div>
           </div>
-          <div id="quadro-panel" class="quadro-panel" role="tabpanel" aria-labelledby="quadro-tab-regioni" aria-busy="true"></div>
-        </section>
-
-        <section class="politics-block" aria-labelledby="government-title">
-          <div class="block-head"><h2 id="government-title">Governo</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
-          <div id="government-row" class="authority-cloud" aria-busy="true"></div>
-          <div id="government-chart" hidden></div>
-          <p id="government-note" class="authority-note">Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.</p>
+          <div id="quadro-governo" class="quadro-governo" role="tabpanel" aria-labelledby="quadro-tab-governo" tabindex="0">
+            <h3 id="government-title" class="visually-hidden">Governo</h3>
+            <div id="government-row" class="authority-cloud" aria-busy="true"></div>
+            <p id="government-note" class="authority-note">Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.</p>
+            <div id="government-chart" hidden></div>
+          </div>
+          <div id="quadro-panel" class="quadro-panel" role="tabpanel" aria-labelledby="quadro-tab-camera" tabindex="0" hidden></div>
         </section>
 
         <section class="politics-block" aria-labelledby="parties-title">
@@ -107,17 +107,30 @@
           <ul id="party-list" class="row-list party-rows" aria-busy="true"></ul>
         </section>
 
-        <section class="politics-block" aria-labelledby="territories-title">
-          <div class="block-head"><h2 id="territories-title">Territori</h2><a id="zone-change" class="block-link" href="./?view=profile" hidden>Cambia zona</a></div>
-          <div id="my-zone" class="zone-card" aria-busy="true"></div>
+        <section class="politics-block territorio" aria-labelledby="territories-title">
+          <div class="block-head"><h2 id="territories-title">Territorio</h2><a id="zone-change" class="block-link" href="./?view=profile" hidden>Cambia la tua zona</a></div>
+          <form id="territorio-filter" class="territorio-filter" action="./" method="get" aria-describedby="territorio-hint">
+            <p id="territorio-hint" class="territorio-hint">Si apre sulla tua zona. Scegli regione e provincia per vedere chi governa e i comuni.</p>
+            <div class="territorio-field">
+              <label for="t-region">Regione</label>
+              <select id="t-region" name="region"><option value="">Scegli una regione</option></select>
+            </div>
+            <div class="territorio-field">
+              <label for="t-province">Provincia</label>
+              <select id="t-province" name="province" disabled><option value="">Tutta la regione</option></select>
+            </div>
+            <noscript><button type="submit">Mostra</button></noscript>
+          </form>
+          <div id="my-zone" class="territorio-view" aria-live="polite" aria-busy="true"></div>
           <form id="territory-find" class="territory-find" action="./" method="get" role="search">
             <input type="hidden" name="view" value="search" />
             <input type="hidden" name="type" value="municipality" />
-            <label class="visually-hidden" for="territory-q">Cerca un comune</label>
+            <label class="visually-hidden" for="territory-q">Cerca un comune in tutta Italia</label>
             <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="territory-q" name="q" type="search" placeholder="Cerca un comune" autocomplete="off" aria-controls="territory-results" />
+            <input id="territory-q" name="q" type="search" placeholder="Cerca un comune in tutta Italia" autocomplete="off" aria-controls="territory-results" />
           </form>
           <ul id="territory-results" class="row-list territory-results" aria-live="polite" hidden></ul>
+          <h3 class="block-subhead">Elenchi completi</h3>
           <ul class="row-list">
             <li><a class="row-link" href="./?view=regions"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Regioni</strong><small>Presidenti, comuni e notizie locali</small></span></a></li>
             <li><a class="row-link" href="./?view=provinces"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Province</strong><small>Sindaci e referendum, provincia per provincia</small></span></a></li>
@@ -130,7 +143,6 @@
           <ul class="row-list">
             <li><a class="row-link" href="./?view=proposals"><span class="row-icon" data-icon="proposal"></span><span class="row-text"><strong>Promesse e proposte</strong><small>Cosa è stato promesso, e a che punto è</small></span></a></li>
             <li><a class="row-link" href="./?view=compare"><span class="row-icon" data-icon="scale"></span><span class="row-text"><strong>Confronta</strong><small>Promesse di persone nello stesso ruolo</small></span></a></li>
-            <li><a class="row-link" href="./?view=methodology"><span class="row-icon" data-icon="calculator"></span><span class="row-text"><strong>Come si calcola</strong><small>Il metodo pubblico del punteggio</small></span></a></li>
           </ul>
         </section>
 
@@ -307,7 +319,7 @@
 
       <section id="proposals-view" class="politics proposals" aria-labelledby="proposals-title" hidden>
         <h1 id="proposals-title" class="politics-title">Promesse e proposte</h1>
-        <p class="proposals-lede">Quello che è stato promesso o presentato, con il testo esatto e la fonte ufficiale. Le valutazioni seguono <a href="./?view=methodology">un metodo pubblico</a>.</p>
+        <p class="proposals-lede">Quello che è stato promesso o presentato, con il testo esatto e la fonte ufficiale.</p>
         <nav class="proposals-tabs feed-segments" aria-label="Tipo di atto">
           <a data-type="" href="./?view=proposals">Tutte</a>
           <a data-type="explicit_promise" href="./?view=proposals&amp;type=explicit_promise">Promesse</a>
@@ -429,18 +441,6 @@
         <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
       </section>
 
-      <section id="methodology-view" aria-labelledby="methodology-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="methodology-title">Come si valutano le promesse</h1>
-          <p class="hero-copy">Lo stesso metodo per tutti. Un punteggio riassume le evidenze, non è un giudizio politico.</p>
-        </div>
-        <div id="methodology-status" class="state-card loading-state" role="status">
-          <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Caricamento della metodologia…</strong></div>
-        </div>
-        <article id="methodology-detail" hidden></article>
-      </section>
-
       <section id="ask-view" aria-labelledby="ask-title" hidden>
         <div class="hero compact-hero">
           <h1 id="ask-title">Chiedi a VeraPolitica</h1>
@@ -513,7 +513,6 @@
           <a href="./?view=regions">Regioni</a>
           <a href="./?view=municipalities">Comuni</a>
           <a href="./?view=ask">Chiedi a VeraPolitica</a>
-          <a href="./?view=methodology">Metodologia</a>
         </nav>
         <p class="footer-legal">© 2026 VeraPolitica · <span class="placeholder" title="Contenuto da fornire">Privacy (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Note legali (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Contatti (da fornire)</span></p>
       </div>

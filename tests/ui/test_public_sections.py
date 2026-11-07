@@ -46,8 +46,8 @@ def test_routes_and_privacy_of_the_reader_profile():
     assert 'const PROFILE_KEY = "verapolitica.profile.v1"' in script
     assert "storage?.setItem(PROFILE_KEY" in script
     assert "fetchImpl(path" in script and "PROFILE_KEY" not in script.split("function createPublicApiClient")[1].split("\n}\n")[0]
-    # Party scores are explained as pooled counts, comparisons as same-role only.
-    assert "non è una media dei punteggi dei suoi esponenti" in script
+    # No public scoring method; comparisons stay same-role only.
+    assert "non è una media dei punteggi dei suoi esponenti" not in script
     assert "non è distinguibile" in script
 
 
@@ -225,15 +225,31 @@ def test_politica_opens_with_regioni_camera_senato():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
     view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    # Three tabs above the Governo block, one panel.
-    assert view.index('id="quadro-title"') < view.index('id="government-title"')
-    for tab in ("regioni", "camera", "senato"):
-        assert f'data-quadro="{tab}"' in view
+    # Il quadro opens on Governo; Camera, Senato and Regioni share one panel.
+    quadro = view.split('id="quadro-title"')[1].split('id="parties-title"')[0]
+    for tab in ("governo", "camera", "senato", "regioni"):
+        assert f'data-quadro="{tab}"' in quadro
+    assert quadro.index('data-quadro="governo"') < quadro.index('data-quadro="camera"')
+    assert 'id="government-row"' in quadro and 'id="government-chart"' in quadro
+    assert 'id="quadro-governo"' in quadro and 'show("governo");' in script
     # Regions are coloured only by the coalition the redazione published; the rest is «Da compilare».
     assert 'const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];' in script
     assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
     assert 'getParliament: () => request("/parliament/composition")' in script
     assert 'getRegionsOverview: () => request("/territories/regions")' in script
+
+
+def test_territorio_opens_on_the_readers_region_and_province():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
+    # Native, labelled selects: Regione, then Provincia.
+    assert '<label for="t-region">Regione</label>' in view and '<label for="t-province">Provincia</label>' in view
+    assert 'id="my-zone" class="territorio-view" aria-live="polite"' in view
+    show = script.split("async function renderMyZone")[1].split("function bindTerritoryFind")[0]
+    assert "String(item.id) === String(zone?.region_id)" in show
+    assert "fillProvinces(zone.region_id, zone.province)" in show
+    assert "export function renderTerritorioProvince" in script and 'aria-controls="territorio-towns"' in script
 
 
 def test_redazione_corrections_reach_the_politica_page():

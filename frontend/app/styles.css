@@ -1558,3 +1558,42 @@ a.topic-chip.is-active:hover { background: var(--color-primary); color: #fff; }
 .quadro-row-body .edited-mark { margin-left: auto; }
 .quadro-group-row .edited-mark { display: block; padding: 0 4px 8px 26px; margin-top: -4px; }
 .gov-who .edited-mark { display: block; }
+
+/* Il quadro: the Governo panel keeps the cloud and the composition chart. */
+.quadro-governo { display: grid; gap: var(--space-2); }
+.quadro-governo:focus-visible, .quadro-panel:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 4px; border-radius: 12px; }
+.quadro-governo .authority-note { margin: 0 0 var(--space-3); }
+
+/* Territorio: native selects that open on the reader's zone, then the result. */
+.territorio-filter { display: grid; grid-template-columns: 1fr; gap: var(--space-3); margin: 0 0 var(--space-3); }
+@media (min-width: 560px) { .territorio-filter { grid-template-columns: 1fr 1fr; } }
+.territorio-hint { grid-column: 1 / -1; margin: 0; color: var(--color-text-muted); font-size: .9375rem; line-height: 1.45; }
+.territorio-field { display: grid; gap: 6px; min-width: 0; }
+.territorio-field label, .territorio-towns-head label { color: var(--color-text); font-size: .875rem; font-weight: 700; }
+.territorio-field select, .territorio-towns-head input {
+  width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid var(--color-border); border-radius: 14px;
+  background-color: var(--color-surface); color: var(--color-text); font: 600 1rem var(--font-body);
+}
+.territorio-field select:disabled { color: var(--color-text-muted); opacity: .7; }
+.territorio-field select:focus-visible, .territorio-towns-head input:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 1px; border-color: var(--color-primary); }
+.territorio-view { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+.territorio-view[aria-busy="true"] { min-height: 120px; opacity: .6; transition: opacity .15s ease; }
+.territorio-card { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); }
+.territorio-card h3 { margin: 0; font-size: 1.25rem; }
+.territorio-card h3 small { color: var(--color-text-muted); font-size: .875rem; font-weight: 600; }
+.territorio-card h3:focus { outline: none; }
+.territorio-card h3:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; }
+.territorio-eyebrow, .territorio-sub { margin: 0 0 4px; color: var(--color-text-muted); font-size: .8125rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+.territorio-sub { margin-top: var(--space-3); margin-bottom: var(--space-2); }
+.territorio-card button.topic-chip { min-height: 44px; font-family: var(--font-body); cursor: pointer; }
+.territorio-card button.topic-chip:hover { background: var(--color-accent-light); }
+.territorio-card .profile-link { margin-top: var(--space-3); }
+.territorio-towns-head { display: grid; gap: 6px; margin-top: var(--space-3); }
+.territorio-count { margin: 6px 0 var(--space-2); color: var(--color-text-muted); font-size: .875rem; }
+.territorio-towns { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 700px) { .territorio-towns { grid-template-columns: 1fr 1fr; column-gap: var(--space-4); } }
+.territorio-towns a { display: grid; gap: 2px; min-height: 44px; padding: 8px 4px; border-bottom: 1px solid var(--color-border); color: var(--color-text); text-decoration: none; }
+.territorio-towns a:hover strong { text-decoration: underline; }
+.territorio-towns a:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: -3px; border-radius: 8px; }
+.territorio-towns small { color: var(--color-text-muted); font-size: .8125rem; }
+.territorio-card .ghost-button { margin: var(--space-3) var(--space-3) 0 0; }

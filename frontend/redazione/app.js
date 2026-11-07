@@ -2335,7 +2335,7 @@ async function showPoliticaAttuale(tab = "governo") {
   const extra = await Promise.all(added.map((key) => publicJson(`/politicians/${key.split(":")[1]}`)));
   for (const person of extra.filter(Boolean)) people.push(person);
   const panels = {
-    governo: `<p class="muted small">Chi compare nel Governo, con quale partito e in quale riga del grafico. Per aggiungere una persona, scegli il politico qui sotto.</p>
+    governo: `<p class="muted small">Il grafico del Governo è la prima scheda de «Il quadro» in Politica: più grande = ruolo più alto. Qui decidi chi compare, con quale partito e in quale riga del grafico. Per aggiungere una persona, scegli il politico qui sotto.</p>
       <form id="pa-add-gov" class="card add-row" role="search"><label for="pa-gov-q">Aggiungi al Governo</label>
         <div class="actions" style="margin-top:4px"><input id="pa-gov-q" type="search" placeholder="Nome del politico" style="flex:1 1 240px" autocomplete="off" /><button class="button button-secondary" type="submit">Cerca</button></div>
         <ul id="pa-gov-results" class="pa-results"></ul></form>
