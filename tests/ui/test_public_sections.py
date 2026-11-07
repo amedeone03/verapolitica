@@ -255,7 +255,7 @@ def test_territory_map_is_accessible_light_and_self_hosted():
     assert (APP / "vendor" / "maplibre" / "maplibre-gl-csp-worker.js").exists()
     for name in ("regioni", "province", "regioni-centri", "province-centri"):
         assert (APP / "geo" / f"{name}.geojson").exists()
-    assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in, .tmap-results { animation: none; }" in css
+    assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in > *, .tmap-results { animation: none; }" in css
 
 
 def test_redazione_corrections_reach_the_politica_page():

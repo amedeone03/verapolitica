@@ -253,7 +253,8 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
   };
 
   let renderSeq = 0;
-  const renderSheet = async () => {
+  // Keyboard actions and the first paint swap content instantly (no motion).
+  const renderSheet = async ({ animate = true } = {}) => {
     const seq = ++renderSeq;
     sheet.setAttribute("aria-busy", "true");
     let html;
@@ -265,8 +266,10 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     sheet.removeAttribute("aria-busy");
     towns.bind(sheet);
     sheet.classList.remove("is-in");
-    void sheet.offsetWidth;
-    sheet.classList.add("is-in");
+    if (animate && !reduced) {
+      void sheet.offsetWidth;
+      sheet.classList.add("is-in");
+    }
     sheet.parentElement.scrollTop = 0;
   };
 
@@ -289,9 +292,10 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     const covered = canvas.getBoundingClientRect().bottom - $("tmap-sheet").getBoundingClientRect().top;
     return { top: 84, bottom: Math.max(24, Math.min(covered + 16, canvas.clientHeight * 0.62)), left: 24, right: 68 };
   };
-  const fit = (bounds) => {
+  // Moving on screen: MapLibre's ease-in-out, short; instant for keyboard and reduced motion.
+  const fit = (bounds, instant = false) => {
     if (!map) return;
-    map.fitBounds(bounds, { padding: padding(), duration: reduced ? 0 : 650, maxZoom: 9.5, essential: false });
+    map.fitBounds(bounds, { padding: padding(), duration: reduced || instant ? 0 : 600, maxZoom: 9.5, essential: false });
   };
   const paintSelection = () => {
     if (!map || !map.getLayer("vp-region-fill")) return;
@@ -319,17 +323,17 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     }
   };
 
-  const go = (next, { push = true, move = true } = {}) => {
+  const go = (next, { push = true, move = true, instant = false } = {}) => {
     state.regione = next.regione || "";
     state.provincia = next.provincia || "";
     if (state.provincia && !state.regione) state.regione = province(state.provincia)?.regionIstat || "";
     if (push) history.pushState({ territory: true }, "", territoryHref(state));
     syncControls();
     paintSelection();
-    const done = renderSheet();
+    const done = renderSheet({ animate: !instant });
     if (move) {
       const target = state.provincia ? province(state.provincia) : state.regione ? region(state.regione) : null;
-      fit(target ? target.bounds : ITALY_BOUNDS);
+      fit(target ? target.bounds : ITALY_BOUNDS, instant);
     }
     return done;
   };
@@ -431,12 +435,12 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     if (target.dataset.layer) {
       state.layer = target.dataset.layer;
       paintSelection();
-      renderSheet();
+      renderSheet({ animate: false });
       return;
     }
     // Keyboard activation (detail 0) moves focus to the new scheda; a tap leaves it alone.
     const keyboard = event.detail === 0;
-    const done = target.dataset.provincia ? go({ provincia: target.dataset.provincia }) : go({ regione: target.dataset.regione });
+    const done = target.dataset.provincia ? go({ provincia: target.dataset.provincia }, { instant: keyboard }) : go({ regione: target.dataset.regione }, { instant: keyboard });
     if (keyboard) done.then(() => $("tmap-sheet-title")?.focus({ preventScroll: true }));
   });
   back.addEventListener("click", up);
@@ -450,7 +454,7 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
   root.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !event.target.closest?.(".tmap-search") && (state.regione || state.provincia)) {
       event.preventDefault();
-      up();
+      go(state.provincia ? { regione: state.regione } : {}, { instant: true });
     }
   });
   window.addEventListener("popstate", () => {
@@ -458,9 +462,9 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     go(next, { push: false });
   });
 
-  bindSearch({ root, input: $("tmap-q"), list: $("tmap-results"), api, esc, color, regions, provinces, region, onPick: (item) => {
-    if (item.kind === "regione") go({ regione: item.istat });
-    else if (item.kind === "provincia") go({ provincia: item.sigla });
+  bindSearch({ root, input: $("tmap-q"), list: $("tmap-results"), api, esc, color, regions, provinces, region, onPick: (item, viaKeyboard) => {
+    if (item.kind === "regione") go({ regione: item.istat }, { instant: viaKeyboard });
+    else if (item.kind === "provincia") go({ provincia: item.sigla }, { instant: viaKeyboard });
     else window.location.href = `./?municipality=${encodeURIComponent(item.id)}`;
   } });
 
@@ -473,7 +477,7 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
   if (state.provincia && !state.regione) state.regione = province(state.provincia)?.regionIstat || "";
   history.replaceState({ territory: true }, "", territoryHref(state));
   syncControls();
-  await renderSheet();
+  await renderSheet({ animate: false });
   try {
     await startMap();
     const target = state.provincia ? province(state.provincia) : state.regione ? region(state.regione) : null;
@@ -513,13 +517,13 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, re
     list.hidden = false;
     input.setAttribute("aria-expanded", "true");
   };
-  const choose = (i) => {
+  const choose = (i, viaKeyboard = false) => {
     const item = items[i];
     if (!item) return;
     input.value = "";
     close();
     input.blur();
-    onPick(item);
+    onPick(item, viaKeyboard);
   };
   input.addEventListener("input", () => {
     active = -1;
@@ -548,7 +552,7 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, re
     } else if (event.key === "Enter") {
       if (list.hidden) return;
       event.preventDefault();
-      choose(active >= 0 ? active : 0);
+      choose(active >= 0 ? active : 0, true);
     } else if (event.key === "Escape") {
       if (!list.hidden) { event.preventDefault(); close(); } else if (input.value) { input.value = ""; }
     }
