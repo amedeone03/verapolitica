@@ -176,35 +176,36 @@ def test_region_and_comune_pages_show_their_local_news():
     assert '<div id="region-news"></div>' in script
 
 
-def test_politica_holds_regions_provinces_and_comuni():
+def test_territorio_is_a_main_tab_with_the_map():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
-    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    for marker in ('id="territories-title"', 'id="my-zone"', 'id="territory-q"', 'href="./?view=regions"',
-                   'href="./?view=provinces"', 'href="./?view=municipalities"'):
+    nav = html.split('class="bottom-nav"')[1].split("</nav>")[0]
+    # Feed, Politica, Territorio, Archivio, Cerca — in this order.
+    order = [nav.index(f'data-section="{name}"') for name in ("home", "politics", "territory", "history", "search")]
+    assert order == sorted(order)
+    view = html.split('id="territory-view"')[1].split('id="compare-view"')[0]
+    for marker in ('id="tmap-canvas"', 'role="combobox"', 'id="tmap-results"', 'id="tmap-back"', 'id="tmap-zone"', 'id="tmap-sheet"', "ISTAT", "OpenStreetMap"):
         assert marker in view
-    # The zone card reads the on-device profile; the comune search uses the public search.
-    assert "export function renderZoneCard(zone" in script
-    assert "const zone = loadReaderProfile().zone;" in script
-    assert 'api.search({ q, type: "municipality", limit: 6' in script
-    assert 'provinces: "politics", regions: "politics", municipalities: "politics"' in script
-    archive = html.split('id="history-view"')[1].split("</section>\n      </section>")[0]
-    assert "?view=regions" not in archive and "?view=provinces" not in archive
+    # Politica no longer carries the territory block; lists and schede belong to Territorio.
+    politics = html.split('id="politics-view"')[1].split('id="territory-view"')[0]
+    assert 'id="territories-title"' not in politics and "?view=regions" not in politics
+    assert 'territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory"' in script
+    assert 'if (params.get("province") || params.get("region") || params.get("municipality")) return "territory";' in script
+    assert 'import("./territory-map.js")' in script and "export function renderTownFilter(towns)" in script
 
 
-def test_territory_schede_live_in_politica():
+def test_territory_schede_go_back_to_the_map():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
-    # A province opens its own scheda in Politica; its history stays in the Archivio.
     assert 'id="province-detail-view"' in html and 'showProvinceDetail(api, provinceCode.toUpperCase())' in script
     assert 'showTerritoryHistory(api, { province: params.get("history_province").toUpperCase() })' in script
-    # Region and comune pages go back to Politica, never to the Archivio.
-    for view in ("region-detail-view", "municipality-detail-view", "province-detail-view"):
+    for view in ("region-detail-view", "municipality-detail-view", "province-detail-view", "regions-view", "provinces-view", "municipalities-view"):
         block = html.split(f'id="{view}"')[1].split("</section>")[0]
-        assert "./?view=politics" in block and "Archivio" not in block
-    # The scheda shows the official base first, then the model's blocks, news and sources.
+        assert "./?view=territory" in block and "Archivio" not in block
+    # Back lands on the same place on the map.
+    assert "./?view=territory&regione=${encodeURIComponent(region.istat_code)}" in script
+    assert "./?view=territory&provincia=${encodeURIComponent(base.key)}" in script
     assert "export function renderTerritoryScheda(t" in script and "export function renderTerritoryFacts(t)" in script
-    assert 'getTerritory: (kind, key) => request(`/territories/' in script
 
 
 def test_government_chart_shows_the_parties_and_the_ranks():
@@ -240,17 +241,21 @@ def test_politica_opens_with_regioni_camera_senato():
     assert 'getRegionsOverview: () => request("/territories/regions")' in script
 
 
-def test_territorio_opens_on_the_readers_region_and_province():
-    html = (APP / "index.html").read_text(encoding="utf-8")
-    script = (APP / "app.js").read_text(encoding="utf-8")
-    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    # Native, labelled selects: Regione, then Provincia.
-    assert '<label for="t-region">Regione</label>' in view and '<label for="t-province">Provincia</label>' in view
-    assert 'id="my-zone" class="territorio-view" aria-live="polite"' in view
-    show = script.split("async function renderMyZone")[1].split("function bindTerritoryFind")[0]
-    assert "String(item.id) === String(zone?.region_id)" in show
-    assert "fillProvinces(zone.region_id, zone.province)" in show
-    assert "export function renderTerritorioProvince" in script and 'aria-controls="territorio-towns"' in script
+def test_territory_map_is_accessible_light_and_self_hosted():
+    module = (APP / "territory-map.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    # Opens on the URL state, else the reader's zone (region + province), else Italy.
+    assert "fromUrl.regione || fromUrl.provincia ? fromUrl : { regione: zoneIstat" in module
+    assert 'history.pushState({ territory: true }, "", territoryHref(state))' in module and 'window.addEventListener("popstate"' in module
+    # Faces and pins are buttons; Escape goes up a level; keyboard activation moves focus.
+    assert 'document.createElement("button")' in module and 'event.key === "Escape"' in module and "event.detail === 0" in module
+    assert 'aria-activedescendant' in module and "Elenco ${" in module
+    # MapLibre is self-hosted (script-src 'self'); shapes appear even without basemap tiles.
+    assert './vendor/maplibre/maplibre-gl-csp.js' in module and 'map.once("style.load"' in module
+    assert (APP / "vendor" / "maplibre" / "maplibre-gl-csp-worker.js").exists()
+    for name in ("regioni", "province", "regioni-centri", "province-centri"):
+        assert (APP / "geo" / f"{name}.geojson").exists()
+    assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in, .tmap-results { animation: none; }" in css
 
 
 def test_redazione_corrections_reach_the_politica_page():

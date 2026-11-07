@@ -26,7 +26,9 @@ SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self'; "
-        "connect-src 'self'; "
+        # Territorio map: self-hosted MapLibre worker, OpenFreeMap vector tiles and fonts.
+        "worker-src 'self'; "
+        "connect-src 'self' https://tiles.openfreemap.org; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "
