@@ -38,6 +38,7 @@
     <nav class="bottom-nav" aria-label="Sezioni principali">
       <a href="./" data-section="home"><img class="bottom-nav-logo" src="./favicon.svg" alt="" width="24" height="24" /><span>Feed</span></a>
       <a href="./?view=politics" data-section="politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 2 7h20Z"/></svg><span>Politica</span></a>
+      <a href="./?view=territory" data-section="territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg><span>Territorio</span></a>
       <a href="./?view=history" data-section="history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>Archivio</span></a>
       <a href="./?view=search" data-section="search" aria-label="Cerca"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></a>
     </nav>
@@ -85,21 +86,20 @@
         </form>
 
         <section class="politics-block quadro" aria-labelledby="quadro-title">
-          <div class="block-head"><h2 id="quadro-title">Il quadro</h2></div>
+          <div class="block-head"><h2 id="quadro-title">Il quadro</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
           <div id="quadro-tabs" class="feed-segments quadro-tabs" role="tablist" aria-label="Il quadro" style="--n:3;--a:0">
-            <button type="button" role="tab" id="quadro-tab-regioni" data-quadro="regioni" aria-selected="true" aria-controls="quadro-panel">Regioni</button>
+            <button type="button" role="tab" id="quadro-tab-governo" data-quadro="governo" aria-selected="true" aria-controls="quadro-governo">Governo</button>
             <button type="button" role="tab" id="quadro-tab-camera" data-quadro="camera" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Camera</button>
             <button type="button" role="tab" id="quadro-tab-senato" data-quadro="senato" aria-selected="false" aria-controls="quadro-panel" tabindex="-1">Senato</button>
-            <div class="feed-segments-active" aria-hidden="true"><span>Regioni</span><span>Camera</span><span>Senato</span></div>
+            <div class="feed-segments-active" aria-hidden="true"><span>Governo</span><span>Camera</span><span>Senato</span></div>
           </div>
-          <div id="quadro-panel" class="quadro-panel" role="tabpanel" aria-labelledby="quadro-tab-regioni" aria-busy="true"></div>
-        </section>
-
-        <section class="politics-block" aria-labelledby="government-title">
-          <div class="block-head"><h2 id="government-title">Governo</h2><a class="block-link" href="./?view=politicians">Tutti i politici</a></div>
-          <div id="government-row" class="authority-cloud" aria-busy="true"></div>
-          <div id="government-chart" hidden></div>
-          <p id="government-note" class="authority-note">Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.</p>
+          <div id="quadro-governo" class="quadro-governo" role="tabpanel" aria-labelledby="quadro-tab-governo" tabindex="0">
+            <h3 id="government-title" class="visually-hidden">Governo</h3>
+            <div id="government-row" class="authority-cloud" aria-busy="true"></div>
+            <p id="government-note" class="authority-note">Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.</p>
+            <div id="government-chart" hidden></div>
+          </div>
+          <div id="quadro-panel" class="quadro-panel" role="tabpanel" aria-labelledby="quadro-tab-camera" tabindex="0" hidden></div>
         </section>
 
         <section class="politics-block" aria-labelledby="parties-title">
@@ -107,30 +107,11 @@
           <ul id="party-list" class="row-list party-rows" aria-busy="true"></ul>
         </section>
 
-        <section class="politics-block" aria-labelledby="territories-title">
-          <div class="block-head"><h2 id="territories-title">Territori</h2><a id="zone-change" class="block-link" href="./?view=profile" hidden>Cambia zona</a></div>
-          <div id="my-zone" class="zone-card" aria-busy="true"></div>
-          <form id="territory-find" class="territory-find" action="./" method="get" role="search">
-            <input type="hidden" name="view" value="search" />
-            <input type="hidden" name="type" value="municipality" />
-            <label class="visually-hidden" for="territory-q">Cerca un comune</label>
-            <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="territory-q" name="q" type="search" placeholder="Cerca un comune" autocomplete="off" aria-controls="territory-results" />
-          </form>
-          <ul id="territory-results" class="row-list territory-results" aria-live="polite" hidden></ul>
-          <ul class="row-list">
-            <li><a class="row-link" href="./?view=regions"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Regioni</strong><small>Presidenti, comuni e notizie locali</small></span></a></li>
-            <li><a class="row-link" href="./?view=provinces"><span class="row-icon" data-icon="map"></span><span class="row-text"><strong>Province</strong><small>Sindaci e referendum, provincia per provincia</small></span></a></li>
-            <li><a class="row-link" href="./?view=municipalities"><span class="row-icon" data-icon="mapPin"></span><span class="row-text"><strong>Comuni</strong><small>Tutti i comuni ISTAT, con il sindaco</small></span></a></li>
-          </ul>
-        </section>
-
         <section class="politics-block" aria-labelledby="tools-title">
           <div class="block-head"><h2 id="tools-title">Strumenti</h2></div>
           <ul class="row-list">
             <li><a class="row-link" href="./?view=proposals"><span class="row-icon" data-icon="proposal"></span><span class="row-text"><strong>Promesse e proposte</strong><small>Cosa è stato promesso, e a che punto è</small></span></a></li>
             <li><a class="row-link" href="./?view=compare"><span class="row-icon" data-icon="scale"></span><span class="row-text"><strong>Confronta</strong><small>Promesse di persone nello stesso ruolo</small></span></a></li>
-            <li><a class="row-link" href="./?view=methodology"><span class="row-icon" data-icon="calculator"></span><span class="row-text"><strong>Come si calcola</strong><small>Il metodo pubblico del punteggio</small></span></a></li>
           </ul>
         </section>
 
@@ -140,6 +121,30 @@
           <h3 id="dossier-title" class="block-subhead" hidden>Dossier</h3>
           <div id="dossier-list" class="topic-chips" hidden></div>
         </section>
+      </section>
+
+      <section id="territory-view" class="tmap-view" aria-labelledby="territory-title" hidden>
+        <h1 id="territory-title" class="visually-hidden">Territorio</h1>
+        <div id="tmap" class="tmap">
+          <div id="tmap-canvas" class="tmap-canvas" role="region" aria-label="Mappa di regioni e province. Con la tastiera usa la ricerca o l'elenco qui sotto."></div>
+          <div class="tmap-top">
+            <button id="tmap-back" class="tmap-round" type="button" hidden><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span class="visually-hidden">Indietro</span></button>
+            <div class="tmap-search">
+              <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <label class="visually-hidden" for="tmap-q">Cerca regione, provincia o comune</label>
+              <input id="tmap-q" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tmap-results" autocomplete="off" placeholder="Cerca un luogo" />
+              <ul id="tmap-results" class="tmap-results" role="listbox" aria-label="Risultati" hidden></ul>
+            </div>
+          </div>
+          <div class="tmap-side">
+            <button id="tmap-scope" class="tmap-round tmap-scope" type="button" aria-label="Mostra tutta l'Italia">IT</button>
+            <button id="tmap-zone" class="tmap-round" type="button" aria-label="Vai alla tua zona"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21.7 2.3a1 1 0 0 0-1.06-.22l-18 7a1 1 0 0 0 .1 1.9l7.5 2.1 2.1 7.5a1 1 0 0 0 .92.72h.04a1 1 0 0 0 .92-.64l7-18a1 1 0 0 0-.22-1.06Z"/></svg></button>
+          </div>
+          <section id="tmap-sheet" class="tmap-sheet" aria-labelledby="tmap-sheet-title">
+            <div id="tmap-sheet-body" class="tmap-sheet-body" aria-live="polite" aria-busy="true"></div>
+          </section>
+          <p class="tmap-credit">Confini <a href="https://www.istat.it/" target="_blank" rel="noopener noreferrer">ISTAT</a> · Mappa <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a></p>
+        </div>
       </section>
 
       <section id="compare-view" aria-labelledby="compare-title" hidden>
@@ -194,7 +199,7 @@
       </section>
 
       <section id="provinces-view" aria-labelledby="provinces-title" hidden>
-        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div class="hero compact-hero"><h1 id="provinces-title">Province</h1></div>
         <div id="provinces-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento delle province…</strong></div></div>
         <div id="province-list" class="province-groups" hidden></div>
@@ -207,7 +212,7 @@
       </section>
 
       <section id="province-detail-view" aria-labelledby="province-detail-title" hidden>
-        <a id="province-back" class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a id="province-back" class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div id="province-detail-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della provincia…</strong></div></div>
         <article id="province-detail" class="territory-page" hidden></article>
       </section>
@@ -307,7 +312,7 @@
 
       <section id="proposals-view" class="politics proposals" aria-labelledby="proposals-title" hidden>
         <h1 id="proposals-title" class="politics-title">Promesse e proposte</h1>
-        <p class="proposals-lede">Quello che è stato promesso o presentato, con il testo esatto e la fonte ufficiale. Le valutazioni seguono <a href="./?view=methodology">un metodo pubblico</a>.</p>
+        <p class="proposals-lede">Quello che è stato promesso o presentato, con il testo esatto e la fonte ufficiale.</p>
         <nav class="proposals-tabs feed-segments" aria-label="Tipo di atto">
           <a data-type="" href="./?view=proposals">Tutte</a>
           <a data-type="explicit_promise" href="./?view=proposals&amp;type=explicit_promise">Promesse</a>
@@ -388,7 +393,7 @@
       </section>
 
       <section id="regions-view" aria-labelledby="regions-title" hidden>
-        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div class="hero compact-hero">
           <h1 id="regions-title">Regioni italiane</h1>
           
@@ -404,7 +409,7 @@
       </section>
 
       <section id="region-detail-view" aria-labelledby="region-detail-title" hidden>
-        <a class="back-link" href="./?view=politics#territories-title"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div id="region-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento della regione…</strong></div>
@@ -413,7 +418,7 @@
       </section>
 
       <section id="municipalities-view" aria-labelledby="municipalities-title" hidden>
-        <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div class="hero compact-hero">
           <h1 id="municipalities-title">Comuni</h1>
           
@@ -427,18 +432,6 @@
         </div>
         <div id="municipality-list" class="proposal-grid" hidden></div>
         <nav id="municipality-pagination" class="territory-pagination" hidden></nav>
-      </section>
-
-      <section id="methodology-view" aria-labelledby="methodology-title" hidden>
-        <div class="hero compact-hero">
-          <h1 id="methodology-title">Come si valutano le promesse</h1>
-          <p class="hero-copy">Lo stesso metodo per tutti. Un punteggio riassume le evidenze, non è un giudizio politico.</p>
-        </div>
-        <div id="methodology-status" class="state-card loading-state" role="status">
-          <span class="loading-mark" aria-hidden="true"></span>
-          <div><strong>Caricamento della metodologia…</strong></div>
-        </div>
-        <article id="methodology-detail" hidden></article>
       </section>
 
       <section id="ask-view" aria-labelledby="ask-title" hidden>
@@ -493,7 +486,7 @@
       </section>
 
       <section id="municipality-detail-view" aria-labelledby="municipality-detail-title" hidden>
-        <a class="back-link" href="./?view=politics#territories-title"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
+        <a class="back-link" href="./?view=territory"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Territorio</a>
         <div id="municipality-detail-status" class="state-card loading-state" role="status">
           <span class="loading-mark" aria-hidden="true"></span>
           <div><strong>Caricamento del comune…</strong></div>
@@ -513,7 +506,6 @@
           <a href="./?view=regions">Regioni</a>
           <a href="./?view=municipalities">Comuni</a>
           <a href="./?view=ask">Chiedi a VeraPolitica</a>
-          <a href="./?view=methodology">Metodologia</a>
         </nav>
         <p class="footer-legal">© 2026 VeraPolitica · <span class="placeholder" title="Contenuto da fornire">Privacy (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Note legali (da pubblicare)</span> · <span class="placeholder" title="Contenuto da fornire">Contatti (da fornire)</span></p>
       </div>

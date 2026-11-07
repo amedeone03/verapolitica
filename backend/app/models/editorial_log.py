@@ -107,6 +107,10 @@ class EditorialImage(Base):
 
 
 SYMBOL_KINDS = ("party", "region", "province", "politician")
+# Territory images, managed from each territory scheda (Territorio in the console):
+# the coat of arms of a comune and the cover photo of a region, province or comune.
+# Keys: municipality id, region id, province abbreviation.
+TERRITORY_IMAGE_KINDS = ("municipality", "region_photo", "province_photo", "municipality_photo")
 
 
 class EditorialSymbol(Base):

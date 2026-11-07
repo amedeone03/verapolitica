@@ -1,0 +1,22 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Point","coordinates":[7.8354,44.9757]},"properties":{"name":"Piemonte","istat":"01"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[7.3305,45.7152]},"properties":{"name":"Valle d'Aosta/Vallée d'Aoste","istat":"02"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[9.2594,44.4679]},"properties":{"name":"Liguria","istat":"07"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[9.7462,45.7118]},"properties":{"name":"Lombardia","istat":"03"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[11.2974,46.4054]},"properties":{"name":"Trentino-Alto Adige/Südtirol","istat":"04"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[11.8379,45.4856]},"properties":{"name":"Veneto","istat":"05"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[12.9983,46.2183]},"properties":{"name":"Friuli-Venezia Giulia","istat":"06"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[11.0688,44.5263]},"properties":{"name":"Emilia-Romagna","istat":"08"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[13.2274,43.2831]},"properties":{"name":"Marche","istat":"11"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[11.1358,43.4579]},"properties":{"name":"Toscana","istat":"09"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[12.4798,42.9638]},"properties":{"name":"Umbria","istat":"10"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[12.6592,41.9505]},"properties":{"name":"Lazio","istat":"12"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[14.8283,41.0346]},"properties":{"name":"Campania","istat":"15"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[13.8415,42.2306]},"properties":{"name":"Abruzzo","istat":"13"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[14.7058,41.6658]},"properties":{"name":"Molise","istat":"14"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[16.4709,40.9935]},"properties":{"name":"Puglia","istat":"16"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[16.1336,40.4442]},"properties":{"name":"Basilicata","istat":"17"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[16.4777,39.2391]},"properties":{"name":"Calabria","istat":"18"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[14.1548,37.5596]},"properties":{"name":"Sicilia","istat":"19"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[9.0902,40.054]},"properties":{"name":"Sardegna","istat":"20"}}
+]}

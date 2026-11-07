@@ -217,7 +217,20 @@ def test_home_lists_my_rejections_until_i_save_again(desk):
     assert client.get("/redazione/api/panoramica", headers=ANNA).json()["my_rejected"] == []
 
 
-JPEG = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\xff\xd8\xff\xe0" + b"\x00" * 64).decode()
+def _jpeg(colour) -> str:
+    """A real image: uploads are decoded and re-encoded by the server."""
+
+    from base64 import b64encode
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (32, 32), colour).save(buffer, format="JPEG", quality=90)
+    return "data:image/jpeg;base64," + b64encode(buffer.getvalue()).decode()
+
+
+JPEG = _jpeg((200, 30, 30))
 
 
 def test_the_photo_goes_in_with_the_new_politician_and_the_logo_with_the_party(desk):
@@ -236,7 +249,7 @@ def test_the_photo_goes_in_with_the_new_politician_and_the_logo_with_the_party(d
     photo = client.get("/portraits").json()[str(person["id"])]
     assert photo["url"] == f"/media/{image['id']}" and photo["credit"] == "Camera dei deputati"
 
-    logo = client.post("/redazione/api/immagini", headers=CARLA, json={"data": JPEG.replace("AAAA", "AAAB", 1)}).json()
+    logo = client.post("/redazione/api/immagini", headers=CARLA, json={"data": _jpeg((30, 30, 200))}).json()
     party = client.post("/redazione/api/partiti", headers=CARLA, json={
         "name": "Partito di Prova", "source_url": "https://example.org/statuto", "image_id": logo["id"], "image_credit": "Sito del partito",
     }).json()

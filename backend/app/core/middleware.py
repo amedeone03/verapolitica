@@ -26,7 +26,9 @@ SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self'; "
-        "connect-src 'self'; "
+        # Territorio map: self-hosted MapLibre worker, OpenFreeMap vector tiles and fonts.
+        "worker-src 'self'; "
+        "connect-src 'self' https://tiles.openfreemap.org; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "
@@ -60,6 +62,8 @@ def request_body_limit(settings: Settings, path: str) -> int:
     if settings.demo_ui_enabled and path.startswith("/demo/"):
         # Multipart form fields sit on top of the document cap used by upload validation.
         return settings.ai_max_document_bytes + 65_536
+    if path == "/redazione/api/immagini":
+        return settings.max_image_upload_bytes
     return settings.max_request_body_bytes
 
 

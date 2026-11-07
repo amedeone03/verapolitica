@@ -17,7 +17,7 @@ from backend.app.models import Legislature, Politician, PoliticianVersion
 router = APIRouter(include_in_schema=False)
 
 SECTION_VIEWS = ("", "?view=politics", "?view=history", "?view=politicians", "?view=proposals",
-                 "?view=referendums", "?view=voting-guide", "?view=glossary", "?view=methodology",
+                 "?view=referendums", "?view=voting-guide", "?view=glossary",
                  "?view=regions")
 
 

@@ -225,3 +225,54 @@ def test_parliament_composition_counts_open_memberships_of_the_current_legislatu
     assert [(group["abbreviation"], group["seats"]) for group in camera["groups"]] == [("GG", 3), ("GP", 1)]
     assert camera["counted"] == 4 and camera["majority"] == 3
     assert data["senato"]["groups"] == [{"id": data["senato"]["groups"][0]["id"], "name": "Gruppo del Senato", "abbreviation": "GS", "seats": 1}]
+
+
+def _photo(colour=(30, 120, 80), size=(2400, 1600)) -> str:
+    from base64 import b64encode
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", size, colour).save(buffer, format="JPEG", quality=92)
+    return "data:image/jpeg;base64," + b64encode(buffer.getvalue()).decode()
+
+
+def test_coat_of_arms_and_cover_photo_for_every_territory(console):
+    client, ids = console
+    slots = client.get(f"/redazione/api/territori/municipality/{ids['municipality']}/immagini", headers=ANNA).json()["slots"]
+    assert [(slot["kind"], slot["label"], slot["photo"]) for slot in slots] == [("municipality", "Stemma", False), ("municipality_photo", "Foto", True)]
+    assert client.get("/redazione/api/territori/province/xx/immagini", headers=ANNA).status_code == 404
+
+    # The photo is compressed by the server for its use (a cover: longest side 1800px, WebP).
+    image = client.post("/redazione/api/immagini", headers=ANNA, json={"data": _photo(), "purpose": "photo"}).json()
+    assert (image["width"], image["height"]) == (1800, 1200) and image["saved_percent"] > 0
+    assert client.get(image["url"]).headers["content-type"] == "image/webp"
+    proposal = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "province_photo", "key": "MI", "image_id": image["id"], "credit": "Mario Rossi",
+        "license": "cc-by-sa", "source_url": "https://commons.wikimedia.org/wiki/File:Milano.jpg",
+    })
+    assert proposal.status_code == 200, proposal.text
+    pending = client.get("/redazione/api/territori/province/MI/immagini", headers=ANNA).json()["slots"][1]["pending"]
+    assert len(pending) == 1
+    assert client.get("/territories/province/MI").json()["images"]["photo"] is None
+    # A second member approves; the author cannot.
+    assert client.post(f"/redazione/api/coda/change/{proposal.json()['id']}/approva", headers=ANNA, json={}).status_code == 409
+    assert client.post(f"/redazione/api/coda/change/{proposal.json()['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    public = client.get("/territories/province/MI").json()["images"]
+    assert public["photo"]["url"] == image["url"] and public["photo"]["credit"] == "Mario Rossi" and public["logo"] is None
+
+    # A comune's coat of arms keeps the institutional licence; a photo cannot claim it.
+    logo = client.post("/redazione/api/immagini", headers=ANNA, json={"data": _photo((200, 20, 20), (900, 900)), "purpose": "logo"}).json()
+    assert logo["width"] == 640
+    wrong = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "municipality_photo", "key": str(ids["municipality"]), "image_id": logo["id"], "credit": "Comune",
+        "license": "istituzionale", "source_url": "https://www.comune.milano.it/stemma",
+    })
+    assert wrong.status_code == 422
+    arms = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "municipality", "key": str(ids["municipality"]), "image_id": logo["id"], "credit": "Comune di Milano",
+        "license": "istituzionale", "source_url": "https://www.comune.milano.it/stemma",
+    }).json()
+    client.post(f"/redazione/api/coda/change/{arms['id']}/approva", headers=BRUNO, json={})
+    assert client.get(f"/territories/municipality/{ids['municipality']}").json()["images"]["logo"]["url"] == logo["url"]

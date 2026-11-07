@@ -46,8 +46,8 @@ def test_routes_and_privacy_of_the_reader_profile():
     assert 'const PROFILE_KEY = "verapolitica.profile.v1"' in script
     assert "storage?.setItem(PROFILE_KEY" in script
     assert "fetchImpl(path" in script and "PROFILE_KEY" not in script.split("function createPublicApiClient")[1].split("\n}\n")[0]
-    # Party scores are explained as pooled counts, comparisons as same-role only.
-    assert "non è una media dei punteggi dei suoi esponenti" in script
+    # No public scoring method; comparisons stay same-role only.
+    assert "non è una media dei punteggi dei suoi esponenti" not in script
     assert "non è distinguibile" in script
 
 
@@ -121,7 +121,7 @@ def test_proposals_section_layout() -> None:
     for marker in ("renderProposalState(proposal)", "Le parole esatte", "Chi l'ha promesso", "Cronologia", "Fonti ufficiali"):
         assert marker in detail
     assert 'bindExplainPledges(byId("proposal-detail"), api)' in script
-    assert ".proposals-tabs a:active { transform: scale(.95); }" in css
+    assert ".proposals-tabs a:active { transform: scale(.97); }" in css
 
 
 def test_government_cloud_sizes_by_institutional_role() -> None:
@@ -176,35 +176,36 @@ def test_region_and_comune_pages_show_their_local_news():
     assert '<div id="region-news"></div>' in script
 
 
-def test_politica_holds_regions_provinces_and_comuni():
+def test_territorio_is_a_main_tab_with_the_map():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
-    view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    for marker in ('id="territories-title"', 'id="my-zone"', 'id="territory-q"', 'href="./?view=regions"',
-                   'href="./?view=provinces"', 'href="./?view=municipalities"'):
+    nav = html.split('class="bottom-nav"')[1].split("</nav>")[0]
+    # Feed, Politica, Territorio, Archivio, Cerca — in this order.
+    order = [nav.index(f'data-section="{name}"') for name in ("home", "politics", "territory", "history", "search")]
+    assert order == sorted(order)
+    view = html.split('id="territory-view"')[1].split('id="compare-view"')[0]
+    for marker in ('id="tmap-canvas"', 'role="combobox"', 'id="tmap-results"', 'id="tmap-back"', 'id="tmap-zone"', 'id="tmap-sheet"', "ISTAT", "OpenStreetMap"):
         assert marker in view
-    # The zone card reads the on-device profile; the comune search uses the public search.
-    assert "export function renderZoneCard(zone" in script
-    assert "const zone = loadReaderProfile().zone;" in script
-    assert 'api.search({ q, type: "municipality", limit: 6' in script
-    assert 'provinces: "politics", regions: "politics", municipalities: "politics"' in script
-    archive = html.split('id="history-view"')[1].split("</section>\n      </section>")[0]
-    assert "?view=regions" not in archive and "?view=provinces" not in archive
+    # Politica no longer carries the territory block; lists and schede belong to Territorio.
+    politics = html.split('id="politics-view"')[1].split('id="territory-view"')[0]
+    assert 'id="territories-title"' not in politics and "?view=regions" not in politics
+    assert 'territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory"' in script
+    assert 'if (params.get("province") || params.get("region") || params.get("municipality")) return "territory";' in script
+    assert 'import("./territory-map.js")' in script and "export function renderTownFilter(towns)" in script
 
 
-def test_territory_schede_live_in_politica():
+def test_territory_schede_go_back_to_the_map():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
-    # A province opens its own scheda in Politica; its history stays in the Archivio.
     assert 'id="province-detail-view"' in html and 'showProvinceDetail(api, provinceCode.toUpperCase())' in script
     assert 'showTerritoryHistory(api, { province: params.get("history_province").toUpperCase() })' in script
-    # Region and comune pages go back to Politica, never to the Archivio.
-    for view in ("region-detail-view", "municipality-detail-view", "province-detail-view"):
+    for view in ("region-detail-view", "municipality-detail-view", "province-detail-view", "regions-view", "provinces-view", "municipalities-view"):
         block = html.split(f'id="{view}"')[1].split("</section>")[0]
-        assert "./?view=politics" in block and "Archivio" not in block
-    # The scheda shows the official base first, then the model's blocks, news and sources.
+        assert "./?view=territory" in block and "Archivio" not in block
+    # Back lands on the same place on the map.
+    assert "./?view=territory&regione=${encodeURIComponent(region.istat_code)}" in script
+    assert "./?view=territory&provincia=${encodeURIComponent(base.key)}" in script
     assert "export function renderTerritoryScheda(t" in script and "export function renderTerritoryFacts(t)" in script
-    assert 'getTerritory: (kind, key) => request(`/territories/' in script
 
 
 def test_government_chart_shows_the_parties_and_the_ranks():
@@ -225,15 +226,36 @@ def test_politica_opens_with_regioni_camera_senato():
     html = (APP / "index.html").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
     view = html.split('id="politics-view"')[1].split('id="compare-view"')[0]
-    # Three tabs above the Governo block, one panel.
-    assert view.index('id="quadro-title"') < view.index('id="government-title"')
-    for tab in ("regioni", "camera", "senato"):
-        assert f'data-quadro="{tab}"' in view
+    # Il quadro holds only Governo (default), Camera and Senato.
+    quadro = view.split('id="quadro-title"')[1].split('id="parties-title"')[0]
+    for tab in ("governo", "camera", "senato"):
+        assert f'data-quadro="{tab}"' in quadro
+    assert 'data-quadro="regioni"' not in quadro
+    assert quadro.index('data-quadro="governo"') < quadro.index('data-quadro="camera"')
+    assert 'id="government-row"' in quadro and 'id="government-chart"' in quadro
+    assert 'id="quadro-governo"' in quadro and 'show("governo");' in script
     # Regions are coloured only by the coalition the redazione published; the rest is «Da compilare».
     assert 'const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];' in script
     assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
     assert 'getParliament: () => request("/parliament/composition")' in script
     assert 'getRegionsOverview: () => request("/territories/regions")' in script
+
+
+def test_territory_map_is_accessible_light_and_self_hosted():
+    module = (APP / "territory-map.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    # Opens on the URL state, else the reader's zone (region + province), else Italy.
+    assert "fromUrl.regione || fromUrl.provincia ? fromUrl : { regione: zoneIstat" in module
+    assert 'history.pushState({ territory: true }, "", territoryHref(state))' in module and 'window.addEventListener("popstate"' in module
+    # Faces and pins are buttons; Escape goes up a level; keyboard activation moves focus.
+    assert 'document.createElement("button")' in module and 'event.key === "Escape"' in module and "event.detail === 0" in module
+    assert 'aria-activedescendant' in module and "Elenco ${" in module
+    # MapLibre is self-hosted (script-src 'self'); shapes appear even without basemap tiles.
+    assert './vendor/maplibre/maplibre-gl-csp.js' in module and 'map.once("style.load"' in module
+    assert (APP / "vendor" / "maplibre" / "maplibre-gl-csp-worker.js").exists()
+    for name in ("regioni", "province", "regioni-centri", "province-centri"):
+        assert (APP / "geo" / f"{name}.geojson").exists()
+    assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in > *, .tmap-results { animation: none; }" in css
 
 
 def test_redazione_corrections_reach_the_politica_page():
@@ -257,3 +279,25 @@ def test_redazione_has_a_politica_attuale_page():
     # Each row keeps the official value beside the correction, and can go back to it.
     assert "Dati ufficiali:" in console and "Torna al dato ufficiale" in console
     assert 'if (item.kind === "politica")' in console
+
+
+def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_images():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    html = (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
+    # Public: photo or coat of arms, the person who governs, credits, filterable comuni.
+    assert "export function renderTerritoryHero(t" in script and "export function renderTerritoryHolder(holder" in script
+    assert 't-hero-badge' in script and 't-hero-credit' in script and "images.photo" in script
+    assert "export function renderTownDirectory(towns" in script and "bindTownDirectory(byId(\"province-detail\"))" in script
+    assert ".t-hero { " in css and "aspect-ratio: 4 / 5" in css
+    # Console: «Territorio» in the menu, a simple dashboard, coat of arms and photo per scheda.
+    assert '<span class="nav-text">Territorio</span>' in html
+    # Simple dashboard: what waits for verification first, no counters of logos or photos.
+    assert "In attesa di verifica" in console and "function territoryWaiting(queue)" in console
+    assert "Stemmi pubblicati" not in console and "Foto pubblicate" not in console
+    assert '<span class="nav-text">Partiti</span>' in html and "Partiti e territori" not in html
+    assert 'const SYMBOL_TABS = [["party", "Partiti"]];' in console
+    assert 'api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`)' in console
+    assert 'purpose: slot.photo ? "photo" : "logo"' in console and "async function shrinkForUpload(img" in console
+    assert "provinceTownsCard(base)" in console
