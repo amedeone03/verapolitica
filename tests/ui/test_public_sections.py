@@ -279,3 +279,21 @@ def test_redazione_has_a_politica_attuale_page():
     # Each row keeps the official value beside the correction, and can go back to it.
     assert "Dati ufficiali:" in console and "Torna al dato ufficiale" in console
     assert 'if (item.kind === "politica")' in console
+
+
+def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_images():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    html = (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
+    # Public: photo or coat of arms, the person who governs, credits, filterable comuni.
+    assert "export function renderTerritoryHero(t" in script and "export function renderTerritoryHolder(holder" in script
+    assert 't-hero-badge' in script and 't-hero-credit' in script and "images.photo" in script
+    assert "export function renderTownDirectory(towns" in script and "bindTownDirectory(byId(\"province-detail\"))" in script
+    assert ".t-hero { " in css and "aspect-ratio: 4 / 5" in css
+    # Console: «Territorio» in the menu, a simple dashboard, coat of arms and photo per scheda.
+    assert '<span class="nav-text">Territorio</span>' in html
+    assert "Regioni complete" in console and "Solo da completare" in console
+    assert 'api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`)' in console
+    assert 'purpose: slot.photo ? "photo" : "logo"' in console and "async function shrinkForUpload(img" in console
+    assert "provinceTownsCard(base)" in console

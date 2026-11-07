@@ -1760,3 +1760,88 @@ body.is-map main.container { max-width: none; padding: 0; margin: 0; }
   content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); pointer-events: none;
 }
 a, button, summary, [role="tab"], [role="button"] { -webkit-tap-highlight-color: transparent; }
+
+/* ---------------------------------------------------------------------------
+   Territory schede: hero in the politician family. Mobile: a cover banner with
+   the coat of arms as a badge, then the intro. Desktop: a card, picture left
+   (4:5 like a politician's portrait), intro right. Without a photo the coat of
+   arms sits on a quiet sage panel; without either, the initials. */
+.t-hero { position: relative; display: grid; margin: 0 0 var(--space-5); overflow: hidden; border-radius: 20px; background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-border), 0 8px 24px rgba(15, 39, 71, .06); }
+.t-hero-media { position: relative; aspect-ratio: 16 / 10; background: var(--color-accent-light); }
+.t-hero:not(.has-photo) .t-hero-media { aspect-ratio: auto; height: 112px; }
+.t-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.t-hero.has-photo .t-hero-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15, 39, 71, 0) 55%, rgba(15, 39, 71, .28)); pointer-events: none; }
+/* No photo yet: a flat sage panel with a fine institutional hatch (no glows). */
+.t-hero-pattern { position: absolute; inset: 0; background-color: var(--color-accent-light); background-image: repeating-linear-gradient(135deg, rgba(15, 39, 71, .045) 0 1px, transparent 1px 12px); }
+.t-hero-badge {
+  position: absolute; z-index: 1; left: 20px; bottom: -36px; display: grid; place-items: center; width: 84px; height: 84px; padding: 10px;
+  border-radius: 20px; background: #fff; box-shadow: 0 0 0 1px rgba(15, 39, 71, .06), 0 6px 18px rgba(15, 39, 71, .14);
+}
+.t-hero-badge img { width: 100%; height: 100%; object-fit: contain; }
+.t-hero-badge.is-empty { background: var(--color-primary); color: #fff; font-size: 1.5rem; font-weight: 800; letter-spacing: -.01em; }
+.t-hero-intro { display: grid; gap: 8px; min-width: 0; padding: 48px 20px 20px; }
+.t-hero-eyebrow { margin: 0; color: var(--color-accent-strong); font-size: .8125rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.t-hero-eyebrow a { color: inherit; text-underline-offset: 3px; }
+.t-hero h1 { margin: 0; font-size: clamp(1.75rem, 5.5vw, 2.5rem); line-height: 1.1; letter-spacing: -.022em; overflow-wrap: anywhere; }
+.t-hero-sub { margin: 0; color: var(--color-text-muted); font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.t-hero-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; }
+.t-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--c) 9%, #fff); color: var(--color-primary); font-size: .8125rem; font-weight: 600; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 22%, transparent); }
+.t-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.t-hero-credits { padding: 0 20px 14px; }
+.t-hero-credit { margin: 0; color: var(--color-text-muted); font-size: .6875rem; line-height: 1.5; }
+.t-hero-credit a { color: inherit; }
+
+/* Who governs: a politician row, one tap to the profile. */
+.t-holder { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--color-background); color: var(--color-text); text-decoration: none; box-shadow: inset 0 0 0 1px var(--color-border); -webkit-tap-highlight-color: transparent; transition: transform 120ms cubic-bezier(.23, 1, .32, 1), background-color 150ms ease; }
+a.t-holder:active { transform: scale(.98); }
+@media (hover: hover) and (pointer: fine) { a.t-holder:hover { background: var(--color-accent-light); } }
+a.t-holder:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; }
+.t-holder-photo { position: relative; display: grid; place-items: center; width: 56px; height: 56px; overflow: hidden; border-radius: 50%; background: var(--color-accent-light); color: var(--color-primary); font-weight: 800; }
+.t-holder-photo img { width: 100%; height: 100%; object-fit: cover; }
+.t-holder-photo.has-photo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+.t-holder-text { display: grid; gap: 1px; min-width: 0; }
+.t-holder-text small { color: var(--color-text-muted); font-size: .8125rem; }
+.t-holder-text strong { color: var(--color-primary); font-size: 1.0625rem; line-height: 1.25; }
+.t-holder-go { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--color-primary); }
+
+@media (min-width: 768px) {
+  .t-hero { grid-template-columns: 260px minmax(0, 1fr); align-items: stretch; }
+  .t-hero-media, .t-hero:not(.has-photo) .t-hero-media { aspect-ratio: 4 / 5; height: auto; min-height: 100%; }
+  .t-hero:not(.has-photo) .t-hero-badge { left: 50%; top: 50%; bottom: auto; width: 128px; height: 128px; padding: 16px; transform: translate(-50%, -50%); border-radius: 28px; }
+  .t-hero.has-photo .t-hero-badge { left: 16px; bottom: 16px; width: 72px; height: 72px; }
+  .t-hero-intro { align-content: center; padding: 28px 32px; }
+  .t-hero.has-photo .t-hero-media, .t-hero-media { grid-row: 1 / span 2; }
+  .t-hero-credits { grid-column: 2; align-self: end; padding: 0 32px 18px; }
+}
+
+.territory-summary { margin: 0 0 var(--space-2); padding: 0 0 var(--space-5); border-bottom: 1px solid var(--color-border); }
+.territory-summary .publication-meta { margin: var(--space-3) 0 0; }
+.t-count-pill { display: inline-grid; place-items: center; min-width: 28px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--color-accent-light); color: var(--color-primary); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; vertical-align: 3px; }
+
+/* Provinces of a region: cards with their coat of arms. */
+.t-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.t-cards a { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 68px; padding: 12px 14px; border-radius: 14px; background: var(--color-surface); color: var(--color-text); text-decoration: none; box-shadow: 0 0 0 1px var(--color-border); -webkit-tap-highlight-color: transparent; transition: transform 120ms cubic-bezier(.23, 1, .32, 1), box-shadow 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .t-cards a:hover { box-shadow: 0 0 0 1px var(--color-border-strong, #B8C6C1), 0 4px 12px rgba(15, 39, 71, .06); } }
+.t-cards a:active { transform: scale(.98); }
+.t-cards a:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; }
+.t-card-logo { display: grid; place-items: center; width: 44px; height: 44px; padding: 5px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--color-border); }
+.t-card-logo img { width: 100%; height: 100%; object-fit: contain; }
+.t-card-logo.is-empty { padding: 0; background: var(--color-accent-light); color: var(--color-primary); font-size: .8125rem; font-weight: 800; box-shadow: none; }
+.t-card-text { display: grid; gap: 1px; min-width: 0; }
+.t-card-text strong { color: var(--color-primary); font-size: .9375rem; }
+.t-card-text small { color: var(--color-text-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.t-card-go { color: var(--color-text-muted); }
+
+/* Comuni: a filter and a quiet grid of links. */
+.t-dir-filter { display: grid; gap: 6px; max-width: 420px; margin: 0 0 var(--space-3); }
+.t-dir-filter label { color: var(--color-text-muted); font-size: .8125rem; font-weight: 600; }
+.t-dir-filter input { min-height: 46px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--color-surface); color: var(--color-text); font: 500 1rem var(--font-body); box-shadow: inset 0 0 0 1px var(--color-border); }
+.t-dir-filter input:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 1px; }
+.t-dir-count { min-height: 1.2em; margin: 0; color: var(--color-text-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.t-dir { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 18px; margin: 0 0 var(--space-3); padding: 0; list-style: none; }
+.t-dir a { display: grid; gap: 1px; min-height: 48px; padding: 8px 2px; border-bottom: 1px solid var(--color-border); color: var(--color-primary); text-decoration: none; }
+.t-dir a strong { font-size: .9375rem; font-weight: 600; }
+.t-dir a small { color: var(--color-text-muted); font-size: .75rem; }
+@media (hover: hover) and (pointer: fine) { .t-dir a:hover strong { text-decoration: underline; text-underline-offset: 3px; } }
+.t-dir a:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: -2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .t-holder, .t-cards a { transition: none; } a.t-holder:active, .t-cards a:active { transform: none; } }

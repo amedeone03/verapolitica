@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.models import (
     EditorialPost,
+    EditorialSymbol,
     EditorialPostStatus,
     FeedScope,
     Municipality,
@@ -29,6 +30,7 @@ from backend.app.models import (
 )
 from backend.app.models.territory_block import TerritoryBlock, TerritoryBlockStatus, TerritoryKind
 from backend.app.services.public_territory_service import PublicTerritoryQueryService
+from backend.app.services import symbols
 from backend.app.services.redazione import style
 
 
@@ -285,6 +287,38 @@ def findings(kind: str, block: str, data: dict, sources: list[dict]) -> list[dic
     return unique
 
 
+IMAGE_KINDS = {
+    "region": ("region", "region_photo"),
+    "province": ("province", "province_photo"),
+    "municipality": ("municipality", "municipality_photo"),
+}
+
+
+def _images(session: Session, kind: str, key: str) -> dict:
+    """The approved coat of arms and cover photo, with credit and licence (or None)."""
+
+    logo_kind, photo_kind = IMAGE_KINDS[kind]
+    rows = {
+        row.kind: row
+        for row in session.scalars(
+            select(EditorialSymbol).where(EditorialSymbol.kind.in_((logo_kind, photo_kind)), EditorialSymbol.key == key)
+        )
+    }
+    return {"logo": symbols.symbol_dict(rows.get(logo_kind)), "photo": symbols.symbol_dict(rows.get(photo_kind))}
+
+
+def _holder_photo(session: Session, holder: dict | None) -> dict | None:
+    """Add the approved portrait of the president or mayor, when the redazione published one."""
+
+    if holder and holder.get("politician_id"):
+        row = session.scalar(
+            select(EditorialSymbol).where(EditorialSymbol.kind == "politician", EditorialSymbol.key == str(holder["politician_id"]))
+        )
+        if row is not None:
+            return {**holder, "photo_url": symbols.media_url(row.image_id)}
+    return holder
+
+
 class TerritorySchede:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self.session_factory = session_factory
@@ -363,8 +397,10 @@ class TerritorySchede:
                     "pending": [self._item(row, kind, member) for row in pending],
                     "rejected": [self._item(row, kind, member) for row in rejected if not pending and (published is None or row.created_at > published.created_at)],
                 }
+            base["holder"] = _holder_photo(session, base.get("holder"))
             return {
                 "base": base,
+                "images": _images(session, kind, base["key"]),
                 "definitions": DEFINITIONS[kind],
                 "blocks": blocks,
                 "news": self._news(session, kind, base),
@@ -408,8 +444,11 @@ class TerritorySchede:
                     seen.add(marker)
                     unique.append(source)
             updated = max((row.published_at for row in latest.values() if row.published_at), default=None)
+            base["holder"] = _holder_photo(session, base.get("holder"))
+            images = _images(session, kind, base["key"])
             return {
                 "base": base,
+                "images": images,
                 "blocks": blocks,
                 "sources": unique,
                 "updated_at": _iso(updated),
@@ -468,11 +507,17 @@ class TerritorySchede:
                 else:
                     entry["pending"] += 1
             results: list[dict] = []
+            pictures = {
+                kind: {key: symbols.media_url(image_id) for key, image_id in session.execute(
+                    select(EditorialSymbol.key, EditorialSymbol.image_id).where(EditorialSymbol.kind == kind)
+                )}
+                for kind in ("region", "region_photo", "province", "province_photo", "municipality", "municipality_photo")
+            }
             regions = select(Region).order_by(Region.canonical_name)
             if text:
                 regions = regions.where(func.lower(Region.canonical_name).contains(text.casefold()))
             for region in session.scalars(regions.limit(limit)):
-                results.append(_search_row("region", str(region.id), f"Regione {region.canonical_name}", "", done))
+                results.append(_search_row("region", str(region.id), f"Regione {region.canonical_name}", "", done, pictures, name=region.canonical_name, region_id=region.id))
             provinces = (
                 select(Municipality.province_abbreviation, func.min(Municipality.province_name), func.min(Municipality.region_id))
                 .group_by(Municipality.province_abbreviation)
@@ -485,7 +530,7 @@ class TerritorySchede:
                 )
             region_names = {row.id: row.canonical_name for row in session.scalars(select(Region))}
             for abbr, name, region_id in session.execute(provinces.limit(limit if text else 200)):
-                results.append(_search_row("province", abbr, f"Provincia di {name}", region_names.get(region_id, ""), done))
+                results.append(_search_row("province", abbr, f"Provincia di {name}", region_names.get(region_id, ""), done, pictures, name=name, region_id=region_id))
             if text:
                 towns = (
                     select(Municipality)
@@ -494,12 +539,12 @@ class TerritorySchede:
                     .limit(limit)
                 )
                 for town in session.scalars(towns):
-                    results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done))
+                    results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done, pictures, name=town.canonical_name, region_id=town.region_id))
             else:
                 # Without a query: the comuni that already have a scheda.
                 ids = [int(key) for (kind, key) in done if kind == "municipality" and key.isdigit()]
                 for town in session.scalars(select(Municipality).where(Municipality.id.in_(ids)).order_by(Municipality.canonical_name)):
-                    results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done))
+                    results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done, pictures, name=town.canonical_name, region_id=town.region_id))
             return results
 
     # --------------------------------------------------------------- writes
@@ -621,14 +666,19 @@ def _public_url(kind: str, key: str) -> str:
     return f"/app/?{kind}={key}"
 
 
-def _search_row(kind: str, key: str, title: str, detail: str, done: dict) -> dict:
+def _search_row(kind: str, key: str, title: str, detail: str, done: dict, pictures: dict | None = None, *, name: str = "", region_id: int | None = None) -> dict:
     entry = done.get((kind, key), {"published": set(), "pending": 0})
     total = len(DEFINITIONS[kind])
+    pictures = pictures or {}
     return {
         "kind": kind,
         "key": key,
         "title": title,
+        "name": name or title,
+        "region_id": region_id,
         "detail": detail,
+        "logo_url": pictures.get(kind, {}).get(key),
+        "photo_url": pictures.get(f"{kind}_photo", {}).get(key),
         "published_blocks": len(entry["published"]),
         "total_blocks": total,
         "pending": entry["pending"],

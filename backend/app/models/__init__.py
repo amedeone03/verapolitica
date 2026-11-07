@@ -23,6 +23,7 @@ from backend.app.models.editorial_log import (
     EditorialLogEntry,
     EditorialSymbol,
     SYMBOL_KINDS,
+    TERRITORY_IMAGE_KINDS,
     ImmutableEditorialLogError,
 )
 from backend.app.models.evidence import Evidence, EvidenceExtractionMethod
@@ -173,6 +174,7 @@ __all__ = [
     "EditorialImage",
     "EditorialSymbol",
     "SYMBOL_KINDS",
+    "TERRITORY_IMAGE_KINDS",
     "EditorialLogEntry",
     "EditorialPost",
     "ImmutableEditorialLogError",

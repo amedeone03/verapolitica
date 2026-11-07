@@ -2017,24 +2017,236 @@ function symbolDialog(kind, name, licenses) {
 // model can always be rewritten, and the new version replaces the published
 // one once an admin (or a second member) publishes it.
 const TERRITORY_KIND_LABEL = { region: "Regioni", province: "Province", municipality: "Comuni" };
+let territoryTab = "region";
+let territoryFilter = "all";
 
+function territoryThumb(row) {
+  if (row.logo_url) return `<img class="t-thumb" src="${esc(row.logo_url)}" alt="" width="40" height="40" loading="lazy" />`;
+  const letters = String(row.name || row.title).replace(/^(Regione|Provincia di|Comune di)\s+/i, "").replace(/[^\p{L}]/gu, "").slice(0, 2).toUpperCase();
+  return `<span class="t-thumb is-empty" aria-hidden="true">${esc(row.kind === "province" ? row.key : letters)}</span>`;
+}
+
+function territoryRowHtml(row) {
+  const pct = Math.round((row.published_blocks / row.total_blocks) * 100);
+  const done = row.published_blocks === row.total_blocks && row.logo_url && row.photo_url;
+  return `<li><a class="t-row" href="#/territori/${row.kind}/${encodeURIComponent(row.key)}">
+      ${territoryThumb(row)}
+      <span class="t-row-text"><strong>${esc(row.name || row.title)}</strong><small>${esc(row.kind === "province" ? `${row.key} · ${row.detail}` : row.detail || { region: "Regione", province: "Provincia", municipality: "Comune" }[row.kind])}</small></span>
+      <span class="t-row-meta">
+        <span class="t-flags"><span class="t-flag${row.logo_url ? " is-on" : ""}" title="${row.logo_url ? "Stemma pubblicato" : "Stemma mancante"}">Stemma</span><span class="t-flag${row.photo_url ? " is-on" : ""}" title="${row.photo_url ? "Foto pubblicata" : "Foto mancante"}">Foto</span></span>
+        <span class="t-bar" role="img" aria-label="${row.published_blocks} blocchi pubblicati su ${row.total_blocks}"><span style="transform:scaleX(${pct / 100})"></span></span>
+        <span class="t-count">${row.published_blocks}/${row.total_blocks}</span>
+        ${row.pending ? `<span class="chip chip-pending">${row.pending} in attesa</span>` : done ? `<span class="chip chip-published">Completa</span>` : ""}
+      </span>
+    </a></li>`;
+}
+
+// «Territorio»: one simple dashboard. Three tabs (Regioni, Province, Comuni
+// with a scheda), a search that reaches every comune, and a filter for what is
+// still missing. Each row says at a glance: coat of arms, photo, blocks.
 async function showTerritories(query = "") {
   const rows = await api(`/territori${query ? `?q=${encodeURIComponent(query)}` : ""}`);
-  const groups = ["region", "province", "municipality"].map((kind) => [kind, rows.filter((row) => row.kind === kind)]).filter(([, list]) => list.length);
-  view.innerHTML = `<div class="page-head"><div><h1>Territori</h1><p class="muted">Regioni, province e comuni: una scheda per ognuno, scritta con i modelli Regione e Città.</p></div></div>
-    <form id="territory-search" class="card" role="search" style="margin-bottom:16px"><label for="tq">Cerca una regione, una provincia o un comune</label>
-      <div class="actions" style="margin-top:4px"><input id="tq" type="search" value="${esc(query)}" placeholder="es. Lombardia, MI, Bergamo" style="flex:1 1 260px" autocomplete="off" /><button class="button button-primary" type="submit">Cerca</button></div>
-      ${query ? "" : `<p class="small muted" style="margin:8px 0 0">Senza ricerca vedi le regioni, le province e i comuni che hanno già una scheda.</p>`}</form>
-    ${groups.length ? groups.map(([kind, list]) => `<section class="card territory-group"><h2>${TERRITORY_KIND_LABEL[kind]} <span class="count">${list.length}</span></h2>
-      <ul class="territory-list">${list.map((row) => `<li><a href="#/territori/${row.kind}/${encodeURIComponent(row.key)}">
-        <span><strong>${esc(row.title)}</strong>${row.detail ? `<small>${esc(row.detail)}</small>` : ""}</span>
-        <span class="territory-progress" aria-label="${row.published_blocks} blocchi pubblicati su ${row.total_blocks}"><span class="bar"><span style="width:${Math.round((row.published_blocks / row.total_blocks) * 100)}%"></span></span><span class="small muted">${row.published_blocks}/${row.total_blocks}</span>${row.pending ? `<span class="chip chip-pending">${row.pending} in attesa</span>` : ""}</span>
-      </a></li>`).join("")}</ul></section>`).join("") : `<div class="empty">Nessun territorio trovato${query ? ` per «${esc(query)}»` : ""}.</div>`}`;
+  const missing = (row) => !row.logo_url || !row.photo_url || row.published_blocks < row.total_blocks || row.pending;
+  const regions = rows.filter((row) => row.kind === "region");
+  const stats = {
+    complete: regions.filter((row) => !missing(row)).length,
+    logos: rows.filter((row) => row.logo_url).length,
+    photos: rows.filter((row) => row.photo_url).length,
+    pending: rows.reduce((sum, row) => sum + (row.pending || 0), 0),
+  };
+  const tabs = query ? ["region", "province", "municipality"].filter((kind) => rows.some((row) => row.kind === kind)) : ["region", "province", "municipality"];
+  if (!tabs.includes(territoryTab)) territoryTab = tabs[0] || "region";
+  const list = rows.filter((row) => row.kind === territoryTab && (territoryFilter === "all" || missing(row)));
+  view.innerHTML = `<div class="page-head"><div><h1>Territorio</h1><p class="muted">Regioni, province e comuni: scheda, stemma e foto. Tutto quello che il cittadino vede nella mappa e nelle schede.</p></div></div>
+    ${query ? "" : `<div class="t-stats">
+      <div><b>${stats.complete}<small>/20</small></b><span>Regioni complete</span></div>
+      <div><b>${stats.logos}</b><span>Stemmi pubblicati</span></div>
+      <div><b>${stats.photos}</b><span>Foto pubblicate</span></div>
+      <div${stats.pending ? ' class="is-alert"' : ""}><b>${stats.pending}</b><span>In attesa di verifica</span></div>
+    </div>`}
+    <form id="territory-search" class="t-search" role="search">
+      <label class="visually-hidden" for="tq">Cerca una regione, una provincia o un comune</label>
+      <input id="tq" type="search" value="${esc(query)}" placeholder="Cerca regione, provincia (MI) o comune" autocomplete="off" />
+      ${query ? `<button class="button button-secondary" type="button" data-clear>Annulla</button>` : ""}
+    </form>
+    <div class="t-toolbar">
+      <div class="t-tabs" role="tablist" aria-label="Livello">${tabs.map((kind) => `<button type="button" role="tab" data-tab="${kind}" aria-selected="${kind === territoryTab}">${TERRITORY_KIND_LABEL[kind]} <span class="t-tab-count">${rows.filter((row) => row.kind === kind).length}</span></button>`).join("")}</div>
+      <label class="t-missing"><input type="checkbox" data-missing${territoryFilter === "missing" ? " checked" : ""} /> Solo da completare</label>
+    </div>
+    ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">Qui ci sono i comuni che hanno già una scheda. Per gli altri cerca il nome, oppure aprili dalla loro provincia.</p>` : ""}
+    ${list.length ? `<ul class="t-list">${list.map(territoryRowHtml).join("")}</ul>` : `<div class="empty">${territoryFilter === "missing" ? "Niente da completare qui." : `Nessun risultato${query ? ` per «${esc(query)}»` : ""}.`}</div>`}`;
   const form = view.querySelector("#territory-search");
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    showTerritories(form.querySelector("#tq").value.trim());
+  const input = form.querySelector("#tq");
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => showTerritories(input.value.trim()).then(() => {
+      const again = view.querySelector("#tq");
+      again.focus();
+      again.setSelectionRange(again.value.length, again.value.length);
+    }), 250);
   });
+  form.addEventListener("submit", (event) => { event.preventDefault(); showTerritories(input.value.trim()); });
+  form.querySelector("[data-clear]")?.addEventListener("click", () => showTerritories(""));
+  view.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => { territoryTab = button.dataset.tab; showTerritories(query); }));
+  view.querySelector("[data-missing]").addEventListener("change", (event) => { territoryFilter = event.target.checked ? "missing" : "all"; showTerritories(query); });
+}
+
+// --- Stemma e foto -----------------------------------------------------------
+// The browser shrinks the file first (so it fits the upload limit on any
+// connection); the server then checks, cleans and compresses it for its use.
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine non leggibile.")); };
+    img.src = url;
+  });
+}
+
+async function shrinkForUpload(img, { photo }) {
+  const maxSide = photo ? 2400 : 1024;
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext("2d");
+  if (photo) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const limit = 3_200_000; // characters of base64, under the 4 MB upload ceiling
+  if (!photo) {
+    const png = canvas.toDataURL("image/png");
+    if (png.length <= limit) return png;
+  }
+  for (const quality of [0.92, 0.85, 0.78, 0.7]) {
+    let data = canvas.toDataURL("image/webp", quality);
+    if (!data.startsWith("data:image/webp")) data = canvas.toDataURL("image/jpeg", quality);
+    if (data.length <= limit) return data;
+  }
+  throw new Error("L'immagine è troppo pesante anche dopo la compressione: usane una più piccola.");
+}
+
+function territoryImageDialog(slot, name, licenses) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "crop-dialog t-image-dialog";
+    const what = slot.photo ? "Foto" : "Stemma";
+    dialog.innerHTML = `<form method="dialog" class="stack">
+      <h2>${what}: ${esc(name)}</h2>
+      <p class="small muted">${slot.photo
+        ? "Una foto del luogo (piazza, municipio, panorama) di cui conosci autore e licenza, per esempio da Wikimedia Commons. Orizzontale, almeno 1600 pixel di larghezza: il sito la ottimizza da solo."
+        : "Lo stemma ufficiale: dal sito dell'ente o da Wikimedia Commons. Meglio PNG o SVG convertito con sfondo trasparente. Niente versioni ridisegnate."}</p>
+      <div class="field"><label for="ti-file">File <span class="hint">JPEG, PNG o WebP, anche grande</span></label><input id="ti-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
+      <div class="t-preview ${slot.photo ? "is-photo" : "is-logo"}" aria-live="polite"><span class="muted small">Anteprima</span></div>
+      <div class="field"><label for="ti-credit">${slot.photo ? "Autore" : "Titolare"}</label><input id="ti-credit" type="text" required maxlength="300" placeholder="${slot.photo ? "es. Mario Rossi / Wikimedia Commons" : "es. Comune di Bergamo"}" /></div>
+      <div class="field"><label for="ti-license">Licenza</label><select id="ti-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
+      <div class="field"><label for="ti-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="ti-source" type="url" required /></div>
+      <div class="actions"><button class="button button-primary" value="ok">Proponi</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+    </form>`;
+    document.body.append(dialog);
+    const preview = dialog.querySelector(".t-preview");
+    let picked = null;
+    dialog.querySelector("#ti-file").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      picked = null;
+      if (!file) return;
+      try {
+        const { img, url } = await loadImageFile(file);
+        const small = slot.photo && img.naturalWidth < 1200;
+        preview.innerHTML = `<img src="${url}" alt="Anteprima" /><span class="t-preview-meta small">${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(1)} MB${small ? " · <strong>piccola per una copertina</strong>" : ""}</span>`;
+        picked = img;
+      } catch (error) { toast(error.message, true); }
+    });
+    dialog.addEventListener("close", async () => {
+      const ok = dialog.returnValue === "ok";
+      if (ok && !picked) toast("Scegli prima il file.", true);
+      const result = ok && picked ? {
+        img: picked,
+        credit: dialog.querySelector("#ti-credit").value.trim(),
+        license: dialog.querySelector("#ti-license").value,
+        source_url: dialog.querySelector("#ti-source").value.trim(),
+      } : null;
+      dialog.remove();
+      resolve(result);
+    });
+    dialog.showModal();
+  });
+}
+
+async function territoryImagesCard(kind, base) {
+  const data = await api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`).catch(() => null);
+  if (!data) return "";
+  const slot = (item) => {
+    const current = item.symbol;
+    const pending = item.pending[0];
+    const img = pending ? pending.payload.image_url : current?.url;
+    return `<div class="t-slot ${item.photo ? "is-photo" : "is-logo"}">
+      <div class="t-slot-media">${img ? `<img src="${esc(img)}" alt="${esc(item.label)}" loading="lazy" />` : `<span class="muted small">Nessun${item.photo ? "a foto" : "o stemma"}</span>`}${pending ? `<span class="chip chip-pending t-slot-chip">Proposta</span>` : ""}</div>
+      <div class="t-slot-body">
+        <strong>${esc(item.label)}</strong>
+        <p class="small muted">${pending
+          ? `Proposta da ${esc(pending.created_by)} · ${esc(pending.payload.credit)} · ${esc(pending.payload.license_label)} · ${sourceLink({ url: pending.payload.source_url, name: "fonte" })}`
+          : current ? `${esc(current.credit)} · ${esc(current.license)} · approvato da ${esc(current.approved_by)}` : item.photo ? "Appare in alto nella scheda pubblica." : "Appare nella scheda, nella mappa e negli elenchi."}</p>
+        ${pending ? reviewControls(pending) : `<button type="button" class="button button-secondary" data-slot="${esc(item.kind)}">${current ? "Sostituisci" : "Carica"} ${item.photo ? "foto" : "stemma"}</button>`}
+      </div>
+    </div>`;
+  };
+  return { html: `<section class="card" id="blocco-immagini"><div class="card-head"><h2>Stemma e foto</h2><span class="chip chip-muted">Verifica di un secondo membro</span></div>
+      <div class="t-slots">${data.slots.map(slot).join("")}</div></section>`, data };
+}
+
+function bindTerritoryImages(kind, base, data) {
+  view.querySelectorAll("#blocco-immagini [data-slot]").forEach((button) => button.addEventListener("click", async () => {
+    const slot = data.slots.find((item) => item.kind === button.dataset.slot);
+    const proposal = await territoryImageDialog(slot, base.name, slot.photo ? data.photo_licenses : data.licenses);
+    if (!proposal) return;
+    button.disabled = true;
+    button.textContent = "Ottimizzo…";
+    try {
+      const upload = await shrinkForUpload(proposal.img, { photo: slot.photo });
+      const image = await api("/immagini", { method: "POST", body: { data: upload, purpose: slot.photo ? "photo" : "logo", credit: proposal.credit, alt: `${slot.label}: ${base.name}` } });
+      await api("/simboli", { method: "POST", body: { kind: slot.kind, key: base.key, image_id: image.id, credit: proposal.credit, license: proposal.license, source_url: proposal.source_url } });
+      toast(`Inviata per la verifica: ${image.width}×${image.height}, ${Math.max(1, Math.round(image.bytes / 1024))} KB${image.saved_percent ? ` (−${image.saved_percent}%)` : ""}.`);
+      showTerritoryScheda(kind, base.key, "blocco-immagini");
+      refreshCount();
+    } catch (error) {
+      toast(error.findings?.map((f) => f.message).join(" ") || error.message, true);
+      button.disabled = false;
+      button.textContent = `Carica ${slot.photo ? "foto" : "stemma"}`;
+    }
+  }));
+  view.querySelectorAll("#blocco-immagini [data-review]").forEach((form) => form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    try {
+      if (action === "approva") await api(`/coda/change/${form.dataset.review}/approva`, { method: "POST", body: {} });
+      else await api(`/coda/change/${form.dataset.review}/rifiuta`, { method: "POST", body: { note: form.reason.value } });
+      toast(action === "approva" ? "Approvato e pubblicato." : "Respinto.");
+      showTerritoryScheda(kind, base.key, "blocco-immagini");
+      refreshCount();
+    } catch (error) { toast(error.message, true); }
+  }));
+}
+
+// The comuni of a province, inside its scheda: every comune is one click away.
+async function provinceTownsCard(base) {
+  const towns = await publicJson(`/municipalities?province=${encodeURIComponent(base.key)}&limit=100`).then(async (first) => {
+    if (!first) return [];
+    const items = [...first.items];
+    for (let offset = 100; offset < (first.total || 0) && offset < 1000; offset += 100) {
+      const next = await publicJson(`/municipalities?province=${encodeURIComponent(base.key)}&limit=100&offset=${offset}`);
+      if (!next) break;
+      items.push(...next.items);
+    }
+    return items;
+  });
+  if (!towns.length) return "";
+  towns.sort((a, b) => a.name.localeCompare(b.name, "it"));
+  return `<section class="card" id="blocco-comuni"><div class="card-head"><h2>Comuni della provincia <span class="count">${towns.length}</span></h2></div>
+    <div class="field"><label for="town-filter">Filtra</label><input id="town-filter" type="search" autocomplete="off" placeholder="Nome del comune" /></div>
+    <ul class="t-towns">${towns.map((town) => `<li data-name="${esc(town.name.toLocaleLowerCase("it"))}"><a href="#/territori/municipality/${encodeURIComponent(town.id)}">${esc(town.name)}</a></li>`).join("")}</ul></section>`;
 }
 
 function territoryGuide(spec) {
@@ -2159,11 +2371,16 @@ async function showTerritoryScheda(kind, key, focus) {
     </section>`;
   }).join("");
   const newsNumber = s.definitions.length;
-  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/territori">Territori</a></p><h1>${esc(base.title)}</h1></div>
+  const [images, towns] = await Promise.all([
+    territoryImagesCard(kind, base),
+    kind === "province" ? provinceTownsCard(base) : Promise.resolve(""),
+  ]);
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/territori">Territorio</a>${base.region && kind !== "region" ? ` · <a href="#/territori/region/${encodeURIComponent(base.region.id)}">${esc(base.region.name)}</a>` : ""}${base.province ? ` · <a href="#/territori/province/${encodeURIComponent(base.province.abbreviation)}">${esc(base.province.abbreviation)}</a>` : ""}</p><h1>${esc(base.title)}</h1></div>
       <div class="actions"><a class="button button-secondary" href="${esc(s.public_url)}" target="_blank" rel="noopener">Vedi come lo vede il cittadino</a></div></div>
     ${territoryProgress(s)}
     <div class="scheda-body">
       ${territoryBase(base)}
+      ${images ? images.html : ""}
       ${blocks}
       <section class="card" id="blocco-notizie"><div class="card-head"><h2><span class="block-number">${newsNumber}</span>${esc(s.news_title)}</h2><a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a></div>
         <p class="small muted" style="margin-top:0">2–4 sintesi recenti con il modello Notizia. Compaiono qui le notizie scritte per questo territorio.</p>
@@ -2173,7 +2390,14 @@ async function showTerritoryScheda(kind, key, focus) {
         <p class="small muted" style="margin-top:0">Si raccolgono da sole: la base ufficiale e le fonti di ogni blocco pubblicato.</p>
         ${sourcesList([base.source, ...s.definitions.flatMap((spec) => s.blocks[spec.key].published?.sources || [])])}
       </section>
+      ${towns}
     </div>`;
+  if (images) bindTerritoryImages(kind, base, images.data);
+  const townFilter = view.querySelector("#town-filter");
+  townFilter?.addEventListener("input", () => {
+    const q = townFilter.value.trim().toLocaleLowerCase("it");
+    view.querySelectorAll(".t-towns li").forEach((li) => { li.hidden = Boolean(q) && !li.dataset.name.includes(q); });
+  });
   view.querySelectorAll("[data-jump]").forEach((link) => link.addEventListener("click", (event) => {
     event.preventDefault();
     document.getElementById(link.dataset.jump)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });

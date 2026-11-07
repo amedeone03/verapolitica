@@ -260,6 +260,12 @@ def territory_scheda(kind: TerritoryKindPath, key: TerritoryKeyPath, member: Mem
     return _run(service.territory_scheda, kind, key, member=member)
 
 
+@router.get("/territori/{kind}/{key}/immagini")
+def territory_images(kind: TerritoryKindPath, key: TerritoryKeyPath, member: Member, service: Service) -> Any:
+    del member
+    return _run(service.territory_images, kind, key)
+
+
 @router.post("/territori/{kind}/{key}/blocchi/{block}")
 def save_territory_block(
     kind: TerritoryKindPath,
