@@ -120,6 +120,39 @@ def test_production_requires_session_secret():
         )
 
 
+def test_production_gemini_requires_key_and_is_ask_only():
+    with pytest.raises((ProductionConfigError, ValidationError), match="LLM_API_KEY"):
+        Settings(
+            **{
+                **_PRODUCTION,
+                "llm_provider": "gemini",
+                "llm_model": "gemini-2.5-flash",
+            }
+        )
+    settings = Settings(
+        **{
+            **_PRODUCTION,
+            "llm_provider": "gemini",
+            "llm_model": "gemini-2.5-flash",
+            "llm_api_key": "a-sufficiently-long-gemini-studio-key",
+        }
+    )
+    assert settings.ai_ask_enabled is True
+    assert settings.ai_extraction_enabled is False
+
+
+def test_production_rejects_unknown_llm_provider():
+    with pytest.raises((ProductionConfigError, ValidationError), match="gemini"):
+        Settings(
+            **{
+                **_PRODUCTION,
+                "llm_provider": "langchain",
+                "llm_model": "anything",
+                "llm_api_key": "a-sufficiently-long-random-secret",
+            }
+        )
+
+
 def test_production_does_not_enable_scheduler_or_ai_by_default():
     settings = Settings(**{**_PRODUCTION, "log_format": ""})
     assert settings.is_production

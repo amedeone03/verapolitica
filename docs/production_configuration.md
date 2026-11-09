@@ -77,9 +77,9 @@ by operator commands such as `python -m scripts.run_ai_extraction`.
 
 | Variable | Required | Default | Used by | Notes |
 | --- | --- | --- | --- | --- |
-| `VERAPOLITICA_LLM_PROVIDER` | optional | empty (disabled) | AI extraction | `ollama` or `openai`. Leave blank. |
-| `VERAPOLITICA_LLM_MODEL` | if provider set | empty | AI extraction | Required when a provider is configured. |
-| `VERAPOLITICA_LLM_API_KEY` | if provider is `openai` | empty | OpenAI provider | SecretStr. Not required for Ollama. |
+| `VERAPOLITICA_LLM_PROVIDER` | optional | empty (disabled) | Ask wording + extraction | `ollama`, `openai`, or `gemini`. Leave blank: Ask still answers from published rows. |
+| `VERAPOLITICA_LLM_MODEL` | if provider set | empty | Ask wording + extraction | Required when a provider is configured. Gemini: `gemini-2.5-flash`. |
+| `VERAPOLITICA_LLM_API_KEY` | if provider is `openai` or `gemini` | empty | OpenAI / Gemini | SecretStr. Gemini uses a Google AI Studio key. Not required for Ollama. |
 | `VERAPOLITICA_OLLAMA_BASE_URL` | if provider is `ollama` | `http://127.0.0.1:11434` | Ollama provider | Local Ollama listen URL. |
 | `VERAPOLITICA_OLLAMA_NUM_CTX` | optional | `8192` | Ollama provider | |
 | `VERAPOLITICA_OLLAMA_STRUCTURED_FORMAT` | optional | `json` | Ollama provider | `json` or `json_schema`. |

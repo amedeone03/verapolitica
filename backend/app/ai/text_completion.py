@@ -13,9 +13,15 @@ import httpx
 
 from backend.app.ai.base import (
     ExtractionProviderError,
+    ExtractionProviderRateLimitError,
     ExtractionProviderTimeoutError,
 )
 from backend.app.core.config import Settings
+
+GEMINI_GENERATE_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+)
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 class TextCompleter(Protocol):
@@ -105,6 +111,66 @@ class OllamaTextCompleter:
         return text
 
 
+class GeminiTextCompleter:
+    """Google AI Studio / Gemini generateContent. Free-tier compatible."""
+
+    provider_name = "gemini"
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model_name: str,
+        timeout_seconds: float,
+        client: httpx.Client | None = None,
+    ) -> None:
+        self._api_key = api_key
+        self._model_name = (model_name or DEFAULT_GEMINI_MODEL).removeprefix("models/")
+        self._timeout_seconds = timeout_seconds
+        self._client = client
+
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+
+    def complete(self, *, system: str, user: str) -> str:
+        url = GEMINI_GENERATE_URL.format(model=self._model_name)
+        body = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {"temperature": 0},
+        }
+        headers = {"x-goog-api-key": self._api_key, "content-type": "application/json"}
+        try:
+            if self._client is not None:
+                response = self._client.post(url, json=body, headers=headers)
+            else:
+                response = httpx.post(
+                    url, json=body, headers=headers, timeout=self._timeout_seconds
+                )
+            if response.status_code == 429:
+                raise ExtractionProviderRateLimitError("Gemini rate limit")
+            response.raise_for_status()
+            payload = response.json()
+            parts = (
+                ((payload.get("candidates") or [{}])[0].get("content") or {}).get(
+                    "parts"
+                )
+                or []
+            )
+            content = "".join(str(part.get("text") or "") for part in parts)
+        except ExtractionProviderError:
+            raise
+        except httpx.TimeoutException as exc:
+            raise ExtractionProviderTimeoutError("explanation model timed out") from exc
+        except (httpx.HTTPError, TypeError, ValueError, IndexError, KeyError) as exc:
+            raise ExtractionProviderError("explanation model request failed") from exc
+        text = str(content).strip()
+        if not text:
+            raise ExtractionProviderError("explanation model returned empty text")
+        return text
+
+
 class OpenAITextCompleter:
     provider_name = "openai"
 
@@ -142,7 +208,7 @@ class OpenAITextCompleter:
 
 
 def completer_from_settings(settings: Settings) -> TextCompleter | None:
-    if not settings.ai_extraction_enabled:
+    if not settings.ai_ask_enabled:
         return None
     provider = (settings.llm_provider or "").strip().casefold()
     model = (settings.llm_model or "").strip()
@@ -153,9 +219,13 @@ def completer_from_settings(settings: Settings) -> TextCompleter | None:
             base_url=settings.ollama_base_url,
             timeout_seconds=timeout,
         )
+    key = settings.llm_api_key.get_secret_value() if settings.llm_api_key else ""
     if provider == "openai":
-        key = settings.llm_api_key.get_secret_value() if settings.llm_api_key else ""
         return OpenAITextCompleter(
+            api_key=key, model_name=model, timeout_seconds=timeout
+        )
+    if provider == "gemini":
+        return GeminiTextCompleter(
             api_key=key, model_name=model, timeout_seconds=timeout
         )
     return None

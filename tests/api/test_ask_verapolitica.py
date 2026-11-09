@@ -33,7 +33,7 @@ from backend.app.services.ask_verapolitica_service import (
 )
 from backend.app.services.pledge_explanation_service import UNRATED_MESSAGE
 from backend.app.services.pledge_service import PledgeService
-from tests.services.pledge_seed import seed
+from tests.services.pledge_seed import _owner, seed
 from tests.services.test_pledge_service import classification, editor_draft
 
 
@@ -140,6 +140,13 @@ def test_planner_detects_supported_families():
     topic = plan_ask_question("Quali promesse riguardano la sanità?")
     assert topic.intent is AskIntent.PLEDGES_BY_TOPIC
     assert topic.topic_code == "3"
+    hospital = plan_ask_question("Quali promesse riguardano i tempi in ospedale?")
+    assert hospital.intent is AskIntent.PLEDGES_BY_TOPIC
+    assert hospital.topic_code == "3"
+    liste = plan_ask_question("Quali impegni riguardano le liste di attesa?")
+    assert liste.intent is AskIntent.PLEDGES_BY_TOPIC
+    assert liste.topic_code == "3"
+    assert liste.entity_query is None
     explain = plan_ask_question("Perché la promessa pensioni minime è In corso?")
     assert explain.intent is AskIntent.PLEDGE_EXPLANATION
     sources = plan_ask_question("Qual è la fonte ufficiale della promessa pensioni minime?")
@@ -202,6 +209,36 @@ def test_topic_query(tmp_path):
     assert body["entities"]["topic"] == "welfare e pensioni"
     assert [item["id"] for item in body["results"]] == [data.pledge_id]
     assert "pensioni" in body["answer"].casefold()
+
+
+def test_paraphrase_hospital_times_finds_waiting_list_pledge(tmp_path):
+    client, data, factory = _client(tmp_path)
+    _classify_public(factory, data)
+    with factory() as session:
+        politician = session.get(Politician, data.politician_id)
+        party = session.get(PoliticalParty, data.party_id)
+        proposal = Proposal(
+            canonical_title="Ridurre le liste di attesa",
+            exact_statement="Ridurremo i tempi delle liste di attesa negli ospedali.",
+            proposal_type=ProposalType.EXPLICIT_PROMISE,
+            published_at=datetime(2026, 10, 7, 9, tzinfo=timezone.utc),
+        )
+        session.add(proposal)
+        session.flush()
+        _owner(session, proposal, politician, party)
+        waiting_id = proposal.id
+        session.commit()
+    PledgeService(factory).classify(
+        waiting_id, classification(cap_topic_code="1"), classified_by="ed"
+    )
+    with client:
+        response = _ask(client, "Quali promesse riguardano i tempi in ospedale?")
+        ranking = _ask(client, "Chi è il miglior politico?")
+    body = response.json()
+    assert body["intent"] == "pledges_by_topic"
+    assert waiting_id in [item["id"] for item in body["results"]]
+    assert data.unpublished_id not in [item["id"] for item in body["results"]]
+    assert ranking.json()["intent"] == "unsupported"
 
 
 def test_pledge_explanation_query(tmp_path):
@@ -607,6 +644,7 @@ def test_production_like_startup_without_llm(tmp_path):
         enable_demo_ui=False,
     )
     assert settings.ai_extraction_enabled is False
+    assert settings.ai_ask_enabled is False
     app = create_app(settings)
     with TestClient(app) as client:
         live = client.get("/health/live")

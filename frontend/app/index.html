@@ -437,7 +437,7 @@
       <section id="ask-view" aria-labelledby="ask-title" hidden>
         <div class="hero compact-hero">
           <h1 id="ask-title">Chiedi a VeraPolitica</h1>
-          
+          <p class="hero-copy">Una domanda, una risposta sui dati verificati. Niente chat, niente web.</p>
         </div>
         <form id="ask-form" class="ask-form" action="./" method="get">
           <input type="hidden" name="view" value="ask" />
@@ -452,7 +452,12 @@
           ></textarea>
           <button type="submit" id="ask-submit">Chiedi a VeraPolitica</button>
         </form>
-        <p class="ask-disclaimer">Le risposte usano esclusivamente dati pubblicati e fonti verificate da VeraPolitica.</p>
+        <div class="ask-suggestions" aria-label="Esempi">
+          <a class="ask-suggestion" href="./?view=ask&amp;question=Quali%20promesse%20di%20Giorgia%20Meloni%20sono%20ancora%20in%20corso%3F">Promesse in corso</a>
+          <a class="ask-suggestion" href="./?view=ask&amp;question=Quali%20promesse%20riguardano%20i%20tempi%20in%20ospedale%3F">Tempi in ospedale</a>
+          <a class="ask-suggestion" href="./?view=ask&amp;question=Chi%20%C3%A8%20il%20miglior%20politico%3F">Domanda che rifiutiamo</a>
+        </div>
+        <p class="ask-disclaimer">Cerca solo tra schede e fonti già pubblicate. Se un fatto non è in archivio, VeraPolitica lo dice invece di inventarlo.</p>
         <div id="ask-status" class="state-card" role="status">
           <div><strong>Fai una domanda.</strong></div>
         </div>

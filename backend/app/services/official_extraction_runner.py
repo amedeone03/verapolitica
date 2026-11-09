@@ -78,7 +78,8 @@ def live_extraction_provider(settings: Settings):
     if provider != "openai":
         raise ValueError(
             "live extraction is disabled: configure VERAPOLITICA_LLM_PROVIDER=ollama "
-            "or openai, or pass --fake-response"
+            "or openai, or pass --fake-response "
+            "(gemini is Ask wording only)"
         )
     if settings.llm_model is None or settings.llm_api_key is None:
         raise ValueError(

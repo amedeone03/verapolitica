@@ -41,6 +41,12 @@ from backend.app.scoring.public_presentation import (
 )
 from backend.app.scoring.retrieval_profile import TOPIC_KEYWORDS
 from backend.app.scoring.types import FulfillmentVerdict
+from backend.app.services.ask_lexical import (
+    lexical_overlap,
+    postgres_pledge_ranks,
+    sort_pledge_ids,
+    unique_paraphrase_match,
+)
 from backend.app.services.ask_query_planner import (
     ASK_TOPIC_SYNONYMS,
     AskIntent,
@@ -249,7 +255,7 @@ class AskVeraPoliticaService:
                 )
             return self._pledge_detail(session, question, plan, intent, politician, matched_pledge)
 
-        rows = self._retrieve_pledges(session, plan, politician, intent)
+        rows = self._retrieve_pledges(session, question, plan, politician, intent)
         results = self._result_items(rows)
         sources = self._sources_from_rows(session, rows)
         answer = self._deterministic_list_answer(intent, plan, politician, rows)
@@ -404,6 +410,16 @@ class AskVeraPoliticaService:
             if self._tokens_fit_pledge(query, row, politician):
                 scored.append((2, row))
         if not scored:
+            paraphrase_id = unique_paraphrase_match(
+                question=question,
+                candidates=[
+                    (row.pledge_id, row.title, row.statement) for row in rows
+                ],
+            )
+            if paraphrase_id is not None:
+                for row in rows:
+                    if row.pledge_id == paraphrase_id:
+                        return row
             return self._unique_topic_or_verdict_pledge(rows, plan)
         scored.sort(key=lambda item: (item[0], item[1].pledge_id))
         best_tier = scored[0][0]
@@ -461,6 +477,7 @@ class AskVeraPoliticaService:
     def _retrieve_pledges(
         self,
         session: Session,
+        question: str,
         plan: AskPlan,
         politician: _PoliticianHit | None,
         intent: AskIntent,
@@ -478,7 +495,19 @@ class AskVeraPoliticaService:
             ]
             if topic_rows or intent is AskIntent.PLEDGES_BY_TOPIC:
                 rows = topic_rows
-        return tuple(rows[:MAX_RESULTS])
+        if not rows:
+            return ()
+        overlaps = {
+            row.pledge_id: lexical_overlap(question, row.title, row.statement)
+            for row in rows
+        }
+        ordered_ids = sort_pledge_ids(
+            ordered_ids=[row.pledge_id for row in rows],
+            overlaps=overlaps,
+            fts_ranks=postgres_pledge_ranks(session, question),
+        )
+        by_id = {row.pledge_id: row for row in rows}
+        return tuple(by_id[pledge_id] for pledge_id in ordered_ids[:MAX_RESULTS])
 
     def _topic_text_match(self, row: _PledgeRow, topic_code: str, topic_label: str | None) -> bool:
         blob = normalize_search_text(f"{row.title} {row.statement or ''}")
