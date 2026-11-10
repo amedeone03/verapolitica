@@ -26,12 +26,15 @@ from backend.app.models import (
     EditorialPostStatus,
     FeedScope,
     Municipality,
+    Politician,
+    PoliticianVersion,
     Region,
 )
 from backend.app.models.territory_block import TerritoryBlock, TerritoryBlockStatus, TerritoryKind
 from backend.app.services.public_territory_service import PublicTerritoryQueryService
 from backend.app.services import symbols
 from backend.app.services.redazione import style
+from backend.app.services.redazione.archive import is_secondary_source
 
 
 def _now() -> datetime:
@@ -117,6 +120,15 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
          "guide": {"what": "3–5 impegni del programma elettorale, in tabella come per i Politici: stato, aggiornamento, fonte.", "length": "Tabella", "avoid": "Promesse generiche non verificabili."}},
         {"key": "elezioni", "n": 5, "title": "Elezioni", "type": "text",
          "guide": {"what": "Ultime regionali: data, candidati, coalizioni, risultati, affluenza. Poi la data delle prossime, se nota.", "length": "Tabella + 2 righe", "avoid": "Previsioni sul prossimo voto."}},
+        {
+            "key": "titolare", "n": 9, "title": "Collega il presidente", "type": "fields", "hidden": True,
+            "fields": [
+                {"key": "politician_id", "label": "ID della scheda politica"},
+                {"key": "nome", "label": "Nome visibile se la scheda non è ancora pubblica"},
+                {"key": "in_carica_dal", "label": "In carica dal (AAAA-MM-GG)"},
+            ],
+            "guide": {"what": "Collega la persona in carica a una scheda già in archivio. Serve una fonte ufficiale, non Wikipedia. Non inventa un mandato DAIT.", "length": "Riquadro", "avoid": "Inventare un mandato DAIT. Non usare Tuttitalia come prova."},
+        },
     ],
     "province": [
         {
@@ -160,6 +172,15 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
          "guide": {"what": "3–5 impegni del programma elettorale in tabella, con stato, aggiornamento e fonte.", "length": "Tabella", "avoid": "Promesse senza fonte."}},
         {"key": "elezioni", "n": 5, "title": "Elezioni (storico e prossime)", "type": "text",
          "guide": {"what": "Esito delle ultime comunali. Per i comuni al voto: data (quando fissata), candidati emersi, regole del ballottaggio (sopra i 15.000 abitanti se nessuno supera il 50%).", "length": "60–100 parole", "avoid": "Indicare «favoriti»; candidati non dichiarati."}, "words": [60, 100]},
+        {
+            "key": "titolare", "n": 9, "title": "Collega il sindaco", "type": "fields", "hidden": True,
+            "fields": [
+                {"key": "politician_id", "label": "ID della scheda politica"},
+                {"key": "nome", "label": "Nome visibile se la scheda non è ancora pubblica"},
+                {"key": "in_carica_dal", "label": "In carica dal (AAAA-MM-GG)"},
+            ],
+            "guide": {"what": "Collega il sindaco a una scheda già in archivio. Serve una fonte ufficiale (Eligendo, Ministero, sito del comune), non Wikipedia.", "length": "Riquadro", "avoid": "Inventare un mandato DAIT. Non usare Tuttitalia come prova."},
+        },
     ],
 }
 KIND_TITLES = {"region": "Regione", "province": "Provincia", "municipality": "Comune"}
@@ -272,6 +293,17 @@ def findings(kind: str, block: str, data: dict, sources: list[dict]) -> list[dic
             if any(row.get("stato") == "non_mantenuta" and not row.get("aggiornamento") for row in rows):
                 found.append(style.Finding("error", "motivo_mancante", "«Non mantenuta» solo con il fatto e la data nell'aggiornamento (scadenza passata, mandato finito, rinuncia).", "aggiornamento"))
         texts.append(("Testo", data.get("body") or ""))
+    if block == "titolare":
+        politician_id = (data.get("politician_id") or "").strip()
+        if politician_id and not politician_id.isdigit():
+            found.append(style.Finding("error", "id_non_valido", "L'ID della scheda deve essere un numero.", "politician_id"))
+        if not politician_id and not (data.get("nome") or "").strip():
+            found.append(style.Finding("error", "titolare_vuoto", "Indica l'ID della scheda o almeno il nome del titolare.", "nome"))
+        date_value = (data.get("in_carica_dal") or "").strip()
+        if date_value and len(date_value) != 10:
+            found.append(style.Finding("error", "data_non_valida", "La data va scritta AAAA-MM-GG.", "in_carica_dal"))
+        if any(is_secondary_source(item.get("url") or "") for item in sources):
+            found.append(style.Finding("error", "fonte_secondaria", "Wikipedia e Tuttitalia restano bozze. Serve una fonte ufficiale (Eligendo, Ministero, ente).", "fonti"))
     for label, text in texts:
         found.extend(style.text_findings(text, field=label))
     found.extend(style.source_findings(sources))
@@ -397,7 +429,18 @@ class TerritorySchede:
                     "pending": [self._item(row, kind, member) for row in pending],
                     "rejected": [self._item(row, kind, member) for row in rejected if not pending and (published is None or row.created_at > published.created_at)],
                 }
-            base["holder"] = _holder_photo(session, base.get("holder"))
+            published_titolare = next(
+                (
+                    row
+                    for row in reversed(rows)
+                    if row.block == "titolare" and row.status is TerritoryBlockStatus.PUBLISHED
+                ),
+                None,
+            )
+            base["holder"] = _holder_photo(
+                session,
+                _overlay_holder(session, kind, base.get("holder"), published_titolare),
+            )
             return {
                 "base": base,
                 "images": _images(session, kind, base["key"]),
@@ -426,6 +469,8 @@ class TerritorySchede:
             latest = {row.block: row for row in rows}
             blocks = []
             for spec in DEFINITIONS[kind]:
+                if spec.get("hidden"):
+                    continue
                 row = latest.get(spec["key"])
                 blocks.append({
                     "key": spec["key"], "n": spec["n"], "title": spec["title"], "type": spec["type"],
@@ -436,15 +481,28 @@ class TerritorySchede:
                     "published_by": row.reviewed_by if row else None,
                     "published_at": _iso(row.published_at) if row else None,
                 })
-            sources = [base["source"]] + [source for row in latest.values() for source in row.sources]
+            sources = [base["source"]] + [
+                source for key, row in latest.items() if key != "titolare" for source in row.sources
+            ]
             unique, seen = [], set()
             for source in sources:
                 marker = source.get("url") or source.get("name")
                 if marker and marker not in seen:
                     seen.add(marker)
                     unique.append(source)
-            updated = max((row.published_at for row in latest.values() if row.published_at), default=None)
-            base["holder"] = _holder_photo(session, base.get("holder"))
+            if latest.get("titolare") and not base.get("holder"):
+                unique.extend(
+                    source
+                    for source in latest["titolare"].sources
+                    if (source.get("url") or source.get("name")) not in seen
+                )
+            updated = max(
+                (row.published_at for key, row in latest.items() if key != "titolare" and row.published_at),
+                default=None,
+            )
+            base["holder"] = _holder_photo(
+                session, _overlay_holder(session, kind, base.get("holder"), latest.get("titolare"))
+            )
             images = _images(session, kind, base["key"])
             return {
                 "base": base,
@@ -671,13 +729,50 @@ def _holder(holder: Any, role: str) -> dict | None:
     }
 
 
+def _overlay_holder(session: Session, kind: str, holder: dict | None, row: TerritoryBlock | None) -> dict | None:
+    """Show a redazione-linked person only when DAIT has no current holder.
+
+    Never writes TerritorialOfficeMandate. Wikipedia is rejected at save time.
+    """
+
+    if holder is not None:
+        return holder
+    role = "Sindaco" if kind == "municipality" else "Presidente della Regione" if kind == "region" else None
+    if role is None or row is None or not row.data:
+        return None
+    data = row.data
+    name = _clean(data.get("nome"), 200)
+    politician_id = None
+    raw_id = str(data.get("politician_id") or "").strip()
+    if raw_id.isdigit():
+        politician = session.get(Politician, int(raw_id))
+        if politician is not None:
+            version = politician.current_version
+            published = version is not None and version.published_at is not None
+            name = name or f"{politician.canonical_given_name} {politician.canonical_family_name}".strip()
+            if published:
+                politician_id = politician.id
+    if not name:
+        return None
+    since = _clean(data.get("in_carica_dal"), 20)
+    if since and len(since) != 10:
+        since = ""
+    return {
+        "role": role,
+        "politician_id": politician_id,
+        "name": name,
+        "since": since or None,
+        "editorial": True,
+    }
+
+
 def _public_url(kind: str, key: str) -> str:
     return f"/app/?{kind}={key}"
 
 
 def _search_row(kind: str, key: str, title: str, detail: str, done: dict, pictures: dict | None = None, *, name: str = "", region_id: int | None = None) -> dict:
     entry = done.get((kind, key), {"published": set(), "pending": 0})
-    total = len(DEFINITIONS[kind])
+    total = sum(1 for item in DEFINITIONS[kind] if not item.get("hidden"))
     pictures = pictures or {}
     return {
         "kind": kind,

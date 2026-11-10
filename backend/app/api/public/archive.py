@@ -94,10 +94,10 @@ def list_timelines(
 ) -> PublicArchiveTimelineList:
     """Draft city, region and national chronologies. Not official facts."""
 
-    items = timeline_summaries()
-    if kind:
-        items = [item for item in items if item["kind"] == kind]
     with factory() as session:
+        items = timeline_summaries(session)
+        if kind:
+            items = [item for item in items if item["kind"] == kind]
         attached = attach_live_keys(session, items)
     return PublicArchiveTimelineList(items=tuple(attached), disclaimer=DRAFT_DISCLAIMER)
 
@@ -107,10 +107,10 @@ def get_timeline(
     slug: Annotated[str, Path(pattern=r"^[a-z0-9-]{2,80}$")], factory: Factory
 ) -> PublicArchiveTimeline:
     try:
-        payload = public_timeline(slug)
+        with factory() as session:
+            payload = public_timeline(slug, session)
+            attached = attach_live_keys(session, [payload])[0]
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Questa cronologia non è in archivio.") from None
-    with factory() as session:
-        attached = attach_live_keys(session, [payload])[0]
     attached["events"] = payload["events"]
     return attached

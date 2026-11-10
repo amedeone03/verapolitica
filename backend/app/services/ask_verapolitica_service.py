@@ -198,13 +198,20 @@ class AskVeraPoliticaService:
         else:
             self.completer = completer  # type: ignore[assignment]
 
-    def ask(self, question: str) -> AskResponse:
+    def ask(self, question: str, *, pledge_ids: tuple[int, ...] = ()) -> AskResponse:
         plan = plan_ask_question(question, retrieve_mode=self.retrieve_mode)
         with self.session_factory() as session:
-            payload = self._answer(session, question, plan)
+            payload = self._answer(session, question, plan, pinned_ids=pledge_ids)
         return payload
 
-    def _answer(self, session: Session, question: str, plan: AskPlan) -> AskResponse:
+    def _answer(
+        self,
+        session: Session,
+        question: str,
+        plan: AskPlan,
+        *,
+        pinned_ids: tuple[int, ...] = (),
+    ) -> AskResponse:
         try:
             politician, _candidates = self._resolve_politician(session, question, plan)
         except _AmbiguousPolitician as exc:
@@ -261,7 +268,9 @@ class AskVeraPoliticaService:
                 )
             return self._pledge_detail(session, question, plan, intent, politician, matched_pledge)
 
-        rows = self._retrieve_pledges(session, question, plan, politician, intent)
+        rows = self._retrieve_pledges(
+            session, question, plan, politician, intent, pinned_ids=pinned_ids
+        )
         results = self._result_items(rows)
         sources = self._sources_from_rows(session, rows)
         answer = self._deterministic_list_answer(intent, plan, politician, rows)
@@ -489,6 +498,8 @@ class AskVeraPoliticaService:
         plan: AskPlan,
         politician: _PoliticianHit | None,
         intent: AskIntent,
+        *,
+        pinned_ids: tuple[int, ...] = (),
     ) -> tuple[_PledgeRow, ...]:
         politician_id = politician.politician_id if politician else None
         rows = self._classified_pledges(session, politician_id=politician_id)
@@ -517,7 +528,9 @@ class AskVeraPoliticaService:
                 fts_ranks=postgres_pledge_ranks(session, question),
             )
         by_id = {row.pledge_id: row for row in rows}
-        return tuple(by_id[pledge_id] for pledge_id in ordered_ids[:MAX_RESULTS])
+        pinned = [item for item in pinned_ids if item in by_id]
+        rest = [item for item in ordered_ids if item not in set(pinned)]
+        return tuple(by_id[pledge_id] for pledge_id in (*pinned, *rest)[:MAX_RESULTS])
 
     def _topic_text_match(self, row: _PledgeRow, topic_code: str, topic_label: str | None) -> bool:
         blob = normalize_search_text(f"{row.title} {row.statement or ''}")

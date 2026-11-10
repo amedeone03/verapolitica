@@ -310,6 +310,9 @@ async function route() {
     else if (section === "regole") showRules();
     else if (section === "identita" && id) await showIdentity(Number(id));
     else if (section === "identita") await showIdentities();
+    else if (section === "archivio" && id) await showArchiveDesk(id);
+    else if (section === "archivio") await showArchiveDesk();
+    else if (section === "lavori") await showJobs();
     else await showQueue();
   } catch (error) {
     if (error instanceof StaleRoute) return;
@@ -371,6 +374,21 @@ window.addEventListener("hashchange", route);
 
 // --------------------------------------------------------------------- queue
 let queueFilter = "all";
+const QUEUE_KINDS = [
+  ["all", "Tutti"],
+  ["news", "Notizie"],
+  ["territory", "Territorio"],
+  ["images", "Immagini"],
+  ["archivio", "Archivio"],
+  ["schede", "Schede"],
+];
+function contentKind(item) {
+  if (item.kind === "news") return "news";
+  if (item.kind === "territory") return "territory";
+  if (item.kind === "archivio") return "archivio";
+  if (item.kind === "change" && item.preview?.kind === "simbolo") return "images";
+  return "schede";
+}
 const QUEUE_GROUPS = [
   ["verify", "Da verificare da te", "Contenuti scritti da altri: controlla le fonti e decidi."],
   ["self", "Tuoi, da verificare tu", "Sei capo squadra: puoi pubblicarli direttamente."],
@@ -437,8 +455,10 @@ function rejectedList(rows) {
 async function showQueue() {
   const [items, overview] = await Promise.all([api("/coda"), api("/panoramica").catch(() => null)]);
   const lead = isLead();
+  const visible = queueFilter === "all" ? items : items.filter((item) => contentKind(item) === queueFilter);
   const groups = Object.fromEntries(QUEUE_GROUPS.map(([key]) => [key, []]));
-  for (const item of items) groups[queueGroup(item)].push(item);
+  for (const item of visible) groups[queueGroup(item)].push(item);
+  const kindCounts = Object.fromEntries(QUEUE_KINDS.map(([key]) => [key, key === "all" ? items.length : items.filter((item) => contentKind(item) === key).length]));
   const hello = (state.me?.name || "").split(/\s+/)[0];
   const rejected = overview?.my_rejected || [];
   const toFix = groups.blocked.filter((item) => item.own);
@@ -464,6 +484,8 @@ async function showQueue() {
       <a class="button button-secondary" href="#/simboli/party" data-create="partito">Nuovo partito</a>
     </nav>
 
+    <div class="queue-kinds" role="tablist" aria-label="Tipo di contenuto">${QUEUE_KINDS.map(([key, label]) => `<button type="button" class="chip${queueFilter === key ? " is-active" : ""}" data-queue-kind="${key}"${kindCounts[key] ? "" : " disabled"}>${esc(label)} ${kindCounts[key] || 0}</button>`).join("")}</div>
+
     <div class="home-todo">
       ${rejectedList(rejected)}
       ${homeSection("fix", "Da correggere", "", toFix)}
@@ -482,6 +504,10 @@ async function showQueue() {
 
   view.querySelectorAll("[data-home-toggle]").forEach((button) => button.addEventListener("click", () => {
     homeOpen = homeOpen === button.dataset.homeToggle ? "" : button.dataset.homeToggle;
+    showQueue();
+  }));
+  view.querySelectorAll("[data-queue-kind]").forEach((button) => button.addEventListener("click", () => {
+    queueFilter = button.dataset.queueKind;
     showQueue();
   }));
   view.querySelectorAll("[data-create]").forEach((link) => link.addEventListener("click", () => {
@@ -579,6 +605,7 @@ function previewFor(item) {
   if (item.kind === "news") return `${p.card ? `<div class="queue-card-preview"><p class="small muted">Come appare nel feed</p>${renderFeedCard({ key: `q-${item.id}`, url: "#", title: p.title || item.title, summary: p.blocks?.sommario, occurred_on: new Date().toISOString().slice(0, 10), sources: (p.sources || []).map((src) => ({ title: src.name, url: src.url })), card: { ...p.card, composed: true } }, { preview: true, resolvePortrait: (id) => state.portraits?.[String(id)]?.url || null })}</div>` : ""}<div class="preview news-preview">${newsPreview(p.blocks)}<p class="small muted" style="margin-top:8px">${p.words} parole · indicazione 450–700</p>${sourcesList(p.sources, true)}</div>`;
   if (item.kind === "politica") return `<div class="preview"><dl>${Object.entries(p.data || {}).filter(([key, value]) => value !== "" && value !== null && value !== false && key !== "restore").map(([key, value]) => `<dt>${esc(key.replace(/_/g, " "))}</dt><dd>${esc(value === true ? "sì" : value)}</dd>`).join("")}${p.data?.restore ? "<dt>Richiesta</dt><dd>Torna il dato ufficiale</dd>" : ""}<dt>Perché</dt><dd>${esc(p.reason || "—")}</dd></dl>${p.data?.restore ? "" : sourcesList(p.sources)}</div>`;
   if (item.kind === "territory") return `<div class="preview">${p.data?.body ? `<p class="item-body">${esc(p.data.body)}</p>` : ""}${p.data?.rows?.length ? `<ul>${p.data.rows.map((row) => `<li>${esc(Object.values(row).filter(Boolean).join(" · "))}</li>`).join("")}</ul>` : ""}${p.data && !p.data.body && !p.data.rows ? `<dl>${Object.entries(p.data).filter(([, value]) => value).map(([key, value]) => `<dt>${esc(key.replace(/_/g, " "))}</dt><dd>${esc(value)}</dd>`).join("")}</dl>` : ""}${sourcesList(p.sources)}</div>`;
+  if (item.kind === "archivio") return `<div class="preview"><dl><dt>Cronologia</dt><dd>${esc(p.timeline_name || "")}</dd><dt>Voce</dt><dd>${esc(p.event_title || item.title)}</dd>${p.event_body ? `<dt>Bozza</dt><dd>${esc(p.event_body)}</dd>` : ""}<dt>Fonte ufficiale proposta</dt><dd>${sourceLink({ name: p.official_name, url: p.official_url })}</dd></dl></div>`;
   if (item.kind === "change" && p.kind === "simbolo") return `<div class="preview symbol-preview"><img src="${esc(p.payload.image_url)}" alt="" width="96" height="96" /><div><p><strong>${esc(p.payload.name)}</strong></p><p class="small">${esc(p.payload.credit)} · ${esc(p.payload.license_label)}<br />Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div></div>`;
   if (item.kind === "change" && p.kind === "partito_modifica") return `<div class="preview"><dl>${["name", "abbreviation", "website"].filter((k) => p.payload.before[k] !== p.payload.after[k]).map((k) => `<dt>${{ name: "Nome", abbreviation: "Sigla", website: "Sito" }[k]}</dt><dd><s>${esc(p.payload.before[k] || "—")}</s> → <strong>${esc(p.payload.after[k] || "—")}</strong></dd>`).join("")}${p.payload.remove_logo ? "<dt>Logo</dt><dd>rimosso</dd>" : ""}<dt>Motivo</dt><dd>${esc(p.payload.reason)}</dd></dl></div>`;
   if (item.kind === "change" && p.kind === "partito") return `<div class="preview"><p><strong>${esc(p.payload.name)}</strong>${p.payload.abbreviation ? ` (${esc(p.payload.abbreviation)})` : ""}</p><p class="small">${p.payload.website ? `Sito: ${sourceLink({ url: p.payload.website })}<br />` : ""}Fonte: ${sourceLink({ url: p.payload.source_url })}</p></div>`;
@@ -1729,6 +1756,63 @@ async function showLog(offset = 0) {
   view.querySelector("#log-next")?.addEventListener("click", () => showLog(offset + 50));
 }
 
+async function showArchiveDesk(slug) {
+  if (!slug) {
+    const items = await api("/archivio/timelines");
+    view.innerHTML = `<div class="page-head"><div><h1>Archivio</h1><p>Verifica le cronologie in bozza su una fonte ufficiale. Wikipedia e Tuttitalia restano bozze e non diventano sindaci.</p></div></div>
+      <ul class="row-list">${items.map((item) => `<li class="queue-row"><a href="#/archivio/${esc(item.slug)}" class="queue-main" style="padding:12px 16px;display:block"><span class="queue-title">${esc(item.name)}</span><span class="queue-sub"><span class="chip chip-kind">${esc(item.kind)}</span><span>${item.verified_count} di ${item.event_count} verificate</span>${item.pending_count ? `<span>${item.pending_count} in attesa</span>` : ""}</span></a></li>`).join("") || `<li class="muted" style="padding:14px">Nessuna cronologia in archivio.</li>`}</ul>`;
+    return;
+  }
+  const detail = await api(`/archivio/timelines/${encodeURIComponent(slug)}`);
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/archivio">Archivio</a></p><h1>${esc(detail.name)}</h1>
+    <p>${detail.verified_count} di ${detail.event_count} voci verificate. ${detail.draft ? "Le altre restano bozza." : "Tutte le voci hanno una fonte ufficiale."}</p></div></div>
+    ${detail.mayor ? `<p class="small muted">Sindaco indicato in bozza: ${esc(detail.mayor)}. Non diventa un mandato.</p>` : ""}
+    <ol class="archive-events">${detail.events.map((event) => `<li class="card" style="margin-bottom:12px">
+      <p class="small muted">${esc(event.date_label || event.date || "")}</p>
+      <h2>${esc(event.title)}</h2>
+      ${event.body ? `<p>${esc(event.body)}</p>` : ""}
+      ${event.draft_sources?.length ? `<p class="small muted">Bozza: ${esc(event.draft_sources.join(" · "))}</p>` : ""}
+      ${event.verified ? `<p><span class="chip chip-published">Verificata</span> ${sourceLink({ name: event.official_name, url: event.official_url })}</p>` : ""}
+      ${event.pending ? `<p class="small">In attesa: ${sourceLink({ name: event.pending.official_name, url: event.pending.official_url })} · ${esc(event.pending.created_by)}</p>` : ""}
+      ${event.verified || event.pending ? "" : `<form class="stack archive-verify" data-index="${event.index}">
+        <div class="field"><label>Nome della fonte ufficiale</label><input name="official_name" required placeholder="Eligendo, Ministero, ente" /></div>
+        <div class="field"><label>URL ufficiale</label><input name="official_url" type="url" required placeholder="https://" /></div>
+        <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Proponi la verifica")}</button></div>
+      </form>`}
+    </li>`).join("")}</ol>`;
+  view.querySelectorAll("form.archive-verify").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const result = await api(`/archivio/timelines/${encodeURIComponent(slug)}/eventi/${form.dataset.index}/verifica`, {
+          method: "POST",
+          body: { official_name: form.official_name.value, official_url: form.official_url.value },
+        });
+        toast(result.summary || "Verifica proposta.");
+        showArchiveDesk(slug);
+        refreshCount();
+      } catch (error) { toast(error.message, true); }
+    });
+  });
+}
+
+async function showJobs() {
+  const data = await api("/lavori");
+  view.innerHTML = `<div class="page-head"><div><h1>Lavori automatici</h1>
+    <p>${data.scheduler_enabled ? "Almeno un cron è configurato su questo processo." : "Nessun cron è impostato: lo scheduler resta spento. In produzione si avvia solo con il profilo compose <code>scheduler</code>."}</p>
+    <p class="small muted">${esc(data.scheduler_process)}</p></div></div>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Job</th><th>Fonte</th><th>Cron</th><th>Ultimo esito</th><th>Quando</th></tr></thead><tbody>
+      ${data.jobs.map((job) => `<tr>
+        <td><strong>${esc(job.job_name)}</strong></td>
+        <td>${esc(job.source_key)}</td>
+        <td>${job.cron_configured ? "configurato" : "vuoto"}</td>
+        <td>${esc(job.last_status || "mai eseguito")}</td>
+        <td>${job.last_finished_at ? dateTime(job.last_finished_at) : job.last_started_at ? dateTime(job.last_started_at) : "—"}</td>
+      </tr>${job.error_message ? `<tr><td colspan="5" class="small muted">${esc(job.error_message)}</td></tr>` : ""}`).join("")}
+    </tbody></table></div>
+    <p class="small muted" style="margin-top:12px">Non accendere i cron sulla VPS da questa pagina. Un job si lancia a mano con <code>python -m scripts.run_jobs nome</code>.</p>`;
+}
+
 // --------------------------------------------------------------------- rules
 function showRules() {
   const rules = [
@@ -2293,7 +2377,7 @@ function territoryGuide(spec) {
 function territoryBase(base) {
   const holder = base.holder
     ? `<dt>${esc(base.holder.role)}</dt><dd>${base.holder.politician_id ? `<a href="#/politici/${base.holder.politician_id}">${esc(base.holder.name)}</a>` : esc(base.holder.name)}${base.holder.since ? ` · dal ${longDate(base.holder.since)}` : ""}</dd>`
-    : `<dt>${base.kind === "municipality" ? "Sindaco" : "Presidente"}</dt><dd class="muted">Non collegato all'anagrafe ufficiale: scrivilo nel blocco 1 con la fonte.</dd>`;
+    : `<dt>${base.kind === "municipality" ? "Sindaco" : "Presidente"}</dt><dd class="muted">Non nell'anagrafe DAIT. Collegalo nel blocco «Collega ${base.kind === "municipality" ? "il sindaco" : "il presidente"}» con una fonte ufficiale, senza inventare un mandato.</dd>`;
   const rows = [
     base.region && base.kind !== "region" ? `<dt>Regione</dt><dd>${esc(base.region.name)}</dd>` : "",
     base.province ? `<dt>Provincia</dt><dd>${esc(base.province.name)} (${esc(base.province.abbreviation)})</dd>` : "",

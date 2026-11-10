@@ -63,3 +63,39 @@ def test_verona_timeline_is_a_draft_and_links_the_live_comune(tmp_path):
         assert any("Tommasi" in event["body"] for event in detail["events"])
         assert "non verificata" in detail["disclaimer"].casefold()
         assert client.get("/archive/timelines/narnia").status_code == 404
+
+
+def test_redazione_verifies_a_timeline_event_on_an_official_source(tmp_path):
+    url = f"sqlite:///{tmp_path / 'verify.db'}"
+    settings = Settings(
+        database_url=url,
+        raw_storage_path=tmp_path / "raw",
+        admin_api_key="test-admin-secret",
+        redazione_members="Anna Redattrice=tok-anna-redattrice;Bruno Verificatore=tok-bruno-verificatore",
+    )
+    client = TestClient(create_app(settings))
+    anna = {"Authorization": "Bearer tok-anna-redattrice"}
+    bruno = {"Authorization": "Bearer tok-bruno-verificatore"}
+    wikipedia = {
+        "official_name": "Wikipedia",
+        "official_url": "https://it.wikipedia.org/wiki/Sindaci_di_Verona",
+    }
+    official = {
+        "official_name": "Eligendo",
+        "official_url": "https://elezioni.interno.gov.it/comunali/scrutini/20220612/1030200910",
+    }
+    with client:
+        refused = client.post("/redazione/api/archivio/timelines/verona/eventi/0/verifica", headers=anna, json=wikipedia)
+        assert refused.status_code == 422
+        proposed = client.post("/redazione/api/archivio/timelines/verona/eventi/0/verifica", headers=anna, json=official)
+        assert proposed.status_code == 200, proposed.text
+        queue = client.get("/redazione/api/coda", headers=bruno).json()
+        item = next(row for row in queue if row["kind"] == "archivio")
+        assert "Verona" in item["title"]
+        assert client.post(f"/redazione/api/coda/archivio/{item['id']}/approva", headers=anna, json={}).status_code == 409
+        assert client.post(f"/redazione/api/coda/archivio/{item['id']}/approva", headers=bruno, json={}).status_code == 200
+        detail = client.get("/archive/timelines/verona").json()
+        assert detail["events"][0]["verified"] is True
+        assert detail["events"][0]["official_url"] == official["official_url"]
+        assert detail["verified_count"] >= 1
+        assert client.get("/redazione/api/lavori", headers=anna).json()["scheduler_enabled"] is False

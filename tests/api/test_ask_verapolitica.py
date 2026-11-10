@@ -106,8 +106,11 @@ def _add_published_politician(factory, given: str, family: str) -> int:
         return politician.id
 
 
-def _ask(client, question: str):
-    return client.post("/ask", json={"question": question})
+def _ask(client, question: str, pledge_ids=None):
+    body = {"question": question}
+    if pledge_ids is not None:
+        body["pledge_ids"] = pledge_ids
+    return client.post("/ask", json=body)
 
 
 def setup_function():
@@ -196,6 +199,35 @@ def test_politician_and_verdict_query(tmp_path):
     assert body["results"][0]["public_verdict_label"] == "In corso"
     assert "In corso" in body["answer"]
     assert data.unpublished_id not in [item["id"] for item in body["results"]]
+
+
+def test_optional_pledge_ids_pin_rows_without_changing_response_shape(tmp_path):
+    client, data, factory = _client(tmp_path)
+    _classify_public(factory, data)
+    _publish(factory, data)
+    keys = {
+        "answer",
+        "intent",
+        "entities",
+        "results",
+        "sources",
+        "generated_by_ai",
+        "fallback",
+        "prompt_version",
+        "model",
+    }
+    with client:
+        plain = _ask(client, "Quali promesse di Mario Rossi sono ancora in corso?")
+        pinned = _ask(
+            client,
+            "Quali promesse di Mario Rossi sono ancora in corso?",
+            pledge_ids=[data.pledge_id, data.unpublished_id],
+        )
+    assert plain.status_code == 200 and pinned.status_code == 200
+    assert set(plain.json()) == keys
+    assert set(pinned.json()) == keys
+    assert pinned.json()["results"][0]["id"] == data.pledge_id
+    assert data.unpublished_id not in [item["id"] for item in pinned.json()["results"]]
 
 
 def test_topic_query(tmp_path):

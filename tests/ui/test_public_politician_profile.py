@@ -191,3 +191,6 @@ def test_ask_question_autosubmits_and_prefill_does_not(tmp_path):
     assert "else if (prefill && !field.value) field.value = prefill;" in show_ask
     assert 'class="profile-ask-cta" href="./?view=ask&amp;prefill=' in script
     assert 'class="ask-suggestion" href="./?view=ask&amp;question=' in script
+    assert "thread.length >= 3" in show_ask
+    assert "pledge_ids: pin" in show_ask
+    assert "data-ask-follow" in show_ask

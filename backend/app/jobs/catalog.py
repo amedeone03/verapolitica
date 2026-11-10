@@ -12,6 +12,7 @@ from backend.app.jobs.runners import (
     run_pledge_evidence_matching,
     run_politician_ingestion,
     run_proposal_ingestion,
+    run_senato_history_ingestion,
     run_territorial_office_ingestion,
     run_territory_ingestion,
 )
@@ -89,6 +90,12 @@ JOB_CATALOG: dict[str, JobSpec] = {
         "camera-storico",
         run_camera_history_ingestion,
         "schedule_camera_history_cron",
+    ),
+    "senato-history": JobSpec(
+        "senato-history",
+        "senato-storico",
+        run_senato_history_ingestion,
+        "schedule_senato_history_cron",
     ),
 }
 

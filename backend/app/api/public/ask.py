@@ -20,4 +20,6 @@ def ask_verapolitica(
 ) -> AskResponse:
     """Read-only question answering over published VeraPolitica data."""
 
-    return AskVeraPoliticaService(session_factory, settings).ask(payload.question)
+    return AskVeraPoliticaService(session_factory, settings).ask(
+        payload.question, pledge_ids=payload.pledge_ids
+    )

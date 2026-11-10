@@ -1065,11 +1065,13 @@ function territoryMonogram(base) {
 }
 
 export function renderTerritoryHolder(holder, { portrait = null } = {}) {
-  if (!holder) return "";
+  if (!holder) {
+    return `<div class="t-holder is-empty"><span class="t-holder-photo" aria-hidden="true"></span><span class="t-holder-text"><small>Scheda incompleta</small><strong>Titolare non ancora collegato</strong><small>Serve un mandato ufficiale o una verifica della redazione.</small></span></div>`;
+  }
   const photo = safeImageUrl(holder.photo_url) || portrait;
   const href = holder.politician_id ? `./?politician=${encodeURIComponent(holder.politician_id)}` : null;
   const inner = `<span class="t-holder-photo${photo ? " has-photo" : ""}">${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(String(holder.name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase())}</span>`}</span>
-    <span class="t-holder-text"><small>${escapeHtml(holder.role)}</small><strong>${escapeHtml(holder.name)}</strong>${holder.since ? `<small>In carica dal ${escapeHtml(formatDate(holder.since))}</small>` : ""}</span>
+    <span class="t-holder-text"><small>${escapeHtml(holder.role)}</small><strong>${escapeHtml(holder.name)}</strong>${holder.since ? `<small>In carica dal ${escapeHtml(formatDate(holder.since))}</small>` : ""}${holder.editorial ? `<small>Collegato dalla redazione, non è un mandato DAIT</small>` : ""}</span>
     ${href ? `<span class="t-holder-go" aria-hidden="true">${icon("arrowRight", { size: 18 })}</span>` : ""}`;
   return href ? `<a class="t-holder" href="${href}">${inner}</a>` : `<div class="t-holder">${inner}</div>`;
 }
@@ -1118,7 +1120,7 @@ export function renderTownDirectory(towns, { id = "t-comuni", title = "Comuni", 
     : "";
   return `<section class="territory-block" aria-labelledby="${id}-title"><h2 id="${id}-title">${escapeHtml(title)} <span class="t-count-pill">${ordered.length.toLocaleString("it-IT")}</span></h2>
       ${filter}
-      ${ordered.length ? `<ul id="${id}-list" class="t-dir">${ordered.map((item) => `<li data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}"><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong>${withProvince ? `<small>${escapeHtml(item.province_abbreviation)}</small>` : item.current_mayor ? `<small>${escapeHtml(displayPersonName(item.current_mayor.given_name, item.current_mayor.family_name))}</small>` : ""}</a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune elencato.</p>`}
+      ${ordered.length ? `<ul id="${id}-list" class="t-dir">${ordered.map((item) => `<li data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}"><a href="./?municipality=${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.name)}</strong>${withProvince ? `<small>${escapeHtml(item.province_abbreviation)}</small>` : item.current_mayor ? `<small>${escapeHtml(displayPersonName(item.current_mayor.given_name, item.current_mayor.family_name))}</small>` : `<small>Scheda incompleta</small>`}</a></li>`).join("")}</ul>` : `<p class="empty-note">Nessun comune elencato.</p>`}
       ${footer}
     </section>`;
 }
@@ -1163,7 +1165,7 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     <div class="territory-summary">${renderTerritoryFacts(t)}${meta}</div>
     ${index}
     ${sections}
-    ${written.length < total ? `<p class="territory-pending">${written.length ? `La redazione sta completando questa scheda: ${written.length} di ${total} parti pubblicate.` : "La redazione non ha ancora scritto questa scheda: qui sopra ci sono solo i dati ufficiali."}</p>` : ""}
+    ${written.length < total ? `<p class="territory-pending">${written.length ? `Scheda incompleta: ${written.length} di ${total} parti pubblicate. La redazione sta completando il resto.` : "Scheda incompleta: la redazione non ha ancora scritto questa scheda. Qui sopra ci sono solo i dati ufficiali (ISTAT e, se c'è, il titolare)."}</p>` : ""}
     ${extra}
     <div id="t-notizie" class="territory-news"></div>
     <section class="territory-block territory-fonti" aria-labelledby="t-fonti-title"><h2 id="t-fonti-title">Fonti</h2>
@@ -1919,7 +1921,7 @@ export function createPublicApiClient(fetchImpl = fetch) {
     getPolitician: (id) => request(`/politicians/${encodeURIComponent(id)}`),
     getScorecard: (id) => request(`/politicians/${encodeURIComponent(id)}/scorecard`),
     explainPledge: (id) => request(`/proposals/${encodeURIComponent(id)}/explanation`),
-    ask: (question) => request("/ask", { method: "POST", body: { question } }),
+    ask: (question, { pledge_ids } = {}) => request("/ask", { method: "POST", body: { question, ...(pledge_ids?.length ? { pledge_ids } : {}) } }),
     getPortraits: () => request("/portraits"),
     listProposals: (filters = {}) => {
       const params = new URLSearchParams({ offset: "0", limit: "50" });
@@ -2409,7 +2411,11 @@ export function askFollowUps(payload) {
   }).slice(0, 3);
 }
 
-function renderAskResult(payload) {
+function askPinnedIds(payload) {
+  return (payload?.results || []).filter((item) => item.type === "pledge" && Number.isInteger(item.id)).map((item) => item.id).slice(0, 12);
+}
+
+function renderAskResult(payload, { follow = true } = {}) {
   const rows = payload.results || [];
   const results = rows.map((item) => {
     const href = item.url || (item.type === "politician" ? `./?politician=${encodeURIComponent(item.id)}` : `./?proposal=${encodeURIComponent(item.id)}`);
@@ -2429,9 +2435,9 @@ function renderAskResult(payload) {
   const empty = !rows.length && payload.intent !== "unsupported"
     ? `<p class="empty-note">Nessuna promessa pubblicata corrisponde. Prova un altro tema o il nome di un politico.</p>`
     : "";
-  const follow = askFollowUps(payload);
-  const followHtml = follow.length
-    ? `<p class="ask-disclaimer">Approfondisci</p><div class="ask-followups" aria-label="Domande successive">${follow.map((item) => `<a class="ask-suggestion" href="./?view=ask&amp;question=${encodeURIComponent(item.question)}">${escapeHtml(item.label)}</a>`).join("")}</div>`
+  const next = follow ? askFollowUps(payload) : [];
+  const followHtml = next.length
+    ? `<p class="ask-disclaimer">Approfondisci in questo filo</p><div class="ask-followups" aria-label="Domande successive">${next.map((item) => `<button type="button" class="ask-suggestion" data-ask-follow="${escapeHtml(item.question)}">${escapeHtml(item.label)}</button>`).join("")}</div>`
     : "";
   const note = payload.generated_by_ai
     ? "Testo generato automaticamente su dati verificati."
@@ -2456,26 +2462,44 @@ function showAsk(api) {
   const prefill = params.get("prefill");
   if (preset && !field.value) field.value = preset;
   else if (prefill && !field.value) field.value = prefill;
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const question = field.value.trim();
+  const thread = [];
+  const paint = () => {
+    result.hidden = false;
+    result.innerHTML = thread.map((turn, index) => `<section class="ask-turn">
+      ${index ? `<p class="ask-turn-q">${escapeHtml(turn.question)}</p>` : ""}
+      ${renderAskResult(turn.payload, { follow: index === thread.length - 1 && thread.length < 3 })}
+    </section>`).join("") + (thread.length >= 3
+      ? `<p class="ask-disclaimer">Hai fatto tre domande in questo filo, tutte sulle fonti già mostrate. Per un tema nuovo, ricomincia.</p><button type="button" class="button" data-ask-reset>Nuova domanda</button>`
+      : "");
+    result.querySelector("[data-ask-reset]")?.addEventListener("click", () => {
+      thread.length = 0;
+      field.value = "";
+      result.hidden = true;
+      status.hidden = false;
+      showState(status, "Fai una domanda.", "Cerca solo tra schede e fonti già pubblicate.");
+      field.focus();
+    });
+  };
+  const run = async (question, pin) => {
     if (!question) {
       result.hidden = true;
       showState(status, "Scrivi una domanda.", "Il campo non può essere vuoto.");
       return;
     }
     button.disabled = true;
-    result.hidden = true;
+    result.hidden = thread.length === 0;
     status.hidden = false;
     status.className = "state-card loading-state";
     status.innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Sto cercando nei dati pubblicati…</strong><small>Solo promesse, stati e fonti già verificati.</small></div>`;
     try {
-      const payload = await api.ask(question);
+      const payload = await api.ask(question, { pledge_ids: pin });
+      thread.push({ question, payload });
+      if (thread.length > 3) thread.shift();
       status.hidden = true;
-      result.hidden = false;
-      result.innerHTML = renderAskResult(payload);
+      paint();
+      field.value = "";
     } catch (error) {
-      result.hidden = true;
+      if (!thread.length) result.hidden = true;
       const invalid = error.status === 422;
       showState(
         status,
@@ -2486,6 +2510,18 @@ function showAsk(api) {
     } finally {
       button.disabled = false;
     }
+  };
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const pin = thread.length ? askPinnedIds(thread[thread.length - 1].payload) : [];
+    run(field.value.trim(), pin);
+  });
+  result.addEventListener("click", (event) => {
+    const follow = event.target instanceof Element ? event.target.closest("[data-ask-follow]") : null;
+    if (!follow) return;
+    event.preventDefault();
+    const pin = thread.length ? askPinnedIds(thread[thread.length - 1].payload) : [];
+    run(follow.dataset.askFollow, pin);
   });
   if (preset) form.requestSubmit();
 }
@@ -3555,6 +3591,8 @@ async function showHome(api) {
       line.innerHTML = zone?.region_id ? `${escapeHtml(zone.region_name || "La tua regione")} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
     } else if (choice.value === "province") {
       line.innerHTML = zone?.province ? `Provincia di ${escapeHtml(zone.province_name || zone.province)} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+    } else if (choice.value === "all" && !followsOf(profile)) {
+      line.innerHTML = `Segui politici e partiti per un feed Per te · <a href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>`;
     } else if (choice.value === "all" && !zone) {
       line.innerHTML = `Scegli un comune per le notizie vicino a te · <a href="./?view=profile&amp;tab=follows">Imposta la zona</a>`;
     } else line.textContent = "";
@@ -3584,17 +3622,26 @@ async function showHome(api) {
       const follows = choice.value === "all" && !forYouFallback ? followsOf(profile) : null;
       let page = await api.getFeed({ scope: choice.value, zone: territory, offset, redazione: true, follows });
       if (follows && !append && !page.items.length) {
-        // Nothing yet about what the reader follows: show everything, and say so.
         forYouFallback = true;
         page = await api.getFeed({ scope: "all", zone: {}, offset, redazione: true });
       }
+      if (choice.value === "all" && !followsOf(profile) && !append) {
+        byId("home-zone").innerHTML = `Segui politici e partiti per un feed Per te · <a href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>`;
+      }
       if (forYouFallback && choice.value === "all") {
-        byId("home-zone").textContent = "Ancora niente su chi segui: ecco tutte le notizie della redazione.";
+        byId("home-zone").innerHTML = `Ancora niente su chi segui: ecco tutte le notizie della redazione. <a href="./?view=profile&amp;tab=follows">Aggiungi preferiti</a>`;
       }
       status.hidden = true;
       if (!append) list.innerHTML = "";
       if (!page.items.length && !append) {
-        showEmpty("Nessuna notizia qui, per ora.", "Le notizie compaiono dopo la verifica di una seconda persona della redazione.");
+        const forYou = choice.value === "all";
+        showEmpty(
+          forYou && !followsOf(profile) ? "Il feed Per te è vuoto." : "Nessuna notizia qui, per ora.",
+          forYou && !followsOf(profile)
+            ? "Segui politici o partiti nel profilo: le loro notizie compariranno qui dopo la verifica della redazione."
+            : "Le notizie compaiono dopo la verifica di una seconda persona della redazione.",
+          forYou && !followsOf(profile) ? `<a class="button feed-empty-action" href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>` : "",
+        );
       } else {
         list.hidden = false;
         const current = loadReaderProfile();
@@ -4225,7 +4272,7 @@ const TOWNS_SHOWN = 12;
 export function renderTownFilter(towns) {
   const rows = towns.map((town, index) => {
     const mayor = town.current_mayor ? displayPersonName(town.current_mayor.given_name, town.current_mayor.family_name) : "";
-    return `<li data-name="${escapeHtml(town.name.toLocaleLowerCase("it"))}"${index >= TOWNS_SHOWN ? " hidden" : ""}><a href="./?municipality=${encodeURIComponent(town.id)}"><strong>${escapeHtml(town.name)}</strong><small>${mayor ? `Sindaco: ${escapeHtml(mayor)}` : "Sindaco non collegato"}</small></a></li>`;
+    return `<li data-name="${escapeHtml(town.name.toLocaleLowerCase("it"))}"${index >= TOWNS_SHOWN ? " hidden" : ""}><a href="./?municipality=${encodeURIComponent(town.id)}"><strong>${escapeHtml(town.name)}</strong><small>${mayor ? `Sindaco: ${escapeHtml(mayor)}` : "Scheda incompleta"}</small></a></li>`;
   }).join("");
   return `<div class="tmap-towns-head"><label for="tmap-town-q">Comuni <span>${towns.length}</span></label>
       <input id="tmap-town-q" type="search" autocomplete="off" placeholder="Filtra per nome" aria-controls="tmap-towns" aria-describedby="tmap-town-count" /></div>
@@ -4428,7 +4475,7 @@ export function renderArchiveTimelineChip(item) {
 export function renderArchiveTimeline(timeline, { compact = false } = {}) {
   const kind = timeline.kind === "city" ? "Comune" : timeline.kind === "region" ? "Regione" : "Italia";
   const events = timeline.events.length
-    ? `<ol class="proposal-timeline">${timeline.events.map((event) => `<li><time>${escapeHtml(event.date_label || String(event.date || "").slice(0, 4))}</time><div><strong>${escapeHtml(event.title)}</strong>${event.body ? `<p>${escapeHtml(event.body)}</p>` : ""}${event.sources?.length ? `<p class="empty-note">${escapeHtml(event.sources.join(" · "))}</p>` : ""}</div></li>`).join("")}</ol>`
+    ? `<ol class="proposal-timeline">${timeline.events.map((event) => `<li><time>${escapeHtml(event.date_label || String(event.date || "").slice(0, 4))}</time><div><strong>${escapeHtml(event.title)}</strong>${event.verified ? `<span class="verified-badge">Verificata</span>` : `<span class="status-chip">Bozza</span>`}${event.body ? `<p>${escapeHtml(event.body)}</p>` : ""}${event.official_url ? `<p class="empty-note">Fonte ufficiale: ${safeExternalUrl(event.official_url) ? `<a href="${escapeHtml(safeExternalUrl(event.official_url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(event.official_name || event.official_url)}</a>` : escapeHtml(event.official_name || "")}</p>` : event.sources?.length ? `<p class="empty-note">${escapeHtml(event.sources.join(" · "))}</p>` : ""}</div></li>`).join("")}</ol>`
     : `<p class="empty-note">Nessuna voce in questa bozza.</p>`;
   const live = timeline.municipality_id
     ? `<a class="profile-link" href="./?municipality=${encodeURIComponent(timeline.municipality_id)}">Scheda del comune ${icon("arrowRight")}</a>`
@@ -4436,9 +4483,9 @@ export function renderArchiveTimeline(timeline, { compact = false } = {}) {
       ? `<a class="profile-link" href="./?region=${encodeURIComponent(timeline.region_id)}">Scheda della regione ${icon("arrowRight")}</a>`
       : "";
   if (compact) {
-    return `<section class="detail-card"><h2>Cronologia (bozza)</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
+    return `<section class="detail-card"><h2>${timeline.draft ? "Cronologia (bozza)" : "Cronologia"}</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
   }
-  return `<section class="proposal-detail-hero"><p class="feed-meta">${kind} · bozza non verificata</p><h1 id="territory-history-title">${escapeHtml(timeline.name)}</h1>${timeline.mayor ? `<p class="hero-copy">Sindaco indicato in bozza: ${escapeHtml(timeline.mayor)}</p>` : ""}${live}</section>
+  return `<section class="proposal-detail-hero"><p class="feed-meta">${kind} · ${timeline.draft ? "bozza non verificata" : "voci verificate su fonte ufficiale"}</p><h1 id="territory-history-title">${escapeHtml(timeline.name)}</h1>${timeline.mayor ? `<p class="hero-copy">Sindaco indicato in bozza: ${escapeHtml(timeline.mayor)}</p>` : ""}${live}</section>
     <section class="detail-card"><h2>Cronologia</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
 }
 
@@ -4584,6 +4631,7 @@ async function showLegislature(api, number) {
     </section>
     <section class="detail-card"><h2>Proposte di legge</h2>
       <p>${countLabel(detail.published_proposals, "proposta pubblicata", "proposte pubblicate")} presentate in questo periodo.</p>
+      ${detail.enacted_laws?.length ? `<h3 class="block-subhead">Leggi di questa legislatura</h3><ul class="linked-proposals is-list">${detail.enacted_laws.map((law) => `<li><a href="./?proposal=${encodeURIComponent(law.id)}">${escapeHtml(law.title)}</a><span>${escapeHtml(proposalStatusLabel(law.status))}${law.introduced_at ? ` · ${escapeHtml(formatDate(law.introduced_at))}` : ""}</span></li>`).join("")}</ul>` : `<p class="empty-note">Nessuna legge pubblicata come promulgata in questo periodo. Il registro si riempie con le proposte verificate.</p>`}
       <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte ${icon("arrowRight")}</a>
     </section>
     <section class="detail-card"><h2>Referendum</h2>${referendums}</section>

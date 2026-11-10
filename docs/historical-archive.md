@@ -25,14 +25,16 @@ the public API shows the link only if that profile is published.
 
 ```bash
 VERAPOLITICA_CAMERA_HISTORY_LEGISLATURES=1-19 python -m scripts.run_jobs camera-history
+VERAPOLITICA_SENATO_HISTORY_LEGISLATURES=1 python -m scripts.run_jobs senato-history
 ```
 
-The collector stores every SPARQL response body in one raw document (schema
-`verapolitica_camera_history_v1`). The queries follow the ontology already used
-by the current-deputies collector; they have been tested against fixtures, so
-the first live run should be checked on a single legislature before a full
-backfill. Senate history (`dati.senato.it`) is not imported yet; the schema
-already has a `senato` chamber.
+The Camera collector stores every SPARQL response body in one raw document
+(schema `verapolitica_camera_history_v1`). The Senate job uses
+`verapolitica_senato_history_v1` and writes `chamber=senato` mandates only: it
+does not invent legislature dates (those stay on the Camera/fixture table) and
+does not create office-holder rows. Both crons default to blank, so production
+does not backfill 1–19 until an operator opts in. The first live Senate run
+should be checked on a single legislature.
 
 ## Territories
 
@@ -52,14 +54,17 @@ verificata**. They are never auto-published as official office holders.
 `GET /archive/timelines` lists them; `GET /archive/timelines/{slug}` returns
 the events. When an ISTAT comune or region with the same name exists, the
 payload includes `municipality_id` / `region_id` so Archivio can open the live
-scheda (Verona, Milano, …).
+scheda (Verona, Milano, …). A redazione member can propose an official URL
+(Eligendo, Ministero, ente) for one event; a second person publishes it. The
+JSON draft stays as written. Wikipedia and Tuttitalia are refused. A published
+verification never creates a sindaco or a DAIT mandate.
 
 ## Public API
 
 | Route | Content |
 | --- | --- |
 | `GET /archive/legislatures` | Legislatures grouped by era, with mandate counts |
-| `GET /archive/legislatures/{n}` | Dates, previous/next, referendums, published proposals in the period |
+| `GET /archive/legislatures/{n}` | Dates, previous/next, referendums, published proposals, and promulgated laws in the period |
 | `GET /archive/parliamentarians` | Roster, filterable by `legislature`, `chamber`, `q` |
 | `GET /archive/provinces` | Provinces, optionally by `region` |
 | `GET /archive/provinces/{code}` | Province history |

@@ -12,6 +12,7 @@ MAX_ASK_QUESTION_LENGTH = 400
 
 class AskRequest(_Frozen):
     question: str = Field(min_length=1, max_length=MAX_ASK_QUESTION_LENGTH)
+    pledge_ids: tuple[int, ...] = Field(default=())
 
     @field_validator("question")
     @classmethod
@@ -20,6 +21,22 @@ class AskRequest(_Frozen):
         if not stripped:
             raise ValueError("question must not be blank")
         return stripped
+
+    @field_validator("pledge_ids")
+    @classmethod
+    def _cap_pledge_ids(cls, value: tuple[int, ...]) -> tuple[int, ...]:
+        unique: list[int] = []
+        seen: set[int] = set()
+        for item in value:
+            if item < 1:
+                raise ValueError("pledge_ids must be positive")
+            if item in seen:
+                continue
+            seen.add(item)
+            unique.append(item)
+            if len(unique) >= 12:
+                break
+        return tuple(unique)
 
 
 class AskResultItem(_Frozen):

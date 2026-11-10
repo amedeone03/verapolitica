@@ -403,3 +403,53 @@ def run_camera_history_ingestion(
         )
 
     return _wrap(run)
+
+
+def run_senato_history_ingestion(
+    settings: Settings, session_factory: sessionmaker[Session]
+) -> IngestionJobMetrics:
+    """Historical Senate roster. Cron stays blank unless an operator opts in."""
+
+    from backend.app.pipeline.collectors.senato_history import SenatoHistoryCollector
+    from backend.app.pipeline.parsers.senato_history import SenatoHistoryParser
+    from backend.app.services.archive_service import ArchiveService
+
+    source = get_or_create_source(
+        session_factory,
+        SourceSpec("senato-storico", "Senato della Repubblica (archivio storico)", "https://dati.senato.it"),
+    )
+    profiles = get_or_create_source(session_factory, POLITICIAN_SOURCES["senato"])
+
+    def run() -> IngestionJobMetrics:
+        archive = ArchiveService(session_factory)
+        bootstrapped = archive.load_legislature_fixture()
+        raw = TerritorialRawPipeline(
+            session_factory,
+            LocalRawStorage(settings.raw_storage_path),
+            SenatoHistoryCollector(
+                settings.senato_sparql_endpoint,
+                settings.senato_history_legislature_numbers,
+                timeout_seconds=settings.senato_request_timeout_seconds * 2,
+            ),
+            SenatoHistoryParser(),
+        ).run(source_id=source.id, source_key=source.key)
+        sync = archive.sync_senato_history(
+            raw.parsed.structured_records,
+            source_id=source.id,
+            profile_source_id=profiles.id,
+            raw_document_id=raw.raw_document_id,
+            source_url=settings.senato_sparql_endpoint,
+        )
+        return IngestionJobMetrics(
+            records_processed=len(raw.parsed.structured_records),
+            records_created=sync.mandates_created,
+            records_updated=sync.mandates_updated + sync.legislatures_upserted,
+            records_skipped=sync.mandates_unchanged,
+            metadata={
+                "raw_document_id": raw.raw_document_id,
+                "legislatures_bootstrapped": bootstrapped,
+                "mandates_linked_to_profiles": sync.mandates_linked,
+            },
+        )
+
+    return _wrap(run)

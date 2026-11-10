@@ -535,7 +535,7 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, re
       controller?.abort();
       controller = new AbortController();
       try {
-        const payload = await api.search({ q, type: "municipality", limit: 5, signal: controller.signal });
+        const payload = await api.search({ q, type: "municipality", limit: 12, signal: controller.signal });
         const towns = (payload.items || []).filter((item) => item.metadata?.id).map((item) => ({ kind: "comune", id: item.metadata.id, name: item.title, subtitle: item.subtitle || "" }));
         if (input.value.trim() === q) paint(towns);
       } catch { /* the local results stay */ }
