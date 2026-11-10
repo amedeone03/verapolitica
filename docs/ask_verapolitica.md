@@ -21,11 +21,13 @@ politicians, promises, statuses, topics, and evidence.
 1. Deterministic intent/entity parse (no LLM planner)
 2. Existing public politician/proposal search
 3. Structured lookup of classified, published explicit promises
-4. Latest **published** `PledgeAssessment` only
-5. Optional LLM synthesis of the retrieved facts
-6. Citation and contradiction guards; otherwise deterministic fallback
+4. Lexical ranking (Italian paraphrases + optional Postgres full-text). No embeddings.
+5. Latest **published** `PledgeAssessment` only
+6. Optional LLM synthesis of the retrieved facts (`openai`, `ollama`, or free-tier `gemini`)
+7. Citation and contradiction guards; otherwise deterministic fallback
 
-No embeddings, pgvector, Redis, or extra database.
+No embeddings, pgvector, Redis, or extra database. Production works with the LLM
+provider blank: retrieval and the canned Italian answers stay free.
 
 ## Public-data boundary
 
@@ -74,5 +76,6 @@ the API returns clarification options and does not guess.
 
 v1 is not a general political knowledge agent. It does not rank politicians,
 does not use pending editorial work, and does not retrieve by embeddings.
-Next step, if needed: optional semantic retrieval **after** this published-data
-boundary, still without letting the model mint verdicts.
+Paraphrases (“tempi in ospedale” → liste di attesa) use a fixed token map and
+optional `to_tsvector('simple', …)` on Postgres. Optional Gemini wording still
+cannot mint verdicts or source URLs.

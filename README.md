@@ -65,11 +65,11 @@ Raw responses are stored. Meaningful changes are detected with canonical hashes.
 
 VeraPolitica is not an autonomous AI political fact-checker. Production can run with the LLM provider disabled.
 
-**Ask VeraPolitica** (`POST /ask`) is retrieval-first over published politicians, pledges, statuses, topics, and sources. Intent parsing is deterministic. Optional LLM synthesis rewrites retrieved facts. If the provider is off, invalid, or contradictory, a deterministic answer is used. [ask_verapolitica.md](docs/ask_verapolitica.md)
+**Ask VeraPolitica** (`POST /ask`) is retrieval-first over published politicians, pledges, statuses, topics, and sources. Intent parsing is deterministic. Matching uses Italian paraphrases and optional Postgres full-text search (no embeddings). Optional LLM synthesis (`openai`, `ollama`, or free-tier `gemini`) rewrites retrieved facts. If the provider is off, invalid, or contradictory, a deterministic answer is used. [ask_verapolitica.md](docs/ask_verapolitica.md)
 
 **Spiegami questa promessa** explains a published pledge state and its stored evidence. It is read-only and does not score or publish. It has a deterministic fallback. [ai_explain_pledge.md](docs/ai_explain_pledge.md)
 
-**Document extraction** is an optional operator path for official HTML or text-based PDF. Output becomes reviewable drafts only. OCR, embeddings, RAG, and web crawling are not implemented. Extraction is not required for production. [ai-evaluation.md](docs/ai-evaluation.md)
+**Document extraction** is an optional operator path for official HTML or text-based PDF. Output becomes reviewable drafts only. OCR, embeddings, vector RAG, and web crawling are not implemented. Extraction is not required for production. [ai-evaluation.md](docs/ai-evaluation.md)
 
 ## Tech stack
 

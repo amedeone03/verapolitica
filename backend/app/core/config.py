@@ -241,8 +241,26 @@ class Settings(BaseSettings):
         return "json" if self.is_production else "text"
 
     @property
+    def ai_ask_enabled(self) -> bool:
+        """Optional wording for Ask / Spiegami. Retrieval still works when this is off."""
+
+        provider = (self.llm_provider or "").strip().casefold()
+        model = (self.llm_model or "").strip()
+        if not provider or not model:
+            return False
+        if provider == "ollama":
+            return bool(self.ollama_base_url.strip())
+        if provider in {"openai", "gemini"}:
+            key = self.llm_api_key.get_secret_value() if self.llm_api_key else ""
+            return bool(key)
+        return False
+
+    @property
     def ai_extraction_enabled(self) -> bool:
         provider = (self.llm_provider or "").strip().casefold()
+        if provider == "gemini":
+            # Gemini is Ask wording only; structured PDF extraction stays CLI/openai/ollama.
+            return False
         model = (self.llm_model or "").strip()
         if not provider or not model:
             return False
@@ -363,13 +381,13 @@ class Settings(BaseSettings):
         provider = (self.llm_provider or "").strip().casefold()
         if provider:
             if not (self.llm_model or "").strip():
-                errors.append("AI extraction requires VERAPOLITICA_LLM_MODEL")
-            if provider == "openai" and not (
+                errors.append("AI requires VERAPOLITICA_LLM_MODEL")
+            if provider in {"openai", "gemini"} and not (
                 self.llm_api_key and self.llm_api_key.get_secret_value().strip()
             ):
-                errors.append("AI extraction requires VERAPOLITICA_LLM_API_KEY")
-            if provider not in {"openai", "ollama"}:
-                errors.append("AI extraction provider must be openai or ollama")
+                errors.append("AI requires VERAPOLITICA_LLM_API_KEY")
+            if provider not in {"openai", "ollama", "gemini"}:
+                errors.append("AI provider must be openai, ollama, or gemini")
         if errors:
             raise ProductionConfigError("; ".join(errors))
         return self

@@ -127,7 +127,8 @@ def test_public_ui_assets_and_query_string_detail_route_are_served(tmp_path):
     assert "view=ask" in archive.text
     assert "Chiedi a VeraPolitica" in archive.text
     assert "Es. Quali promesse di Giorgia Meloni sono ancora in corso?" in archive.text
-    assert "dati pubblicati e fonti verificate" in archive.text
+    assert "Se un fatto non è in archivio" in archive.text
+    assert "tempi in ospedale" in archive.text.casefold()
     assert "ask:" in script.text
     assert "/ask" in script.text
     assert ".ask-form" in styles.text
