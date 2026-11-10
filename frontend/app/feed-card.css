@@ -12,21 +12,26 @@
   --vp-ink: var(--color-primary, #0F2747);
   --vp-green: var(--color-accent-strong, #2F6B4F);
   --vp-red: var(--color-danger, #A3261C);
-  --vp-line: var(--color-border, #DFE6E3);
+  --vp-line: var(--color-border, #D9D0C4);
   --vp-muted: var(--color-text-muted, #526570);
-  --vp-text: var(--color-text, #1D2D35);
-  --vp-soft: var(--color-background, #F8FAF9);
+  --vp-text: var(--color-text, #1A1F24);
+  --vp-soft: var(--color-background, #F4EFE6);
   --vp-band: var(--vp-navy);
   --vp-tint: var(--color-accent-light, #DCEBE5);
   --vp-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --vp-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   position: relative;
   overflow: hidden;
-  background: var(--color-surface, #fff);
+  background: var(--color-surface, #FFFCF7);
   border: 1px solid var(--vp-line);
-  border-radius: 14px;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(15 39 71 / 6%);
   color: var(--vp-text);
   font-family: var(--font-body, "Inter", system-ui, sans-serif);
+  transition: transform 180ms var(--vp-ease-out), box-shadow 180ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .vp-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgb(15 39 71 / 10%), 0 1px 2px rgb(15 39 71 / 6%); }
 }
 .vp-card.tone-ink { --vp-band: var(--vp-ink); }
 .vp-card.tone-red { --vp-band: var(--vp-red); }
@@ -66,7 +71,7 @@
 @media (hover: hover) and (pointer: fine) { .vp-person-text a:hover { text-decoration: underline; } }
 .vp-person-text small { color: var(--vp-muted); font-size: .8125rem; }
 .vp-institution { margin: 0 0 6px; color: var(--vp-muted); font-size: .875rem; font-weight: 600; }
-.vp-title { margin: 6px 0 8px; font-family: var(--font-heading, "Inter", system-ui, sans-serif); font-size: 1.3125rem; font-weight: 800; line-height: 1.24; letter-spacing: -0.01em; overflow-wrap: anywhere; text-wrap: pretty; }
+.vp-title { margin: 6px 0 8px; font-family: var(--font-display, var(--font-heading, "Inter", system-ui, sans-serif)); font-size: 1.3125rem; font-weight: 700; line-height: 1.24; letter-spacing: -0.02em; overflow-wrap: anywhere; text-wrap: pretty; }
 .vp-card.is-feature .vp-avatar { width: 76px; height: 76px; font-size: 1.125rem; }
 .vp-card.is-feature .vp-title { font-size: 1.4375rem; }
 .vp-card.is-feature .vp-people { margin-bottom: 12px; }
@@ -212,6 +217,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vp-pill:active, .vp-outline:active, .vp-action:active, .vp-picker-item:active .vp-picker-emoji { transform: none; }
+  .vp-card:hover { transform: none; }
   .vp-card.is-entering { animation: vp-fade 200ms ease both; animation-delay: 0ms; }
   .vp-picker, .vp-picker.is-leaving, .vp-picker-item { transform: none; transition: opacity 150ms ease; transition-delay: 0ms; }
   .vp-picker-item.is-hover .vp-picker-emoji { transform: none; }

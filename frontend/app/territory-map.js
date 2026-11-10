@@ -22,7 +22,7 @@ const PROVINCE_PIN_ZOOM = 6.4;
 // Colours of a car's light map: soft green land, clear water, white roads,
 // grey borders and dark labels with a white halo.
 const PALETTE = {
-  land: "#e7eee2", wood: "#d4e6c8", grass: "#dcebd2", urban: "#ebedea", water: "#a9d5f3",
+  land: "#ebe6da", wood: "#d8e4c6", grass: "#e2ebd0", urban: "#efeae2", water: "#a9d5f3",
   road: "#ffffff", roadCase: "#d6dbd5", motorway: "#fbe8c4", motorwayCase: "#ead2a4",
   border: "#8f9aa2", borderSoft: "#b7bfc5", label: "#3a4046", labelSoft: "#79838b", halo: "#ffffff",
 };
@@ -319,7 +319,7 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
       if (kind === "regione") visible = !reg && state.layer === "regioni";
       else visible = reg ? el.dataset.region === reg : state.layer === "province" && map.getZoom() >= PROVINCE_PIN_ZOOM;
       el.hidden = !visible;
-      el.classList.toggle("is-active", kind === "provincia" && el.dataset.sigla === pro);
+      el.classList.toggle("is-active", (kind === "provincia" && el.dataset.sigla === pro) || (kind === "regione" && el.dataset.regione === reg));
     }
   };
 

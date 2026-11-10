@@ -497,7 +497,7 @@ export function renderCareerTimeline(person) {
   if (!entries.length) {
     return `<p class="empty-note">Nessun incarico istituzionale pubblicato è ancora disponibile per questo profilo.</p>`;
   }
-  return `<ol class="career-timeline">${entries.map((entry) => `<li class="career-entry${entry.current ? " is-current" : ""}">
+  return `<ol class="career-timeline">${entries.map((entry, index) => `<li class="career-entry${entry.current ? " is-current" : ""}" style="--i:${index}">
     <span class="career-marker" aria-hidden="true"></span>
     <time${entry.start ? ` datetime="${escapeHtml(String(entry.start).slice(0, 10))}"` : ""}>${escapeHtml(formatYearRange(entry.start, entry.end))}</time>
     <div class="career-body">
@@ -849,9 +849,9 @@ export function renderPromiseSummary(items, total) {
 }
 
 export function renderProposalTimeline(events = []) {
-  return `<ol class="proposal-timeline">${events.map((event) => {
+  return `<ol class="proposal-timeline">${events.map((event, index) => {
     const url = safeExternalUrl(event.source?.url);
-    return `<li><time>${escapeHtml(formatDate(event.effective_at))}</time><div><strong>${escapeHtml(proposalStatusLabel(event.status))}</strong><p>Etichetta ufficiale: ${escapeHtml(event.source_status_label)}</p>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Elementi di verifica ${icon("external", { size: 14 })}</a>` : ""}</div></li>`;
+    return `<li style="--i:${index}"><time>${escapeHtml(formatDate(event.effective_at))}</time><div><strong>${escapeHtml(proposalStatusLabel(event.status))}</strong><p>Etichetta ufficiale: ${escapeHtml(event.source_status_label)}</p>${url ? `<a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Elementi di verifica ${icon("external", { size: 14 })}</a>` : ""}</div></li>`;
   }).join("")}</ol>`;
 }
 
@@ -1338,7 +1338,7 @@ export function renderRateBlock(stratum, credibleLevel) {
   const [low, high] = stratum.credible_interval;
   return `<div class="rate-block">
     <span class="rate-label">Tasso di mantenimento · ${stratum.closed_pledges} concluse</span>
-    <strong class="rate-value">${percent(stratum.rate)}</strong>
+    <strong class="rate-value" data-count-to="${Math.round(stratum.rate * 100)}" data-count-suffix="%">${percent(stratum.rate)}</strong>
     <div class="interval-track" role="img" aria-label="Intervallo plausibile ${percent(credibleLevel)} da ${percent(low)} a ${percent(high)}">
       <span class="interval-range" style="left:${low * 100}%;width:${(high - low) * 100}%"></span>
       <span class="interval-point" style="left:${stratum.rate * 100}%"></span>
@@ -1482,7 +1482,7 @@ export function renderScorecard(scorecard) {
   const counts = countPledgeVerdicts(pledges);
   return `<div class="scorecard">
     ${renderVerdictLegend()}
-    ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong>${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
+    ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong data-count-to="${Math.round(progress.elapsed_fraction * 100)}" data-count-suffix="%">${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
     <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
     <div class="pledge-board">
       <div class="pledge-list-head">
@@ -1523,9 +1523,9 @@ export function renderCoverMeter(scorecard) {
 export function renderProfileStats(scorecard) {
   const counts = countPledgeVerdicts(scorecard?.pledges || []);
   return `<div class="stat-row">
-    <div class="stat-tile is-kept"><strong>${counts.kept || 0}</strong><span>Mantenute</span></div>
-    <div class="stat-tile is-broken"><strong>${counts.broken || 0}</strong><span>Non mantenute</span></div>
-    <div class="stat-tile is-progress"><strong>${counts.in_progress || 0}</strong><span>In corso</span></div>
+    <div class="stat-tile is-kept"><strong data-count-to="${counts.kept || 0}">${counts.kept || 0}</strong><span>Mantenute</span></div>
+    <div class="stat-tile is-broken"><strong data-count-to="${counts.broken || 0}">${counts.broken || 0}</strong><span>Non mantenute</span></div>
+    <div class="stat-tile is-progress"><strong data-count-to="${counts.in_progress || 0}">${counts.in_progress || 0}</strong><span>In corso</span></div>
   </div>`;
 }
 
@@ -1739,8 +1739,52 @@ function bindProfileShare(root) {
 }
 
 function bindProfileMotion(root) {
-  // Numbers are written in place; no count-up or entrance animation.
-  for (const node of root.querySelectorAll("[data-count-to]")) node.textContent = String(node.dataset.countTo);
+  if (!root) return;
+  const reduce = prefersReducedMotion();
+  const writeCount = (node, value) => {
+    node.textContent = `${value}${node.dataset.countSuffix || ""}`;
+  };
+  const animateCount = (node) => {
+    if (node.dataset.counted === "1") return;
+    const target = Number(node.dataset.countTo);
+    if (!Number.isFinite(target)) return;
+    node.dataset.counted = "1";
+    if (reduce) {
+      writeCount(node, target);
+      return;
+    }
+    const start = performance.now();
+    const duration = 400;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      writeCount(node, Math.round(target * (1 - (1 - t) ** 3)));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    writeCount(node, 0);
+    requestAnimationFrame(step);
+  };
+  const reveal = (node) => {
+    if (node.dataset.motionDone === "1") return;
+    node.dataset.motionDone = "1";
+    node.classList.add("is-in");
+    if (node.hasAttribute("data-count-to")) animateCount(node);
+    for (const child of node.querySelectorAll("[data-count-to]")) animateCount(child);
+  };
+  const targets = root.querySelectorAll(
+    "[data-count-to], .progress-track, .cover-meter, .interval-track, .composition, .career-timeline, .proposal-timeline, .stat-row, .rate-block, .pledge-status-summary",
+  );
+  if (reduce || typeof IntersectionObserver !== "function") {
+    for (const node of targets) reveal(node);
+    return;
+  }
+  const io = new IntersectionObserver((entries, observer) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      reveal(entry.target);
+      observer.unobserve(entry.target);
+    }
+  }, { threshold: 0.28, rootMargin: "0px 0px -8% 0px" });
+  for (const node of targets) io.observe(node);
 }
 
 export function profileTopics(person, scorecard = null) {
@@ -2260,6 +2304,7 @@ async function showProposalDetail(api, proposalId) {
     byId("proposal-detail-status").hidden = true;
     byId("proposal-detail").hidden = false;
     byId("proposal-detail").innerHTML = renderProposalDetail(proposal);
+    bindProfileMotion(byId("proposal-detail"));
     bindExplainPledges(byId("proposal-detail"), api);
     document.title = `${proposal.title} — VeraPolitica`;
   } catch (error) {
@@ -2490,7 +2535,7 @@ function showAsk(api) {
     result.hidden = thread.length === 0;
     status.hidden = false;
     status.className = "state-card loading-state";
-    status.innerHTML = `<span class="loading-mark" aria-hidden="true"></span><div><strong>Sto cercando nei dati pubblicati…</strong><small>Solo promesse, stati e fonti già verificati.</small></div>`;
+    status.innerHTML = `<span class="ask-seeking" aria-hidden="true"><span class="ask-cursor"></span></span><div><strong>Sto cercando nei dati pubblicati…</strong><small>Solo promesse, stati e fonti già verificati.</small></div>`;
     try {
       const payload = await api.ask(question, { pledge_ids: pin });
       thread.push({ question, payload });
@@ -3393,6 +3438,16 @@ function markSection(section) {
   for (const link of document.querySelectorAll("[data-section]")) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
+  }
+  const nav = document.querySelector(".bottom-nav");
+  if (!nav) return;
+  const order = ["home", "politics", "territory", "history", "search"];
+  const index = order.indexOf(section);
+  if (index >= 0) {
+    nav.style.setProperty("--nav-a", String(index));
+    nav.classList.add("has-active");
+  } else {
+    nav.classList.remove("has-active");
   }
 }
 
@@ -4382,6 +4437,7 @@ async function showParty(api, partyId) {
     </section>`;
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
+    bindProfileMotion(detail);
     document.title = `${party.name} — VeraPolitica`;
   } catch (error) {
     const missing = error.status === 404;
@@ -4426,6 +4482,7 @@ async function showCompare(api) {
     byId("compare-status").hidden = true;
     byId("compare-result").hidden = false;
     byId("compare-result").innerHTML = renderComparison(result);
+    bindProfileMotion(byId("compare-result"));
   } catch {
     showState(byId("compare-status"), "Non è stato possibile calcolare il confronto.", PUBLIC_UNAVAILABLE, true);
   }

@@ -3,13 +3,13 @@
    server-rendered pages and the demo script keep working. */
 :root {
   /* Cambridge Classic palette (same tokens as /app and /redazione), light theme. */
-  --bg: #F8FAF9;
-  --surface: #FFFFFF;
-  --surface-2: #F1F4F3;
-  --surface-3: #E7ECEA;
-  --line: #DFE6E3;
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --surface-2: #F1EBE0;
+  --surface-3: #E8E0D4;
+  --line: #D9D0C4;
   --line-strong: #A8B8B5;
-  --ink: #1D2D35;
+  --ink: #1A1F24;
   --muted: #526570;
   --faint: #6B7C84;
   --accent: #003C71;
@@ -28,9 +28,9 @@
   --stalled: #ECEFEF;
   --stalled-ink: #3D4A52;
   --unrated: #526570;
-  --glass-fill: #FFFFFF;
-  --glass-edge: #DFE6E3;
-  --glass-edge-top: #DFE6E3;
+  --glass-fill: #FFFCF7;
+  --glass-edge: #D9D0C4;
+  --glass-edge-top: #D9D0C4;
   --glass-blur: none;
   --glass-shadow: none;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
