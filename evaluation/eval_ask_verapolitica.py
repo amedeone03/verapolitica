@@ -11,13 +11,19 @@ import json
 import sys
 from pathlib import Path
 
-from backend.app.evaluation.ask_metrics import report_to_dict
+from backend.app.evaluation.ask_dataset import load_ask_gold_dataset, resolve_ask_dataset_root
+from backend.app.evaluation.ask_metrics import (
+    compare_retrieve_reports,
+    render_retrieve_comparison,
+    report_to_dict,
+)
 from backend.app.evaluation.ask_runner import (
     _safe_fake_completer,
     render_ask_report,
     run_ask_evaluation,
 )
 from backend.app.evaluation.dataset import EvaluationDatasetError
+from backend.app.services.ask_query_planner import AskRetrieveMode
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dataset",
         default="synthetic-v1",
-        help="synthetic-v1 (default), real-v1, or a gold directory path",
+        help="synthetic-v1 (default), real-v1, paraphrase-v1, or a gold directory path",
     )
     parser.add_argument("--category", help="Run only this gold category")
     parser.add_argument("--case-id", help="Run only this gold case id")
@@ -39,6 +45,17 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("off", "fake"),
         default="off",
         help="off = deterministic path; fake = FakeTextCompleter (no Ollama)",
+    )
+    parser.add_argument(
+        "--retrieve",
+        choices=tuple(mode.value for mode in AskRetrieveMode),
+        default=AskRetrieveMode.HYBRID.value,
+        help="hybrid = current Ask retrieve; keyword = pre-paraphrase baseline",
+    )
+    parser.add_argument(
+        "--compare-retrieve",
+        action="store_true",
+        help="Run keyword-only then hybrid and report Recall@12 on the same gold set",
     )
     parser.add_argument(
         "--json-output",
@@ -53,12 +70,48 @@ def main(argv: list[str] | None = None) -> int:
     completer = _safe_fake_completer() if args.ai == "fake" else None
     mode = "ai-fake" if args.ai == "fake" else "deterministic"
     try:
+        if args.compare_retrieve:
+            keyword = run_ask_evaluation(
+                dataset_name=args.dataset,
+                category=args.category,
+                case_id=args.case_id,
+                completer=completer,
+                mode=mode,
+                retrieve_mode=AskRetrieveMode.KEYWORD,
+            )
+            hybrid = run_ask_evaluation(
+                dataset_name=args.dataset,
+                category=args.category,
+                case_id=args.case_id,
+                completer=completer,
+                mode=mode,
+                retrieve_mode=AskRetrieveMode.HYBRID,
+            )
+            gold = load_ask_gold_dataset(resolve_ask_dataset_root(args.dataset))
+            selected = tuple(
+                case
+                for case in gold.cases
+                if (args.category is None or case.category == args.category)
+                and (args.case_id is None or case.id == args.case_id)
+            )
+            payload = compare_retrieve_reports(
+                keyword=keyword, hybrid=hybrid, gold_cases=selected
+            )
+            print(render_retrieve_comparison(payload))
+            if args.json_output is not None:
+                args.json_output.parent.mkdir(parents=True, exist_ok=True)
+                args.json_output.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            return 0
         report = run_ask_evaluation(
             dataset_name=args.dataset,
             category=args.category,
             case_id=args.case_id,
             completer=completer,
             mode=mode,
+            retrieve_mode=args.retrieve,
         )
     except EvaluationDatasetError as exc:
         print(f"Ask evaluation failed: {exc}", file=sys.stderr)
