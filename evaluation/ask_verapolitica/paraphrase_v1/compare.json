@@ -1,0 +1,391 @@
+{
+  "dataset_version": "ask-verapolitica-gold/paraphrase-v1",
+  "k": 12,
+  "disclaimer": "Recall@12 is the macro-average of |gold ∩ top 12| / |gold| on this frozen paraphrase set. Keyword-only disables hybrid synonyms, paraphrase matching, and full-text ranking. The default runner uses SQLite, so Postgres full-text search does not contribute to these figures. They are not a universal accuracy claim.",
+  "labeled_queries": 26,
+  "keyword": {
+    "recall_at_12": 0.38461538461538464,
+    "pass_rate": 0.5,
+    "invented_url_rate": 0.0,
+    "forbidden_claim_rate": 0.0,
+    "passed": 16,
+    "total": 32
+  },
+  "hybrid": {
+    "recall_at_12": 1.0,
+    "pass_rate": 1.0,
+    "invented_url_rate": 0.0,
+    "forbidden_claim_rate": 0.0,
+    "passed": 32,
+    "total": 32
+  },
+  "delta_pp": 0.6153846153846154,
+  "relative_improvement": 1.6,
+  "cases": [
+    {
+      "id": "control-sanita",
+      "category": "control",
+      "question": "Quali promesse riguardano la sanità?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-tasse",
+      "category": "control",
+      "question": "Quali promesse riguardano le tasse?",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-liste",
+      "category": "control",
+      "question": "Quali promesse riguardano le liste d'attesa?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-giustizia",
+      "category": "control",
+      "question": "Quali impegni riguardano la giustizia?",
+      "expected_pledge_keys": [
+        "giustizia"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-pensioni",
+      "category": "control",
+      "question": "Quali promesse riguardano le pensioni?",
+      "expected_pledge_keys": [
+        "pensioni",
+        "reddito"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 2,
+      "keyword_fn": 0,
+      "hybrid_tp": 2,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-scuola",
+      "category": "control",
+      "question": "Quali promesse riguardano la scuola?",
+      "expected_pledge_keys": [
+        "scuola"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-lavoro",
+      "category": "control",
+      "question": "Quali promesse riguardano il lavoro?",
+      "expected_pledge_keys": [
+        "lavoro"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-casa",
+      "category": "control",
+      "question": "Quali promesse riguardano la casa?",
+      "expected_pledge_keys": [
+        "casa"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-autonomia",
+      "category": "control",
+      "question": "Quali promesse riguardano l'autonomia?",
+      "expected_pledge_keys": [
+        "autonomia"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "control-imposte",
+      "category": "control",
+      "question": "Quali promesse riguardano le imposte?",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 1.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 1,
+      "keyword_fn": 0,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-irpef",
+      "category": "paraphrase",
+      "question": "Quali promesse riguardano l'IRPEF?",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-irpef-elenca",
+      "category": "paraphrase",
+      "question": "Elenca le promesse sull'IRPEF.",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-tassazione",
+      "category": "paraphrase",
+      "question": "Quali impegni riguardano la tassazione?",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-tassazione-cosa",
+      "category": "paraphrase",
+      "question": "Cosa ha promesso sulla tassazione?",
+      "expected_pledge_keys": [
+        "tasse"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-ssn",
+      "category": "paraphrase",
+      "question": "Quali promesse riguardano il SSN?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-ssn-impegni",
+      "category": "paraphrase",
+      "question": "Quali impegni riguardano il SSN?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-ssn-elenco",
+      "category": "paraphrase",
+      "question": "Elenco delle promesse sul SSN.",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-pronto",
+      "category": "paraphrase",
+      "question": "Quali promesse riguardano il pronto soccorso?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-pronto-impegni",
+      "category": "paraphrase",
+      "question": "Quali impegni riguardano il pronto soccorso?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-assunzioni",
+      "category": "paraphrase",
+      "question": "Quali promesse riguardano le assunzioni?",
+      "expected_pledge_keys": [
+        "lavoro"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-assunzioni-cosa",
+      "category": "paraphrase",
+      "question": "Cosa ha promesso sulle assunzioni?",
+      "expected_pledge_keys": [
+        "lavoro"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-universita",
+      "category": "paraphrase",
+      "question": "Quali promesse riguardano l'università?",
+      "expected_pledge_keys": [
+        "scuola"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-studenti",
+      "category": "paraphrase",
+      "question": "Quali impegni riguardano gli studenti?",
+      "expected_pledge_keys": [
+        "scuola"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "para-studenti-cosa",
+      "category": "paraphrase",
+      "question": "Cosa risulta sugli studenti?",
+      "expected_pledge_keys": [
+        "scuola"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "explain-ssn",
+      "category": "explanation",
+      "question": "Perché la promessa sul SSN è In corso?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    },
+    {
+      "id": "explain-pronto",
+      "category": "explanation",
+      "question": "Perché il pronto soccorso è In corso?",
+      "expected_pledge_keys": [
+        "liste-attesa"
+      ],
+      "keyword_recall": 0.0,
+      "hybrid_recall": 1.0,
+      "keyword_tp": 0,
+      "keyword_fn": 1,
+      "hybrid_tp": 1,
+      "hybrid_fn": 0
+    }
+  ]
+}

@@ -48,9 +48,10 @@ from backend.app.services.ask_lexical import (
     unique_paraphrase_match,
 )
 from backend.app.services.ask_query_planner import (
-    ASK_TOPIC_SYNONYMS,
     AskIntent,
     AskPlan,
+    AskRetrieveMode,
+    ask_topic_synonyms,
     plan_ask_question,
 )
 from backend.app.services.pledge_explanation_service import (
@@ -157,6 +158,7 @@ def _fingerprint(
     pledge_ids: tuple[int, ...],
     assessment_ids: tuple[int, ...],
     model: str,
+    retrieve_mode: str = AskRetrieveMode.HYBRID.value,
 ) -> str:
     payload = "|".join(
         [
@@ -166,6 +168,7 @@ def _fingerprint(
             ",".join(str(item) for item in pledge_ids),
             ",".join(str(item) for item in assessment_ids),
             model,
+            retrieve_mode,
             PROMPT_VERSION,
         ]
     )
@@ -184,16 +187,19 @@ class AskVeraPoliticaService:
         session_factory: sessionmaker[Session],
         settings: Settings,
         completer: TextCompleter | None | object = ...,
+        *,
+        retrieve_mode: AskRetrieveMode | str = AskRetrieveMode.HYBRID,
     ) -> None:
         self.session_factory = session_factory
         self.settings = settings
+        self.retrieve_mode = AskRetrieveMode(retrieve_mode)
         if completer is ...:
             self.completer = completer_from_settings(settings)
         else:
             self.completer = completer  # type: ignore[assignment]
 
     def ask(self, question: str) -> AskResponse:
-        plan = plan_ask_question(question)
+        plan = plan_ask_question(question, retrieve_mode=self.retrieve_mode)
         with self.session_factory() as session:
             payload = self._answer(session, question, plan)
         return payload
@@ -271,6 +277,7 @@ class AskVeraPoliticaService:
             pledge_ids=tuple(row.pledge_id for row in rows),
             assessment_ids=tuple(row.assessment_id or 0 for row in rows),
             model=model_key,
+            retrieve_mode=self.retrieve_mode.value,
         )
         cached = _cache_get(cache_key)
         if cached is not None:
@@ -410,16 +417,17 @@ class AskVeraPoliticaService:
             if self._tokens_fit_pledge(query, row, politician):
                 scored.append((2, row))
         if not scored:
-            paraphrase_id = unique_paraphrase_match(
-                question=question,
-                candidates=[
-                    (row.pledge_id, row.title, row.statement) for row in rows
-                ],
-            )
-            if paraphrase_id is not None:
-                for row in rows:
-                    if row.pledge_id == paraphrase_id:
-                        return row
+            if self.retrieve_mode is AskRetrieveMode.HYBRID:
+                paraphrase_id = unique_paraphrase_match(
+                    question=question,
+                    candidates=[
+                        (row.pledge_id, row.title, row.statement) for row in rows
+                    ],
+                )
+                if paraphrase_id is not None:
+                    for row in rows:
+                        if row.pledge_id == paraphrase_id:
+                            return row
             return self._unique_topic_or_verdict_pledge(rows, plan)
         scored.sort(key=lambda item: (item[0], item[1].pledge_id))
         best_tier = scored[0][0]
@@ -497,15 +505,17 @@ class AskVeraPoliticaService:
                 rows = topic_rows
         if not rows:
             return ()
-        overlaps = {
-            row.pledge_id: lexical_overlap(question, row.title, row.statement)
-            for row in rows
-        }
-        ordered_ids = sort_pledge_ids(
-            ordered_ids=[row.pledge_id for row in rows],
-            overlaps=overlaps,
-            fts_ranks=postgres_pledge_ranks(session, question),
-        )
+        ordered_ids = [row.pledge_id for row in rows]
+        if self.retrieve_mode is AskRetrieveMode.HYBRID:
+            overlaps = {
+                row.pledge_id: lexical_overlap(question, row.title, row.statement)
+                for row in rows
+            }
+            ordered_ids = sort_pledge_ids(
+                ordered_ids=ordered_ids,
+                overlaps=overlaps,
+                fts_ranks=postgres_pledge_ranks(session, question),
+            )
         by_id = {row.pledge_id: row for row in rows}
         return tuple(by_id[pledge_id] for pledge_id in ordered_ids[:MAX_RESULTS])
 
@@ -515,7 +525,8 @@ class AskVeraPoliticaService:
         if topic_label:
             needles.append(normalize_search_text(topic_label))
         needles.extend(TOPIC_KEYWORDS.get(topic_code, ()))
-        needles.extend(ASK_TOPIC_SYNONYMS.get(topic_code, ()))
+        synonyms = ask_topic_synonyms(self.retrieve_mode)
+        needles.extend(synonyms.get(topic_code, ()))
         return any(needle and needle in blob for needle in needles)
 
     def _classified_pledges(

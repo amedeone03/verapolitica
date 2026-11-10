@@ -32,6 +32,7 @@ from backend.app.evaluation.ask_real_corpus import (
 )
 from backend.app.evaluation.dataset import EvaluationDatasetError
 from backend.app.schemas.ask import AskRequest
+from backend.app.services.ask_query_planner import AskRetrieveMode
 from backend.app.services.ask_verapolitica_service import (
     AskVeraPoliticaService,
     clear_ask_cache,
@@ -74,6 +75,7 @@ def run_ask_evaluation(
     case_id: str | None = None,
     completer: TextCompleter | None | object = None,
     mode: str = "deterministic",
+    retrieve_mode: AskRetrieveMode | str = AskRetrieveMode.HYBRID,
     workspace_root: Path | None = None,
 ) -> AskEvalReport:
     root = dataset_root
@@ -88,6 +90,7 @@ def run_ask_evaluation(
     ]
     if not selected:
         raise EvaluationDatasetError("no gold cases matched the filters")
+    retrieve = AskRetrieveMode(retrieve_mode)
     clear_ask_cache()
     if is_real_ask_dataset(gold):
         spec_root = root or resolve_ask_dataset_root("real-v1")
@@ -95,17 +98,26 @@ def run_ask_evaluation(
             selected,
             spec_root=spec_root,
             completer=completer,
+            retrieve_mode=retrieve,
             workspace_root=workspace_root,
         )
     else:
-        scores = _run_synthetic(selected, completer=completer)
-    return aggregate_ask_scores(gold.dataset_version, scores, mode=mode)
+        scores = _run_synthetic(
+            selected, completer=completer, retrieve_mode=retrieve
+        )
+    return aggregate_ask_scores(
+        gold.dataset_version,
+        scores,
+        mode=mode,
+        retrieve_mode=retrieve.value,
+    )
 
 
 def _run_synthetic(
     selected: list[AskGoldCase],
     *,
     completer: TextCompleter | None | object,
+    retrieve_mode: AskRetrieveMode,
 ) -> tuple[AskCaseScore, ...]:
     with tempfile.TemporaryDirectory(prefix="ask-eval-") as tmp:
         root = Path(tmp)
@@ -116,7 +128,9 @@ def _run_synthetic(
         try:
             catalog = build_ask_eval_world(factory)
             settings = _settings(url, root / "raw")
-            service = AskVeraPoliticaService(factory, settings, completer=completer)
+            service = AskVeraPoliticaService(
+                factory, settings, completer=completer, retrieve_mode=retrieve_mode
+            )
             return tuple(_run_case(case, catalog, service) for case in selected)
         finally:
             engine.dispose()
@@ -128,6 +142,7 @@ def _run_real_corpus(
     *,
     spec_root: Path,
     completer: TextCompleter | None | object,
+    retrieve_mode: AskRetrieveMode,
     workspace_root: Path | None,
 ) -> tuple[AskCaseScore, ...]:
     spec = load_real_corpus_spec(spec_root)
@@ -136,7 +151,9 @@ def _run_real_corpus(
         with factory() as session:
             catalog = build_real_ask_catalog(session, spec)
         settings = _settings(f"sqlite:///{database}", database.parent / "raw")
-        service = AskVeraPoliticaService(factory, settings, completer=completer)
+        service = AskVeraPoliticaService(
+            factory, settings, completer=completer, retrieve_mode=retrieve_mode
+        )
         return tuple(_run_case(case, catalog, service) for case in selected)
     finally:
         engine.dispose()
@@ -168,7 +185,7 @@ def _run_case(
 
 def render_ask_report(report: AskEvalReport) -> str:
     lines = [
-        f"Ask VeraPolitica evaluation ({report.mode})",
+        f"Ask VeraPolitica evaluation ({report.mode}, retrieve={report.retrieve_mode})",
         f"dataset: {report.dataset_version}",
         f"total={report.total} passed={report.passed} failed={report.failed}",
         "These figures are performance on this curated gold set, not a universal accuracy claim.",

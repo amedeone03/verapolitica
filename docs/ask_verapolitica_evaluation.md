@@ -4,8 +4,8 @@ This is an engineering benchmark for **Ask VeraPolitica v1**. Metrics describe
 performance on a named gold set only. They are **not** a universal accuracy
 claim for the product or for any language model.
 
-There are two slices. They share the same runner, scorer, and CLI. They are not
-interchangeable.
+There are three slices. They share the same runner, scorer, and CLI. They are not
+interchangeable. Do not add their pass counts together.
 
 ## Synthetic gold v1
 
@@ -20,6 +20,30 @@ regression-oriented and controlled.
 
 Current deterministic baseline on this set: **54/54**. That figure is not a
 universal Ask accuracy claim.
+
+## Paraphrase gold v1
+
+Path: `evaluation/ask_verapolitica/paraphrase_v1/`
+Dataset id: `ask-verapolitica-gold/paraphrase-v1`
+CLI alias: `paraphrase-v1`
+
+This slice uses the same throwaway synthetic world as `synthetic-v1`. The
+questions are Italian paraphrases (IRPEF, SSN, pronto soccorso, tassazione,
+assunzioni, università, studenti) plus keyword controls, abstentions, and
+unpublished-leak checks.
+
+It exists to measure **Recall@12** of hybrid retrieve (paraphrase map + lexical
+overlap + optional Postgres full-text) against the **keyword-only** planner that
+shipped before that work. Ask still returns at most 12 pledges, so a labeled
+hit in the result list is Recall@12 on that query.
+
+`--retrieve keyword` disables hybrid synonyms, paraphrase matching, and
+full-text ranking. `--retrieve hybrid` is production Ask. `--compare-retrieve`
+runs both on the same gold and writes a JSON comparison.
+
+The frozen comparison is `evaluation/ask_verapolitica/paraphrase_v1/compare.json`.
+Regenerate it after changing retrieve or the gold; do not edit the numbers by
+hand. The figures describe this set only.
 
 ## Real-corpus gold v1
 
@@ -86,6 +110,8 @@ The scorer does **not** match free-form Italian sentences.
 - intent accuracy
 - politician / entity accuracy
 - pledge retrieval precision, recall, and F1
+- **Recall@12**: macro-average of `|gold ∩ top 12| / |gold|` on cases that name
+  at least one relevant published promise
 - published-verdict consistency
 - topic match accuracy (when the gold names a topic)
 - source / citation accuracy (URL or host)
@@ -119,6 +145,10 @@ python -m evaluation.eval_ask_verapolitica
 python -m evaluation.eval_ask_verapolitica --dataset synthetic-v1
 python -m evaluation.eval_ask_verapolitica --dataset real-v1
 python -m evaluation.eval_ask_verapolitica --dataset real-v1 --ai fake
+python -m evaluation.eval_ask_verapolitica --dataset paraphrase-v1 --retrieve hybrid
+python -m evaluation.eval_ask_verapolitica --dataset paraphrase-v1 --retrieve keyword
+python -m evaluation.eval_ask_verapolitica --dataset paraphrase-v1 --compare-retrieve \
+  --json-output evaluation/ask_verapolitica/paraphrase_v1/compare.json
 python -m evaluation.eval_ask_verapolitica --category unsupported
 python -m evaluation.eval_ask_verapolitica --case-id pol-meloni-in-corso
 python -m evaluation.eval_ask_verapolitica --json-output evaluation/reports/ask-v1.json
@@ -129,9 +159,10 @@ database.
 
 ## Limitations
 
-- Both slices are Italian and small. Neither is a production-accuracy claim.
+- All three slices are Italian and small. None is a production-accuracy claim.
 - Real-v1 currently has one assessed pledge and one politician with promises.
-- Variants are limited. This is not a fuzzy-search benchmark.
+- Variants on synthetic-v1 are limited. Use paraphrase-v1 for the
+  keyword-vs-hybrid Recall@12 comparison.
 - `--ai fake` does not measure a real model.
 - Synthetic-v1 exposed planner bugs that were fixed narrowly. Real-v1 may
   report honest misses without product changes.
@@ -140,4 +171,5 @@ database.
 
 Ask answers from **already published** pledges, verdicts, topics, and approved
 sources. Reporting “98% accurate” without naming the slice
-(`ask-verapolitica-gold/v1` or `ask-verapolitica-gold/real-v1`) would overclaim.
+(`ask-verapolitica-gold/v1`, `ask-verapolitica-gold/real-v1`, or
+`ask-verapolitica-gold/paraphrase-v1`) would overclaim.

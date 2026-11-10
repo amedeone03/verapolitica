@@ -50,6 +50,27 @@ class AskEvalReport:
     failures: tuple[tuple[str, str], ...]
     case_scores: tuple[AskCaseScore, ...]
     mode: str
+    retrieve_mode: str = "hybrid"
+
+
+def labeled_retrieval_recalls(scores: tuple[AskCaseScore, ...]) -> tuple[float, ...]:
+    """Per-query recall among cases that name at least one relevant pledge.
+
+    Ask returns at most 12 pledges, so this is Recall@12 on those queries.
+    """
+
+    values: list[float] = []
+    for item in scores:
+        relevant = item.pledge_tp + item.pledge_fn
+        if relevant <= 0:
+            continue
+        values.append(item.pledge_tp / relevant)
+    return tuple(values)
+
+
+def macro_recall_at_12(scores: tuple[AskCaseScore, ...]) -> float:
+    values = labeled_retrieval_recalls(scores)
+    return _ratio(sum(values), len(values))
 
 
 def _ratio(numerator: int, denominator: int) -> float:
@@ -301,6 +322,7 @@ def aggregate_ask_scores(
     scores: tuple[AskCaseScore, ...],
     *,
     mode: str,
+    retrieve_mode: str = "hybrid",
 ) -> AskEvalReport:
     passed = sum(1 for item in scores if item.passed)
     category_totals: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "passed": 0, "failed": 0})
@@ -328,6 +350,7 @@ def aggregate_ask_scores(
         "pledge_precision": precision,
         "pledge_recall": recall,
         "pledge_f1": _f1(precision, recall),
+        "recall_at_12": macro_recall_at_12(scores),
         "verdict_consistency": _flag_rate("verdict_ok"),
         "topic_accuracy": _flag_rate("topic_ok"),
         "source_accuracy": _flag_rate("source_ok"),
@@ -353,6 +376,7 @@ def aggregate_ask_scores(
         failures=failures,
         case_scores=scores,
         mode=mode,
+        retrieve_mode=retrieve_mode,
     )
 
 
@@ -360,6 +384,7 @@ def report_to_dict(report: AskEvalReport) -> dict[str, object]:
     return {
         "dataset_version": report.dataset_version,
         "mode": report.mode,
+        "retrieve_mode": report.retrieve_mode,
         "disclaimer": (
             "These metrics describe performance on this curated gold set only. "
             "They are not a universal accuracy claim for Ask VeraPolitica."
@@ -371,3 +396,117 @@ def report_to_dict(report: AskEvalReport) -> dict[str, object]:
         "category_totals": report.category_totals,
         "failures": [{"id": case_id, "reason": reason} for case_id, reason in report.failures],
     }
+
+
+def compare_retrieve_reports(
+    *,
+    keyword: AskEvalReport,
+    hybrid: AskEvalReport,
+    gold_cases: tuple[AskGoldCase, ...],
+) -> dict[str, object]:
+    """Before/after Recall@12 for the same gold questions. Not a production SLA."""
+
+    keyword_by_id = {item.case_id: item for item in keyword.case_scores}
+    hybrid_by_id = {item.case_id: item for item in hybrid.case_scores}
+    rows: list[dict[str, object]] = []
+    for case in gold_cases:
+        expected = case.expected_pledge_keys
+        if not expected:
+            continue
+        keyword_score = keyword_by_id[case.id]
+        hybrid_score = hybrid_by_id[case.id]
+        relevant = len(expected)
+        rows.append(
+            {
+                "id": case.id,
+                "category": case.category,
+                "question": case.question,
+                "expected_pledge_keys": list(expected),
+                "keyword_recall": keyword_score.pledge_tp / relevant,
+                "hybrid_recall": hybrid_score.pledge_tp / relevant,
+                "keyword_tp": keyword_score.pledge_tp,
+                "keyword_fn": keyword_score.pledge_fn,
+                "hybrid_tp": hybrid_score.pledge_tp,
+                "hybrid_fn": hybrid_score.pledge_fn,
+            }
+        )
+    keyword_recall = keyword.metrics["recall_at_12"]
+    hybrid_recall = hybrid.metrics["recall_at_12"]
+    relative: float | None
+    if keyword_recall == 0:
+        relative = None
+    else:
+        relative = (hybrid_recall - keyword_recall) / keyword_recall
+    return {
+        "dataset_version": hybrid.dataset_version,
+        "k": 12,
+        "disclaimer": (
+            "Recall@12 is the macro-average of |gold ∩ top 12| / |gold| on this "
+            "frozen paraphrase set. Keyword-only disables hybrid synonyms, "
+            "paraphrase matching, and full-text ranking. The default runner uses "
+            "SQLite, so Postgres full-text search does not contribute to these "
+            "figures. They are not a universal accuracy claim."
+        ),
+        "labeled_queries": len(rows),
+        "keyword": {
+            "recall_at_12": keyword_recall,
+            "pass_rate": keyword.metrics["pass_rate"],
+            "invented_url_rate": keyword.metrics["invented_url_rate"],
+            "forbidden_claim_rate": keyword.metrics["forbidden_claim_rate"],
+            "passed": keyword.passed,
+            "total": keyword.total,
+        },
+        "hybrid": {
+            "recall_at_12": hybrid_recall,
+            "pass_rate": hybrid.metrics["pass_rate"],
+            "invented_url_rate": hybrid.metrics["invented_url_rate"],
+            "forbidden_claim_rate": hybrid.metrics["forbidden_claim_rate"],
+            "passed": hybrid.passed,
+            "total": hybrid.total,
+        },
+        "delta_pp": hybrid_recall - keyword_recall,
+        "relative_improvement": relative,
+        "cases": rows,
+    }
+
+
+def render_retrieve_comparison(payload: dict[str, object]) -> str:
+    keyword = payload["keyword"]
+    hybrid = payload["hybrid"]
+    relative = payload["relative_improvement"]
+    if relative is None:
+        relative_text = "undefined (keyword Recall@12 is 0)"
+    else:
+        relative_text = f"{relative * 100:.1f}%"
+    lines = [
+        f"Ask retrieval comparison ({payload['dataset_version']})",
+        payload["disclaimer"],
+        "",
+        f"labeled queries (Recall@{payload['k']}): {payload['labeled_queries']}",
+        (
+            f"keyword-only Recall@12: {keyword['recall_at_12']:.3f} "
+            f"(pass {keyword['passed']}/{keyword['total']})"
+        ),
+        (
+            f"hybrid Recall@12: {hybrid['recall_at_12']:.3f} "
+            f"(pass {hybrid['passed']}/{hybrid['total']})"
+        ),
+        f"absolute delta: {payload['delta_pp'] * 100:+.1f} pp",
+        f"relative improvement: {relative_text}",
+        f"hybrid invented URL rate: {hybrid['invented_url_rate']:.3f}",
+        f"hybrid forbidden-claim rate: {hybrid['forbidden_claim_rate']:.3f}",
+    ]
+    lifted = [
+        row
+        for row in payload["cases"]
+        if row["hybrid_recall"] > row["keyword_recall"]
+    ]
+    if lifted:
+        lines.append("")
+        lines.append("Queries where hybrid retrieved more gold pledges:")
+        for row in lifted:
+            lines.append(
+                f"  {row['id']}: keyword {row['keyword_recall']:.2f} -> "
+                f"hybrid {row['hybrid_recall']:.2f} ({row['question']})"
+            )
+    return "\n".join(lines)

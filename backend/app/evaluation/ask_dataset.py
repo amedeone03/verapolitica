@@ -67,11 +67,14 @@ class AskGoldDataset(BaseModel):
 
 SYNTHETIC_V1_ALIAS = "synthetic-v1"
 REAL_V1_ALIAS = "real-v1"
+PARAPHRASE_V1_ALIAS = "paraphrase-v1"
 DATASET_ALIASES = {
     SYNTHETIC_V1_ALIAS: "v1",
     "v1": "v1",
     REAL_V1_ALIAS: "real_v1",
     "real_v1": "real_v1",
+    PARAPHRASE_V1_ALIAS: "paraphrase_v1",
+    "paraphrase_v1": "paraphrase_v1",
 }
 
 
@@ -90,7 +93,7 @@ def resolve_ask_dataset_root(spec: str | Path | None = None) -> Path:
         return raw.expanduser().resolve()
     raise EvaluationDatasetError(
         f"unknown Ask dataset {spec!r}; use {SYNTHETIC_V1_ALIAS}, {REAL_V1_ALIAS}, "
-        "or a gold directory path"
+        f"{PARAPHRASE_V1_ALIAS}, or a gold directory path"
     )
 
 
@@ -118,6 +121,10 @@ def default_ask_gold_root() -> Path:
 
 def default_real_ask_gold_root() -> Path:
     return ask_evaluation_root() / "real_v1"
+
+
+def default_paraphrase_ask_gold_root() -> Path:
+    return ask_evaluation_root() / "paraphrase_v1"
 
 
 def oversized_question() -> str:
