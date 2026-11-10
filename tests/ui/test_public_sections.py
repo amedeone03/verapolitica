@@ -214,11 +214,20 @@ def test_archivio_lists_city_timelines_and_opens_verona():
     console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
     history = html.split('id="history-view"')[1].split('id="legislature-view"')[0]
     assert 'id="city-archive"' in history and "Cerca Verona, Milano, Veneto" in history
+    assert 'data-archive-tab="cities"' in history and 'class="archive-dir"' in history
     assert "export function renderArchiveTimeline(timeline" in script
     assert "showArchiveTimeline(api, timelineSlug)" in script
     assert 'listArchiveTimelines:' in script
+    assert "export function renderArchiveTimelineChip(item)" in script and "archive-dir-item" in script
+    assert "if (item.municipality_id) return `./?municipality=${encodeURIComponent(item.municipality_id)}`;" in script
+    assert 'window.location.replace(`./?municipality=${encodeURIComponent(timeline.municipality_id)}`)' in script
+    assert "Apri in Archivio" not in script
     assert "I capoluoghi (Verona, Milano, …) stanno in elenco" in console
     assert 'accept="image/*' in console
+    assert "Prima il file" in console
+    assert "export function askFollowUps(payload)" in script
+    assert "Nessuna promessa pubblicata corrisponde" in script
+    assert "Imposta la zona" in script
 
 
 def test_government_chart_shows_the_parties_and_the_ranks():
@@ -269,6 +278,7 @@ def test_territory_map_is_accessible_light_and_self_hosted():
     for name in ("regioni", "province", "regioni-centri", "province-centri"):
         assert (APP / "geo" / f"{name}.geojson").exists()
     assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in > *, .tmap-results { animation: none; }" in css
+    assert "if (q.length < 2) return;" in module
 
 
 def test_redazione_corrections_reach_the_politica_page():
