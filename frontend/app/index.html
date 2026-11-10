@@ -168,7 +168,12 @@
         <div class="hero compact-hero">
           <h1 id="history-title">Archivio</h1>
         </div>
-        <form class="search-panel" action="./" method="get">
+        <nav class="filter-pills archive-tabs" aria-label="Sezioni dell'archivio">
+          <a class="filter-pill is-active" data-archive-tab="legislature" href="./?view=history">Legislature</a>
+          <a class="filter-pill" data-archive-tab="cities" href="./?view=history&amp;archive=cities">Città e regioni</a>
+          <a class="filter-pill" data-archive-tab="consultazioni" href="./?view=history&amp;archive=consultazioni">Consultazioni</a>
+        </nav>
+        <form id="history-search-panel" class="search-panel" action="./" method="get">
           <input type="hidden" name="view" value="parliamentarians" />
           <label class="visually-hidden" for="history-q">Cerca un parlamentare</label>
           <input id="history-q" name="q" type="search" minlength="2" maxlength="100" placeholder="Cerca un parlamentare dal 1948" autocomplete="off" />
@@ -181,7 +186,7 @@
           <p class="empty-note">Bozze di cronologia elettorale (fonti secondarie). Ogni voce va ancora verificata su fonte ufficiale prima di considerarla un fatto.</p>
           <label class="visually-hidden" for="city-archive-q">Cerca una città o una regione</label>
           <input id="city-archive-q" type="search" maxlength="80" placeholder="Cerca Verona, Milano, Veneto…" autocomplete="off" />
-          <div id="city-archive-list" class="favorite-chips"></div>
+          <div id="city-archive-list" class="archive-dir"></div>
         </section>
         <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Consultazioni e leggi</h2>
           <div class="shortcut-grid">
@@ -444,7 +449,7 @@
       <section id="ask-view" aria-labelledby="ask-title" hidden>
         <div class="hero compact-hero">
           <h1 id="ask-title">Chiedi a VeraPolitica</h1>
-          <p class="hero-copy">Una domanda, una risposta sui dati verificati. Niente chat, niente web.</p>
+          <p class="hero-copy">Una domanda sui dati già pubblicati. Puoi approfondire con un seguito, senza cercare sul web.</p>
         </div>
         <form id="ask-form" class="ask-form" action="./" method="get">
           <input type="hidden" name="view" value="ask" />

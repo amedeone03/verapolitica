@@ -178,6 +178,20 @@ button[disabled], button[aria-busy="true"] { opacity: .6; cursor: progress; }
 }
 .site-search input:focus-visible, .search-panel input:focus-visible, .search-panel select:focus-visible, .ask-form textarea:focus-visible, .compare-form select:focus-visible, .zone-form select:focus-visible, #city-archive-q:focus-visible { outline-offset: 0; border-color: var(--color-secondary); }
 #city-archive-q { width: 100%; margin: 0 0 var(--space-4); }
+.archive-tabs { margin: 0 0 var(--space-5); }
+.archive-dir { display: grid; gap: var(--space-2); }
+@media (min-width: 768px) { .archive-dir { grid-template-columns: 1fr 1fr; } }
+.archive-dir-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 48px; padding: 10px 12px;
+  color: var(--color-primary); background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+.archive-dir-item small { color: var(--color-text-muted); font-weight: 500; font-size: .8125rem; }
+@media (hover: hover) and (pointer: fine) { a.archive-dir-item:hover { background: var(--color-accent-light); } }
+.ask-followups { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0 0; }
+.ask-followups .ask-suggestion { min-height: 40px; }
 
 /* Layout ------------------------------------------------------------------ */
 main { display: block; min-height: 100vh; padding-block: var(--space-7) var(--space-9); }

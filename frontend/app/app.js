@@ -2389,8 +2389,29 @@ function searchTypeLabel(value) {
   }[value] || titleCase(value);
 }
 
+export function askFollowUps(payload) {
+  const topic = payload.entities?.topic;
+  const person = payload.entities?.politician;
+  const first = payload.results?.[0]?.title;
+  const items = [];
+  if (payload.intent === "unsupported") return items;
+  if (person) {
+    items.push({ label: "In corso", question: `Quali promesse di ${person} sono ancora in corso?` });
+    items.push({ label: "Fonti", question: `Quali sono le fonti delle valutazioni pubblicate su ${person}?` });
+  }
+  if (topic) items.push({ label: `Altre su ${topic}`, question: `Quali promesse riguardano ${topic}?` });
+  if (first) items.push({ label: "Perché questo stato?", question: `Perché la promessa «${first}» ha questo stato?` });
+  const seen = new Set();
+  return items.filter((item) => {
+    if (seen.has(item.question) || item.question === payload.question) return false;
+    seen.add(item.question);
+    return true;
+  }).slice(0, 3);
+}
+
 function renderAskResult(payload) {
-  const results = (payload.results || []).map((item) => {
+  const rows = payload.results || [];
+  const results = rows.map((item) => {
     const href = item.url || (item.type === "politician" ? `./?politician=${encodeURIComponent(item.id)}` : `./?proposal=${encodeURIComponent(item.id)}`);
     const chip = item.verdict ? renderVerdictChip(item.verdict) : "";
     return `<article class="ask-card">
@@ -2405,12 +2426,20 @@ function renderAskResult(payload) {
       ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ${icon("external", { size: 14 })}</a></li>`
       : `<li>${title}</li>`;
   }).join("");
+  const empty = !rows.length && payload.intent !== "unsupported"
+    ? `<p class="empty-note">Nessuna promessa pubblicata corrisponde. Prova un altro tema o il nome di un politico.</p>`
+    : "";
+  const follow = askFollowUps(payload);
+  const followHtml = follow.length
+    ? `<p class="ask-disclaimer">Approfondisci</p><div class="ask-followups" aria-label="Domande successive">${follow.map((item) => `<a class="ask-suggestion" href="./?view=ask&amp;question=${encodeURIComponent(item.question)}">${escapeHtml(item.label)}</a>`).join("")}</div>`
+    : "";
   const note = payload.generated_by_ai
     ? "Testo generato automaticamente su dati verificati."
     : "Risposta generata dai dati pubblicati da VeraPolitica.";
   return `<p class="ask-answer">${escapeHtml(payload.answer)}</p>
-    ${results ? `<div class="ask-cards">${results}</div>` : ""}
+    ${results ? `<div class="ask-cards">${results}</div>` : empty}
     ${sources ? `<ul class="explanation-sources">${sources}</ul>` : ""}
+    ${followHtml}
     <p class="explanation-note">${note}</p>`;
 }
 
@@ -3346,7 +3375,7 @@ function syncPageMeta(params) {
   const description = VIEW_DESCRIPTIONS[params.get("view")];
   if (description) document.querySelector('meta[name="description"]')?.setAttribute("content", description);
   // Canonical URL: the view, the record id or the search query; no tracking or paging noise.
-  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary", "history_region", "history_province", "timeline"];
+  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary", "history_region", "history_province", "timeline", "archive"];
   const canonical = new URL(window.location.pathname, window.location.origin);
   for (const key of keep) if (params.get(key)) canonical.searchParams.set(key, params.get(key));
   let link = document.querySelector('link[rel="canonical"]');
@@ -3526,6 +3555,8 @@ async function showHome(api) {
       line.innerHTML = zone?.region_id ? `${escapeHtml(zone.region_name || "La tua regione")} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
     } else if (choice.value === "province") {
       line.innerHTML = zone?.province ? `Provincia di ${escapeHtml(zone.province_name || zone.province)} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+    } else if (choice.value === "all" && !zone) {
+      line.innerHTML = `Scegli un comune per le notizie vicino a te · <a href="./?view=profile&amp;tab=follows">Imposta la zona</a>`;
     } else line.textContent = "";
   };
   // Only the territory the segment asks for, so "Regionale" is not narrowed to the comune.
@@ -4385,13 +4416,13 @@ export function renderCurrentLegislatureWalk(item) {
 
 function timelineHref(item) {
   if (item.municipality_id) return `./?municipality=${encodeURIComponent(item.municipality_id)}`;
-  if (item.kind === "region" && item.region_id) return `./?timeline=${encodeURIComponent(item.slug)}`;
+  if (item.kind === "region" && item.region_id) return `./?region=${encodeURIComponent(item.region_id)}`;
   return `./?timeline=${encodeURIComponent(item.slug)}`;
 }
 
 export function renderArchiveTimelineChip(item) {
   const kind = item.kind === "city" ? "Comune" : item.kind === "region" ? "Regione" : "Italia";
-  return `<a class="topic-chip" data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}" href="${escapeHtml(timelineHref(item))}">${escapeHtml(item.name)}<small>${kind} · ${item.event_count} voci</small></a>`;
+  return `<a class="archive-dir-item" data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}" href="${escapeHtml(timelineHref(item))}"><strong>${escapeHtml(item.name)}</strong><small>${kind} · ${item.event_count} voci</small></a>`;
 }
 
 export function renderArchiveTimeline(timeline, { compact = false } = {}) {
@@ -4405,7 +4436,7 @@ export function renderArchiveTimeline(timeline, { compact = false } = {}) {
       ? `<a class="profile-link" href="./?region=${encodeURIComponent(timeline.region_id)}">Scheda della regione ${icon("arrowRight")}</a>`
       : "";
   if (compact) {
-    return `<section class="detail-card"><h2>Cronologia (bozza)</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}<p><a class="profile-link" href="./?timeline=${encodeURIComponent(timeline.slug)}">Apri in Archivio ${icon("arrowRight")}</a></p></section>`;
+    return `<section class="detail-card"><h2>Cronologia (bozza)</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
   }
   return `<section class="proposal-detail-hero"><p class="feed-meta">${kind} · bozza non verificata</p><h1 id="territory-history-title">${escapeHtml(timeline.name)}</h1>${timeline.mayor ? `<p class="hero-copy">Sindaco indicato in bozza: ${escapeHtml(timeline.mayor)}</p>` : ""}${live}</section>
     <section class="detail-card"><h2>Cronologia</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
@@ -4413,12 +4444,31 @@ export function renderArchiveTimeline(timeline, { compact = false } = {}) {
 
 function bindCityArchiveFilter() {
   const field = byId("city-archive-q");
-  const chips = [...document.querySelectorAll("#city-archive-list .topic-chip")];
+  const chips = [...document.querySelectorAll("#city-archive-list .archive-dir-item")];
   if (!field) return;
   field.addEventListener("input", () => {
     const q = field.value.trim().toLocaleLowerCase("it");
     for (const chip of chips) chip.hidden = Boolean(q) && !chip.dataset.name.includes(q);
   });
+}
+
+function archiveTab() {
+  const value = new URLSearchParams(window.location.search).get("archive");
+  return value === "cities" || value === "consultazioni" ? value : "legislature";
+}
+
+function paintArchiveTab(tab) {
+  for (const link of document.querySelectorAll("[data-archive-tab]")) {
+    link.classList.toggle("is-active", link.dataset.archiveTab === tab);
+  }
+  const search = byId("history-search-panel");
+  if (search) search.hidden = tab !== "legislature";
+  const eras = byId("era-list");
+  if (eras) eras.hidden = tab !== "legislature";
+  const cities = byId("city-archive");
+  if (cities) cities.hidden = tab !== "cities";
+  const consultazioni = byId("territory-archive");
+  if (consultazioni) consultazioni.hidden = tab !== "consultazioni";
 }
 
 async function attachArchiveTimeline(api, root, match) {
@@ -4435,13 +4485,14 @@ async function attachArchiveTimeline(api, root, match) {
 async function showHistory(api) {
   byId("history-view").hidden = false;
   document.title = "Archivio storico — VeraPolitica";
+  const tab = archiveTab();
+  paintArchiveTab(tab);
   try {
     const [payload, timelines] = await Promise.all([
       api.listLegislatures(),
       api.listArchiveTimelines().catch(() => ({ items: [] })),
     ]);
     byId("history-status").hidden = true;
-    byId("era-list").hidden = false;
     const current = payload.eras.flatMap((era) => era.legislatures).find((item) => !item.end_date) || null;
     byId("era-list").innerHTML = `${renderCurrentLegislatureWalk(current)}${payload.eras.map((era) => `<section class="detail-card era-card">
       <h2>${escapeHtml(era.label)}</h2>
@@ -4449,16 +4500,13 @@ async function showHistory(api) {
       <div class="legislature-grid">${era.legislatures.map(renderLegislatureCard).join("")}</div>
     </section>`).join("")}`;
     const items = timelines.items || [];
-    if (items.length) {
-      byId("city-archive").hidden = false;
-      byId("city-archive-list").innerHTML = items.map(renderArchiveTimelineChip).join("");
-      bindCityArchiveFilter();
-    }
+    byId("city-archive-list").innerHTML = items.length
+      ? items.map(renderArchiveTimelineChip).join("")
+      : `<p class="empty-note">Nessuna cronologia in bozza.</p>`;
+    if (items.length) bindCityArchiveFilter();
+    paintArchiveTab(tab);
   } catch {
     showState(byId("history-status"), "Non è stato possibile caricare l'archivio storico.", PUBLIC_UNAVAILABLE, true);
-  } finally {
-    // Shown after the legislatures so nothing on screen moves when they arrive.
-    byId("territory-archive").hidden = false;
   }
 }
 
@@ -4466,6 +4514,14 @@ async function showArchiveTimeline(api, slug) {
   byId("territory-history-view").hidden = false;
   try {
     const timeline = await api.getArchiveTimeline(slug);
+    if (timeline.kind === "city" && timeline.municipality_id) {
+      window.location.replace(`./?municipality=${encodeURIComponent(timeline.municipality_id)}`);
+      return;
+    }
+    if (timeline.kind === "region" && timeline.region_id) {
+      window.location.replace(`./?region=${encodeURIComponent(timeline.region_id)}`);
+      return;
+    }
     byId("territory-history-status").hidden = true;
     byId("territory-history").hidden = false;
     byId("territory-history").innerHTML = renderArchiveTimeline(timeline);

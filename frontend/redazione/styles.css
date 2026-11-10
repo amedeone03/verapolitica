@@ -610,6 +610,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; }
 .t-preview.is-photo img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .t-preview.is-logo img { max-height: 180px; object-fit: contain; }
 .t-preview-meta { color: var(--color-text-muted); }
+.t-image-dialog .t-meta { display: grid; gap: 12px; }
+.t-image-dialog .t-meta[hidden] { display: none; }
 .t-towns { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 14px; margin: 10px 0 0; padding: 0; list-style: none; }
 .t-towns a { display: flex; align-items: center; min-height: 40px; padding: 0 6px; border-radius: 6px; color: var(--color-primary); font-size: .9375rem; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .t-towns a:hover { background: #F4F7F6; text-decoration: underline; } }

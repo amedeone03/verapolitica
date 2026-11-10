@@ -530,7 +530,7 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, re
     paint();
     clearTimeout(timer);
     const q = input.value.trim();
-    if (q.length < 3) return;
+    if (q.length < 2) return;
     timer = setTimeout(async () => {
       controller?.abort();
       controller = new AbortController();

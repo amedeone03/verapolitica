@@ -2083,7 +2083,7 @@ async function showTerritories(query = "") {
     ${query ? "" : territoryWaiting(Array.isArray(queue) ? queue : queue.items || [])}
     <form id="territory-search" class="t-search" role="search">
       <label class="visually-hidden" for="tq">Cerca una regione, una provincia o un comune</label>
-      <input id="tq" type="search" value="${esc(query)}" placeholder="Cerca regione, provincia (MI) o comune" autocomplete="off" />
+      <input id="tq" type="search" value="${esc(query)}" placeholder="Cerca un comune (Verona, Negrar…) o una provincia (VR)" autocomplete="off" />
     </form>
     <div class="t-tabs" role="group" aria-label="Livello">${tabs.map((kind) => `<button type="button" data-tab="${kind}" aria-pressed="${kind === territoryTab}">${TERRITORY_KIND_LABEL[kind]}</button>`).join("")}</div>
     ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">I capoluoghi (Verona, Milano, …) stanno in elenco. Per gli altri comuni cerca il nome, oppure aprili dalla provincia.</p>` : ""}
@@ -2164,27 +2164,35 @@ function territoryImageDialog(slot, name, licenses) {
     dialog.innerHTML = `<form method="dialog" class="stack">
       <h2>${what}: ${esc(name)}</h2>
       <p class="small muted">${slot.photo
-        ? "Una foto del luogo (piazza, municipio, panorama) di cui conosci autore e licenza, per esempio da Wikimedia Commons. Orizzontale, almeno 1600 pixel di larghezza: il sito la ottimizza da solo."
-        : "Lo stemma ufficiale: dal sito dell'ente o da Wikimedia Commons. PNG, JPEG o WebP (se hai un SVG, esportalo in PNG). Niente versioni ridisegnate."}</p>
+        ? "Prima il file: vedi l'anteprima. Poi autore, licenza e pagina di provenienza. Orizzontale, almeno 1600 pixel: il sito la ottimizza da solo."
+        : "Prima il file (PNG, JPEG o WebP; se hai un SVG, esportalo in PNG). Poi titolare, licenza e pagina. Niente versioni ridisegnate."}</p>
       <div class="field"><label for="ti-file">File <span class="hint">JPEG, PNG, WebP, GIF o foto dal telefono</span></label><input id="ti-file" type="file" accept="image/*,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif" required /></div>
-      <div class="t-preview ${slot.photo ? "is-photo" : "is-logo"}" aria-live="polite"><span class="muted small">Anteprima</span></div>
-      <div class="field"><label for="ti-credit">${slot.photo ? "Autore" : "Titolare"}</label><input id="ti-credit" type="text" required maxlength="300" placeholder="${slot.photo ? "es. Mario Rossi / Wikimedia Commons" : "es. Comune di Bergamo"}" /></div>
-      <div class="field"><label for="ti-license">Licenza</label><select id="ti-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
-      <div class="field"><label for="ti-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="ti-source" type="url" required /></div>
-      <div class="actions"><button class="button button-primary" value="ok">Proponi</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
+      <div class="t-preview ${slot.photo ? "is-photo" : "is-logo"}" aria-live="polite"><span class="muted small">Scegli un file per vedere l'anteprima</span></div>
+      <div class="t-meta" hidden>
+        <div class="field"><label for="ti-credit">${slot.photo ? "Autore" : "Titolare"}</label><input id="ti-credit" type="text" required maxlength="300" placeholder="${slot.photo ? "es. Mario Rossi / Wikimedia Commons" : "es. Comune di Bergamo"}" /></div>
+        <div class="field"><label for="ti-license">Licenza</label><select id="ti-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
+        <div class="field"><label for="ti-source">Pagina di provenienza <span class="hint">https://…</span></label><input id="ti-source" type="url" required /></div>
+      </div>
+      <div class="actions"><button class="button button-primary" value="ok" disabled>Proponi</button><button class="button button-secondary" value="cancel" formnovalidate>Annulla</button></div>
     </form>`;
     document.body.append(dialog);
     const preview = dialog.querySelector(".t-preview");
+    const meta = dialog.querySelector(".t-meta");
+    const submit = dialog.querySelector('button[value="ok"]');
     let picked = null;
     dialog.querySelector("#ti-file").addEventListener("change", async (event) => {
       const file = event.target.files[0];
       picked = null;
+      submit.disabled = true;
+      meta.hidden = true;
       if (!file) return;
       try {
         const { img, url } = await loadImageFile(file);
         const small = slot.photo && img.naturalWidth < 1200;
         preview.innerHTML = `<img src="${url}" alt="Anteprima" /><span class="t-preview-meta small">${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(1)} MB${small ? " · <strong>piccola per una copertina</strong>" : ""}</span>`;
         picked = img;
+        meta.hidden = false;
+        submit.disabled = false;
       } catch (error) { toast(error.message, true); }
     });
     dialog.addEventListener("close", async () => {
