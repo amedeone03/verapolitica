@@ -1,0 +1,98 @@
+{
+  "kind": "region",
+  "name": "Lombardia",
+  "slug": "lombardia",
+  "source_file": "Timeline_Regione_Lombardia_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Roberto Formigoni (centro-destra). Secondo: Mino Martinazzoli. Affluenza 75,6%. Formigoni è presidente dal 27 giugno 1995 al 18 marzo 2013.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Roberto Formigoni (centro-destra). Secondo: Riccardo Sarfatti. Affluenza 73,0%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Roberto Formigoni (PdL). Secondo: Filippo Penati. Affluenza 64,6%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    },
+    {
+      "date": "2013-02-24",
+      "date_label": "24–25 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Roberto Maroni (Lega, centro-destra). Secondo: Umberto Ambrosoli, con il 38,2%. Affluenza 76,7%. Formigoni lascia l’incarico il 18 marzo 2013, dopo quasi diciotto anni. Maroni è presidente dal 18 marzo 2013 al 26 marzo 2018, con Lega Nord, Forza Italia e Fratelli d’Italia.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    },
+    {
+      "date": "2017-10-22",
+      "date_label": "22 ottobre",
+      "title": "Referendum sull’autonomia in Lombardia e in Veneto",
+      "body": "Lombardia e Veneto votano due referendum consultivi sulla richiesta di maggiore autonomia. I risultati non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2018-03-04",
+      "date_label": "4 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Attilio Fontana (Lega). Secondo: Giorgio Gori (PD), con il 29,1%. Affluenza 73,1%. Fontana è presidente dal 26 marzo 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    },
+    {
+      "date": "2020-02-21",
+      "date_label": "21 febbraio",
+      "title": "Primo focolaio di Covid-19 in Italia",
+      "body": "Il primo focolaio in Italia è individuato a Codogno, in Lombardia. Le scelte della Regione e del governo sono state oggetto di inchieste giudiziarie e, dal 2024, di una commissione parlamentare. Le posizioni delle parti non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2023-02-12",
+      "date_label": "12–13 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Attilio Fontana (Lega, centro-destra), con il 54,7%. Secondo: Pierfrancesco Majorino (PD), con il 33,9%. Affluenza 41,7%. Secondo mandato, con Fratelli d’Italia, Lega e Forza Italia.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2023",
+        "Wikipedia, presidenti Lombardia."
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.api.deps import get_session_factory
 from backend.app.models import Chamber
 from backend.app.schemas.archive import (
+    PublicArchiveTimeline,
+    PublicArchiveTimelineList,
     PublicEraList,
     PublicHistoricalMandateList,
     PublicLegislatureDetail,
@@ -13,6 +15,12 @@ from backend.app.schemas.archive import (
     PublicTerritoryHistory,
 )
 from backend.app.services.archive_service import ArchiveNotFoundError, ArchiveService
+from backend.app.services.archive_timelines import (
+    DRAFT_DISCLAIMER,
+    attach_live_keys,
+    public_timeline,
+    timeline_summaries,
+)
 
 
 router = APIRouter(prefix="/archive", tags=["archive"])
@@ -77,3 +85,32 @@ def get_region_history(region_id: Annotated[int, Path(gt=0)], factory: Factory) 
         return ArchiveService(factory).region_history(region_id)
     except ArchiveNotFoundError as error:
         raise _not_found(error) from None
+
+
+@router.get("/timelines", response_model=PublicArchiveTimelineList)
+def list_timelines(
+    factory: Factory,
+    kind: Annotated[str | None, Query(pattern=r"^(city|region|nation)$")] = None,
+) -> PublicArchiveTimelineList:
+    """Draft city, region and national chronologies. Not official facts."""
+
+    items = timeline_summaries()
+    if kind:
+        items = [item for item in items if item["kind"] == kind]
+    with factory() as session:
+        attached = attach_live_keys(session, items)
+    return PublicArchiveTimelineList(items=tuple(attached), disclaimer=DRAFT_DISCLAIMER)
+
+
+@router.get("/timelines/{slug}", response_model=PublicArchiveTimeline)
+def get_timeline(
+    slug: Annotated[str, Path(pattern=r"^[a-z0-9-]{2,80}$")], factory: Factory
+) -> PublicArchiveTimeline:
+    try:
+        payload = public_timeline(slug)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Questa cronologia non è in archivio.") from None
+    with factory() as session:
+        attached = attach_live_keys(session, [payload])[0]
+    attached["events"] = payload["events"]
+    return attached

@@ -75,6 +75,11 @@ def test_the_scheda_follows_the_writing_models_and_keeps_the_official_base(conso
     # The console finds territories by name.
     found = client.get("/redazione/api/territori?q=mil", headers=ANNA).json()
     assert {row["kind"] for row in found} == {"province", "municipality"}
+    # Capoluoghi (Milano, Verona, …) appear on the Comuni tab without a query.
+    empty = client.get("/redazione/api/territori", headers=ANNA).json()
+    assert any(row["kind"] == "municipality" and row["name"] == "Milano" for row in empty)
+    exact = [row for row in client.get("/redazione/api/territori?q=Milano", headers=ANNA).json() if row["kind"] == "municipality"]
+    assert exact and exact[0]["name"] == "Milano"
 
 
 def test_a_block_goes_through_the_second_person_and_any_published_block_can_change(console):
@@ -240,6 +245,19 @@ def _photo(colour=(30, 120, 80), size=(2400, 1600)) -> str:
 
 def test_coat_of_arms_and_cover_photo_for_every_territory(console):
     client, ids = console
+    from base64 import b64encode
+    from io import BytesIO
+
+    from PIL import Image
+
+    bmp = BytesIO()
+    Image.new("RGB", (64, 64), (10, 40, 90)).save(bmp, format="BMP")
+    bmp_upload = client.post(
+        "/redazione/api/immagini",
+        headers=ANNA,
+        json={"data": "data:image/bmp;base64," + b64encode(bmp.getvalue()).decode(), "purpose": "logo"},
+    )
+    assert bmp_upload.status_code == 200, bmp_upload.text
     slots = client.get(f"/redazione/api/territori/municipality/{ids['municipality']}/immagini", headers=ANNA).json()["slots"]
     assert [(slot["kind"], slot["label"], slot["photo"]) for slot in slots] == [("municipality", "Stemma", False), ("municipality_photo", "Foto", True)]
     assert client.get("/redazione/api/territori/province/xx/immagini", headers=ANNA).status_code == 404

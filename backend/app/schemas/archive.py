@@ -101,3 +101,46 @@ class PublicTerritoryHistory(ImmutableSchema):
     office_holders: tuple[PublicOfficeHolder, ...]
     referendums: tuple[PublicArchiveReferendum, ...]
     coverage_note: str
+
+
+class PublicArchiveTimelineSummary(ImmutableSchema):
+    """Index row for a city, region or national draft timeline."""
+
+    kind: str
+    name: str
+    slug: str
+    event_count: int
+    draft: bool = True
+    municipality_id: int | None = None
+    province_abbreviation: str | None = None
+    region_id: int | None = None
+
+
+class PublicArchiveTimelineList(ImmutableSchema):
+    items: tuple[PublicArchiveTimelineSummary, ...]
+    disclaimer: str
+
+
+class PublicArchiveTimelineEvent(ImmutableSchema):
+    date: str
+    date_label: str
+    title: str
+    body: str
+    status: str = ""
+    sources: tuple[str, ...] = ()
+
+
+class PublicArchiveTimeline(ImmutableSchema):
+    """Editorial draft of election chronology. Not an official fact until verified."""
+
+    kind: str
+    name: str
+    slug: str
+    draft: bool = True
+    updated: str | None = None
+    mayor: str | None = None
+    disclaimer: str
+    events: tuple[PublicArchiveTimelineEvent, ...]
+    municipality_id: int | None = None
+    province_abbreviation: str | None = None
+    region_id: int | None = None

@@ -1,0 +1,87 @@
+{
+  "kind": "city",
+  "name": "Torino",
+  "slug": "torino",
+  "source_file": "Timeline_Citta_Torino.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Stefano Lo Russo",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2001-05-13",
+      "date_label": "13 maggio",
+      "title": "Elezioni comunali",
+      "body": "Sergio Chiamparino, dei DS, è eletto sindaco con l’Ulivo. È sindaco dal 28 maggio 2001 al 30 maggio 2006 e poi, con un secondo mandato, fino al 16 maggio 2011.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Torino",
+        "Wikipedia, sindaci di Torino."
+      ]
+    },
+    {
+      "date": "2006-02-10",
+      "date_label": "10–26 febbraio",
+      "title": "Olimpiadi invernali a Torino",
+      "body": "Torino ospita i Giochi olimpici invernali del 2006. Date, spese e opere collegate sono da verificare. Le posizioni non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2006-05-28",
+      "date_label": "28–29 maggio",
+      "title": "Elezioni comunali",
+      "body": "Chiamparino è rieletto sindaco, con una coalizione di centro-sinistra e liste civiche.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Torino",
+        "Wikipedia, sindaci di Torino."
+      ]
+    },
+    {
+      "date": "2011-05-15",
+      "date_label": "15–16 maggio",
+      "title": "Elezioni comunali",
+      "body": "Piero Fassino, del PD, è eletto sindaco. È in carica dal 16 maggio 2011 al 20 giugno 2016, con PD, Moderati, SEL e Italia dei Valori.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Torino",
+        "Wikipedia, sindaci di Torino."
+      ]
+    },
+    {
+      "date": "2016-06-05",
+      "date_label": "5 giugno",
+      "title": "Elezioni comunali",
+      "body": "Chiara Appendino, del Movimento 5 Stelle, vince al ballottaggio. È sindaca dal 20 giugno 2016 al 27 ottobre 2021.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Torino",
+        "Wikipedia, sindaci di Torino."
+      ]
+    },
+    {
+      "date": "2021-10-03",
+      "date_label": "3–4 ottobre",
+      "title": "Elezioni comunali",
+      "body": "Stefano Lo Russo, del PD, vince al ballottaggio con PD, Sinistra Ecologista, Moderati e liste civiche. È sindaco dal 27 ottobre 2021.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Torino",
+        "Wikipedia, sindaci di Torino."
+      ]
+    },
+    {
+      "date": "2027-01-01",
+      "date_label": "primavera",
+      "title": "Prossime elezioni comunali",
+      "body": "Secondo la scheda di lavoro di VeraPolitica Torino vota in primavera 2027. La data non è ancora fissata.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    }
+  ]
+}

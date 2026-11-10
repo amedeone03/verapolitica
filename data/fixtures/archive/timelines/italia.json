@@ -1,0 +1,1362 @@
+{
+  "kind": "nation",
+  "name": "Italia",
+  "slug": "italia",
+  "source_file": "Timeline_Politica_Italiana_Approfondita.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "1945-02-01",
+      "date_label": "1 febbraio",
+      "title": "Il voto alle donne",
+      "body": "Un decreto del governo estende il diritto di voto alle donne. Il governo è guidato da Ivanoe Bonomi e il Nord è ancora occupato dai tedeschi. Il decreto che permette alle donne di essere elette è del 10 marzo 1946. Le donne votano per la prima volta nelle elezioni comunali della primavera 1946 e poi, a livello nazionale, il 2 giugno 1946.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1945-04-25",
+      "date_label": "25 aprile",
+      "title": "Liberazione",
+      "body": "Il Comitato di Liberazione Nazionale Alta Italia proclama l’insurrezione generale nel Nord. Nei giorni seguenti i partigiani e i comandi alleati entrano nelle grandi città. Benito Mussolini, catturato dai partigiani, è ucciso il 28 aprile. I tedeschi firmano la resa in Italia il 29 aprile e la resa entra in vigore il 2 maggio. Il 25 aprile è oggi festa nazionale.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1945-06-21",
+      "date_label": "21 giugno",
+      "title": "Governo Parri",
+      "body": "Ferruccio Parri, del Partito d’Azione e uno dei capi della Resistenza nel Nord, guida il governo fino al 9 dicembre 1945. Nel governo ci sono i partiti del Comitato di Liberazione Nazionale. Il 10 dicembre nasce il primo governo De Gasperi.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1946-06-02",
+      "date_label": "2 giugno",
+      "title": "Referendum Repubblica o Monarchia",
+      "body": "Gli italiani scelgono la forma dello Stato: Repubblica 54,27%, Monarchia 45,73%. Affluenza 89,08%. Nello stesso giorno si vota per l’Assemblea Costituente: sono elette 21 donne su 556 membri. È la prima volta che votano tutte le donne a livello nazionale. Nei giorni seguenti una parte dei monarchici contesta il risultato. I risultati definitivi sono proclamati dalla Corte di cassazione il 18 giugno 1946.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare. I totali dei voti cambiano tra le fonti consultate e non sono riportati qui.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011",
+        "Camera dei deputati, mostra sulla Costituente."
+      ]
+    },
+    {
+      "date": "1946-06-13",
+      "date_label": "13 giugno",
+      "title": "Il re Umberto II lascia l’Italia",
+      "body": "Umberto II parte per il Portogallo. Era diventato re il 9 maggio 1946, dopo l’abdicazione del padre Vittorio Emanuele III, e aveva regnato per poco più di un mese. Parte prima che la Corte di cassazione proclami i risultati definitivi del referendum.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1946-06-25",
+      "date_label": "25 giugno",
+      "title": "Prima seduta dell’Assemblea Costituente",
+      "body": "L’Assemblea ha 556 membri, di cui 21 donne. Elegge presidente Giuseppe Saragat, allora socialista. Affida a una Commissione di 75 membri il compito di preparare il progetto di Costituzione.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Camera dei deputati, mostra sulla Costituente."
+      ]
+    },
+    {
+      "date": "1946-06-28",
+      "date_label": "28 giugno",
+      "title": "Enrico De Nicola capo provvisorio dello Stato",
+      "body": "L’Assemblea Costituente elegge De Nicola, giurista liberale che prima del fascismo era stato presidente della Camera. Dal 1° gennaio 1948 sarà il primo Presidente della Repubblica.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1947-02-10",
+      "date_label": "10 febbraio",
+      "title": "Trattato di pace di Parigi",
+      "body": "L’Italia firma il trattato di pace con gli Alleati della Seconda guerra mondiale. Il trattato entra in vigore il 15 settembre 1947. L’Italia rinuncia alle colonie, cede l’Istria e altre aree alla Iugoslavia, accetta limiti alle forze armate e il pagamento di riparazioni. Per Trieste è previsto un Territorio libero, che non sarà mai realizzato.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1947-05-31",
+      "date_label": "31 maggio",
+      "title": "Governo De Gasperi senza comunisti e socialisti",
+      "body": "Alcide De Gasperi forma un governo senza PCI e PSI, che fino ad allora facevano parte dei governi di unità nazionale. Il governo è guidato dalla DC, con ministri indipendenti. La svolta avviene mentre cresce la tensione tra Stati Uniti e Unione Sovietica. Il PCI non farà più parte di un governo nella storia della Prima Repubblica; il PSI tornerà al governo nel 1963.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1947-12-22",
+      "date_label": "22 dicembre",
+      "title": "Approvazione della Costituzione",
+      "body": "L’Assemblea Costituente approva la Costituzione con 453 voti a favore su 515 votanti. Viene promulgata il 27 dicembre ed entra in vigore il 1° gennaio 1948. I principi fondamentali sono negli articoli da 1 a 12. L’articolo 1 dice che l’Italia è una Repubblica democratica fondata sul lavoro. Al testo hanno lavorato insieme DC, PCI, PSI e altri partiti. Alcune istituzioni previste, come la Corte costituzionale e le Regioni a statuto ordinario, saranno realizzate anni dopo.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Camera dei deputati, mostra sulla Costituente."
+      ]
+    },
+    {
+      "date": "1948-04-18",
+      "date_label": "18 aprile",
+      "title": "Prime elezioni politiche della Repubblica",
+      "body": "La Democrazia Cristiana ottiene la maggioranza assoluta dei seggi alla Camera. Si scontrano la DC e il Fronte democratico popolare, la lista comune di PCI e PSI. La campagna elettorale è molto aspra e si svolge sullo sfondo della guerra fredda. La DC ha circa il 48,5% dei voti alla Camera. Questo numero va controllato sull’archivio del Ministero dell’Interno. Fonte da consultare: Ministero dell’Interno, archivio storico delle elezioni.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "1948-05-11",
+      "date_label": "11 maggio",
+      "title": "Luigi Einaudi Presidente della Repubblica",
+      "body": "Einaudi è eletto dal nuovo Parlamento. Resta in carica fino al 1955. Era un economista e un liberale, già governatore della Banca d’Italia e ministro del Bilancio. È il primo Presidente eletto dal Parlamento con le regole della nuova Costituzione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1948-07-14",
+      "date_label": "14 luglio",
+      "title": "Attentato a Palmiro Togliatti",
+      "body": "Il segretario del PCI è ferito da colpi di pistola. A sparare è Antonio Pallante, uno studente. Togliatti sopravvive. La CGIL proclama lo sciopero generale e in diverse città ci sono scontri e tensioni in tutto il Paese. Il ministro dell’Interno del governo De Gasperi è Mario Scelba.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1949-04-04",
+      "date_label": "4 aprile",
+      "title": "Adesione alla NATO",
+      "body": "L’Italia firma a Washington il Patto atlantico come uno dei dodici Paesi fondatori. Posizioni: il PCI e il PSI votano contro l’adesione. I partiti di governo la sostengono come garanzia di sicurezza. I nomi dei singoli esponenti e le dichiarazioni testuali non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1951-04-18",
+      "date_label": "18 aprile",
+      "title": "Nasce la CECA",
+      "body": "L’Italia firma il trattato di Parigi come uno dei sei Paesi fondatori della Comunità europea del carbone e dell’acciaio. Gli altri cinque sono Francia, Germania Ovest, Belgio, Paesi Bassi e Lussemburgo. Il trattato entra in vigore nel 1952. Per l’Italia firma il ministro degli Esteri Carlo Sforza.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1953-06-07",
+      "date_label": "7 giugno",
+      "title": "Il premio di maggioranza non scatta",
+      "body": "Alle elezioni il premio previsto dalla nuova legge elettorale non scatta: le liste collegate non raggiungono la soglia del 50% dei voti validi. La legge sarà abrogata nel 1954. La legge, approvata nel marzo 1953, assegnava circa due terzi dei seggi alla coalizione che superava il 50% dei voti. Posizioni: Alcide De Gasperi, presidente del Consiglio e leader della DC, e i partiti alleati la sostengono per garantire governi stabili. Il PCI e il PSI la chiamano «legge truffa». Dopo il voto De Gasperi non ottiene la fiducia in Parlamento, e muore il 19 agosto 1954.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1955-04-29",
+      "date_label": "29 aprile",
+      "title": "Giovanni Gronchi Presidente",
+      "body": "Gronchi, democristiano, è eletto Presidente della Repubblica con una maggioranza ampia, che comprende anche i voti della sinistra. Prende il posto di Luigi Einaudi.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1955-12-14",
+      "date_label": "14 dicembre",
+      "title": "Ingresso all’ONU",
+      "body": "L’Italia è ammessa alle Nazioni Unite, insieme ad altri quindici Paesi. Fino ad allora l’ammissione era stata bloccata dalle tensioni tra le due grandi potenze.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1956-01-01",
+      "date_label": "1956",
+      "title": "Inizia a funzionare la Corte costituzionale",
+      "body": "Prevista dalla Costituzione del 1948, la Corte tiene la prima udienza nel 1956. È formata da quindici giudici: cinque nominati dal Presidente della Repubblica, cinque dal Parlamento in seduta comune e cinque dalle magistrature supreme. Il primo presidente è Enrico De Nicola.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1957-03-25",
+      "date_label": "25 marzo",
+      "title": "Trattati di Roma",
+      "body": "L’Italia firma i trattati che istituiscono la Comunità economica europea e l’Euratom. I trattati sono firmati dai sei Paesi della CECA e entrano in vigore il 1° gennaio 1958. Per l’Italia firmano il presidente del Consiglio Antonio Segni e il ministro degli Esteri Gaetano Martino.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1958-02-20",
+      "date_label": "20 febbraio",
+      "title": "Legge Merlin",
+      "body": "Una legge chiude le case di prostituzione autorizzate, dette «case chiuse». Porta il nome della senatrice socialista Lina Merlin, che l’aveva proposta nel 1948. La legge punisce lo sfruttamento e il favoreggiamento della prostituzione, ma non vieta la prostituzione in sé. Entra in vigore il 20 settembre 1958.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1960-07-19",
+      "date_label": "19 luglio",
+      "title": "Cade il governo Tambroni",
+      "body": "Il governo, sostenuto in Parlamento anche dai voti del MSI, partito neofascista, si dimette dopo le proteste di giugno e luglio. Il MSI aveva scelto Genova, città decorata per la Resistenza, per il suo congresso, e il 30 giugno a Genova ci sono grandi proteste. Il 7 luglio, a Reggio Emilia, muoiono cinque manifestanti. Dopo la crisi un nuovo governo è guidato da Amintore Fanfani. Le dichiarazioni dei protagonisti non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1962-12-06",
+      "date_label": "6 dicembre",
+      "title": "Nazionalizzazione dell’energia elettrica",
+      "body": "Una legge crea l’ENEL, ente pubblico per la produzione e la distribuzione di energia elettrica. La nazionalizzazione era una richiesta del PSI, che sosteneva con l’astensione il governo guidato da Amintore Fanfani. Il Partito liberale era contrario. 1963–1976 – Centro-sinistra, riforme e stragi Il PSI entra al governo con la DC: è la stagione del centro-sinistra. Si approvano leggi sui diritti dei lavoratori e sui diritti civili e nascono le Regioni a statuto ordinario. Gli anni sono segnati dalle proteste studentesche e operaie e, dal 1969, da bombe e stragi.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1963-12-04",
+      "date_label": "4 dicembre",
+      "title": "Primo governo Moro",
+      "body": "Aldo Moro, della DC, guida il governo fino al 21 luglio 1964. Con il PSI al governo inizia la stagione del centro-sinistra. Pietro Nenni, segretario del PSI, è vicepresidente del Consiglio. Fonte da consultare: Senato, Elenco storico dei Governi.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "1964-12-28",
+      "date_label": "28 dicembre",
+      "title": "Giuseppe Saragat Presidente",
+      "body": "Saragat, leader del PSDI, è eletto Presidente della Repubblica dopo le dimissioni di Antonio Segni, che si era ammalato nell’agosto 1964. L’elezione richiede molti scrutini. 1968–1969 – Proteste studentesche e «autunno caldo» Nel 1968 cominciano occupazioni e manifestazioni studentesche nelle università italiane. Nell’autunno del 1969 gli scioperi dei lavoratori dell’industria per i rinnovi dei contratti, chiamati «autunno caldo», portano ad aumenti dei salari e preparano lo Statuto dei lavoratori.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1969-12-12",
+      "date_label": "12 dicembre",
+      "title": "Strage di piazza Fontana",
+      "body": "Una bomba nella Banca nazionale dell’agricoltura, a Milano, uccide 17 persone. Inizia un periodo di stragi e terrorismo, chiamato strategia della tensione. Le prime indagini seguono la pista anarchica. Giuseppe Pinelli, ferroviere anarchico, muore cadendo da una finestra della questura di Milano durante un interrogatorio. Processi durati decenni non portano a condanne definitive degli autori. Nel 2005 la Cassazione indica come responsabili Franco Freda e Giovanni Ventura, di Ordine Nuovo, ma non possono essere processati di nuovo perché erano già stati assolti.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1970-05-20",
+      "date_label": "20 maggio",
+      "title": "Statuto dei lavoratori",
+      "body": "Una legge stabilisce diritti sindacali e tutele dei lavoratori nelle aziende. Il ministro del Lavoro è Carlo Donat-Cattin, della DC. L’articolo 18 prevede il reintegro nel posto di lavoro per chi è licenziato senza giusta causa; l’articolo sarà modificato nel 2012 e nel 2015.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1970-06-07",
+      "date_label": "7 giugno",
+      "title": "Prime elezioni regionali",
+      "body": "Si vota per la prima volta nelle Regioni a statuto ordinario, previste dalla Costituzione. Le Regioni a statuto speciale esistevano già.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1970-12-01",
+      "date_label": "1 dicembre",
+      "title": "Legge sul divorzio",
+      "body": "Il Parlamento approva la legge Fortuna–Baslini, che introduce il divorzio. La DC vota contro, e anche l’autorità della Chiesa cattolica è contraria.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1973-01-01",
+      "date_label": "settembre–ottobre",
+      "title": "Il «compromesso storico» di Berlinguer",
+      "body": "Dopo il colpo di Stato in Cile dell’11 settembre 1973, Enrico Berlinguer, segretario del PCI, pubblica sulla rivista Rinascita tre articoli. Propone un accordo tra i grandi partiti popolari, PCI, DC e PSI, che sarà chiamato «compromesso storico». Altri partiti e correnti, anche della sinistra, sono critici. I nomi e le dichiarazioni non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1974-05-12",
+      "date_label": "12–13 maggio",
+      "title": "Referendum sul divorzio",
+      "body": "I contrari all’abrogazione della legge sono il 59,26%. Affluenza 87,72%. La legge resta in vigore. Il referendum è chiesto da gruppi cattolici e sostenuto dalla DC, il cui segretario Amintore Fanfani guida la campagna per abrogare la legge. I partiti laici e di sinistra difendono la legge.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare. La data va ricontrollata.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1974-05-28",
+      "date_label": "28 maggio e 4 agosto",
+      "title": "Stragi di Brescia e del treno Italicus",
+      "body": "Il 28 maggio una bomba in piazza della Loggia, a Brescia, durante una manifestazione, uccide 8 persone. Il 4 agosto una bomba sul treno Italicus ne uccide 12. Per piazza della Loggia ci sono condanne definitive molti anni dopo, nel 2017. Per l’Italicus non risultano condanne definitive degli autori. Questi esiti giudiziari vanno controllati.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1975-03-08",
+      "date_label": "8 marzo",
+      "title": "Maggiore età a 18 anni",
+      "body": "Una legge abbassa da 21 a 18 anni la maggiore età e l’età per votare alla Camera. Per il Senato il limite resta 25 anni fino al 2021.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1975-05-19",
+      "date_label": "19 maggio",
+      "title": "Riforma del diritto di famiglia",
+      "body": "Una legge stabilisce che marito e moglie hanno gli stessi diritti e doveri. Sparisce la figura del capofamiglia e la «patria potestà» è sostituita dalla potestà dei genitori. I figli nati fuori dal matrimonio ricevono maggiori diritti.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1976-06-20",
+      "date_label": "20 giugno",
+      "title": "Elezioni politiche",
+      "body": "La DC resta il primo partito e il PCI ha una forte crescita. Alla Camera la DC ha circa il 38,7% e il PCI circa il 34,4% (numeri da controllare sull’archivio del Ministero dell’Interno). A fine luglio nasce il governo Andreotti, detto «della non sfiducia», con l’astensione del PCI. Inizia la stagione della «solidarietà nazionale». Fonte da consultare: Ministero dell’Interno, archivio storico delle elezioni. 1977–1991 – Dalla solidarietà nazionale alla fine della guerra fredda Sono gli «anni di piombo», segnati dal terrorismo, e gli anni dei governi con il PSI di Bettino Craxi. Si approvano leggi importanti su sanità e aborto, si scopre la loggia P2, la mafia uccide magistrati e politici. Con la caduta del Muro di Berlino nel 1989 anche i partiti italiani cambiano.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "1978-03-16",
+      "date_label": "16 marzo",
+      "title": "Sequestro di Aldo Moro",
+      "body": "Le Brigate Rosse rapiscono Aldo Moro in via Fani, a Roma, e uccidono i cinque uomini della scorta. Il suo corpo è trovato il 9 maggio, dopo 55 giorni. Lo stesso 16 marzo il nuovo governo Andreotti, con i voti anche del PCI, ottiene la fiducia. Posizioni (da verificare): la DC, con il presidente del Consiglio Giulio Andreotti, il PCI di Enrico Berlinguer e il PRI sostengono la «linea della fermezza», cioè nessuna trattativa con le Brigate Rosse. Il PSI di Bettino Craxi chiede di cercare una via per salvare Moro. Papa Paolo VI rivolge un appello pubblico ai rapitori.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1978-05-22",
+      "date_label": "22 maggio",
+      "title": "Legge 194 sull’interruzione di gravidanza",
+      "body": "Il Parlamento approva la legge che regola l’aborto. Consente l’interruzione di gravidanza nelle strutture pubbliche, entro certi limiti di tempo e con regole precise. La legge è confermata dal voto popolare nel 1981.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1978-06-11",
+      "date_label": "11 giugno",
+      "title": "Referendum su legge Reale e finanziamento dei partiti",
+      "body": "Due quesiti, entrambi respinti: i Sì sono il 23,54% sulla legge Reale (ordine pubblico) e il 43,59% sul finanziamento pubblico ai partiti. Affluenza 81,19%. I referendum sono promossi dal Partito radicale.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1978-07-08",
+      "date_label": "8 luglio",
+      "title": "Sandro Pertini Presidente",
+      "body": "Pertini è eletto Presidente della Repubblica dopo le dimissioni di Giovanni Leone, il 15 giugno. Leone si dimette dopo una campagna di stampa sullo scandalo Lockheed e ha sempre respinto le accuse. Pertini è eletto con una maggioranza molto ampia.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1978-12-23",
+      "date_label": "23 dicembre",
+      "title": "Servizio sanitario nazionale",
+      "body": "Una legge istituisce il Servizio sanitario nazionale, che garantisce le cure a tutti i cittadini. La ministra della Sanità è Tina Anselmi, della DC, la prima donna ministra della Repubblica.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1980-08-02",
+      "date_label": "2 agosto",
+      "title": "Strage alla stazione di Bologna",
+      "body": "Una bomba alla stazione uccide 85 persone e ne ferisce oltre duecento. Sono condannati in via definitiva come esecutori Valerio Fioravanti e Francesca Mambro, estremisti di destra dei NAR. Loro hanno sempre dichiarato di non avere avuto parte nella strage. L’associazione dei familiari delle vittime sostiene che dietro la strage ci siano mandanti collegati alla loggia P2. Per altri imputati, tra cui Gilberto Cavallini e Paolo Bellini, ci sono sentenze recenti: le fonti vanno verificate.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1981-03-17",
+      "date_label": "17 marzo",
+      "title": "Scoperta degli elenchi della loggia P2",
+      "body": "A Castiglion Fibocchi la Guardia di Finanza trova gli elenchi degli iscritti alla loggia massonica P2, guidata da Licio Gelli. Gli iscritti sono 962 (numero da controllare): politici, militari, giornalisti e imprenditori, tra cui Silvio Berlusconi. Il governo Forlani si dimette il 26 maggio. Una commissione parlamentare, presieduta da Tina Anselmi, indaga sulla P2. Nel 1982 una legge vieta le associazioni segrete.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1981-05-17",
+      "date_label": "17 maggio",
+      "title": "Cinque referendum: aborto, ergastolo, porto d’armi, legge Cossiga",
+      "body": "Tutti i quesiti sono respinti. I Sì vanno dall’11,58% al 32,00%. Affluenza circa 79,4%. Due quesiti riguardano la legge 194: uno vuole limitarla, l’altro vuole liberalizzarla; la legge resta in vigore.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1981-06-28",
+      "date_label": "28 giugno",
+      "title": "Primo capo del governo non democristiano",
+      "body": "Giovanni Spadolini, del Partito Repubblicano, forma il governo. È il primo presidente del Consiglio della Repubblica che non è della DC. Spadolini era uno storico e un giornalista.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1982-04-30",
+      "date_label": "30 aprile e 3 settembre",
+      "title": "Uccisi Pio La Torre e Carlo Alberto dalla Chiesa",
+      "body": "Il 30 aprile a Palermo è ucciso Pio La Torre, deputato del PCI. Il 3 settembre è ucciso il generale Carlo Alberto dalla Chiesa, prefetto di Palermo, insieme alla moglie Emanuela Setti Carraro e a un agente di scorta. Il 13 settembre una legge introduce il reato di associazione di tipo mafioso. La legge prende il nome di Rognoni–La Torre.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1983-08-04",
+      "date_label": "4 agosto",
+      "title": "Governo Craxi",
+      "body": "Bettino Craxi, del PSI, guida il governo fino al 16 aprile 1987: Craxi I dal 4 agosto 1983 al 31 luglio 1986, Craxi II dal 1° agosto 1986. È il primo presidente del Consiglio socialista. Nel febbraio 1984 il governo riduce per decreto gli aumenti automatici dei salari, la «scala mobile».",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1984-02-18",
+      "date_label": "18 febbraio",
+      "title": "Revisione del Concordato",
+      "body": "Italia e Santa Sede firmano a Villa Madama l’accordo che modifica il Concordato del 1929. Per l’Italia firma Craxi. La religione cattolica non è più religione di Stato. L’insegnamento della religione a scuola diventa facoltativo e nasce l’«otto per mille».",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1984-06-11",
+      "date_label": "11 giugno",
+      "title": "Morte di Enrico Berlinguer",
+      "body": "Il segretario del PCI muore dopo un malore avuto durante un comizio a Padova. Pochi giorni dopo, alle elezioni europee del 17 giugno, il PCI è per la prima volta il primo partito in un voto nazionale: circa 33,3% contro 33,0% della DC (numeri da controllare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1985-06-09",
+      "date_label": "9–10 giugno",
+      "title": "Referendum sulla scala mobile",
+      "body": "Il quesito per abrogare il decreto che riduceva gli aumenti automatici dei salari è respinto: Sì 45,68%. Affluenza 77,85%. Posizioni: il PCI, con il segretario Alessandro Natta, sostiene l’abrogazione. Il governo di Bettino Craxi e i partiti della maggioranza difendono il decreto.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1985-06-24",
+      "date_label": "24 giugno",
+      "title": "Francesco Cossiga Presidente",
+      "body": "Cossiga è eletto Presidente della Repubblica, già al primo scrutinio. Era presidente del Senato. Si dimetterà il 28 aprile 1992, dopo anni di forti polemiche con i partiti.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1985-10-10",
+      "date_label": "10–11 ottobre",
+      "title": "Crisi di Sigonella",
+      "body": "Dopo il dirottamento della nave Achille Lauro, a Sigonella militari italiani e statunitensi si fronteggiano per il controllo dei dirottatori. Il governo Craxi rivendica la competenza italiana. Poi Abu Abbas, dirigente palestinese, lascia l’Italia. Il PRI di Spadolini, ministro della Difesa, esce dal governo.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1987-11-08",
+      "date_label": "8–9 novembre",
+      "title": "Cinque referendum, tra cui il nucleare",
+      "body": "I quesiti riguardano, tra l’altro, la responsabilità civile dei giudici, la localizzazione delle centrali nucleari e la partecipazione dell’ENEL a impianti all’estero. Tutti approvati, con Sì tra il 71,86% e l’85,04%. Affluenza circa 65,1%. Il voto arriva dopo l’incidente nucleare di Chernobyl, nell’aprile 1986.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1989-11-12",
+      "date_label": "12 novembre",
+      "title": "Svolta della Bolognina",
+      "body": "Pochi giorni dopo la caduta del Muro di Berlino, Achille Occhetto, segretario del PCI, annuncia la volontà di cambiare nome e identità al partito. Nel febbraio 1991 nasce il Partito democratico della sinistra. Una minoranza guidata da Armando Cossutta e Sergio Garavini non accetta la svolta e fonda Rifondazione comunista.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1990-10-24",
+      "date_label": "24 ottobre",
+      "title": "Rivelazione di Gladio",
+      "body": "Il presidente del Consiglio Giulio Andreotti conferma al Parlamento l’esistenza di Gladio, una rete segreta creata in Italia durante la guerra fredda. Francesco Cossiga, che era stato sottosegretario alla Difesa, la difende come struttura legittima.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1991-06-09",
+      "date_label": "9–10 giugno",
+      "title": "Referendum sulla preferenza unica",
+      "body": "Gli elettori approvano la riduzione delle preferenze alla Camera da tre a una: Sì 95,57%. Affluenza 62,50%. Il referendum è promosso dal deputato democristiano Mario Segni. Bettino Craxi, segretario del PSI, invita gli elettori a «andare al mare». 1992–2000 – Mani pulite e nuovo sistema elettorale Inchieste giudiziarie sulla corruzione, stragi di mafia e crisi finanziaria cambiano il sistema politico. I partiti storici si indeboliscono o scompaiono. Nascono nuove forze, come la Lega Nord e Forza Italia, e un nuovo sistema elettorale, in gran parte maggioritario. L’Italia lavora per entrare nell’euro.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1992-02-07",
+      "date_label": "7 febbraio",
+      "title": "Trattato di Maastricht",
+      "body": "Il trattato, firmato nei Paesi Bassi, crea l’Unione europea e fissa i criteri per entrare nella moneta unica: tra gli altri, un deficit pubblico sotto il 3% del PIL e un debito sotto il 60% del PIL. Per l’Italia firma il governo guidato da Giulio Andreotti. I criteri pesano sulle scelte dei governi italiani degli anni Novanta.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1992-02-17",
+      "date_label": "17 febbraio",
+      "title": "Arresto di Mario Chiesa: inizia Mani pulite",
+      "body": "A Milano è arrestato Mario Chiesa, dirigente del PSI. Parte l’inchiesta sui finanziamenti illeciti ai partiti, chiamata Tangentopoli. I magistrati di Milano sono guidati dal procuratore Francesco Saverio Borrelli, con il pubblico ministero Antonio Di Pietro. Posizioni: il 3 luglio 1992 Bettino Craxi, segretario del PSI, dice alla Camera che il finanziamento irregolare riguardava tutti i partiti. Altri politici, tra cui Silvio Berlusconi dopo il suo ingresso in politica, hanno accusato una parte della magistratura di motivi politici; i magistrati di Milano hanno respinto questa lettura. Le fonti giornalistiche (Panorama e L’Espresso) divergono su alcuni dettagli dell’arresto, che non sono riportati qui.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1992-04-05",
+      "date_label": "5–6 aprile",
+      "title": "Elezioni politiche",
+      "body": "La Democrazia Cristiana scende per la prima volta sotto il 30% dei voti. La Lega Nord ottiene un risultato rilevante, circa l’8,7% (numeri da controllare). Fonte da consultare: Ministero dell’Interno, archivio storico delle elezioni.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "1992-05-23",
+      "date_label": "23 maggio e 19 luglio",
+      "title": "Stragi di Capaci e di via D’Amelio",
+      "body": "A Capaci muoiono il giudice Giovanni Falcone, la moglie Francesca Morvillo e tre agenti di scorta. Il 19 luglio, a Palermo, muoiono il giudice Paolo Borsellino e cinque agenti. Dopo le stragi lo Stato manda soldati in Sicilia e rafforza il carcere duro per i mafiosi. Le indagini sulla strage di via D’Amelio hanno avuto sviluppi complessi, tra cui il caso di un falso collaboratore di giustizia.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1992-05-25",
+      "date_label": "25 maggio",
+      "title": "Oscar Luigi Scalfaro Presidente",
+      "body": "Scalfaro è eletto Presidente della Repubblica due giorni dopo la strage di Capaci, dopo molti scrutini. Secondo molte ricostruzioni giornalistiche, la strage accelera la scelta del Parlamento (da verificare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1992-06-28",
+      "date_label": "28 giugno",
+      "title": "Governo Amato I",
+      "body": "Giuliano Amato guida il governo dal 28 giugno 1992 al 27 aprile 1993. Il governo deve affrontare la crisi dei conti pubblici: a luglio un prelievo straordinario sui conti correnti e una manovra molto pesante; poi una riforma delle pensioni.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1992-09-16",
+      "date_label": "16 settembre",
+      "title": "La lira esce dal sistema monetario europeo",
+      "body": "Dopo forti tensioni sui mercati, l’Italia sospende la partecipazione allo SME e la lira si svaluta.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1993-04-18",
+      "date_label": "18–19 aprile",
+      "title": "Otto referendum, tra cui il sistema elettorale del Senato",
+      "body": "Tutti i quesiti sono approvati. Sul sistema elettorale del Senato i Sì sono l’82,74%. Affluenza circa 77%. Tra gli altri quesiti ci sono l’abolizione del finanziamento pubblico ai partiti e di alcuni ministeri.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "1993-04-28",
+      "date_label": "28 aprile",
+      "title": "Governo Ciampi",
+      "body": "Carlo Azeglio Ciampi guida il governo dal 28 aprile 1993 al 9 maggio 1994. È il primo presidente del Consiglio che non è un parlamentare: era governatore della Banca d’Italia.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1993-08-04",
+      "date_label": "4 agosto",
+      "title": "Nuove leggi elettorali, dette Mattarellum",
+      "body": "Dopo il referendum il Parlamento approva leggi che assegnano tre quarti dei seggi in collegi uninominali e un quarto con il proporzionale. Il nome viene da Sergio Mattarella, relatore della legge.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1994-01-26",
+      "date_label": "26 gennaio",
+      "title": "Silvio Berlusconi annuncia la candidatura",
+      "body": "Con un messaggio televisivo l’imprenditore annuncia di «scendere in campo» con Forza Italia. Berlusconi è proprietario del gruppo Fininvest, che comprende le reti televisive Mediaset. Posizioni: Berlusconi, leader di Forza Italia, ha sempre respinto l’accusa di conflitto di interessi. I partiti di centro-sinistra l’hanno sollevata più volte. I nomi dei singoli esponenti non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1994-03-27",
+      "date_label": "27–28 marzo",
+      "title": "Elezioni politiche",
+      "body": "Vince la coalizione guidata da Berlusconi. Il governo Berlusconi I giura il 10 maggio. Il governo comprende Forza Italia, la Lega Nord e Alleanza Nazionale: per la prima volta il partito erede del MSI entra al governo.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1994-12-22",
+      "date_label": "22 dicembre",
+      "title": "Dimissioni di Berlusconi",
+      "body": "Dopo l’uscita della Lega Nord dalla maggioranza, il presidente del Consiglio si dimette. Poche settimane prima, il 22 novembre, Berlusconi aveva ricevuto un avviso di garanzia dalla procura di Milano. Nel gennaio 1995 nasce il governo tecnico di Lamberto Dini.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1995-01-27",
+      "date_label": "27 gennaio",
+      "title": "Svolta di Fiuggi",
+      "body": "Il Movimento sociale italiano si scioglie e nasce Alleanza Nazionale, guidata da Gianfranco Fini. Una parte del MSI, con Pino Rauti, non accetta la svolta e forma un partito separato.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1996-04-21",
+      "date_label": "21 aprile",
+      "title": "Elezioni politiche",
+      "body": "Vince la coalizione di centro-sinistra dell’Ulivo, guidata da Romano Prodi. Rifondazione comunista non fa parte della coalizione, ma ha un accordo di non concorrenza nei collegi e poi sostiene il governo dall’esterno.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1996-05-17",
+      "date_label": "17 maggio",
+      "title": "Governo Prodi I",
+      "body": "Romano Prodi guida il governo dal 17 maggio 1996 al 20 ottobre 1998. Il governo lavora per rispettare i criteri per l’euro. Cade quando Rifondazione comunista, guidata da Fausto Bertinotti, ritira il sostegno e il governo perde la fiducia alla Camera per un solo voto (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1998-10-21",
+      "date_label": "21 ottobre",
+      "title": "Governo D’Alema",
+      "body": "Massimo D’Alema guida il governo dal 21 ottobre 1998 al 25 aprile 2000 (D’Alema I e II). È il primo ex dirigente del PCI a guidare un governo. Nel 1999 l’Italia partecipa alla campagna militare della NATO in Kosovo.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "1999-01-01",
+      "date_label": "1 gennaio",
+      "title": "Nasce l’euro",
+      "body": "L’Italia è tra i primi undici Paesi che adottano la moneta unica come valuta di conto. Banconote e monete arrivano il 1° gennaio 2002. La lira smette di avere corso legale a fine febbraio 2002.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "1999-05-13",
+      "date_label": "13 maggio",
+      "title": "Carlo Azeglio Ciampi Presidente",
+      "body": "Ciampi è eletto Presidente della Repubblica, già al primo scrutinio. 2001–2011 – L’alternanza tra centro-destra e centro-sinistra Per dieci anni si alternano al governo due grandi coalizioni, guidate da Silvio Berlusconi e da Romano Prodi. Si vota con leggi elettorali diverse e la Costituzione è cambiata con il referendum del 2001 e respinta in quello del 2006. La crisi finanziaria del 2008 e dei debiti pubblici europei chiude il periodo.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2001-05-13",
+      "date_label": "13 maggio",
+      "title": "Elezioni politiche",
+      "body": "Vince la coalizione di centro-destra Casa delle Libertà. Berlusconi guida il governo dall’11 giugno 2001 al 2006. Prima del voto Berlusconi firma in televisione un «contratto con gli italiani». Il suo governo dal 2001 al 23 aprile 2005 dura 1.412 giorni, che era il record fino al governo Meloni.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2001-07-20",
+      "date_label": "20–22 luglio",
+      "title": "Vertice G8 a Genova",
+      "body": "Durante le proteste muore il manifestante Carlo Giuliani, colpito da un carabiniere. Le violenze della polizia alla scuola Diaz e nella caserma di Bolzaneto portano a processi, con condanne di alcuni agenti e dirigenti. Nel 2015 la Corte europea dei diritti dell’uomo giudica che a Diaz ci fu tortura. Le posizioni di politici e sindacati di polizia non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2001-10-07",
+      "date_label": "7 ottobre",
+      "title": "Referendum sulla riforma del Titolo V",
+      "body": "Gli elettori approvano la riforma costituzionale su Regioni ed enti locali: Sì 64,21%. Affluenza 34,05%. Nei referendum costituzionali non c’è quorum. La riforma era stata approvata dal Parlamento con una maggioranza di centro-sinistra poco prima delle elezioni.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "2003-11-12",
+      "date_label": "12 novembre",
+      "title": "Attentato di Nassiriya",
+      "body": "In Iraq un attentato contro la base dei carabinieri uccide 19 italiani, durante la missione militare italiana. La missione era sostenuta dal governo Berlusconi ed era criticata da una parte dell’opposizione. Il governo Prodi ritira il contingente nel 2006.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2005-06-12",
+      "date_label": "12–13 giugno",
+      "title": "Referendum sulla procreazione assistita",
+      "body": "Quattro quesiti. L’affluenza è circa il 25,6%: il quorum non è raggiunto. Il referendum riguarda la legge 40 del 2004. Posizioni: il cardinale Camillo Ruini, presidente della Conferenza episcopale italiana, invita a non votare. I promotori, Radicali e partiti di centro-sinistra, chiedono di votare Sì. La legge è poi modificata in più parti da sentenze della Corte costituzionale.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "2005-12-21",
+      "date_label": "21 dicembre",
+      "title": "Nuova legge elettorale, detta Porcellum",
+      "body": "Il Parlamento approva la legge con premio di maggioranza e liste bloccate. Sarà in parte dichiarata incostituzionale nel 2013. Il nome nasce da una frase del ministro leghista Roberto Calderoli, che la chiamò «una porcata».",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2006-04-09",
+      "date_label": "9–10 aprile",
+      "title": "Elezioni politiche",
+      "body": "Il centro-sinistra dell’Unione vince con un margine molto stretto alla Camera: circa 25 mila voti. Berlusconi, leader del centro-destra, chiede di controllare le schede contestate. Il governo Prodi II dura dal 17 maggio 2006 al 6 maggio 2008: perde la fiducia in Senato il 24 gennaio 2008, dopo l’uscita del partito di Clemente Mastella. Fonte da consultare: Senato, Elenco storico dei Governi.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "2006-05-10",
+      "date_label": "10 maggio",
+      "title": "Giorgio Napolitano Presidente",
+      "body": "Napolitano è eletto Presidente della Repubblica, al quarto scrutinio. È il primo ex dirigente del PCI a diventare Presidente.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2006-06-25",
+      "date_label": "25–26 giugno",
+      "title": "Referendum sulla riforma costituzionale del centro-destra",
+      "body": "Gli elettori respingono la riforma: No 61,29%. Affluenza 52,46%. La riforma, approvata dal Parlamento con la maggioranza del centro-destra, cambiava i poteri del presidente del Consiglio e il ruolo delle Regioni.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "2007-10-14",
+      "date_label": "14 ottobre",
+      "title": "Nasce il Partito Democratico",
+      "body": "Con le primarie viene eletto segretario Walter Veltroni. Il partito nasce dall’unione dei Democratici di sinistra e della Margherita, con circa tre milioni e mezzo di partecipanti alle primarie (numero da controllare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2008-04-13",
+      "date_label": "13–14 aprile",
+      "title": "Elezioni politiche",
+      "body": "Vince il centro-destra. Il governo Berlusconi IV giura l’8 maggio. La coalizione di sinistra radicale Sinistra Arcobaleno non elegge nessun parlamentare.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2011-06-12",
+      "date_label": "12–13 giugno",
+      "title": "Quattro referendum: acqua, nucleare, legittimo impedimento",
+      "body": "Tutti i quesiti sono approvati, con Sì tra il 94,05% e il 95,80%. Affluenza circa 54,8%: il quorum è raggiunto. Due quesiti riguardano i servizi idrici, uno il nucleare e uno il legittimo impedimento. Il voto sul nucleare arriva dopo l’incidente di Fukushima, nel marzo 2011.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Comune di Arezzo, Consultazioni referendarie in Italia 1946–2011."
+      ]
+    },
+    {
+      "date": "2011-11-12",
+      "date_label": "12 novembre",
+      "title": "Dimissioni di Berlusconi",
+      "body": "Con lo spread sui titoli di Stato in forte aumento, Berlusconi si dimette. L’8 novembre il governo aveva ottenuto alla Camera meno dei voti necessari per la maggioranza assoluta sul rendiconto. Il 16 novembre giura il governo tecnico di Mario Monti. Posizioni: Berlusconi e i suoi sostenitori hanno parlato in seguito di pressioni esterne. Altri attribuiscono la fine del governo alla perdita della maggioranza e alla crisi dei conti pubblici. I nomi non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2011-01-01",
+      "date_label": "dicembre",
+      "title": "Riforma delle pensioni Fornero",
+      "body": "Il governo Monti approva con un decreto di dicembre 2011 (convertito in legge il 22 dicembre) una riforma delle pensioni, chiamata dal nome della ministra del Lavoro Elsa Fornero. Alza l’età per andare in pensione e passa al metodo di calcolo contributivo per tutti. Le posizioni dei sindacati e dei partiti non sono riportate in questa versione. 2013–2017 – Governi di coalizione e riforme costituzionali Dopo le elezioni del 2013 nessuno ha la maggioranza e si formano governi di coalizione. Il Movimento 5 Stelle entra in Parlamento, Napolitano è rieletto, Berlusconi lascia il Senato dopo la condanna e Matteo Renzi guida il PD e poi il governo. Le leggi elettorali sono riscritte più volte e la riforma costituzionale del 2016 è respinta dagli elettori.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2013-02-24",
+      "date_label": "24–25 febbraio",
+      "title": "Elezioni politiche",
+      "body": "Il Movimento 5 Stelle, al suo primo voto politico, è il primo partito alla Camera, con circa il 25,5% (numero da controllare). Nessuna coalizione ha la maggioranza al Senato. A marzo Pier Luigi Bersani, segretario del PD, prova a formare un governo con l’appoggio del M5S, senza riuscirci. Fonte da consultare: Ministero dell’Interno, archivio storico delle elezioni.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "2013-04-20",
+      "date_label": "20 aprile",
+      "title": "Rielezione di Giorgio Napolitano",
+      "body": "È la prima volta che un Presidente della Repubblica viene rieletto. Il giorno prima era fallita la candidatura di Romano Prodi, per i voti mancanti di una parte del PD. Il governo di Enrico Letta giura il 28 aprile e comprende PD e PdL.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2013-08-01",
+      "date_label": "1 agosto",
+      "title": "Condanna definitiva di Berlusconi",
+      "body": "La Corte di cassazione conferma la condanna per frode fiscale nel processo Mediaset. Il 27 novembre il Senato vota la decadenza di Berlusconi da senatore. I numeri del voto non sono stati confermati. Posizioni: Berlusconi, leader del PdL e poi di Forza Italia, definisce la condanna una persecuzione giudiziaria. I partiti che votano la decadenza, tra cui PD e M5S, sostengono che la legge Severino vale per tutti.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2013-12-04",
+      "date_label": "4 dicembre",
+      "title": "La Corte costituzionale e la legge elettorale",
+      "body": "La Corte dichiara incostituzionali parti della legge elettorale del 2005: il premio di maggioranza e le liste bloccate. La sentenza è depositata il 13 gennaio 2014. La Corte dice anche che il Parlamento eletto con quella legge resta legittimo.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2014-02-22",
+      "date_label": "22 febbraio",
+      "title": "Governo Renzi",
+      "body": "Matteo Renzi, segretario del PD dall’8 dicembre 2013, giura come presidente del Consiglio dopo le dimissioni di Letta. Ha 39 anni. A maggio il governo introduce un bonus di 80 euro in busta paga per i redditi medio-bassi.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2014-05-25",
+      "date_label": "25 maggio",
+      "title": "Elezioni europee",
+      "body": "Il PD supera il 40% dei voti. È il risultato più alto per un partito in elezioni nazionali dopo la DC degli anni Cinquanta (da verificare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2014-12-10",
+      "date_label": "10 dicembre",
+      "title": "Jobs Act",
+      "body": "Una legge delega il governo a riformare le regole del lavoro e dei contratti. Nel 2015 un decreto introduce il contratto a tutele crescenti e cambia le regole sui licenziamenti. Posizioni: Susanna Camusso, segretaria della CGIL, è contraria alla riforma e proclama uno sciopero generale. Giuliano Poletti, ministro del Lavoro, la sostiene perché favorirebbe i contratti stabili.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2015-01-31",
+      "date_label": "31 gennaio",
+      "title": "Sergio Mattarella Presidente",
+      "body": "Mattarella è eletto Presidente della Repubblica al quarto scrutinio con 665 voti, pari al 66,8% dei votanti. Prende il posto di Napolitano, che si era dimesso il 14 gennaio.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Il Post, 5 numeri sull’elezione di Sergio Mattarella, 31 gennaio 2015."
+      ]
+    },
+    {
+      "date": "2015-05-06",
+      "date_label": "6 maggio",
+      "title": "Legge elettorale detta Italicum",
+      "body": "Il Parlamento approva la legge per la sola Camera, con ballottaggio e premio di maggioranza. Nel gennaio 2017 la Corte costituzionale cancella il ballottaggio.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2016-05-20",
+      "date_label": "20 maggio",
+      "title": "Unioni civili",
+      "body": "Il Parlamento approva la legge sulle unioni civili tra persone dello stesso sesso (legge Cirinnà). Non c’è l’adozione del figlio del partner. Posizioni: Monica Cirinnà, senatrice del PD e relatrice della legge, la sostiene. Massimo Gandolfini, promotore del Family Day, contesta la legge.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2016-12-04",
+      "date_label": "4 dicembre",
+      "title": "Referendum sulla riforma costituzionale Renzi–Boschi",
+      "body": "Prevale il No: 59,11%, contro 40,89% di Sì. Affluenza 65,47%. Renzi si dimette e il 12 dicembre giura il governo di Paolo Gentiloni. La riforma voleva superare il bicameralismo paritario e ridurre i poteri del Senato. Renzi, presidente del Consiglio, faceva campagna per il Sì. Al No sono schierati M5S, Lega, Forza Italia, una parte del PD e vari costituzionalisti.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Il Post, risultati definitivi del referendum costituzionale, 5 dicembre 2016."
+      ]
+    },
+    {
+      "date": "2017-10-26",
+      "date_label": "26 ottobre",
+      "title": "Legge elettorale detta Rosatellum",
+      "body": "Il Parlamento approva la legge che assegna circa un terzo dei seggi in collegi uninominali e circa due terzi con il proporzionale. Sarà usata nel 2018 e nel 2022. 2018–2022 – Nuovi partiti, pandemia e governo Draghi Dal 2018 il M5S e la Lega governano insieme, poi il M5S passa all’alleanza con il PD. La pandemia di Covid-19 cambia la vita del Paese. Nel 2021 nasce un governo di larghe intese guidato da Mario Draghi, che cade nel luglio 2022 e porta alle elezioni anticipate.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2018-03-04",
+      "date_label": "4 marzo",
+      "title": "Elezioni politiche",
+      "body": "Alla Camera il Movimento 5 Stelle è il primo partito con il 32,67%. Seguono PD 18,71%, Lega 17,40% e Forza Italia 14,03%. La coalizione di centro-destra ha circa il 37%. Nessuno ha la maggioranza. Il giorno dopo Matteo Renzi si dimette da segretario del PD. Le trattative per formare il governo durano quasi tre mesi.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Fanpage, risultati definitivi politiche 4 marzo 2018."
+      ]
+    },
+    {
+      "date": "2018-06-01",
+      "date_label": "1 giugno",
+      "title": "Governo Conte I",
+      "body": "Giuseppe Conte guida il governo con Movimento 5 Stelle e Lega dal 1° giugno 2018 al 4 settembre 2019. I due vicepresidenti sono Luigi Di Maio e Matteo Salvini, che firmano un «contratto di governo». Pochi giorni prima, il 27 maggio, il Presidente Sergio Mattarella non accetta Paolo Savona come ministro dell’Economia. Conte rinuncia all’incarico. Posizioni: Mattarella spiega di dover tutelare i risparmi degli italiani. Di Maio, leader del M5S, chiede di avviare la messa in stato d’accusa del Presidente.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "2018-08-14",
+      "date_label": "14 agosto",
+      "title": "Crollo del ponte Morandi",
+      "body": "A Genova crolla un tratto del ponte autostradale: 43 morti. Si apre il confronto sulla concessione ad Autostrade per l’Italia. Posizioni: Danilo Toninelli, ministro delle Infrastrutture, annuncia di voler avviare la revoca della concessione. Autostrade per l’Italia contesta le accuse. Il nuovo ponte è inaugurato il 3 agosto 2020. Lo Stato, tramite Cassa depositi e prestiti, acquista poi la maggioranza di Autostrade per l’Italia (da verificare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2018-10-04",
+      "date_label": "4 ottobre",
+      "title": "Decreto sicurezza e immigrazione",
+      "body": "Il governo approva un decreto, voluto dal ministro dell’Interno Matteo Salvini, che cambia le regole sulla protezione umanitaria per i migranti. È convertito in legge a dicembre 2018. Le posizioni di maggioranza, opposizione e organizzazioni umanitarie non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2019-01-28",
+      "date_label": "28 gennaio",
+      "title": "Reddito di cittadinanza e Quota 100",
+      "body": "Un decreto-legge introduce il reddito di cittadinanza, un sostegno economico per chi ha un reddito molto basso, e «Quota 100», una possibilità di andare in pensione prima con 62 anni di età e 38 di contributi. È convertito in legge a fine marzo 2019. Le posizioni non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2019-05-26",
+      "date_label": "26 maggio",
+      "title": "Elezioni europee",
+      "body": "La Lega è il primo partito con il 34,33%. Seguono PD 22,69%, M5S 17,07%, Forza Italia 8,79% e Fratelli d’Italia 6,46%. Dati dello scrutinio quasi completo.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Affaritaliani, europee, 26 maggio 2019."
+      ]
+    },
+    {
+      "date": "2019-08-08",
+      "date_label": "8 agosto",
+      "title": "Salvini apre la crisi di governo",
+      "body": "Il ministro dell’Interno Matteo Salvini annuncia la fine dell’alleanza con il M5S. Conte si dimette il 20 agosto dopo un discorso in Senato in cui critica Salvini.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2019-09-05",
+      "date_label": "5 settembre",
+      "title": "Governo Conte II",
+      "body": "Nasce il governo Conte II, con M5S, PD e altre forze. Dura fino al 12 febbraio 2021. A settembre 2019 Matteo Renzi lascia il PD e fonda Italia Viva. Il 13 gennaio 2021 Italia Viva ritira le sue ministre dal governo e Conte si dimette il 26 gennaio.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "2020-03-09",
+      "date_label": "9 marzo",
+      "title": "Restrizioni in tutta Italia per il Covid-19",
+      "body": "Il governo estende a tutto il Paese le restrizioni contro il contagio. Il primo focolaio in Italia era stato individuato a Codogno il 21 febbraio. A maggio 2020 le restrizioni cominciano ad allentarsi. La vaccinazione inizia il 27 dicembre 2020. Le scelte del governo e delle Regioni sono state oggetto di inchieste giudiziarie e, dal 2024, di una commissione parlamentare. Le posizioni delle parti non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Referendum sul taglio dei parlamentari",
+      "body": "Prevale il Sì: 69,96%, contro 30,04% di No. Affluenza 53,52%. I deputati passano da 630 a 400 e i senatori elettivi da 315 a 200. Posizioni: Luigi Di Maio, ministro degli Esteri e figura del M5S, sostiene il Sì. Gustavo Zagrebelsky, costituzionalista ed ex presidente della Corte costituzionale, sostiene il No.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare. La fonte non indica che il dato sia del Ministero dell’Interno.",
+      "sources": [
+        "Money.it, referendum 2020 sul taglio dei parlamentari, risultati definitivi."
+      ]
+    },
+    {
+      "date": "2021-02-13",
+      "date_label": "13 febbraio",
+      "title": "Governo Draghi",
+      "body": "Mario Draghi giura come presidente del Consiglio dopo le dimissioni di Conte, con una maggioranza molto ampia. Il governo dura fino al 21 ottobre 2022. Fratelli d’Italia di Giorgia Meloni resta all’opposizione.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi."
+      ]
+    },
+    {
+      "date": "2021-07-13",
+      "date_label": "13 luglio",
+      "title": "Piano nazionale di ripresa e resilienza (PNRR)",
+      "body": "Il Consiglio dell’Unione europea approva il piano italiano per usare i fondi europei del Next Generation EU. Il piano prevede riforme e investimenti per circa 190 miliardi di euro (cifra da controllare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2021-10-18",
+      "date_label": "18 ottobre",
+      "title": "Voto al Senato a 18 anni",
+      "body": "Una legge costituzionale abbassa da 25 a 18 anni l’età per votare alle elezioni del Senato. Sarà applicata per la prima volta nel 2022.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2022-01-29",
+      "date_label": "29 gennaio",
+      "title": "Mattarella rieletto Presidente",
+      "body": "Sergio Mattarella è rieletto con 759 voti su 983 votanti. Lo proclama il presidente della Camera Roberto Fico. Mattarella aveva più volte detto di non volere un secondo mandato. Silvio Berlusconi aveva ritirato la sua candidatura il 22 gennaio.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Sky TG24, rielezione di Mattarella, 29 gennaio 2022."
+      ]
+    },
+    {
+      "date": "2022-02-15",
+      "date_label": "15–16 febbraio",
+      "title": "La Corte costituzionale sui referendum su eutanasia e cannabis",
+      "body": "La Corte dichiara inammissibili i referendum sull’omicidio del consenziente (eutanasia) e sulla coltivazione di cannabis. Posizioni: Giuliano Amato, presidente della Corte, spiega le ragioni della decisione. Marco Cappato, dell’Associazione Luca Coscioni, tra i promotori, critica la decisione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2022-02-24",
+      "date_label": "24 febbraio",
+      "title": "Invasione russa dell’Ucraina",
+      "body": "La Russia invade l’Ucraina. L’Italia aderisce alle sanzioni dell’Unione europea e invia aiuti, anche militari, a Kiev. Posizioni: il governo di Mario Draghi sostiene l’invio di armi. Giuseppe Conte, leader del M5S, si oppone all’aumento della spesa militare al 2% del PIL (aprile 2022).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2022-06-12",
+      "date_label": "12 giugno",
+      "title": "Cinque referendum sulla giustizia",
+      "body": "Il quorum non è raggiunto, quindi i quesiti non producono effetti. L’affluenza è molto bassa, circa il 21% (numero da controllare). I quesiti riguardano, tra l’altro, la legge Severino, le misure cautelari e l’elezione dei membri del Consiglio superiore della magistratura.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2022-07-20",
+      "date_label": "20–21 luglio",
+      "title": "Crisi del governo Draghi",
+      "body": "Il 20 luglio Draghi pone la fiducia in Senato su una risoluzione del senatore Casini: secondo l’AGI il M5S non partecipa al voto e Forza Italia lascia l’aula. Il 21 luglio Draghi conferma le dimissioni e il Presidente Mattarella scioglie le Camere. Si vota il 25 settembre. Draghi si era già dimesso il 14 luglio e Mattarella aveva respinto le dimissioni. 2022–oggi – La legislatura in corso e il governo Meloni Dopo le elezioni del 2022 Fratelli d’Italia guida una coalizione di centro-destra con Lega e Forza Italia. Il governo di Giorgia Meloni lavora a tre grandi riforme: premierato, autonomia differenziata e giustizia. Nel 2026 gli elettori respingono la riforma della giustizia e il Parlamento approva una nuova legge elettorale, che le opposizioni contestano davanti alla Corte costituzionale.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "AGI, dimissioni di Draghi, 21 luglio 2022."
+      ]
+    },
+    {
+      "date": "2022-09-25",
+      "date_label": "25 settembre",
+      "title": "Elezioni politiche",
+      "body": "Affluenza 63,91%. Alla Camera Fratelli d’Italia ha il 25,99%, PD 19,07%, M5S 15,43%, Lega 8,77% e Forza Italia 8,11%. La coalizione di centro-destra ha il 43,79% e 237 seggi alla Camera. Dati dello scrutinio quasi completo. È il primo voto con il Parlamento ridotto a 400 deputati e 200 senatori. Fratelli d’Italia cresce da un risultato molto più basso nel 2018 (circa il 4%, numero da controllare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Money.it, risultati politiche 2022."
+      ]
+    },
+    {
+      "date": "2022-10-22",
+      "date_label": "22 ottobre",
+      "title": "Governo Meloni",
+      "body": "Giorgia Meloni, di Fratelli d’Italia, giura come presidente del Consiglio ed è la prima donna a guidare un governo italiano. Il governo Draghi era durato fino al 21 ottobre. Matteo Salvini e Antonio Tajani sono vicepresidenti del Consiglio.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Senato, Elenco storico dei Governi",
+        "Kuwait Times, settembre 2026."
+      ]
+    },
+    {
+      "date": "2023-02-26",
+      "date_label": "26 febbraio",
+      "title": "Elly Schlein segretaria del PD",
+      "body": "Vince le primarie e guida il Partito democratico. Batte Stefano Bonaccini, che era in testa tra gli iscritti (numeri da controllare).",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2023-05-01",
+      "date_label": "1 maggio",
+      "title": "Fine del reddito di cittadinanza",
+      "body": "Il governo Meloni sostituisce il reddito di cittadinanza con altre misure: il Supporto per la formazione e il lavoro, dal 1° settembre 2023, e l’Assegno di inclusione, dal 1° gennaio 2024. Posizioni: Marina Calderone, ministra del Lavoro, difende la riforma. Giuseppe Conte, leader del M5S, la critica. Le dichiarazioni testuali non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2023-06-12",
+      "date_label": "12 giugno",
+      "title": "Morte di Silvio Berlusconi",
+      "body": "Muore a 86 anni il fondatore di Forza Italia, quattro volte presidente del Consiglio. È morto a Milano. I funerali di Stato si tengono a Milano il 14 giugno.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2023-09-22",
+      "date_label": "22 settembre",
+      "title": "Morte di Giorgio Napolitano",
+      "body": "Muore a 98 anni l’ex Presidente della Repubblica, in carica dal 2006 al 2015. Era stato dirigente del PCI.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2023-11-03",
+      "date_label": "3 novembre",
+      "title": "Il governo propone il premierato",
+      "body": "Il Consiglio dei ministri approva il disegno di legge costituzionale per l’elezione diretta del presidente del Consiglio. La ministra per le Riforme è Maria Elisabetta Casellati. Il testo iniziale prevede un premio di maggioranza del 55% dei seggi (da controllare). Posizioni: il governo sostiene che la riforma darebbe stabilità. Le opposizioni, tra cui il PD e il M5S, ritengono che riduca il ruolo del Presidente della Repubblica. Le dichiarazioni testuali non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2024-06-08",
+      "date_label": "8–9 giugno",
+      "title": "Elezioni europee",
+      "body": "Affluenza 49,7%. Fratelli d’Italia 28,8%, PD 24,1%, M5S 10%, Forza Italia 9,6%, Lega 9%, Alleanza Verdi-Sinistra 6,7%. Rispetto alle europee del 2019 FdI passa dal 6,46% al 28,8%, la Lega dal 34,33% al 9%, il PD dal 22,69% al 24,1%.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Pagella Politica, risultati definitivi europee 2024",
+        "Affaritaliani, europee, 26 maggio 2019."
+      ]
+    },
+    {
+      "date": "2024-06-18",
+      "date_label": "18–19 giugno",
+      "title": "Premierato al Senato e autonomia differenziata alla Camera",
+      "body": "Il 18 giugno il Senato approva in prima lettura la riforma del premierato: 109 voti a favore, 77 contrari e 1 astenuto. Hanno votato contro tutti i partiti di opposizione. La riforma prevede l’elezione diretta del presidente del Consiglio, che deve essere un parlamentare, e cambia il ruolo dei senatori a vita. Servono due approvazioni per ogni Camera. Se non raggiunge i due terzi dei voti, si può chiedere un referendum. Il 19 giugno la Camera approva la legge sull’autonomia differenziata delle Regioni, che diventa la legge n. 86 del 26 giugno 2024. Il voto della Camera fu di 172 sì e 99 no (numeri da controllare). Roberto Calderoli, ministro per gli Affari regionali (Lega), è l’autore della legge. Vincenzo De Luca, presidente della Regione Campania, è tra i critici.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare. Lo stato attuale del premierato dopo giugno 2024 non è stato verificato.",
+      "sources": [
+        "Il Post, il Senato approva il premierato, 18 giugno 2024",
+        "Diritto.it, la Consulta dichiara inammissibile il referendum sull’autonomia."
+      ]
+    },
+    {
+      "date": "2024-11-14",
+      "date_label": "14 novembre",
+      "title": "La Corte costituzionale e l’autonomia differenziata",
+      "body": "La Corte non dichiara incostituzionale l’intera legge, ma giudica illegittime sette parti. Sono illegittime: la possibilità di trasferire intere materie e non singole funzioni; la delega per stabilire i livelli essenziali delle prestazioni (LEP) senza criteri adeguati; l’aggiornamento dei LEP con decreto del Presidente del Consiglio; la procedura della legge di bilancio 2023 per i LEP; la modifica con decreto delle quote dei tributi; il carattere facoltativo del contributo delle Regioni alla finanza pubblica; l’estensione della legge alle Regioni a statuto speciale. Restano in piedi il resto della legge e alcune parti interpretate in modo conforme alla Costituzione. Il Parlamento deve colmare i vuoti. La Corte resta competente a giudicare le singole leggi di differenziazione. Le dichiarazioni dei politici sulla decisione non sono riportate: le fonti consultate non le contengono.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Corte costituzionale, comunicato stampa del 14 novembre 2024."
+      ]
+    },
+    {
+      "date": "2025-01-20",
+      "date_label": "20 gennaio",
+      "title": "La Corte costituzionale e il referendum sull’autonomia",
+      "body": "La Corte dichiara inammissibile il referendum per abrogare la legge sull’autonomia differenziata. Secondo la pagina consultata, la Corte ritiene che «l’oggetto e la finalità del quesito non risultano chiari», e questo impedisce una scelta consapevole dell’elettore. La richiesta era stata presentata da cinque Consigli regionali e da una raccolta di firme (numeri da controllare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Diritto.it, la Consulta dichiara inammissibile il referendum sull’autonomia."
+      ]
+    },
+    {
+      "date": "2025-06-08",
+      "date_label": "8–9 giugno",
+      "title": "Cinque referendum: lavoro e cittadinanza",
+      "body": "Il quorum del 50% non è raggiunto: l’affluenza definitiva è del 30,6%, quasi uguale in tutti e cinque i quesiti. Quattro quesiti riguardano il lavoro, uno la cittadinanza (ridurre da 10 a 5 anni la residenza richiesta agli stranieri). Dato parziale, con scrutinio non completo: i Sì sono tra l’86,5% e l’88,3% sui quesiti del lavoro e il 63,1% sulla cittadinanza. Il dato finale va preso dal sito del Ministero dell’Interno. Posizioni: Maurizio Landini, segretario della CGIL, promuove i referendum sul lavoro. Ignazio La Russa, presidente del Senato, invita a non votare. Giorgia Meloni va al seggio ma non ritira le schede (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Money.it, referendum 2025: affluenza e risultati",
+        "Ministero dell’Interno, archivio storico delle elezioni."
+      ]
+    },
+    {
+      "date": "2026-02-03",
+      "date_label": "3 febbraio",
+      "title": "Roberto Vannacci lascia la Lega",
+      "body": "Il generale Vannacci lascia la Lega e annuncia il partito Futuro Nazionale. Vannacci era eurodeputato e vicesegretario della Lega (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Il Post, Vannacci lascia la Lega, 3 febbraio 2026",
+        "Sky TG24, Vannacci lascia la Lega, 3 febbraio 2026."
+      ]
+    },
+    {
+      "date": "2026-03-22",
+      "date_label": "22–23 marzo",
+      "title": "Referendum sulla separazione delle carriere",
+      "body": "Gli elettori votano la riforma costituzionale sulla separazione delle carriere di giudici e pubblici ministeri. Prevale il No. Le fonti danno percentuali diverse: 53,56% (diritto.it), 53,7% solo Italia (Sky TG24), 53,24% Italia ed estero (Wikipedia). Affluenza 58,93% secondo diritto.it. Serve il dato ufficiale. Posizioni: Carlo Nordio, ministro della Giustizia, sostiene il Sì. L’Associazione nazionale magistrati, il cui presidente è Cesare Parodi, sostiene il No (da verificare).",
+      "status": "fonti discordanti.",
+      "sources": [
+        "Diritto.it, referendum giustizia 2026",
+        "Sky TG24, speciale referendum giustizia."
+      ]
+    },
+    {
+      "date": "2026-09-04",
+      "date_label": "4 settembre",
+      "title": "Il governo Meloni è il più longevo",
+      "body": "A Bari, secondo Kuwait Times, il governo raggiunge 1.413 giorni, uno in più del record del governo Berlusconi. Il 16 settembre Meloni dichiara di voler restare in carica fino alla fine della legislatura.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Kuwait Times, settembre 2026",
+        "Reuters via Internazionale, 16 settembre 2026."
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "date_label": "8–9 ottobre",
+      "title": "Nuova legge elettorale, detta Stabilicum",
+      "body": "L’8 ottobre la Camera la approva in via definitiva con 227 sì e 164 no. Il 9 ottobre il Presidente Mattarella la promulga. Sostituisce il Rosatellum. Secondo il titolo di Altalex (pagina non aperta) non ci sono più i collegi uninominali. Secondo Euronews il premio di maggioranza scatta con il 42% dei voti validi, le preferenze sono introdotte solo in parte e la legge entra in vigore il 24 ottobre 2026. Posizioni: Enrico Grosso, costituzionalista, dice che molti aspetti riprendono punti già dichiarati incostituzionali. Gustavo Zagrebelsky, emerito di diritto costituzionale ed ex presidente della Corte costituzionale, definisce il premio di maggioranza un «trucco». Stefano Ceccanti, costituzionalista ed ex parlamentare del PD, dice che quasi tutte le critiche sono politiche e che la Corte ha già accettato in passato una soglia del 40%. Giudica la legge «non fatta bene», per il rischio di stallo senza ballottaggio. Il 12 ottobre le opposizioni presentano i ricorsi davanti alla Corte costituzionale, con la «Rete per un voto libero e uguale». Le questioni saranno sollevate nei 29 distretti di Corte d’appello, con l’obiettivo di una decisione tra gennaio e febbraio 2027. Dichiarazioni di esponenti della maggioranza sul merito della legge non risultano nelle fonti consultate.",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare. La data di pubblicazione in Gazzetta Ufficiale e il numero dei seggi del premio non risultano verificati.",
+      "sources": [
+        "Open, legge elettorale, voto finale alla Camera, 8 ottobre 2026",
+        "Teleborsa, Mattarella promulga la legge elettorale, 9 ottobre 2026",
+        "Euronews, la nuova legge elettorale passa ai tribunali, 12 ottobre 2026",
+        "Altalex, 9 ottobre 2026."
+      ]
+    },
+    {
+      "date": "2026-01-01",
+      "date_label": "in corso",
+      "title": "Prossime elezioni politiche: data non fissata",
+      "body": "Il centro-destra indica la fine della legislatura, in autunno 2027. Il segretario della Lega Matteo Salvini ha detto: «Per quanto mi riguarda si vota a fine legislatura». Il segretario di Forza Italia Antonio Tajani: «Nessuno ha parlato di elezioni anticipate». Secondo LaPresse alcuni esponenti di Fratelli d’Italia, tra cui il sottosegretario Giovanbattista Fazzolari, hanno accennato a un voto in giugno. Una data ufficiale non risulta. Secondo Euronews la scadenza naturale della legislatura è il 13 ottobre 2027.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "LaPresse, 10 ottobre 2026",
+        "Euronews, la nuova legge elettorale passa ai tribunali, 12 ottobre 2026."
+      ]
+    }
+  ]
+}

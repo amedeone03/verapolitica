@@ -1,0 +1,77 @@
+{
+  "kind": "city",
+  "name": "Trieste",
+  "slug": "trieste",
+  "source_file": "Timeline_Citta_Trieste.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Roberto Dipiazza",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2001-06-10",
+      "date_label": "10 giugno",
+      "title": "Elezioni comunali",
+      "body": "Roberto Dipiazza è eletto sindaco con una coalizione di centro-destra e liste civiche. È in carica dal 24 giugno 2001.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Trieste",
+        "Wikipedia, sindaci di Trieste."
+      ]
+    },
+    {
+      "date": "2006-04-09",
+      "date_label": "9–10 aprile",
+      "title": "Elezioni comunali",
+      "body": "Dipiazza è rieletto, con la lista di Forza Italia. Il secondo mandato è indicato dal 24 aprile 2006 al 31 maggio 2011.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Trieste",
+        "Wikipedia, sindaci di Trieste."
+      ]
+    },
+    {
+      "date": "2011-05-15",
+      "date_label": "15–16 maggio",
+      "title": "Elezioni comunali",
+      "body": "Roberto Cosolini, del PD, vince al ballottaggio con una coalizione di centro-sinistra. È sindaco dal 31 maggio 2011 al 20 giugno 2016.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Trieste",
+        "Wikipedia, sindaci di Trieste."
+      ]
+    },
+    {
+      "date": "2016-06-05",
+      "date_label": "5 giugno",
+      "title": "Elezioni comunali",
+      "body": "Dipiazza torna sindaco: vince al ballottaggio con Lega Nord, Fratelli d’Italia, Partito Pensionati e una lista civica. È in carica dal 20 giugno 2016.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Trieste",
+        "Wikipedia, sindaci di Trieste."
+      ]
+    },
+    {
+      "date": "2021-10-03",
+      "date_label": "3–4 ottobre",
+      "title": "Elezioni comunali",
+      "body": "Dipiazza è rieletto al ballottaggio con Fratelli d’Italia, Lega, Forza Italia e liste civiche. Il nuovo mandato è indicato dal 18 ottobre 2021. Il voto, previsto a giugno 2021, è rinviato per la pandemia.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Trieste",
+        "Wikipedia, sindaci di Trieste."
+      ]
+    },
+    {
+      "date": "2027-01-01",
+      "date_label": "primavera",
+      "title": "Prossime elezioni comunali",
+      "body": "Secondo la scheda di lavoro di VeraPolitica Trieste vota in primavera 2027. La data non è ancora fissata.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    }
+  ]
+}

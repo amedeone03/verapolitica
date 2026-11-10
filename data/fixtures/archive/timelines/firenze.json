@@ -1,0 +1,77 @@
+{
+  "kind": "city",
+  "name": "Firenze",
+  "slug": "firenze",
+  "source_file": "Timeline_Citta_Firenze.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Sara Funaro",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2004-06-12",
+      "date_label": "12–13 giugno",
+      "title": "Elezioni comunali",
+      "body": "Leonardo Domenici, dei DS e poi del PD, è rieletto sindaco con il centro-sinistra e liste civiche. È sindaco dal 14 giugno 1999 al 22 giugno 2009.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Firenze",
+        "Wikipedia, sindaci di Firenze."
+      ]
+    },
+    {
+      "date": "2009-06-06",
+      "date_label": "6–7 giugno",
+      "title": "Elezioni comunali",
+      "body": "Matteo Renzi, del PD, è eletto sindaco con il centro-sinistra e liste civiche (PD, Italia dei Valori, SEL). È in carica dal 22 giugno 2009.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Firenze",
+        "Wikipedia, sindaci di Firenze."
+      ]
+    },
+    {
+      "date": "2014-03-24",
+      "date_label": "24 marzo",
+      "title": "Renzi lascia il Comune",
+      "body": "Matteo Renzi lascia l’incarico di sindaco il 24 marzo 2014, dopo il giuramento da presidente del Consiglio. Il vicesindaco Dario Nardella guida il Comune fino al nuovo voto.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Firenze."
+      ]
+    },
+    {
+      "date": "2014-05-25",
+      "date_label": "25 maggio",
+      "title": "Elezioni comunali",
+      "body": "Dario Nardella, del PD, è eletto sindaco con PD, Italia dei Valori, Comunisti Italiani e liste civiche. È in carica dal 26 maggio 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Firenze",
+        "Wikipedia, sindaci di Firenze."
+      ]
+    },
+    {
+      "date": "2019-05-26",
+      "date_label": "26 maggio",
+      "title": "Elezioni comunali",
+      "body": "Nardella è rieletto, con PD, Firenze + Verde, Sinistra Civica, +Europa e liste civiche.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Firenze",
+        "Wikipedia, sindaci di Firenze."
+      ]
+    },
+    {
+      "date": "2024-06-08",
+      "date_label": "8–9 giugno",
+      "title": "Elezioni comunali",
+      "body": "Sara Funaro, del PD, vince il ballottaggio del 23–24 giugno con il 60,56% dei voti contro Eike Schmidt. Il primo turno è l’8–9 giugno. Funaro è sindaca dal 26 giugno 2024, con PD, Alleanza Verdi e Sinistra e altre liste. Il secondo mandato di Nardella finisce il 26 giugno 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Firenze",
+        "Wikipedia, sindaci di Firenze."
+      ]
+    }
+  ]
+}

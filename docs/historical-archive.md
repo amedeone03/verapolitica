@@ -42,6 +42,18 @@ presidents, mayors) and referendums with sources. Regional and provincial
 series are fragmented, so every page carries a coverage note. Since Law
 56/2014 provincial presidents and councils are no longer directly elected.
 
+## Draft city and region timelines
+
+`data/fixtures/archive/timelines/` holds editorial drafts of election
+chronologies (cities such as Verona, regions, and a national file). They come
+from secondary sources (Tuttitalia, Wikipedia) and are labelled **bozza non
+verificata**. They are never auto-published as official office holders.
+
+`GET /archive/timelines` lists them; `GET /archive/timelines/{slug}` returns
+the events. When an ISTAT comune or region with the same name exists, the
+payload includes `municipality_id` / `region_id` so Archivio can open the live
+scheda (Verona, Milano, …).
+
 ## Public API
 
 | Route | Content |
@@ -52,3 +64,5 @@ series are fragmented, so every page carries a coverage note. Since Law
 | `GET /archive/provinces` | Provinces, optionally by `region` |
 | `GET /archive/provinces/{code}` | Province history |
 | `GET /archive/regions/{id}` | Region history |
+| `GET /archive/timelines` | Draft city/region/national chronologies |
+| `GET /archive/timelines/{slug}` | One draft chronology (Verona, Veneto, Italia, …) |

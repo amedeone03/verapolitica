@@ -170,13 +170,14 @@ button[disabled], button[aria-busy="true"] { opacity: .6; cursor: progress; }
 }
 
 .site-search { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); }
-.site-search input, .search-panel input, .search-panel select, .ask-form textarea, .compare-form select, .zone-form select {
+.site-search input, .search-panel input, .search-panel select, .ask-form textarea, .compare-form select, .zone-form select, #city-archive-q {
   flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 10px 12px;
   background: var(--color-surface); color: var(--color-text);
   border: 1px solid var(--color-control-border); border-radius: var(--radius-sm);
   font: 400 1rem var(--font-body);
 }
-.site-search input:focus-visible, .search-panel input:focus-visible, .search-panel select:focus-visible, .ask-form textarea:focus-visible, .compare-form select:focus-visible, .zone-form select:focus-visible { outline-offset: 0; border-color: var(--color-secondary); }
+.site-search input:focus-visible, .search-panel input:focus-visible, .search-panel select:focus-visible, .ask-form textarea:focus-visible, .compare-form select:focus-visible, .zone-form select:focus-visible, #city-archive-q:focus-visible { outline-offset: 0; border-color: var(--color-secondary); }
+#city-archive-q { width: 100%; margin: 0 0 var(--space-4); }
 
 /* Layout ------------------------------------------------------------------ */
 main { display: block; min-height: 100vh; padding-block: var(--space-7) var(--space-9); }

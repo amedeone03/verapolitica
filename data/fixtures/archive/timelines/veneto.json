@@ -1,0 +1,82 @@
+{
+  "kind": "region",
+  "name": "Veneto",
+  "slug": "veneto",
+  "source_file": "Timeline_Regione_Veneto_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Giancarlo Galan (centro-destra). Secondo: Massimo Cacciari. Affluenza 75,6%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Giancarlo Galan (centro-destra). Secondo: Massimo Carraro. Affluenza 72,4%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Luca Zaia (Lega). Secondo: Giuseppe Bortolussi. Affluenza 66,4%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010."
+      ]
+    },
+    {
+      "date": "2015-05-31",
+      "date_label": "31 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Luca Zaia (Lega Nord). Secondo: Alessandra Moretti (PD), con il 22,7%. Affluenza 57,2%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2015."
+      ]
+    },
+    {
+      "date": "2017-10-22",
+      "date_label": "22 ottobre",
+      "title": "Referendum sull’autonomia in Veneto e in Lombardia",
+      "body": "Veneto e Lombardia votano due referendum consultivi sulla richiesta di maggiore autonomia. I risultati non sono riportati in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Luca Zaia (Lega). Secondo: Arturo Lorenzoni. Affluenza 61,1%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020."
+      ]
+    },
+    {
+      "date": "2025-11-23",
+      "date_label": "23–24 novembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Alberto Stefani (Lega). Secondo: Giovanni Manildo (PD), con il 28,9%. Affluenza 44,65%. Stefani succede a Luca Zaia, vincitore delle tre elezioni precedenti (2010, 2015, 2020).",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia (copia di marzo 2026), elezioni regionali 2025."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "kind": "city",
+  "name": "Genova",
+  "slug": "genova",
+  "source_file": "Timeline_Citta_Genova.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Silvia Salis",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2002-05-26",
+      "date_label": "26–27 maggio",
+      "title": "Elezioni comunali",
+      "body": "Giuseppe Pericu è rieletto sindaco con il centro-sinistra e liste civiche. Il secondo mandato va dal 28 maggio 2002 al 30 maggio 2007.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    },
+    {
+      "date": "2007-05-27",
+      "date_label": "27–28 maggio",
+      "title": "Elezioni comunali",
+      "body": "Marta Vincenzi, dei DS e poi del PD, è eletta sindaca con la coalizione di centro-sinistra L’Unione e liste civiche. È sindaca dal 30 maggio 2007 al 21 maggio 2012.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    },
+    {
+      "date": "2012-05-06",
+      "date_label": "6–7 maggio",
+      "title": "Elezioni comunali",
+      "body": "Marco Doria, di SEL, vince al ballottaggio con PD, SEL, Federazione della Sinistra, Italia dei Valori e altre liste. È sindaco dal 21 maggio 2012 al 27 giugno 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    },
+    {
+      "date": "2017-06-11",
+      "date_label": "11 giugno",
+      "title": "Elezioni comunali",
+      "body": "Marco Bucci, indipendente, vince al ballottaggio con Lega Nord, Fratelli d’Italia, Forza Italia e liste civiche. È sindaco dal 27 giugno 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    },
+    {
+      "date": "2018-08-14",
+      "date_label": "14 agosto",
+      "title": "Crollo del ponte Morandi",
+      "body": "A Genova crolla un tratto del ponte autostradale: 43 morti (cifra da controllare). Le posizioni dei politici non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2022-06-12",
+      "date_label": "12 giugno",
+      "title": "Elezioni comunali",
+      "body": "Bucci è rieletto, con Fratelli d’Italia, Lega, Forza Italia, UDC, Italia Viva e liste civiche. Il nuovo mandato è indicato dal 17 giugno 2022.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    },
+    {
+      "date": "2024-12-10",
+      "date_label": "10 dicembre",
+      "title": "Bucci lascia il Comune",
+      "body": "Marco Bucci lascia l’incarico di sindaco il 10 dicembre 2024, dopo l’elezione a presidente della Regione Liguria. Il vicesindaco Pietro Piciocchi, di Fratelli d’Italia, guida il Comune fino a un nuovo voto. Un decreto del Presidente della Repubblica del 15 gennaio 2025 scioglie il consiglio comunale. L’elenco dei presidenti della Liguria dà il 9 novembre 2024 come inizio del suo mandato in Regione: la pagina sui sindaci non spiega i giorni tra le due date.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Genova",
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2025-05-25",
+      "date_label": "25–26 maggio",
+      "title": "Elezioni comunali",
+      "body": "Silvia Salis è eletta sindaca con PD, Alleanza Verdi e Sinistra, Movimento 5 Stelle e liste civiche. È sindaca dal 30 maggio 2025.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Genova",
+        "Wikipedia, sindaci di Genova."
+      ]
+    }
+  ]
+}

@@ -176,6 +176,13 @@
         </form>
         <div id="history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dell'archivio…</strong></div></div>
         <div id="era-list" hidden></div>
+        <section id="city-archive" class="detail-card" aria-labelledby="city-archive-title" hidden>
+          <h2 id="city-archive-title">Città e regioni</h2>
+          <p class="empty-note">Bozze di cronologia elettorale (fonti secondarie). Ogni voce va ancora verificata su fonte ufficiale prima di considerarla un fatto.</p>
+          <label class="visually-hidden" for="city-archive-q">Cerca una città o una regione</label>
+          <input id="city-archive-q" type="search" maxlength="80" placeholder="Cerca Verona, Milano, Veneto…" autocomplete="off" />
+          <div id="city-archive-list" class="favorite-chips"></div>
+        </section>
         <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Consultazioni e leggi</h2>
           <div class="shortcut-grid">
             <a class="shortcut-card" href="./?view=referendum-archive">Referendum</a>

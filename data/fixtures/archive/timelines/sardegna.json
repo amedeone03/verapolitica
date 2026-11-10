@@ -1,0 +1,75 @@
+{
+  "kind": "region",
+  "name": "Sardegna",
+  "slug": "sardegna",
+  "source_file": "Timeline_Regione_Sardegna_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2003-08-28",
+      "date_label": "28 agosto",
+      "title": "Italo Masala presidente della Regione",
+      "body": "Italo Masala è presidente dal 28 agosto 2003 al 26 giugno 2004. Prima di lui, secondo l’elenco consultato: Mario Floris (1999–2001) e Mauro Pili (2001–2003). Le date dei voti del 2004 e del 2009 non sono state verificate.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sardegna."
+      ]
+    },
+    {
+      "date": "2004-06-26",
+      "date_label": "26 giugno",
+      "title": "Renato Soru presidente della Regione",
+      "body": "Renato Soru è presidente dal 26 giugno 2004 al 27 febbraio 2009.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sardegna."
+      ]
+    },
+    {
+      "date": "2009-02-27",
+      "date_label": "27 febbraio",
+      "title": "Ugo Cappellacci presidente della Regione",
+      "body": "Ugo Cappellacci è presidente dal 27 febbraio 2009 al 12 marzo 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sardegna."
+      ]
+    },
+    {
+      "date": "2014-02-16",
+      "date_label": "16 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Pigliaru (PD, centro-sinistra), con il 42,5%. Secondo: Ugo Cappellacci (FI), con il 39,7%. Affluenza 52,3%. Pigliaru è presidente dal 12 marzo 2014 al 20 marzo 2019.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2014",
+        "Wikipedia, presidenti Sardegna."
+      ]
+    },
+    {
+      "date": "2019-02-24",
+      "date_label": "24 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Christian Solinas (centro-destra). Secondo: Massimo Zedda. Affluenza 53,7%. Solinas è presidente dal 20 marzo 2019 al 20 marzo 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2019",
+        "Wikipedia, presidenti Sardegna."
+      ]
+    },
+    {
+      "date": "2024-02-25",
+      "date_label": "25 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Alessandra Todde (M5S), con il 45,4%. Secondo: Paolo Truzzu (Fratelli d’Italia), con il 45,0%. Affluenza 52,3%. Il distacco tra i due candidati è di 0,4 punti percentuali. Todde è presidente dal 20 marzo 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2024",
+        "Wikipedia, presidenti Sardegna."
+      ]
+    }
+  ]
+}

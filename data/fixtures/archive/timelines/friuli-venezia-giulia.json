@@ -1,0 +1,75 @@
+{
+  "kind": "region",
+  "name": "Friuli-Venezia Giulia",
+  "slug": "friuli-venezia-giulia",
+  "source_file": "Timeline_Regione_Friuli-Venezia_Giulia_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2001-06-15",
+      "date_label": "15 giugno",
+      "title": "Renzo Tondo presidente della Regione",
+      "body": "Renzo Tondo diventa presidente dopo Roberto Antonione, in carica dal 1998. Resta presidente fino al 14 giugno 2003.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    },
+    {
+      "date": "2003-06-14",
+      "date_label": "14 giugno",
+      "title": "Riccardo Illy, primo presidente eletto direttamente",
+      "body": "Secondo l’elenco consultato, Riccardo Illy è il primo presidente della Regione eletto direttamente dai cittadini. Resta in carica fino al 18 aprile 2008.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    },
+    {
+      "date": "2008-04-18",
+      "date_label": "18 aprile",
+      "title": "Renzo Tondo di nuovo presidente",
+      "body": "Tondo è presidente fino al 25 aprile 2013.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    },
+    {
+      "date": "2013-04-21",
+      "date_label": "21–22 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Debora Serracchiani (PD, centro-sinistra). Secondo: Renzo Tondo, con il 39,0%. Affluenza 50,5%. Serracchiani è presidente dal 25 aprile 2013 al 3 maggio 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013",
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    },
+    {
+      "date": "2018-04-29",
+      "date_label": "29 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Massimiliano Fedriga (Lega). Secondo: Sergio Bolzonello (PD), con il 26,8%. Affluenza 49,6%. Fedriga è presidente dal 3 maggio 2018 al 7 aprile 2023.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018",
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    },
+    {
+      "date": "2023-04-02",
+      "date_label": "2–3 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Massimiliano Fedriga (Lega, centro-destra), con il 64,2%. Secondo: Massimo Moretuzzo (Patto per l’Autonomia), con il 28,4%. Affluenza 45,3%. Secondo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2023",
+        "Wikipedia, presidenti Friuli-Venezia Giulia."
+      ]
+    }
+  ]
+}

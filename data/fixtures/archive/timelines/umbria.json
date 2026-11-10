@@ -1,0 +1,89 @@
+{
+  "kind": "region",
+  "name": "Umbria",
+  "slug": "umbria",
+  "source_file": "Timeline_Regione_Umbria_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Maria Rita Lorenzetti (centro-sinistra). Secondo: Ronconi. Affluenza 76,8%. Lorenzetti è presidente dal 17 aprile 2000 al 16 aprile 2010.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Maria Rita Lorenzetti (centro-sinistra). Secondo: Laffranco. Affluenza 74,3%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Catiuscia Marini (PD). Secondo: Modena. Affluenza 65,4%. Marini è presidente dal 16 aprile 2010.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010",
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2015-05-31",
+      "date_label": "31 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Catiuscia Marini (PD). Secondo: Claudio Ricci (indipendente, centro-destra), con il 39,3%. Affluenza 55,4%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2015",
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2019-05-28",
+      "date_label": "28 maggio",
+      "title": "Dimissioni della presidente Marini",
+      "body": "Catiuscia Marini si dimette il 28 maggio 2019. Il vicepresidente Fabio Paparelli guida la Regione fino al voto. La fonte consultata non indica il motivo.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2019-10-27",
+      "date_label": "27 ottobre",
+      "title": "Elezioni regionali anticipate",
+      "body": "Vince Donatella Tesei (Lega, centro-destra). Secondo: Vincenzo Bianconi. Affluenza 64,7%. Tesei è presidente dall’11 novembre 2019 al 2 dicembre 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2019",
+        "Wikipedia, presidenti Umbria."
+      ]
+    },
+    {
+      "date": "2024-11-17",
+      "date_label": "17–18 novembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Stefania Proietti (indipendente, centro-sinistra), con il 51,1%. Secondo: Donatella Tesei (centro-destra), con il 46,2%. Affluenza 52,3%. Proietti è presidente dal 2 dicembre 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2024",
+        "Wikipedia, presidenti Umbria",
+        "Il Post, 18 novembre 2024."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "kind": "region",
+  "name": "Trentino-Alto Adige",
+  "slug": "trentino-alto-adige",
+  "source_file": "Timeline_Regione_Trentino-Alto_Adige_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2002-01-01",
+      "date_label": "2002",
+      "title": "Presidenti della Regione a rotazione, 2002–2024",
+      "body": "La presidenza della Regione ruota tra i presidenti delle due Province. L’elenco consultato riporta, con anni approssimati: Andreotti (2002–2004), Durnwalder (2004–2006), Dellai (2006–2008), Durnwalder (2008–2011), Dellai (2011–2013), Pacher (2013–2014), Rossi (2014–2016), Kompatscher (2016–2018 e 2018–2021), Fugatti (2021–2024), Kompatscher dal 2024. Le date esatte dei passaggi vanno controllate. Fonte da consultare: Wikipedia, presidenti Trentino-Alto Adige.",
+      "status": "da verificare.",
+      "sources": []
+    },
+    {
+      "date": "2013-10-27",
+      "date_label": "27 ottobre",
+      "title": "Elezioni provinciali di Trento e di Bolzano",
+      "body": "Trento: vince Ugo Rossi. Affluenza 62,8%. Bolzano: vince Arno Kompatscher, della SVP.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013."
+      ]
+    },
+    {
+      "date": "2018-10-21",
+      "date_label": "21 ottobre",
+      "title": "Elezioni provinciali di Trento",
+      "body": "Vince Maurizio Fugatti, della Lega. Affluenza 64,0%. Secondo: Tonini, del PD, con il 25,4%. A Bolzano nel 2018 Arno Kompatscher, della SVP, è rieletto. La pagina consultata non indica la data del voto.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018."
+      ]
+    },
+    {
+      "date": "2023-10-22",
+      "date_label": "22 ottobre",
+      "title": "Elezioni provinciali di Trento e di Bolzano",
+      "body": "Trento: Maurizio Fugatti (Lega, centro-destra) è rieletto con il 51,8%. Secondo: Francesco Valduga (PD), con il 37,5%. Affluenza 58,4%. Bolzano: la pagina consultata indica Arno Kompatscher (SVP) come presidente eletto, senza percentuali né affluenza.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2023."
+      ]
+    }
+  ]
+}

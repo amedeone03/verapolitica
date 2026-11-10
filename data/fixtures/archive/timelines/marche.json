@@ -1,0 +1,82 @@
+{
+  "kind": "region",
+  "name": "Marche",
+  "slug": "marche",
+  "source_file": "Timeline_Regione_Marche_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Vito D’Ambrosio (centro-sinistra). Secondo: Bertucci. Affluenza 74,3%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Gian Mario Spacca (centro-sinistra). Secondo: Massi. Affluenza 71,5%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Gian Mario Spacca (centro-sinistra). Secondo: Marinelli. Affluenza 62,3%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010."
+      ]
+    },
+    {
+      "date": "2015-05-31",
+      "date_label": "31 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Luca Ceriscioli (PD). Secondo: Maggi (M5S), con il 21,8%. Affluenza 49,8%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2015."
+      ]
+    },
+    {
+      "date": "2016-08-24",
+      "date_label": "24 agosto–30 ottobre",
+      "title": "Terremoti nel Centro Italia",
+      "body": "Una serie di forti terremoti colpisce il Centro Italia tra agosto e ottobre 2016, con danni anche nelle Marche. Date, vittime e danni sono da verificare. Le posizioni dei politici non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Acquaroli (Fratelli d’Italia). Secondo: Maurizio Mangialardi. Affluenza 59,7%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020."
+      ]
+    },
+    {
+      "date": "2025-09-28",
+      "date_label": "28–29 settembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Acquaroli (Fratelli d’Italia). Secondo: Matteo Ricci (PD), con il 44,4%. Affluenza 50,01%. Secondo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia (copia di marzo 2026), elezioni regionali 2025."
+      ]
+    }
+  ]
+}

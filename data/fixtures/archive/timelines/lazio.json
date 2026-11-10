@@ -1,0 +1,98 @@
+{
+  "kind": "region",
+  "name": "Lazio",
+  "slug": "lazio",
+  "source_file": "Timeline_Regione_Lazio_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Storace (centro-destra). Secondo: Piero Badaloni. Affluenza 71,6%. Storace è presidente dal 12 maggio 2000 al 2 maggio 2005.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Piero Marrazzo (centro-sinistra). Secondo: Francesco Storace. Affluenza 72,7%. Marrazzo è presidente dal 2 maggio 2005 al 27 ottobre 2009.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2009-10-27",
+      "date_label": "27 ottobre",
+      "title": "Dimissioni del presidente Marrazzo",
+      "body": "Piero Marrazzo si dimette il 27 ottobre 2009. Esterino Montino guida la Regione ad interim. La fonte consultata non indica il motivo. Le posizioni non sono riportate in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Renata Polverini (PdL). Secondo: Emma Bonino. Affluenza 60,9%. Polverini è presidente dal 16 aprile 2010 al 12 marzo 2013.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010",
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2013-02-24",
+      "date_label": "24–25 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Nicola Zingaretti (PD, centro-sinistra). Secondo: Francesco Storace, con il 29,3%. Affluenza 72,0%. Zingaretti è presidente dal 12 marzo 2013.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013",
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2018-03-04",
+      "date_label": "4 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Nicola Zingaretti (PD, centro-sinistra). Secondo: Stefano Parisi, con il 31,2%. Affluenza 66,6%. Secondo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018",
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2022-11-10",
+      "date_label": "10 novembre",
+      "title": "Dimissioni del presidente Zingaretti",
+      "body": "Nicola Zingaretti lascia la presidenza il 10 novembre 2022, dopo due mandati. Daniele Leodori guida la Regione ad interim fino al 2 marzo 2023. La fonte consultata non indica il motivo. Zingaretti era stato eletto deputato alle elezioni politiche del 25 settembre 2022 (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Wikipedia, presidenti Lazio."
+      ]
+    },
+    {
+      "date": "2023-02-12",
+      "date_label": "12–13 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Rocca (indipendente, centro-destra), con il 53,9%. Secondo: Alessio D’Amato (PD), con il 34,5%. Affluenza 37,2%. Il voto arriva dopo le dimissioni di Zingaretti. Rocca è presidente dal 2 marzo 2023, con Fratelli d’Italia, Lega, Forza Italia e UdC.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2023",
+        "Wikipedia, presidenti Lazio."
+      ]
+    }
+  ]
+}

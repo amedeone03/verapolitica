@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.models import (
@@ -532,18 +532,27 @@ class TerritorySchede:
             for abbr, name, region_id in session.execute(provinces.limit(limit if text else 200)):
                 results.append(_search_row("province", abbr, f"Provincia di {name}", region_names.get(region_id, ""), done, pictures, name=name, region_id=region_id))
             if text:
+                needle = text.casefold()
                 towns = (
                     select(Municipality)
-                    .where(func.lower(Municipality.canonical_name).contains(text.casefold()))
-                    .order_by(func.length(Municipality.canonical_name), Municipality.canonical_name)
+                    .where(func.lower(Municipality.canonical_name).contains(needle))
+                    .order_by(
+                        case((func.lower(Municipality.canonical_name) == needle, 0), else_=1),
+                        func.length(Municipality.canonical_name),
+                        Municipality.canonical_name,
+                    )
                     .limit(limit)
                 )
                 for town in session.scalars(towns):
                     results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done, pictures, name=town.canonical_name, region_id=town.region_id))
             else:
-                # Without a query: the comuni that already have a scheda.
+                # Capoluoghi (Verona, Milano, …) plus any comune that already has a
+                # scheda. The other ~7,800 comuni stay behind search, so the tab
+                # is not empty when an editor looks for a city by browsing.
                 ids = [int(key) for (kind, key) in done if kind == "municipality" and key.isdigit()]
-                for town in session.scalars(select(Municipality).where(Municipality.id.in_(ids)).order_by(Municipality.canonical_name)):
+                capoluogo = Municipality.canonical_name == Municipality.province_name
+                listed = select(Municipality).where(or_(capoluogo, Municipality.id.in_(ids))) if ids else select(Municipality).where(capoluogo)
+                for town in session.scalars(listed.order_by(Municipality.canonical_name)):
                     results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done, pictures, name=town.canonical_name, region_id=town.region_id))
             return results
 
