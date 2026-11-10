@@ -16,6 +16,10 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.text import normalize_search_text
 from backend.app.models import Municipality, Region
+from backend.app.models.archive_timeline import (
+    ArchiveTimelineVerification,
+    ArchiveTimelineVerificationStatus,
+)
 
 TIMELINE_ROOT = Path(__file__).resolve().parents[3] / "data/fixtures/archive/timelines"
 
@@ -39,42 +43,79 @@ def load_timeline(slug: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def timeline_summaries() -> list[dict]:
+def _published_by_slug(session: Session) -> dict[str, set[int]]:
+    published: dict[str, set[int]] = {}
+    for row in session.scalars(
+        select(ArchiveTimelineVerification).where(
+            ArchiveTimelineVerification.status == ArchiveTimelineVerificationStatus.PUBLISHED
+        )
+    ):
+        published.setdefault(row.slug, set()).add(row.event_index)
+    return published
+
+
+def _published_for(session: Session, slug: str) -> dict[int, ArchiveTimelineVerification]:
+    rows = session.scalars(
+        select(ArchiveTimelineVerification)
+        .where(
+            ArchiveTimelineVerification.slug == slug,
+            ArchiveTimelineVerification.status == ArchiveTimelineVerificationStatus.PUBLISHED,
+        )
+        .order_by(ArchiveTimelineVerification.id)
+    )
+    return {row.event_index: row for row in rows}
+
+
+def timeline_summaries(session: Session | None = None) -> list[dict]:
     """Public index: name, slug, kind, event count. No event bodies."""
 
-    return [
-        {
-            "kind": item["kind"],
-            "name": item["name"],
-            "slug": item["slug"],
-            "event_count": item["events"],
-            "draft": True,
-        }
-        for item in load_timeline_index()
-    ]
+    verified = _published_by_slug(session) if session is not None else {}
+    items = []
+    for item in load_timeline_index():
+        total = int(item["events"])
+        done = len(verified.get(item["slug"], ()))
+        items.append(
+            {
+                "kind": item["kind"],
+                "name": item["name"],
+                "slug": item["slug"],
+                "event_count": total,
+                "verified_count": done,
+                "draft": done < total,
+            }
+        )
+    return items
 
 
-def public_timeline(slug: str) -> dict:
+def public_timeline(slug: str, session: Session | None = None) -> dict:
     data = load_timeline(slug)
-    events = [
-        {
-            "date": event["date"],
-            "date_label": event.get("date_label") or event["date"][:4],
-            "title": event["title"],
-            "body": event.get("body") or "",
-            "status": event.get("status") or "",
-            "sources": event.get("sources") or [],
-        }
-        for event in data.get("events") or []
-    ]
+    published = _published_for(session, slug) if session is not None else {}
+    events = []
+    for index, event in enumerate(data.get("events") or []):
+        check = published.get(index)
+        events.append(
+            {
+                "date": event["date"],
+                "date_label": event.get("date_label") or event["date"][:4],
+                "title": event["title"],
+                "body": event.get("body") or "",
+                "status": event.get("status") or "",
+                "sources": event.get("sources") or [],
+                "verified": check is not None,
+                "official_url": check.official_url if check else None,
+                "official_name": check.official_name if check else None,
+            }
+        )
+    verified = sum(1 for event in events if event["verified"])
     return {
         "kind": data["kind"],
         "name": data["name"],
         "slug": data["slug"],
-        "draft": True,
+        "draft": verified < len(events),
         "updated": data.get("updated"),
         "mayor": data.get("mayor"),
         "disclaimer": data.get("disclaimer") or "",
+        "verified_count": verified,
         "events": events,
     }
 

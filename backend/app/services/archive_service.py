@@ -23,6 +23,7 @@ from backend.app.models import (
     Municipality,
     PoliticianSourceIdentifier,
     Proposal,
+    ProposalStatus,
     Referendum,
     Region,
     TerritorialOffice,
@@ -37,6 +38,7 @@ from backend.app.schemas.archive import (
     PublicHistoricalMandateList,
     PublicLegislature,
     PublicLegislatureDetail,
+    PublicLegislatureLaw,
     PublicOfficeHolder,
     PublicProvince,
     PublicProvinceList,
@@ -209,6 +211,81 @@ class ArchiveService:
                     unchanged += 1
         return ArchiveSync(upserted, created, updated, unchanged, linked)
 
+    def sync_senato_history(
+        self,
+        records: list[dict[str, Any]],
+        *,
+        source_id: int,
+        profile_source_id: int,
+        raw_document_id: int,
+        source_url: str,
+    ) -> ArchiveSync:
+        """Upsert Senate mandates; link to reviewed Senato profiles by senator URI.
+
+        Does not write TerritorialOfficeMandate rows or invent legislature dates.
+        """
+
+        mandates = [item for item in records if item["kind"] == "mandate"]
+        created = updated = unchanged = linked = 0
+        with self.session_factory.begin() as session:
+            known = {number for (number,) in session.execute(select(Legislature.number))}
+            missing = {item["legislature"] for item in mandates} - known
+            if missing:
+                raise ValueError(f"mandates reference unknown legislatures: {sorted(missing)}")
+
+            people = {
+                identifier.value: identifier.politician_id
+                for identifier in session.scalars(
+                    select(PoliticianSourceIdentifier).where(
+                        PoliticianSourceIdentifier.source_id == profile_source_id
+                    )
+                )
+            }
+            existing = {
+                row.official_identifier: row
+                for row in session.scalars(
+                    select(HistoricalParliamentMandate).where(
+                        HistoricalParliamentMandate.source_id == source_id
+                    )
+                )
+            }
+            for item in mandates:
+                politician_id = people.get(item["person_identifier"])
+                values = {
+                    "chamber": Chamber(item["chamber"]),
+                    "legislature": item["legislature"],
+                    "person_identifier": item["person_identifier"],
+                    "given_name": item["given_name"],
+                    "family_name": item["family_name"],
+                    "gender": item.get("gender"),
+                    "start_date": _parse_date(item.get("start_date")),
+                    "end_date": _parse_date(item.get("end_date")),
+                    "election_area": item.get("election_area"),
+                    "group_name": item.get("group_name"),
+                    "source_url": item["person_identifier"] or source_url,
+                    "politician_id": politician_id,
+                }
+                linked += politician_id is not None
+                row = existing.get(item["official_identifier"])
+                if row is None:
+                    session.add(
+                        HistoricalParliamentMandate(
+                            source_id=source_id,
+                            raw_document_id=raw_document_id,
+                            official_identifier=item["official_identifier"],
+                            **values,
+                        )
+                    )
+                    created += 1
+                elif any(getattr(row, key) != value for key, value in values.items()):
+                    for key, value in values.items():
+                        setattr(row, key, value)
+                    row.raw_document_id = raw_document_id
+                    updated += 1
+                else:
+                    unchanged += 1
+        return ArchiveSync(0, created, updated, unchanged, linked)
+
     # ------------------------------------------------------------------ reads
     @staticmethod
     def _counts(session: Session) -> dict[tuple[int, Chamber], int]:
@@ -277,13 +354,26 @@ class ArchiveService:
             numbers = [n for (n,) in session.execute(select(Legislature.number).order_by(Legislature.number))]
             position = numbers.index(number)
             end = row.end_date or date.max
-            proposals = session.scalar(
-                select(func.count(Proposal.id)).where(
-                    Proposal.published_at.is_not(None),
-                    Proposal.introduced_at >= row.start_date,
-                    Proposal.introduced_at <= end,
+            in_term = (
+                Proposal.published_at.is_not(None),
+                Proposal.introduced_at >= row.start_date,
+                Proposal.introduced_at <= end,
+            )
+            proposals = session.scalar(select(func.count(Proposal.id)).where(*in_term)) or 0
+            enacted = tuple(
+                PublicLegislatureLaw(
+                    id=item.id,
+                    title=item.title,
+                    status=item.current_status.value if item.current_status else "enacted",
+                    introduced_at=item.introduced_at,
                 )
-            ) or 0
+                for item in session.scalars(
+                    select(Proposal)
+                    .where(*in_term, Proposal.current_status == ProposalStatus.ENACTED)
+                    .order_by(Proposal.introduced_at, Proposal.id)
+                    .limit(12)
+                )
+            )
             return PublicLegislatureDetail(
                 legislature=self._public(row, counts),
                 previous=numbers[position - 1] if position > 0 else None,
@@ -292,6 +382,7 @@ class ArchiveService:
                     session, Referendum.vote_date >= row.start_date, Referendum.vote_date <= end
                 ),
                 published_proposals=proposals,
+                enacted_laws=enacted,
             )
 
     def mandates(

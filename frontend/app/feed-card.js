@@ -203,7 +203,7 @@ export function renderFeedCard(item, options = {}) {
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
     <div class="vp-sub">
       <span class="vp-badge badge-${esc(badge.tone || "plain")}">${esc(badge.label)}${badgeDate ? ` · ${esc(feedDate(badgeDate))}` : ""}</span>
-      ${aside ? `<span class="vp-aside">${esc(aside)}</span>` : ""}
+      ${aside ? `<span class="vp-aside vp-place">${esc(aside)}</span>` : ""}
     </div>
     <div class="vp-body">
       ${people.length ? `<ul class="vp-people">${people.map((person) => {

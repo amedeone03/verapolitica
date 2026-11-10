@@ -26,6 +26,7 @@ and uniqueness rules.
 | `civic-reminders` | `civic-reminders` | Internal reminder-candidate generation for published referendums |
 | `pledge-evidence` | `pledge-evidence` | Evidence matching for open action pledges |
 | `camera-history` | `camera-storico` | Historical Camera roster and legislature dates (`VERAPOLITICA_CAMERA_HISTORY_LEGISLATURES`, default `1-19`) |
+| `senato-history` | `senato-storico` | Historical Senate roster (`VERAPOLITICA_SENATO_HISTORY_LEGISLATURES`, default `1-19`). Cron stays blank. |
 
 There is no party-ingestion job because no live official affiliation source exists.
 `civic-reminders` does not scrape referendum pages and does not send email, SMS, or push.
@@ -49,6 +50,8 @@ python -m scripts.run_jobs proposals
 python -m scripts.run_jobs territories
 python -m scripts.run_jobs territorial-offices
 python -m scripts.run_jobs civic-reminders
+python -m scripts.run_jobs camera-history
+python -m scripts.run_jobs senato-history
 python -m scripts.run_jobs list
 ```
 

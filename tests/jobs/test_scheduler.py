@@ -5,6 +5,16 @@ from backend.app.jobs.catalog import enabled_schedules
 from backend.app.jobs.scheduler import IngestionScheduler
 
 
+def test_history_jobs_stay_off_unless_cron_is_set():
+    assert Settings.model_fields["schedule_camera_history_cron"].default == ""
+    assert Settings.model_fields["schedule_senato_history_cron"].default == ""
+    settings = Settings()
+    assert settings.scheduler_enabled is False
+    names = [spec.job_name for spec, _cron in enabled_schedules(settings)]
+    assert "camera-history" not in names
+    assert "senato-history" not in names
+
+
 def test_pledge_evidence_schedule_remains_disabled_by_default():
     assert Settings.model_fields["schedule_pledge_evidence_cron"].default == ""
     settings = Settings(schedule_pledge_evidence_cron="")

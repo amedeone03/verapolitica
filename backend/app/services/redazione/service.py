@@ -131,6 +131,11 @@ from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
 from backend.app.services.redazione.territory import TerritoryError, TerritorySchede
 from backend.app.services.redazione.politics import PoliticsEditError, PoliticsEdits
+from backend.app.services.redazione.archive import (
+    ArchiveTimelineDesk,
+    ArchiveTimelineError,
+    ArchiveTimelineNotFound,
+)
 
 
 # --------------------------------------------------------------------- errors
@@ -181,6 +186,7 @@ KIND_LABELS = {
     "image": "Immagine",
     "territory": "Scheda di un territorio",
     "politica": "Politica attuale",
+    "archivio": "Cronologia Archivio",
 }
 VERDICT_LABELS = {
     "kept": "Mantenuta",
@@ -285,6 +291,7 @@ class RedazioneService:
         self.editorial = EditorialService(session_factory, clock=clock)
         self.territories = TerritorySchede(session_factory)
         self.politics = PoliticsEdits(session_factory)
+        self.archive = ArchiveTimelineDesk(session_factory)
 
     # ------------------------------------------------------------------- log
     def _log(
@@ -2098,6 +2105,22 @@ class RedazioneService:
                         member=member,
                     )
                 )
+        for check in self.archive.pending():
+            created = datetime.fromisoformat(check["created_at"]) if check.get("created_at") else None
+            items.append(
+                self._queue_item(
+                    kind="archivio",
+                    item_id=check["id"],
+                    title=f"{check['timeline_name']}: {check['event_title']}",
+                    politician_id=None,
+                    politician_name=None,
+                    author=check["created_by"],
+                    created_at=created,
+                    preview=check,
+                    findings=check.get("findings") or [],
+                    member=member,
+                )
+            )
         return items
 
     @staticmethod
@@ -2236,6 +2259,10 @@ class RedazioneService:
                 self.territories.publish(item_id, reviewer=member, note=note)
                 summary = f"Pubblicato «{item['title']}»."
                 details["territory"] = item.get("territory")
+            elif kind == "archivio":
+                published = self.archive.publish(item_id, reviewer=member, note=note)
+                summary = f"Verificata la voce «{item['title']}» su fonte ufficiale."
+                details["slug"] = published["slug"]
             else:
                 raise RedazioneNotFound("tipo sconosciuto")
         except (
@@ -2247,6 +2274,7 @@ class RedazioneService:
             EditorialValidationError,
             TerritoryError,
             PoliticsEditError,
+            ArchiveTimelineError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
         if self_verified:
@@ -2293,6 +2321,8 @@ class RedazioneService:
                 self.territories.reject(item_id, reviewer=member, note=note)
             elif kind == "politica":
                 self.politics.reject(item_id, reviewer=member, note=note)
+            elif kind == "archivio":
+                self.archive.reject(item_id, reviewer=member, note=note)
             else:
                 raise RedazioneNotFound("tipo sconosciuto")
         except (
@@ -2302,6 +2332,7 @@ class RedazioneService:
             EditorialConflictError,
             TerritoryError,
             PoliticsEditError,
+            ArchiveTimelineError,
         ) as error:
             raise RedazioneConflict(str(error)) from error
         summary = f"Respinto: {item['kind_label']} — {item['title']}. Motivo: {note}"
@@ -2616,6 +2647,59 @@ class RedazioneService:
                 "public_schede": session.scalar(select(func.count()).select_from(public_ids.subquery())) or 0,
                 "schede_with_bio": session.scalar(with_bio) or 0,
             }
+
+    def archive_catalog(self) -> list[dict]:
+        return self.archive.catalog()
+
+    def archive_detail(self, slug: str) -> dict:
+        try:
+            return self.archive.detail(slug)
+        except ArchiveTimelineNotFound as error:
+            raise RedazioneNotFound(str(error)) from error
+
+    def propose_archive_verification(
+        self, slug: str, event_index: int, *, official_url: str, official_name: str, member: str
+    ) -> dict:
+        try:
+            result = self.archive.propose(
+                slug, event_index, official_url=official_url, official_name=official_name, member=member
+            )
+        except ArchiveTimelineNotFound as error:
+            raise RedazioneNotFound(str(error)) from error
+        except ArchiveTimelineError as error:
+            raise RedazioneValidation(str(error), findings=error.findings) from error
+        if self.can_self_verify("archivio", member):
+            return {**result, **self.publish_own("archivio", result["id"], member=member)}
+        return result
+
+    def jobs_status(self, settings) -> dict:
+        from backend.app.jobs.catalog import JOB_CATALOG, enabled_schedules
+        from backend.app.models import IngestionJobRun
+
+        enabled = {spec.job_name for spec, _cron in enabled_schedules(settings)}
+        with self.session_factory() as session:
+            latest: dict[str, IngestionJobRun] = {}
+            for row in session.scalars(select(IngestionJobRun).order_by(IngestionJobRun.started_at.desc())):
+                latest.setdefault(row.job_name, row)
+        jobs = []
+        for name, spec in JOB_CATALOG.items():
+            row = latest.get(name)
+            jobs.append(
+                {
+                    "job_name": name,
+                    "source_key": spec.source_key,
+                    "cron_configured": name in enabled,
+                    "last_status": row.status.value if row else None,
+                    "last_started_at": row.started_at.isoformat() if row and row.started_at else None,
+                    "last_finished_at": row.completed_at.isoformat() if row and row.completed_at else None,
+                    "error_message": row.error_message if row else None,
+                }
+            )
+        return {
+            "scheduler_enabled": settings.scheduler_enabled,
+            "scheduler_process": "opt-in compose profile `scheduler`; blank cron keeps jobs off",
+            "jobs": jobs,
+        }
 
 
 def _place(value: Any) -> str | None:

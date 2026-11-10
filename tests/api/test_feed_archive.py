@@ -393,6 +393,67 @@ def test_camera_history_parser_and_archive_endpoints(world):
     assert client.get("/archive/provinces/ZZ").status_code == 404
 
 
+def test_senato_history_parser_and_archive_endpoints(world):
+    client, factory, data, *_ = world
+    from backend.app.pipeline.collectors.senato_history import encode_senato_history_bundle, mandates_query
+    from backend.app.pipeline.parsers.senato_history import SenatoHistoryParser
+
+    assert "FILTER(?legislature = 1)" in mandates_query(1)
+    assert "FILTER(!BOUND(?mandateEnd))" not in mandates_query(1)
+    bundle = encode_senato_history_bundle(
+        {
+            1: _sparql(
+                [
+                    {
+                        "senatorUri": {"type": "uri", "value": "https://dati.senato.it/senatore/200"},
+                        "mandateUri": {"type": "uri", "value": "https://dati.senato.it/mandato/200-1"},
+                        "firstName": _literal("ALCIDE"),
+                        "lastName": _literal("DE GASPERI"),
+                        "mandateStart": _literal("1948-05-08"),
+                        "mandateEnd": _literal("1953-06-24"),
+                        "electionRegion": _literal("TRENTINO-ALTO ADIGE"),
+                    }
+                ]
+            )
+        }
+    )
+    parsed = SenatoHistoryParser().parse(bundle)
+    assert parsed.structured_records[0]["chamber"] == "senato"
+    assert parsed.structured_records[0]["family_name"] == "De Gasperi"
+    with pytest.raises(ParserError):
+        SenatoHistoryParser().parse(b'{"schema": "other"}')
+
+    with factory() as session:
+        storico = Source(key="senato-storico", name="Senato storico", base_url="https://dati.senato.it")
+        session.add(storico)
+        session.flush()
+        session.add(
+            PoliticianSourceIdentifier(
+                politician_id=data.politician_id,
+                source_id=data.source_id,
+                value="https://dati.senato.it/senatore/200",
+            )
+        )
+        session.commit()
+        storico_id = storico.id
+    archive = ArchiveService(factory)
+    sync = archive.sync_senato_history(
+        parsed.structured_records,
+        source_id=storico_id,
+        profile_source_id=data.source_id,
+        raw_document_id=data.raw_document_id,
+        source_url="https://dati.senato.it/sparql",
+    )
+    assert (sync.mandates_created, sync.mandates_linked) == (1, 1)
+    roster = client.get("/archive/parliamentarians?chamber=senato&legislature=1").json()
+    assert roster["total"] == 1
+    assert roster["items"][0]["politician_id"] == data.politician_id
+    assert roster["items"][0]["election_area"] == "TRENTINO-ALTO ADIGE"
+    detail = client.get("/archive/legislatures/1").json()
+    assert "enacted_laws" in detail
+    assert isinstance(detail["enacted_laws"], list)
+
+
 def test_roman_numerals():
     assert [roman(n) for n in (1, 4, 9, 11, 14, 19)] == ["I", "IV", "IX", "XI", "XIV", "XIX"]
 

@@ -478,6 +478,46 @@ def ignore_identity(
     )
 
 
+@router.get("/archivio/timelines")
+def archive_timelines(member: Member, service: Service) -> Any:
+    del member
+    return _run(service.archive_catalog)
+
+
+@router.get("/archivio/timelines/{slug}")
+def archive_timeline(slug: Annotated[str, Path(pattern=r"^[a-z0-9-]{2,80}$")], member: Member, service: Service) -> Any:
+    del member
+    return _run(service.archive_detail, slug)
+
+
+@router.post("/archivio/timelines/{slug}/eventi/{event_index}/verifica")
+def archive_verify(
+    slug: Annotated[str, Path(pattern=r"^[a-z0-9-]{2,80}$")],
+    event_index: Annotated[int, Path(ge=0, le=400)],
+    member: Member,
+    service: Service,
+    payload: Annotated[dict, Body()],
+) -> Any:
+    return _run(
+        service.propose_archive_verification,
+        slug,
+        event_index,
+        official_url=payload.get("official_url") or "",
+        official_name=payload.get("official_name") or "",
+        member=member,
+    )
+
+
+@router.get("/lavori")
+def jobs(
+    member: Member,
+    service: Service,
+    settings: Annotated[Settings, Depends(get_api_settings)],
+) -> Any:
+    del member
+    return service.jobs_status(settings)
+
+
 @router.get("/registro")
 def log(
     member: Member,

@@ -58,12 +58,22 @@ class PublicArchiveReferendum(ImmutableSchema):
     scope_type: str
 
 
+class PublicLegislatureLaw(ImmutableSchema):
+    """A published bill of this legislature, for the 'questa legge in questa legislatura' view."""
+
+    id: int
+    title: str
+    status: str
+    introduced_at: date | None = None
+
+
 class PublicLegislatureDetail(ImmutableSchema):
     legislature: PublicLegislature
     previous: int | None
     next: int | None
     referendums: tuple[PublicArchiveReferendum, ...]
     published_proposals: int = Field(ge=0)
+    enacted_laws: tuple[PublicLegislatureLaw, ...] = ()
 
 
 class PublicProvince(ImmutableSchema):
@@ -110,6 +120,7 @@ class PublicArchiveTimelineSummary(ImmutableSchema):
     name: str
     slug: str
     event_count: int
+    verified_count: int = 0
     draft: bool = True
     municipality_id: int | None = None
     province_abbreviation: str | None = None
@@ -128,6 +139,9 @@ class PublicArchiveTimelineEvent(ImmutableSchema):
     body: str
     status: str = ""
     sources: tuple[str, ...] = ()
+    verified: bool = False
+    official_url: str | None = None
+    official_name: str | None = None
 
 
 class PublicArchiveTimeline(ImmutableSchema):
@@ -140,6 +154,7 @@ class PublicArchiveTimeline(ImmutableSchema):
     updated: str | None = None
     mayor: str | None = None
     disclaimer: str
+    verified_count: int = 0
     events: tuple[PublicArchiveTimelineEvent, ...]
     municipality_id: int | None = None
     province_abbreviation: str | None = None

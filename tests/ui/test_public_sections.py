@@ -324,3 +324,27 @@ def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_ima
     assert 'api(`/territori/${kind}/${encodeURIComponent(base.key)}/immagini`)' in console
     assert 'purpose: slot.photo ? "photo" : "logo"' in console and "async function shrinkForUpload(img" in console
     assert "provinceTownsCard(base)" in console
+    assert '<span class="nav-text">Archivio</span>' in html
+    assert '<span class="nav-text">Lavori</span>' in html
+    assert 'const QUEUE_KINDS =' in console and '["archivio", "Archivio"]' in console
+    assert "async function showArchiveDesk" in console and "async function showJobs" in console
+    assert "Wikipedia e Tuttitalia restano bozze" in console
+    assert "Nessun cron è impostato" in console
+
+
+def test_standout_public_surfaces_keep_gaps_visible_and_ask_threaded():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    cards = (APP / "feed-card.js").read_text(encoding="utf-8")
+    map_script = (APP / "territory-map.js").read_text(encoding="utf-8")
+    assert 'class="vp-aside vp-place"' in cards
+    assert "Il feed Per te è vuoto." in script
+    assert 'href="./?view=profile&amp;tab=follows">Scegli chi seguire' in script
+    assert "Scheda incompleta" in script and "Titolare non ancora collegato" in script
+    assert "Cerca un comune, una provincia o una regione" in html
+    assert 'api.search({ q, type: "municipality", limit: 12' in map_script
+    assert "Leggi di questa legislatura" in script
+    assert "thread.length < 3" in script and "pledge_ids: pin" in script
+    assert ".ask-turn + .ask-turn" in css
+    assert "@media (max-width: 767px)" in css and ".compare-card .rate-block" in css

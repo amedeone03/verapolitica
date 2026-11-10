@@ -49,7 +49,8 @@
 .vp-badge.badge-green { background: var(--vp-green); }
 .vp-badge.badge-red { background: var(--vp-red); }
 .vp-card.tone-red .vp-badge.badge-plain { color: var(--vp-red); }
-.vp-aside { color: var(--vp-muted); font-weight: 600; }
+.vp-aside, .vp-place { color: var(--vp-muted); font-weight: 600; }
+.vp-place { letter-spacing: .01em; }
 
 .vp-body { padding: 16px; }
 .vp-people { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 0 0 8px; padding: 0; list-style: none; }

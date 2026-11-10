@@ -84,6 +84,7 @@ EXPECTED_TABLES = frozenset(
         "civic_post_reactions",
         "territory_blocks",
         "politics_edits",
+        "archive_timeline_verifications",
     }
 )
 

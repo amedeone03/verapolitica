@@ -462,12 +462,19 @@ main:focus { outline: none; }
 .legend-dot.tone-stalled { background: transparent; border: 2px solid var(--verdict-stalled); }
 .rate-block { display: grid; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .rate-label { color: var(--color-text-muted); font-size: .8125rem; font-weight: 500; }
-.rate-value { color: var(--color-primary); font-family: var(--font-heading); font-size: clamp(2.25rem, 1.8rem + 2vw, 3rem); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.rate-value { color: var(--color-primary); font-family: var(--font-heading); font-size: clamp(1.75rem, 6vw, 3rem); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .rate-block.is-withheld .rate-value { font-size: 1.5rem; color: var(--color-text-muted); }
 .rate-note, .rate-range { margin: 0; color: var(--color-text-muted); font-size: .875rem; }
 .interval-track { height: 8px; margin: var(--space-2) 0; }
 .interval-range { position: absolute; top: 0; bottom: 0; background: var(--color-accent); }
 .interval-point { position: absolute; top: 50%; width: 12px; height: 12px; margin-left: -6px; background: var(--color-primary); border: 2px solid #fff; border-radius: 50%; transform: translateY(-50%); }
+@media (max-width: 767px) {
+  .interval-track { height: 12px; }
+  .interval-point { width: 16px; height: 16px; margin-left: -8px; }
+  .stratum-head { flex-direction: column; align-items: flex-start; }
+  .composition-legend { gap: var(--space-2); font-size: .8125rem; }
+  .compare-card .rate-block { padding: var(--space-3); }
+}
 
 .pledge-board { margin-top: var(--space-6); }
 .pledge-list-head h3 { margin-bottom: var(--space-3); }
@@ -539,6 +546,10 @@ main:focus { outline: none; }
 .ask-cards { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
 .ask-card { padding: var(--space-3) var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .ask-card h3 { margin: var(--space-1) 0 0; font-size: 1rem; }
+.ask-turn + .ask-turn { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.ask-turn-q { margin: 0 0 var(--space-3); color: var(--color-primary); font-weight: 600; }
+.ask-followups { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ask-followups .ask-suggestion { border: 1px solid var(--color-control-border); background: var(--color-surface); cursor: pointer; }
 .territory-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); margin: var(--space-5) 0; color: var(--color-text-muted); font-size: .875rem; }
 .territory-pagination a { font-weight: 600; }
 
@@ -546,8 +557,9 @@ main:focus { outline: none; }
 .compare-form { display: grid; gap: var(--space-3); max-width: var(--reading-width); margin-bottom: var(--space-6); }
 .compare-form label, .compare-form legend, .zone-form label { color: var(--color-primary); font-size: .875rem; font-weight: 600; }
 .compare-form fieldset { margin: 0; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
-.compare-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-1) var(--space-4); max-height: 280px; overflow: auto; }
-.compare-person { display: flex; align-items: center; gap: var(--space-2); min-height: 36px; color: var(--color-text) !important; font-weight: 400 !important; }
+.compare-people { display: grid; grid-template-columns: 1fr; gap: var(--space-1); max-height: min(50vh, 360px); overflow: auto; }
+@media (min-width: 600px) { .compare-people { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-1) var(--space-4); } }
+.compare-person { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; color: var(--color-text) !important; font-weight: 400 !important; }
 .compare-person input { width: 18px; height: 18px; accent-color: var(--color-secondary); }
 .compare-form button[type="submit"], .zone-form button[type="submit"] { justify-self: start; }
 .compare-card h3 { font-size: 1.125rem; }
@@ -1798,6 +1810,7 @@ a, button, summary, [role="tab"], [role="button"] { -webkit-tap-highlight-color:
 
 /* Who governs: a politician row, one tap to the profile. */
 .t-holder { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--color-background); color: var(--color-text); text-decoration: none; box-shadow: inset 0 0 0 1px var(--color-border); -webkit-tap-highlight-color: transparent; transition: transform 120ms cubic-bezier(.23, 1, .32, 1), background-color 150ms ease; }
+.t-holder.is-empty { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, var(--color-border)); }
 a.t-holder:active { transform: scale(.98); }
 @media (hover: hover) and (pointer: fine) { a.t-holder:hover { background: var(--color-accent-light); } }
 a.t-holder:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 2px; }

@@ -4,12 +4,13 @@ from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from backend.app.core.config import Settings
 from backend.app.db.base import Base
 from backend.app.db.session import create_db_engine, create_session_factory
 from backend.app.main import create_app
-from backend.app.models import Municipality, RawDocument, RawDocumentStatus, Region, Source
+from backend.app.models import Municipality, RawDocument, RawDocumentStatus, Region, Source, TerritorialOfficeMandate
 
 ANNA = {"Authorization": "Bearer tok-anna-redattrice"}
 BRUNO = {"Authorization": "Bearer tok-bruno-verificatore"}
@@ -63,11 +64,11 @@ def console(tmp_path):
 def test_the_scheda_follows_the_writing_models_and_keeps_the_official_base(console):
     client, ids = console
     region = client.get(f"/redazione/api/territori/region/{ids['region']}", headers=ANNA).json()
-    assert [block["key"] for block in region["definitions"]] == ["rapida", "presidente", "giunta", "consiglio", "promesse", "elezioni"]
+    assert [block["key"] for block in region["definitions"]] == ["rapida", "presidente", "giunta", "consiglio", "promesse", "elezioni", "titolare"]
     assert region["base"]["name"] == "Lombardia" and region["base"]["municipality_count"] == 1
     assert region["base"]["provinces"] == [{"abbreviation": "MI", "name": "Milano", "municipalities": 1}]
     town = client.get(f"/redazione/api/territori/municipality/{ids['municipality']}", headers=ANNA).json()
-    assert [block["title"] for block in town["definitions"]] == ["Scheda rapida", "Il sindaco", "La giunta", "Consiglio e opposizione", "Promesse del mandato", "Elezioni (storico e prossime)"]
+    assert [block["title"] for block in town["definitions"]] == ["Scheda rapida", "Il sindaco", "La giunta", "Consiglio e opposizione", "Promesse del mandato", "Elezioni (storico e prossime)", "Collega il sindaco"]
     assert town["base"]["province"] == {"abbreviation": "MI", "name": "Milano"}
     province = client.get("/redazione/api/territori/province/mi", headers=ANNA).json()
     assert province["base"]["name"] == "Milano" and province["base"]["key"] == "MI"
@@ -294,3 +295,38 @@ def test_coat_of_arms_and_cover_photo_for_every_territory(console):
     }).json()
     client.post(f"/redazione/api/coda/change/{arms['id']}/approva", headers=BRUNO, json={})
     assert client.get(f"/territories/municipality/{ids['municipality']}").json()["images"]["logo"]["url"] == logo["url"]
+
+
+def test_editorial_holder_overlay_does_not_invent_a_dait_mandate(console):
+    client, ids = console
+    path = f"/redazione/api/territori/municipality/{ids['municipality']}/blocchi/titolare"
+    wikipedia = client.post(
+        path,
+        headers=ANNA,
+        json={
+            "fields": {"nome": "Giuseppe Sala", "in_carica_dal": "2021-10-18"},
+            "sources": [{"name": "Wikipedia", "url": "https://it.wikipedia.org/wiki/Giuseppe_Sala"}],
+        },
+    )
+    assert wikipedia.status_code == 200, wikipedia.text
+    blocked = next(item for item in client.get("/redazione/api/coda", headers=BRUNO).json() if item["kind"] == "territory")
+    assert blocked["blocked"] is True
+    assert any(finding["code"] == "fonte_secondaria" for finding in blocked["findings"])
+    official = client.post(
+        path,
+        headers=ANNA,
+        json={
+            "fields": {"nome": "Giuseppe Sala", "in_carica_dal": "2021-10-18"},
+            "sources": [{"name": "Comune di Milano", "url": "https://www.comune.milano.it/comune/sindaco"}],
+        },
+    )
+    assert official.status_code == 200, official.text
+    item = next(item for item in client.get("/redazione/api/coda", headers=BRUNO).json() if item["kind"] == "territory" and not item["blocked"])
+    assert client.post(f"/redazione/api/coda/territory/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    public = client.get(f"/territories/municipality/{ids['municipality']}").json()
+    assert public["base"]["holder"]["name"] == "Giuseppe Sala"
+    assert public["base"]["holder"]["editorial"] is True
+    assert public["base"]["holder"]["politician_id"] is None
+    assert all(block["key"] != "titolare" for block in public["blocks"])
+    with client.app.state.session_factory() as session:
+        assert list(session.scalars(select(TerritorialOfficeMandate))) == []

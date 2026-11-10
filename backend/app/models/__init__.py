@@ -110,6 +110,10 @@ from backend.app.models.ingestion_job import (
 )
 from backend.app.models.civic_account import CivicAccount, CivicPostReaction
 from backend.app.models.territory_block import TerritoryBlock, TerritoryBlockStatus, TerritoryKind
+from backend.app.models.archive_timeline import (
+    ArchiveTimelineVerification,
+    ArchiveTimelineVerificationStatus,
+)
 from backend.app.models.politics_edit import PoliticsEdit
 from backend.app.models.civic import (
     GeographicScopeType,
@@ -248,6 +252,8 @@ __all__ = [
     "CivicAccount",
     "CivicPostReaction",
     "TerritoryBlock",
+    "ArchiveTimelineVerification",
+    "ArchiveTimelineVerificationStatus",
     "PoliticsEdit",
     "TerritoryBlockStatus",
     "TerritoryKind",
