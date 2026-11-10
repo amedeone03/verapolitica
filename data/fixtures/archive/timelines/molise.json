@@ -1,0 +1,76 @@
+{
+  "kind": "region",
+  "name": "Molise",
+  "slug": "molise",
+  "source_file": "Timeline_Regione_Molise_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Giovanni Di Stasi (centro-sinistra). Secondo: Michele Iorio. Affluenza 67,3%. Di Stasi è presidente dal 20 maggio 2000 al 21 novembre 2001. Secondo l’elenco consultato, nel 2001 il TAR rileva irregolarità nel voto del 2000 e il voto è da ripetere.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Molise."
+      ]
+    },
+    {
+      "date": "2001-11-21",
+      "date_label": "21 novembre",
+      "title": "Michele Iorio presidente della Regione",
+      "body": "Michele Iorio, di Forza Italia e poi del PdL, diventa presidente il 21 novembre 2001 e resta in carica fino al 18 marzo 2013. La fonte consultata non dà la data della ripetizione del voto.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Molise."
+      ]
+    },
+    {
+      "date": "2012-01-01",
+      "date_label": "2012",
+      "title": "Il TAR e il voto del 2011",
+      "body": "Secondo l’elenco consultato, nel 2012 il TAR rileva irregolarità nel voto regionale del 2011 e il voto è da ripetere.",
+      "status": "controllato su fonte. I dettagli e le date non sono nella fonte: da verificare.",
+      "sources": [
+        "Wikipedia, presidenti Molise."
+      ]
+    },
+    {
+      "date": "2013-02-24",
+      "date_label": "24–25 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Paolo Frattura (PD, centro-sinistra). Affluenza 61,6%. Frattura è presidente dal 18 marzo 2013 all’8 maggio 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013",
+        "Wikipedia, presidenti Molise."
+      ]
+    },
+    {
+      "date": "2018-04-22",
+      "date_label": "22 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Donato Toma (FI, centro-destra). Secondo: Andrea Greco (M5S), con il 38,5%. Affluenza 52,2%. Toma è presidente dall’8 maggio 2018 al 6 luglio 2023.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018",
+        "Wikipedia, presidenti Molise."
+      ]
+    },
+    {
+      "date": "2023-06-25",
+      "date_label": "25–26 giugno",
+      "title": "Elezioni regionali",
+      "body": "Vince Francesco Roberti (FI, centro-destra), con il 62,2%. Secondo: Roberto Gravina (M5S), con il 36,3%. Affluenza 47,9%. Roberti è presidente dal 6 luglio 2023.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2023",
+        "Wikipedia, presidenti Molise."
+      ]
+    }
+  ]
+}

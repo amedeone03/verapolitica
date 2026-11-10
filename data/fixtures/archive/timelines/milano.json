@@ -1,0 +1,93 @@
+{
+  "kind": "city",
+  "name": "Milano",
+  "slug": "milano",
+  "source_file": "Timeline_Citta_Milano_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Giuseppe Sala",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2001-05-14",
+      "date_label": "14 maggio",
+      "title": "Albertini rieletto sindaco",
+      "body": "Gabriele Albertini, di Forza Italia, è rieletto sindaco con la Casa delle Libertà (FI, AN, Lega Nord, UDC). Il secondo mandato va dal 14 maggio 2001 al 1° giugno 2006. Il primo era iniziato il 12 maggio 1997.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Milano."
+      ]
+    },
+    {
+      "date": "2006-06-01",
+      "date_label": "1 giugno",
+      "title": "Letizia Moratti sindaca",
+      "body": "Letizia Moratti, di Forza Italia, è sindaca dal 1° giugno 2006 al 1° giugno 2011, con la Casa delle Libertà.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Milano."
+      ]
+    },
+    {
+      "date": "2011-06-01",
+      "date_label": "1 giugno",
+      "title": "Giuliano Pisapia sindaco",
+      "body": "Giuliano Pisapia, indipendente, è sindaco dal 1° giugno 2011 al 21 giugno 2016, con una coalizione di PD, SEL, Federazione della Sinistra e altre liste.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Milano."
+      ]
+    },
+    {
+      "date": "2015-05-01",
+      "date_label": "1 maggio–31 ottobre",
+      "title": "Expo Milano 2015",
+      "body": "Milano ospita l’Esposizione universale. Date, costi e inchieste collegate sono da verificare. Le posizioni non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2016-06-21",
+      "date_label": "21 giugno",
+      "title": "Giuseppe Sala sindaco",
+      "body": "Giuseppe Sala, indipendente, è sindaco dal 21 giugno 2016, con PD e Sinistra Italiana.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Milano."
+      ]
+    },
+    {
+      "date": "2021-10-03",
+      "date_label": "3–4 ottobre",
+      "title": "Elezioni comunali",
+      "body": "Giuseppe Sala è rieletto al primo turno. Il voto, previsto a giugno 2021, è rinviato per la pandemia di Covid-19. Il nuovo mandato è indicato dal 6 ottobre 2021, con una coalizione che comprende PD ed Europa Verde.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, sindaci di Milano",
+        "Open, 4 ottobre 2021."
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "date_label": "6–22 febbraio",
+      "title": "Olimpiadi invernali Milano-Cortina",
+      "body": "Milano e Cortina d’Ampezzo ospitano i Giochi olimpici invernali del 2026. Date, spese e opere collegate sono da verificare. Le posizioni non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2027-01-01",
+      "date_label": "primavera",
+      "title": "Prossime elezioni comunali",
+      "body": "Secondo la scheda di lavoro di VeraPolitica Milano vota in primavera 2027. La data non è ancora fissata.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    }
+  ]
+}

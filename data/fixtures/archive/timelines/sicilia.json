@@ -1,0 +1,82 @@
+{
+  "kind": "region",
+  "name": "Sicilia",
+  "slug": "sicilia",
+  "source_file": "Timeline_Regione_Sicilia_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2001-07-17",
+      "date_label": "17 luglio",
+      "title": "Salvatore Cuffaro presidente della Regione",
+      "body": "Salvatore Cuffaro diventa presidente il 17 luglio 2001. La data del voto non è stata verificata.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2008-01-26",
+      "date_label": "26 gennaio",
+      "title": "Dimissioni del presidente Cuffaro",
+      "body": "Salvatore Cuffaro lascia l’incarico il 26 gennaio 2008. La pagina consultata collega le dimissioni a una condanna a cinque anni per favoreggiamento. Il vicepresidente Nicola Leanza guida la Regione fino alle nuove elezioni. Le posizioni non sono riportate in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2008-04-28",
+      "date_label": "28 aprile",
+      "title": "Raffaele Lombardo presidente della Regione",
+      "body": "Raffaele Lombardo è presidente dal 28 aprile 2008 al 10 novembre 2012. La data del voto non è stata verificata.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2012-07-31",
+      "date_label": "31 luglio",
+      "title": "Dimissioni del presidente Lombardo",
+      "body": "Raffaele Lombardo si dimette il 31 luglio 2012. Secondo la pagina consultata è indagato per concorso esterno e voto di scambio. Resta presidente facente funzioni fino al 10 novembre 2012. Gli esiti giudiziari e le posizioni non sono riportati in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2012-11-10",
+      "date_label": "10 novembre",
+      "title": "Rosario Crocetta presidente della Regione",
+      "body": "Rosario Crocetta, del PD, è presidente dal 10 novembre 2012 al 18 novembre 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2017-11-18",
+      "date_label": "18 novembre",
+      "title": "Nello Musumeci presidente della Regione",
+      "body": "Nello Musumeci, di Diventerà Bellissima, è presidente dal 18 novembre 2017 al 13 ottobre 2022.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    },
+    {
+      "date": "2022-10-13",
+      "date_label": "13 ottobre",
+      "title": "Renato Schifani presidente della Regione",
+      "body": "Renato Schifani, di Forza Italia, è presidente dal 13 ottobre 2022, con Fratelli d’Italia, Forza Italia, Lega, MpA e DC. La data del voto non è stata verificata.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Sicilia."
+      ]
+    }
+  ]
+}

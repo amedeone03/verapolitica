@@ -1,0 +1,110 @@
+{
+  "kind": "region",
+  "name": "Emilia-Romagna",
+  "slug": "emilia-romagna",
+  "source_file": "Timeline_Regione_Emilia-Romagna_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Vasco Errani (centro-sinistra). Secondo: Cané. Affluenza 79,7%. Errani è presidente dal 16 aprile 2000 all’8 luglio 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Vasco Errani (centro-sinistra). Secondo: Carlo Monaco. Affluenza 76,7%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Vasco Errani (centro-sinistra). Secondo: Anna Maria Bernini. Affluenza 68,1%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    },
+    {
+      "date": "2012-05-20",
+      "date_label": "20 e 29 maggio",
+      "title": "Terremoti in Emilia",
+      "body": "Due forti terremoti colpiscono l’Emilia il 20 e il 29 maggio 2012. Numero delle vittime e danni sono da controllare. Le posizioni dei politici non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2014-07-08",
+      "date_label": "8 luglio",
+      "title": "Errani lascia la presidenza",
+      "body": "Vasco Errani lascia l’incarico a luglio 2014 (l’8 luglio secondo l’elenco consultato). La pagina sulle elezioni del 2014 collega le dimissioni a uno scandalo e non dà altri dettagli. Simonetta Saliera guida la Regione ad interim fino al 24 novembre 2014. Il motivo e le vicende giudiziarie vanno ricostruiti da altre fonti. Le posizioni non sono riportate in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Emilia-Romagna",
+        "Wikipedia, elezioni regionali 2014."
+      ]
+    },
+    {
+      "date": "2014-11-23",
+      "date_label": "23 novembre",
+      "title": "Elezioni regionali anticipate",
+      "body": "Vince Stefano Bonaccini (PD, centro-sinistra), con il 49,1%. Secondo: Alan Fabbri (Lega Nord), con il 29,9%. Affluenza 37,7%. Bonaccini è presidente dal 24 novembre 2014 al 12 luglio 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2014",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    },
+    {
+      "date": "2020-01-26",
+      "date_label": "26 gennaio",
+      "title": "Elezioni regionali",
+      "body": "Vince Stefano Bonaccini (PD, centro-sinistra). Secondo: Lucia Borgonzoni (Lega). Affluenza 67,7%. Secondo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    },
+    {
+      "date": "2024-07-12",
+      "date_label": "12 luglio",
+      "title": "Bonaccini lascia la presidenza",
+      "body": "Stefano Bonaccini lascia l’incarico il 12 luglio 2024. Irene Priolo guida la Regione ad interim fino al 13 dicembre 2024. La pagina sulle elezioni del 2024 indica come causa del voto anticipato le dimissioni del presidente. Bonaccini era stato eletto al Parlamento europeo nelle elezioni dell’8–9 giugno 2024 (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Wikipedia, presidenti Emilia-Romagna",
+        "Wikipedia, elezioni regionali 2024."
+      ]
+    },
+    {
+      "date": "2024-11-17",
+      "date_label": "17–18 novembre",
+      "title": "Elezioni regionali anticipate",
+      "body": "Vince Michele de Pascale (PD, centro-sinistra), con il 56,8%. Secondo: Elena Ugolini (centro-destra), con il 40,0%. Affluenza 46,4%. De Pascale è presidente dal 13 dicembre 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2024",
+        "Wikipedia, presidenti Emilia-Romagna."
+      ]
+    }
+  ]
+}

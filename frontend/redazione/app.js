@@ -211,7 +211,7 @@ function imageFields(prefix, label) {
   return `<fieldset class="image-fields"><legend>${esc(label)} <span class="hint">facoltativa</span></legend>
     <div class="image-row"><span class="image-preview" data-image-preview="${prefix}" aria-hidden="true"></span>
       <div class="grid-2" style="flex:1">
-        <div class="field"><label for="${prefix}-img">File</label><input id="${prefix}-img" type="file" accept="image/png,image/jpeg,image/webp" data-image-file="${prefix}" /></div>
+        <div class="field"><label for="${prefix}-img">File</label><input id="${prefix}-img" type="file" accept="image/*,image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" data-image-file="${prefix}" /></div>
         <div class="field"><label for="${prefix}-credit">Credito <span class="hint">es. «Camera dei deputati»</span></label><input id="${prefix}-credit" name="image_credit" type="text" maxlength="300" /></div>
         <div class="field"><label for="${prefix}-src">Link della fonte <span class="hint">facoltativo</span></label><input id="${prefix}-src" name="image_source_url" type="url" placeholder="https://" /></div>
       </div></div>
@@ -1385,7 +1385,7 @@ function createCardComposer(initial, initialPublic) {
         <span class="avatar-circle">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" />` : p.use_portrait && portraitFor(p.politician_id) ? `<img src="${esc(portraitFor(p.politician_id))}" alt="" />` : `<span>${esc(initialsOf(p.name))}</span>`}</span>
         <span class="avatar-label">${p.image_url || (p.use_portrait && portraitFor(p.politician_id)) ? "Cambia foto" : "Carica foto"}</span>
       </button>
-      <input type="file" accept="image/jpeg,image/png,image/webp" data-photo-input="${index}" hidden />
+      <input type="file" accept="image/*,image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" data-photo-input="${index}" hidden />
       <div class="person-fields">
         <p class="person-name"><strong>${esc(p.name)}</strong> <a class="small" href="#/politici/${p.politician_id}">scheda</a></p>
         <p class="person-party">${p.party ? `${esc(p.party.name)}${p.party.abbreviation ? ` (${esc(p.party.abbreviation)})` : ""}` : `<span class="muted">Partito non indicato nel profilo</span>`}</p>
@@ -1953,7 +1953,7 @@ function symbolDialog(kind, name, licenses) {
       <p class="small muted">${kind === "politician"
         ? "Carica una foto di cui conosci autore e licenza (per esempio da Wikimedia Commons o autorizzata dalla persona). Il volto al centro: verrà ritagliata in un quadrato."
         : "Usa il file ufficiale o quello di Wikimedia Commons. Niente ricostruzioni o versioni ridisegnate."}</p>
-      <div class="field"><label for="sym-file">Immagine <span class="hint">PNG, JPEG o WebP</span></label><input id="sym-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
+      <div class="field"><label for="sym-file">Immagine <span class="hint">JPEG, PNG, WebP, GIF o foto dal telefono</span></label><input id="sym-file" type="file" accept="image/*,image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif" required /></div>
       <div class="symbol-stage"><canvas width="512" height="512" aria-label="Anteprima"></canvas></div>
       <div class="field"><label for="sym-credit">Titolare o autore</label><input id="sym-credit" type="text" required maxlength="300" /></div>
       <div class="field"><label for="sym-license">Licenza</label><select id="sym-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>
@@ -2086,8 +2086,8 @@ async function showTerritories(query = "") {
       <input id="tq" type="search" value="${esc(query)}" placeholder="Cerca regione, provincia (MI) o comune" autocomplete="off" />
     </form>
     <div class="t-tabs" role="group" aria-label="Livello">${tabs.map((kind) => `<button type="button" data-tab="${kind}" aria-pressed="${kind === territoryTab}">${TERRITORY_KIND_LABEL[kind]}</button>`).join("")}</div>
-    ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">Cerca un comune per nome, oppure aprilo dalla sua provincia.</p>` : ""}
-    ${list.length ? `<ul class="t-list">${list.map(territoryRowHtml).join("")}</ul>` : territoryTab === "municipality" && !query ? "" : `<div class="empty">Nessun risultato${query ? ` per «${esc(query)}»` : ""}.</div>`}`;
+    ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">I capoluoghi (Verona, Milano, …) stanno in elenco. Per gli altri comuni cerca il nome, oppure aprili dalla provincia.</p>` : ""}
+    ${list.length ? `<ul class="t-list">${list.map(territoryRowHtml).join("")}</ul>` : `<div class="empty">${territoryTab === "municipality" && !query ? "Nessun capoluogo in archivio territoriale. Cerca «Verona» per aprire il Comune." : `Nessun risultato${query ? ` per «${esc(query)}»` : ""}.`}</div>`}`;
   const input = view.querySelector("#tq");
   let timer = null;
   input.addEventListener("input", () => {
@@ -2121,7 +2121,14 @@ function loadImageFile(file) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => resolve({ img, url });
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine non leggibile.")); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      const name = (file.name || "").toLowerCase();
+      const heic = name.endsWith(".heic") || name.endsWith(".heif") || (file.type || "").includes("heic");
+      reject(new Error(heic
+        ? "Questa foto è HEIC: esporta JPEG o PNG (sull'iPhone: Impostazioni → Fotocamera → Formati → Più compatibile)."
+        : "Immagine non leggibile. Usa JPEG, PNG, WebP o GIF."));
+    };
     img.src = url;
   });
 }
@@ -2158,8 +2165,8 @@ function territoryImageDialog(slot, name, licenses) {
       <h2>${what}: ${esc(name)}</h2>
       <p class="small muted">${slot.photo
         ? "Una foto del luogo (piazza, municipio, panorama) di cui conosci autore e licenza, per esempio da Wikimedia Commons. Orizzontale, almeno 1600 pixel di larghezza: il sito la ottimizza da solo."
-        : "Lo stemma ufficiale: dal sito dell'ente o da Wikimedia Commons. Meglio PNG o SVG convertito con sfondo trasparente. Niente versioni ridisegnate."}</p>
-      <div class="field"><label for="ti-file">File <span class="hint">JPEG, PNG o WebP, anche grande</span></label><input id="ti-file" type="file" accept="image/png,image/jpeg,image/webp" required /></div>
+        : "Lo stemma ufficiale: dal sito dell'ente o da Wikimedia Commons. PNG, JPEG o WebP (se hai un SVG, esportalo in PNG). Niente versioni ridisegnate."}</p>
+      <div class="field"><label for="ti-file">File <span class="hint">JPEG, PNG, WebP, GIF o foto dal telefono</span></label><input id="ti-file" type="file" accept="image/*,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif" required /></div>
       <div class="t-preview ${slot.photo ? "is-photo" : "is-logo"}" aria-live="polite"><span class="muted small">Anteprima</span></div>
       <div class="field"><label for="ti-credit">${slot.photo ? "Autore" : "Titolare"}</label><input id="ti-credit" type="text" required maxlength="300" placeholder="${slot.photo ? "es. Mario Rossi / Wikimedia Commons" : "es. Comune di Bergamo"}" /></div>
       <div class="field"><label for="ti-license">Licenza</label><select id="ti-license" required><option value="">Scegli…</option>${licenses.map((item) => `<option value="${esc(item.key)}">${esc(item.label)}</option>`).join("")}</select></div>

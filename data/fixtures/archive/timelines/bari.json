@@ -1,0 +1,67 @@
+{
+  "kind": "city",
+  "name": "Bari",
+  "slug": "bari",
+  "source_file": "Timeline_Citta_Bari_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Vito Leccese",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2004-06-12",
+      "date_label": "12–13 giugno",
+      "title": "Elezioni comunali",
+      "body": "Michele Emiliano, dei DS e poi del PD, è eletto sindaco con il centro-sinistra e liste civiche. È in carica dal 14 giugno 2004. Prima di lui era sindaco Simeone Di Cagno Abbrescia, di Forza Italia, dal 22 giugno 1995.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Bari",
+        "Wikipedia, sindaci di Bari."
+      ]
+    },
+    {
+      "date": "2009-06-06",
+      "date_label": "6–7 giugno",
+      "title": "Elezioni comunali",
+      "body": "Emiliano è rieletto, con PD, Italia dei Valori, SEL e liste civiche. Il secondo mandato finisce il 23 giugno 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Bari",
+        "Wikipedia, sindaci di Bari."
+      ]
+    },
+    {
+      "date": "2014-05-25",
+      "date_label": "25 maggio",
+      "title": "Elezioni comunali",
+      "body": "Antonio Decaro, del PD, è eletto sindaco con PD, SEL, Centro Democratico, Italia dei Valori e liste civiche. È in carica dal 23 giugno 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Bari",
+        "Wikipedia, sindaci di Bari."
+      ]
+    },
+    {
+      "date": "2019-05-26",
+      "date_label": "26 maggio",
+      "title": "Elezioni comunali",
+      "body": "Decaro è rieletto, con PD, Sinistra Italiana e molte liste civiche.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Bari",
+        "Wikipedia, sindaci di Bari."
+      ]
+    },
+    {
+      "date": "2024-06-08",
+      "date_label": "8–9 giugno",
+      "title": "Elezioni comunali",
+      "body": "Vito Leccese, del PD, è eletto sindaco con PD, Europa Verde e liste civiche. È sindaco dal 9 luglio 2024. Antonio Decaro lascia l’incarico il 9 luglio 2024. Le pagine consultate non indicano il motivo. Decaro era stato eletto al Parlamento europeo nelle elezioni dell’8–9 giugno 2024 (da verificare).",
+      "status": "controllato su fonte. Il contesto aggiunto in questa versione non ha una fonte: da verificare.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Bari",
+        "Wikipedia, sindaci di Bari."
+      ]
+    }
+  ]
+}

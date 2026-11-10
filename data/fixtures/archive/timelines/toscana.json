@@ -1,0 +1,72 @@
+{
+  "kind": "region",
+  "name": "Toscana",
+  "slug": "toscana",
+  "source_file": "Timeline_Regione_Toscana_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Claudio Martini (centro-sinistra). Secondo: Altero Matteoli. Affluenza 74,6%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Claudio Martini (centro-sinistra). Secondo: Alessandro Antichi. Affluenza 71,3%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Enrico Rossi (PD). Secondo: Monica Faenzi. Affluenza 60,7%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010."
+      ]
+    },
+    {
+      "date": "2015-05-31",
+      "date_label": "31 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Enrico Rossi (PD). Secondo: Claudio Borghi (Lega Nord), con il 20,0%. Affluenza 48,3%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2015."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Eugenio Giani (PD). Secondo: Susanna Ceccardi (Lega). Affluenza 62,6%.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020."
+      ]
+    },
+    {
+      "date": "2025-10-12",
+      "date_label": "12–13 ottobre",
+      "title": "Elezioni regionali",
+      "body": "Vince Eugenio Giani (PD). Secondo: Alessandro Tomasi (Fratelli d’Italia), con il 40,9%. Affluenza 47,73%. Secondo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia (copia di marzo 2026), elezioni regionali 2025."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "kind": "city",
+  "name": "Verona",
+  "slug": "verona",
+  "source_file": "Timeline_Citta_Verona.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Damiano Tommasi",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2002-05-26",
+      "date_label": "26–27 maggio",
+      "title": "Elezioni comunali",
+      "body": "Paolo Zanotto, indipendente, è eletto sindaco con l’Ulivo. È in carica dal 12 giugno 2002 al 28 maggio 2007. Prima di lui era sindaca Michela Sironi Mariotti, di Forza Italia, dal 1994.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Verona",
+        "Wikipedia, sindaci di Verona."
+      ]
+    },
+    {
+      "date": "2007-05-27",
+      "date_label": "27–28 maggio",
+      "title": "Elezioni comunali",
+      "body": "Flavio Tosi, della Lega Nord, è eletto sindaco con il centro-destra. È in carica dal 28 maggio 2007.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Verona",
+        "Wikipedia, sindaci di Verona."
+      ]
+    },
+    {
+      "date": "2012-05-06",
+      "date_label": "6–7 maggio",
+      "title": "Elezioni comunali",
+      "body": "Tosi è rieletto, con Lega Nord, Pensionati e liste civiche. Il secondo mandato è indicato dal 12 maggio 2012 al 27 giugno 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Verona",
+        "Wikipedia, sindaci di Verona."
+      ]
+    },
+    {
+      "date": "2017-06-11",
+      "date_label": "11 giugno",
+      "title": "Elezioni comunali",
+      "body": "Federico Sboarina, di Fratelli d’Italia, vince al ballottaggio con Forza Italia, Fratelli d’Italia, Lega Nord e liste civiche. È sindaco dal 27 giugno 2017 al 29 giugno 2022.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Verona",
+        "Wikipedia, sindaci di Verona."
+      ]
+    },
+    {
+      "date": "2022-06-12",
+      "date_label": "12 e 26 giugno",
+      "title": "Elezioni comunali",
+      "body": "Damiano Tommasi, indipendente, vince il ballottaggio del 26 giugno con il 53,40% dei voti, con il PD e altre liste di centro-sinistra e civiche. Il primo turno è il 12 giugno. Tommasi è sindaco dal 29 giugno 2022.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali di Verona",
+        "Wikipedia, sindaci di Verona."
+      ]
+    },
+    {
+      "date": "2027-01-01",
+      "date_label": "primavera",
+      "title": "Prossime elezioni comunali",
+      "body": "Secondo la scheda di lavoro di VeraPolitica Verona vota in primavera 2027. La data non è ancora fissata.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    }
+  ]
+}

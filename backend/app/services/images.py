@@ -94,9 +94,15 @@ def optimize(data: bytes, purpose: str = DEFAULT_PURPOSE) -> OptimizedImage:
     except ImageRejected:
         raise
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError) as error:
-        raise ImageRejected("Il file non è un'immagine leggibile: usa JPEG, PNG o WebP.") from error
-    if source_format not in {"JPEG", "PNG", "WEBP", "MPO", "AVIF", "HEIF", "GIF"}:
-        raise ImageRejected("Formato non supportato: usa JPEG, PNG o WebP.")
+        raise ImageRejected(
+            "Il file non è un'immagine leggibile. Prova JPEG, PNG, WebP o GIF "
+            "(non SVG vettoriale crudo se il browser non lo apre)."
+        ) from error
+    # If Pillow decoded it, we can publish it. Phone galleries often send BMP,
+    # TIFF, HEIF, or a JPEG that Pillow labels MPO; a tight format whitelist
+    # then answered "formato sbagliato" even after a successful decode.
+    if not source_format:
+        source_format = "PNG" if _has_alpha(image) else "JPEG"
 
     image = ImageOps.exif_transpose(image)
     alpha = _has_alpha(image)

@@ -64,3 +64,17 @@ def test_decompression_bombs_are_refused():
     Image.new("1", (12000, 12000)).save(buffer, format="PNG")
     with pytest.raises(ImageRejected):
         optimize(buffer.getvalue(), "logo")
+
+
+def test_any_format_pillow_can_read_is_accepted():
+    """Phone galleries and coats of arms arrive as BMP, GIF, or JPEG labelled MPO."""
+
+    bmp = BytesIO()
+    Image.new("RGB", (48, 32), (20, 80, 140)).save(bmp, format="BMP")
+    photo = optimize(bmp.getvalue(), "photo")
+    assert photo.width == 48 and photo.height == 32
+
+    gif = BytesIO()
+    Image.new("RGB", (40, 40), (200, 10, 10)).save(gif, format="GIF")
+    logo = optimize(gif.getvalue(), "logo")
+    assert logo.width == 40

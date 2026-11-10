@@ -1,0 +1,197 @@
+{
+  "updated": "2026-11-06",
+  "items": [
+    {
+      "kind": "region",
+      "name": "Abruzzo",
+      "slug": "abruzzo",
+      "events": 9,
+      "mayor": null,
+      "file": "abruzzo.json"
+    },
+    {
+      "kind": "city",
+      "name": "Bari",
+      "slug": "bari",
+      "events": 5,
+      "mayor": "Vito Leccese",
+      "file": "bari.json"
+    },
+    {
+      "kind": "region",
+      "name": "Emilia-Romagna",
+      "slug": "emilia-romagna",
+      "events": 9,
+      "mayor": null,
+      "file": "emilia-romagna.json"
+    },
+    {
+      "kind": "city",
+      "name": "Firenze",
+      "slug": "firenze",
+      "events": 6,
+      "mayor": "Sara Funaro",
+      "file": "firenze.json"
+    },
+    {
+      "kind": "region",
+      "name": "Friuli-Venezia Giulia",
+      "slug": "friuli-venezia-giulia",
+      "events": 6,
+      "mayor": null,
+      "file": "friuli-venezia-giulia.json"
+    },
+    {
+      "kind": "city",
+      "name": "Genova",
+      "slug": "genova",
+      "events": 8,
+      "mayor": "Silvia Salis",
+      "file": "genova.json"
+    },
+    {
+      "kind": "nation",
+      "name": "Italia",
+      "slug": "italia",
+      "events": 135,
+      "mayor": null,
+      "file": "italia.json"
+    },
+    {
+      "kind": "city",
+      "name": "L’Aquila",
+      "slug": "laquila",
+      "events": 7,
+      "mayor": "Pierluigi Biondi",
+      "file": "laquila.json"
+    },
+    {
+      "kind": "region",
+      "name": "Lazio",
+      "slug": "lazio",
+      "events": 8,
+      "mayor": null,
+      "file": "lazio.json"
+    },
+    {
+      "kind": "region",
+      "name": "Liguria",
+      "slug": "liguria",
+      "events": 8,
+      "mayor": null,
+      "file": "liguria.json"
+    },
+    {
+      "kind": "region",
+      "name": "Lombardia",
+      "slug": "lombardia",
+      "events": 8,
+      "mayor": null,
+      "file": "lombardia.json"
+    },
+    {
+      "kind": "region",
+      "name": "Marche",
+      "slug": "marche",
+      "events": 7,
+      "mayor": null,
+      "file": "marche.json"
+    },
+    {
+      "kind": "city",
+      "name": "Milano",
+      "slug": "milano",
+      "events": 8,
+      "mayor": "Giuseppe Sala",
+      "file": "milano.json"
+    },
+    {
+      "kind": "region",
+      "name": "Molise",
+      "slug": "molise",
+      "events": 6,
+      "mayor": null,
+      "file": "molise.json"
+    },
+    {
+      "kind": "region",
+      "name": "Sardegna",
+      "slug": "sardegna",
+      "events": 6,
+      "mayor": null,
+      "file": "sardegna.json"
+    },
+    {
+      "kind": "region",
+      "name": "Sicilia",
+      "slug": "sicilia",
+      "events": 7,
+      "mayor": null,
+      "file": "sicilia.json"
+    },
+    {
+      "kind": "city",
+      "name": "Torino",
+      "slug": "torino",
+      "events": 7,
+      "mayor": "Stefano Lo Russo",
+      "file": "torino.json"
+    },
+    {
+      "kind": "region",
+      "name": "Toscana",
+      "slug": "toscana",
+      "events": 6,
+      "mayor": null,
+      "file": "toscana.json"
+    },
+    {
+      "kind": "region",
+      "name": "Trentino-Alto Adige",
+      "slug": "trentino-alto-adige",
+      "events": 4,
+      "mayor": null,
+      "file": "trentino-alto-adige.json"
+    },
+    {
+      "kind": "city",
+      "name": "Trieste",
+      "slug": "trieste",
+      "events": 6,
+      "mayor": "Roberto Dipiazza",
+      "file": "trieste.json"
+    },
+    {
+      "kind": "region",
+      "name": "Umbria",
+      "slug": "umbria",
+      "events": 7,
+      "mayor": null,
+      "file": "umbria.json"
+    },
+    {
+      "kind": "region",
+      "name": "Valle d’Aosta",
+      "slug": "valle-daosta",
+      "events": 13,
+      "mayor": null,
+      "file": "valle-daosta.json"
+    },
+    {
+      "kind": "region",
+      "name": "Veneto",
+      "slug": "veneto",
+      "events": 7,
+      "mayor": null,
+      "file": "veneto.json"
+    },
+    {
+      "kind": "city",
+      "name": "Verona",
+      "slug": "verona",
+      "events": 6,
+      "mayor": "Damiano Tommasi",
+      "file": "verona.json"
+    }
+  ]
+}

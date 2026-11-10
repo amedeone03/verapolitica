@@ -1,0 +1,107 @@
+{
+  "kind": "region",
+  "name": "Abruzzo",
+  "slug": "abruzzo",
+  "source_file": "Timeline_Regione_Abruzzo_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Giovanni Pace (centro-destra). Secondo: Falconio. Affluenza 70,6%. Pace è presidente dal 18 maggio 2000 al 22 aprile 2005.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Ottaviano Del Turco (centro-sinistra). Secondo: Giovanni Pace. Affluenza 68,6%. Del Turco è presidente dal 22 aprile 2005 al 13 luglio 2008.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2008-07-13",
+      "date_label": "13 luglio",
+      "title": "Dimissioni del presidente Del Turco",
+      "body": "Ottaviano Del Turco lascia l’incarico il 13 luglio 2008. La pagina consultata parla di dimissioni dopo uno scandalo per corruzione. Il vicepresidente Enrico Paolini guida la Regione fino a nuove elezioni. Gli esiti giudiziari e le posizioni non sono riportati in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2009-01-03",
+      "date_label": "3 gennaio",
+      "title": "Gianni Chiodi presidente della Regione",
+      "body": "Dopo il voto anticipato di dicembre 2008 (data esatta non verificata), Gianni Chiodi, del PdL, diventa presidente il 3 gennaio 2009, con PdL e MpA. Resta in carica fino al 10 giugno 2014.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2009-04-06",
+      "date_label": "6 aprile",
+      "title": "Terremoto a L’Aquila",
+      "body": "Un forte terremoto colpisce L’Aquila e l’Abruzzo il 6 aprile 2009. Numero delle vittime e danni sono da verificare. Le posizioni dei politici non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2014-05-25",
+      "date_label": "25 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Luciano D’Alfonso (PD, centro-sinistra), con il 46,3%. Secondo: Gianni Chiodi (FI), con il 29,3%. Affluenza 61,6%. D’Alfonso è presidente dal 10 giugno 2014 al 10 agosto 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2014",
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2018-08-10",
+      "date_label": "10 agosto",
+      "title": "Dimissioni del presidente D’Alfonso",
+      "body": "Luciano D’Alfonso lascia la presidenza il 10 agosto 2018, dopo l’elezione al Senato. Giovanni Lolli guida la Regione ad interim fino al 23 febbraio 2019.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2019-02-10",
+      "date_label": "10 febbraio",
+      "title": "Elezioni regionali",
+      "body": "Vince Marco Marsilio (Fratelli d’Italia, centro-destra). Secondo: Giovanni Legnini. Affluenza 53,1%. Marsilio è presidente dal 23 febbraio 2019, con Lega, Forza Italia e Fratelli d’Italia.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2019",
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    },
+    {
+      "date": "2024-03-10",
+      "date_label": "10 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Marco Marsilio (Fratelli d’Italia, centro-destra), con il 53,5%. Secondo: Luciano D’Amico (centro-sinistra), con il 46,5%. Affluenza 52,2%. Secondo mandato, con Fratelli d’Italia, Forza Italia e Lega. L’elenco consultato dà il 10 aprile 2024 per l’inizio del nuovo mandato.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2024",
+        "Wikipedia, presidenti Abruzzo."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "kind": "region",
+  "name": "Valle d’Aosta",
+  "slug": "valle-daosta",
+  "source_file": "Timeline_Regione_Valle_d_Aosta_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2002-12-18",
+      "date_label": "18 dicembre",
+      "title": "Roberto Louvin presidente della Regione",
+      "body": "Roberto Louvin diventa presidente dopo Dino Viérin, in carica dal 1998. Resta presidente fino al 7 luglio 2003.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2003-07-07",
+      "date_label": "7 luglio",
+      "title": "Carlo Perrin presidente della Regione",
+      "body": "Carlo Perrin è presidente fino al 4 luglio 2005.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2005-07-04",
+      "date_label": "4 luglio",
+      "title": "Luciano Caveri presidente della Regione",
+      "body": "Luciano Caveri è presidente fino al 30 giugno 2008.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2008-06-30",
+      "date_label": "30 giugno",
+      "title": "Augusto Rollandin presidente della Regione",
+      "body": "Augusto Rollandin è presidente fino al 10 marzo 2017, per oltre otto anni. Secondo l’elenco consultato non ci sono interruzioni tra le due date.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2013-05-26",
+      "date_label": "26 maggio",
+      "title": "Elezioni regionali",
+      "body": "Si vota per rinnovare il Consiglio regionale. Secondo l’elenco dei presidenti, Rollandin resta in carica.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2013",
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2017-03-10",
+      "date_label": "10 marzo",
+      "title": "Pierluigi Marquis presidente della Regione",
+      "body": "Pierluigi Marquis succede a Rollandin. È presidente fino all’11 ottobre 2017. La fonte non indica il motivo del cambio.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2017-10-11",
+      "date_label": "11 ottobre",
+      "title": "Laurent Viérin presidente della Regione",
+      "body": "Laurent Viérin è presidente fino al 27 giugno 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2018-05-20",
+      "date_label": "20 maggio",
+      "title": "Elezioni regionali",
+      "body": "Si vota per rinnovare il Consiglio regionale. Il 27 giugno Nicoletta Spelgatti, della Lega, diventa presidente della Regione. Resta in carica fino al 10 dicembre 2018.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2018",
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2018-12-10",
+      "date_label": "10 dicembre",
+      "title": "Antonio Fosson presidente della Regione",
+      "body": "Antonio Fosson è presidente fino al 16 dicembre 2019.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2019-12-16",
+      "date_label": "16 dicembre",
+      "title": "Renzo Testolin presidente della Regione",
+      "body": "Renzo Testolin è presidente fino al 21 ottobre 2020.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Elezioni regionali",
+      "body": "Si vota per rinnovare il Consiglio regionale. Il 21 ottobre Erik Lavévaz, dell’Union Valdôtaine, diventa presidente. Resta in carica fino al 25 gennaio 2023.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020",
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2023-03-02",
+      "date_label": "2 marzo",
+      "title": "Renzo Testolin di nuovo presidente",
+      "body": "Testolin torna presidente il 2 marzo 2023. L’elenco consultato dà il 25 gennaio 2023 come fine dell’incarico di Lavévaz e non indica chi guida la Regione tra le due date.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Valle d’Aosta."
+      ]
+    },
+    {
+      "date": "2025-09-28",
+      "date_label": "28 settembre",
+      "title": "Elezioni regionali",
+      "body": "Affluenza 62,98%. Nella pagina consultata Renzo Testolin, dell’Union Valdôtaine, è indicato come presidente della Regione.",
+      "status": "controllato su fonte. La conferma di Testolin da parte del Consiglio dopo il voto non è chiara nella fonte: da verificare.",
+      "sources": [
+        "Wikipedia (copia di marzo 2026), elezioni regionali 2025."
+      ]
+    }
+  ]
+}

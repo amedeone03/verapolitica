@@ -1,0 +1,98 @@
+{
+  "kind": "region",
+  "name": "Liguria",
+  "slug": "liguria",
+  "source_file": "Timeline_Regione_Liguria_1.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": null,
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2000-04-16",
+      "date_label": "16 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Sandro Biasotti (centro-destra). Secondo: Mori. Affluenza 70,5%. Biasotti è presidente dal 12 maggio 2000 al 14 aprile 2005.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2000",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2005-04-03",
+      "date_label": "3–4 aprile",
+      "title": "Elezioni regionali",
+      "body": "Vince Claudio Burlando (centro-sinistra). Secondo: Sandro Biasotti. Affluenza 69,6%. Burlando è presidente dal 14 aprile 2005 all’11 giugno 2015.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2005",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2010-03-28",
+      "date_label": "28–29 marzo",
+      "title": "Elezioni regionali",
+      "body": "Vince Claudio Burlando (centro-sinistra). Secondo: Sandro Biasotti. Affluenza 60,9%. Burlando resta presidente.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2010",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2015-05-31",
+      "date_label": "31 maggio",
+      "title": "Elezioni regionali",
+      "body": "Vince Giovanni Toti (FI). Secondo: Raffaella Paita (PD), con il 27,8%. Affluenza 50,7%. Toti è presidente dall’11 giugno 2015.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2015",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2018-08-14",
+      "date_label": "14 agosto",
+      "title": "Crollo del ponte Morandi a Genova",
+      "body": "A Genova crolla un tratto del ponte autostradale: 43 morti (cifra da controllare). Le posizioni dei politici non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2020-09-20",
+      "date_label": "20–21 settembre",
+      "title": "Elezioni regionali",
+      "body": "Vince Giovanni Toti (centro-destra). Secondo: Ferruccio Sansa. Affluenza 53,4%. Secondo mandato. Toti è presidente dal 12 ottobre 2020.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2020",
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2024-07-26",
+      "date_label": "26 luglio",
+      "title": "Toti lascia la presidenza della Regione",
+      "body": "Giovanni Toti lascia l’incarico il 26 luglio 2024, prima della fine del secondo mandato. La pagina consultata non indica il motivo. Il vicepresidente Alessandro Piana guida la Regione fino al 9 novembre 2024. Le posizioni non sono riportate in questa versione.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, presidenti Liguria."
+      ]
+    },
+    {
+      "date": "2024-10-27",
+      "date_label": "27–28 ottobre",
+      "title": "Elezioni regionali anticipate",
+      "body": "Vince Marco Bucci (indipendente, centro-destra), con il 48,8%. Secondo: Andrea Orlando (PD), con il 47,4%. Affluenza 46,0%. Il voto è anticipato per le dimissioni del presidente. Bucci è presidente dal 9 novembre 2024.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Wikipedia, elezioni regionali 2024",
+        "Wikipedia, presidenti Liguria."
+      ]
+    }
+  ]
+}

@@ -39,7 +39,7 @@ def test_bottom_bar_and_header():
 def test_routes_and_privacy_of_the_reader_profile():
     script = (APP / "app.js").read_text(encoding="utf-8")
     for route in ('view === "politics"', 'view === "history"', 'view === "profile"', 'view === "compare"',
-                  "showLegislature(api", "showTerritoryHistory(api", "showParty(api", "showPost(api"):
+                  "showLegislature(api", "showTerritoryHistory(api", "showArchiveTimeline(api", "showParty(api", "showPost(api"):
         assert route in script
     assert "showHome(api);" in script and "start();" in script
     # Zone and favourites stay in browser storage, wrapped so private mode still works.
@@ -206,6 +206,19 @@ def test_territory_schede_go_back_to_the_map():
     assert "./?view=territory&regione=${encodeURIComponent(region.istat_code)}" in script
     assert "./?view=territory&provincia=${encodeURIComponent(base.key)}" in script
     assert "export function renderTerritoryScheda(t" in script and "export function renderTerritoryFacts(t)" in script
+
+
+def test_archivio_lists_city_timelines_and_opens_verona():
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    history = html.split('id="history-view"')[1].split('id="legislature-view"')[0]
+    assert 'id="city-archive"' in history and "Cerca Verona, Milano, Veneto" in history
+    assert "export function renderArchiveTimeline(timeline" in script
+    assert "showArchiveTimeline(api, timelineSlug)" in script
+    assert 'listArchiveTimelines:' in script
+    assert "I capoluoghi (Verona, Milano, …) stanno in elenco" in console
+    assert 'accept="image/*' in console
 
 
 def test_government_chart_shows_the_parties_and_the_ranks():

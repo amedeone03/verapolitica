@@ -1,0 +1,87 @@
+{
+  "kind": "city",
+  "name": "L’Aquila",
+  "slug": "laquila",
+  "source_file": "Timeline_Citta_L_Aquila.docx",
+  "draft": true,
+  "updated": "2026-11-06",
+  "mayor": "Pierluigi Biondi",
+  "disclaimer": "Bozza non verificata. Fonti secondarie (Tuttitalia, Wikipedia). Ogni voce va confrontata con l’archivio del Ministero dell’Interno prima di pubblicare.",
+  "events": [
+    {
+      "date": "2002-05-26",
+      "date_label": "26–27 maggio",
+      "title": "Elezioni comunali",
+      "body": "Biagio Tempesta, di Forza Italia, è rieletto sindaco con il centro-destra e liste civiche. È sindaco dall’8 giugno 1998 al 29 maggio 2007.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali dell’Aquila",
+        "Wikipedia, sindaci dell’Aquila."
+      ]
+    },
+    {
+      "date": "2007-05-27",
+      "date_label": "27–28 maggio",
+      "title": "Elezioni comunali",
+      "body": "Massimo Cialente, del PD, è eletto sindaco con il centro-sinistra (PD, UDEUR, PSI, Italia dei Valori, Rifondazione). È in carica dal 29 maggio 2007.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali dell’Aquila",
+        "Wikipedia, sindaci dell’Aquila."
+      ]
+    },
+    {
+      "date": "2009-04-06",
+      "date_label": "6 aprile",
+      "title": "Terremoto a L’Aquila",
+      "body": "Un forte terremoto colpisce L’Aquila e l’Abruzzo il 6 aprile 2009. Numero delle vittime e danni sono da verificare. La pagina consultata sui sindaci non cita il terremoto. Le posizioni non sono riportate in questa versione.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    },
+    {
+      "date": "2012-05-06",
+      "date_label": "6–7 maggio",
+      "title": "Elezioni comunali",
+      "body": "Cialente è rieletto al ballottaggio con PD, API, PSI, SEL, Italia dei Valori, Rifondazione Comunista e una lista civica. Il secondo mandato è indicato dal 22 maggio 2012 al 28 giugno 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali dell’Aquila",
+        "Wikipedia, sindaci dell’Aquila."
+      ]
+    },
+    {
+      "date": "2017-06-11",
+      "date_label": "11 giugno",
+      "title": "Elezioni comunali",
+      "body": "Pierluigi Biondi, di Fratelli d’Italia, vince al ballottaggio con Forza Italia, Fratelli d’Italia, UDC, Lega e liste civiche. È sindaco dal 28 giugno 2017.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali dell’Aquila",
+        "Wikipedia, sindaci dell’Aquila."
+      ]
+    },
+    {
+      "date": "2022-06-12",
+      "date_label": "12 giugno",
+      "title": "Elezioni comunali",
+      "body": "Biondi è rieletto, con Fratelli d’Italia, Forza Italia, Lega e liste civiche. Il nuovo mandato è indicato dal 20 giugno 2022.",
+      "status": "controllato su fonte.",
+      "sources": [
+        "Tuttitalia, elezioni comunali dell’Aquila",
+        "Wikipedia, sindaci dell’Aquila."
+      ]
+    },
+    {
+      "date": "2027-01-01",
+      "date_label": "primavera",
+      "title": "Prossime elezioni comunali",
+      "body": "Secondo la scheda di lavoro di VeraPolitica L’Aquila vota in primavera 2027. La data non è ancora fissata.",
+      "status": "da verificare.",
+      "sources": [
+        "non indicata."
+      ]
+    }
+  ]
+}
