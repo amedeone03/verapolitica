@@ -56,16 +56,19 @@ def test_cambridge_classic_tokens_fonts_and_accessibility():
     script = (APP / "app.js").read_text(encoding="utf-8")
     html = (APP / "index.html").read_text(encoding="utf-8")
     for token in ("--color-primary: #0F2747", "--color-secondary: #003C71", "--color-accent: #85B09A",
-                  "--color-accent-light: #DCEBE5", "--color-background: #F8FAF9", "--color-border: #DFE6E3"):
+                  "--color-accent-light: #DCEBE5", "--color-background: #F4EFE6", "--color-border: #D9D0C4",
+                  "--color-surface: #FFFCF7", "--color-text: #1A1F24"):
         assert token in styles
     # Self-hosted fonts only: no @import, no third-party font host.
     assert "@import" not in styles and "fonts.googleapis" not in html
     assert (APP / "fonts" / "inter-latin-var.woff2").exists()
-    # One family, as on House of the People: Inter for text and headings.
-    assert "Source Serif" not in styles and "source-serif" not in html
+    assert (APP / "fonts" / "source-serif-4-latin-var.woff2").exists()
+    # Inter for UI and body; Source Serif 4 for display titles (H1, wordmark).
+    assert "Source Serif 4" in styles and "source-serif-4-latin-var.woff2" in html
     assert '--font-heading: "Inter"' in styles
-    assert html.count('rel="preload"') == 1
-    # No glow or entrance animation. Translucency only on the floating bottom bar,
+    assert '--font-display: "Source Serif 4"' in styles
+    assert html.count('rel="preload"') == 2
+    # No glow. Translucency only on the floating bottom bar,
     # with a solid fallback when the reader asks for less transparency.
     assert "radial-gradient" not in styles
     assert styles.count(" backdrop-filter: blur") == 1 and "prefers-reduced-transparency: reduce" in styles

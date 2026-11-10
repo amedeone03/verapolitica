@@ -9,7 +9,7 @@ build step, no runtime dependency.
 | File | Role |
 | --- | --- |
 | `frontend/app/styles.css` | Tokens (`:root`), base, components, responsive rules. Rewritten from scratch; no other stylesheet. |
-| `frontend/app/fonts/` | Self-hosted variable WOFF2, Latin subset: Inter (~50 KB), OFL licence. Since November 2026 Inter is the only family, for text and headings (bold headings, tight tracking), as on House of the People; Source Serif 4 was removed. |
+| `frontend/app/fonts/` | Self-hosted variable WOFF2, Latin subset: Inter (~50 KB) for UI and body; Source Serif 4 (~120 KB) for display titles (H1, wordmark). Both OFL. |
 | `frontend/app/LICENSE-lucide.txt` | Licence of the inlined Lucide icons (ISC). |
 | `frontend/app/og-image.png` | 1200×630 social sharing image (wordmark and existing tagline only). |
 | `frontend/app/index.html` | Header, accessible mobile menu, home hero, navy footer, metadata. |
@@ -22,14 +22,18 @@ The redazione console (`frontend/redazione/`) and the AI draft pages
 
 ## Tokens
 
-Colours, fonts, radii (4–8 px), spacing scale (4–128 px) and transitions are CSS
+Colours, fonts, radii (4–16 px), spacing scale (4–128 px) and transitions are CSS
 custom properties in `styles.css`. Additions to the specification:
 
 | Token | Value | Why |
 | --- | --- | --- |
+| `--color-background` | `#F4EFE6` | Paper page, warmer than the original mint grey. Ink `#1A1F24` is 14.5:1 on it. |
+| `--color-surface` | `#FFFCF7` | Cream cards. |
+| `--color-border` | `#D9D0C4` | Warm hairline. |
 | `--color-accent-strong` | `#2F6B4F` | Cambridge green dark enough for text and the active-navigation underline (6.0:1). `#85B09A` is 2.4:1 on white, so it is used only where it is decorative or on navy. |
-| `--color-control-border` | `#7D8E8B` | Input, filter and toggle boundaries need 3:1; `--color-border-strong` is 2.1:1. |
+| `--color-control-border` | `#7D8E8B` | Input, filter and toggle boundaries need 3:1 on cream. |
 | `--color-danger` | `#A3261C` | Errors and "non mantenuta", separate from the accent. |
+| `--font-display` | Source Serif 4 | H1, wordmark, quotes. Inter remains `--font-heading` and `--font-body`. |
 | `--verdict-*` | | Six pledge states. Text on its tint ≥ 4.5:1, marks on white ≥ 3:1; each chip also carries its label, and "iter bloccato" uses an outline/hatch, so state never relies on colour alone. |
 
 Every foreground/background pair in use was measured, not assumed.
