@@ -243,8 +243,9 @@ def news_findings(post: dict) -> list[Finding]:
     findings += text_findings(blocks.get("sommario"), field="sommario")
     if not (blocks.get("sommario") or "").strip():
         findings.append(Finding("error", "blocco_vuoto", "Manca il sommario: chi ha deciso cosa, quando.", "sommario"))
-    # N2: fatto + interesse pubblico are always part of the proposal triad.
-    required_empty = {"fatto", "cosa_cambia", "perche"} if official else {
+    # N2 triad (fatto + interesse + fonti) applies to news analyses. A
+    # «pubblicazione ufficiale» only announces an institutional list.
+    required_empty = {"fatto", "cosa_cambia"} if official else {
         "fatto",
         "cosa_cambia",
         "perche",
