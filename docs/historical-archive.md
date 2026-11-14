@@ -3,6 +3,27 @@
 The "Archivio" section covers the Republic from the Constituent Assembly (1946)
 to today. Everything shown comes from official sources; gaps are shown as gaps.
 
+## Public Archivio hub
+
+The Archivio section opens on the **Italia** national chronology (timeline
+layout from `data/fixtures/archive/timelines/italia.json`). Legislature cards
+remain available under the **Legislature** tab (`?archive=legislature`); city
+and region drafts under **Città e regioni**; party chronologies under
+**Partiti** (`?archive=parties`) when JSON drafts with `"kind": "party"` are
+present in `data/fixtures/archive/timelines/` and listed in `index.json`.
+
+### Adding a party timeline (Jacopo)
+
+1. Create `data/fixtures/archive/timelines/<slug>.json` with
+   `"kind": "party"`, `"name"`, `"slug"`, `"disclaimer"`, and an `events` array
+   (same shape as city/region drafts: `date`, `date_label`, `title`, `body`,
+   `sources`).
+2. Add a row to `index.json` (`kind`, `name`, `slug`, `events` count, `file`).
+3. Verify events in the redazione **Archivio** desk against official sources
+   (no Wikipedia-only publication).
+4. Coordinate the Italia national draft the same way: default Archivio tab is
+   already the Italia timeline, not the legislature grid.
+
 ## Legislatures
 
 `legislatures` holds the Constituent Assembly (number 0) and every republic

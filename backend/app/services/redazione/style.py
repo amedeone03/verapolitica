@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 from typing import Iterable
+from urllib.parse import urlsplit
 
 from backend.app.services.reference_profile_audit import is_complete_source_url
 
@@ -42,9 +43,16 @@ JUDGEMENT_WORDS = (
 # Rule 2: every opinion has a name.
 UNATTRIBUTED = ("si dice", "molti pensano", "secondo molti", "tutti sanno", "probabilmente")
 
+# CEO process: every news proposal needs these three before Friday assignment.
+PROPOSAL_TRIAD = (
+    ("fatto", "Cosa è successo o succederà"),
+    ("perche", "Interesse per il pubblico"),
+    ("fonti", "Fonti verificabili"),
+)
+
 NEWS_BLOCKS: tuple[tuple[str, str, int, int], ...] = (
-    ("perche", "Perché ne parliamo", 40, 60),
-    ("fatto", "Il fatto", 80, 120),
+    ("perche", "Perché interessa il pubblico", 40, 60),
+    ("fatto", "Il fatto (cosa è successo o succederà)", 80, 120),
     ("cosa_cambia", "Cosa cambia per te", 80, 120),
     ("destra", "Cosa dice la destra", 60, 90),
     ("sinistra", "Cosa dice la sinistra", 60, 90),
@@ -53,6 +61,27 @@ NEWS_BLOCKS: tuple[tuple[str, str, int, int], ...] = (
     ("cosa_succede", "Cosa succede adesso", 30, 60),
 )
 NEWS_TOTAL_WORDS = (450, 700)
+
+# N3: «cosa cambia» is scoped to the editorial level of the piece.
+COSA_CAMBIA_BY_SCOPE: dict[str, tuple[str, str]] = {
+    "national": (
+        "Cosa cambia a livello nazionale",
+        "Effetti per chi vive in Italia: chi paga, chi riceve, cosa NON cambia a Roma/Governo/Parlamento.",
+    ),
+    "region": (
+        "Cosa cambia in regione",
+        "Effetti per chi vive in quella regione: sanità, trasporti, tasse regionali, cosa NON cambia.",
+    ),
+    "province": (
+        "Cosa cambia in provincia",
+        "Effetti per chi vive in quella provincia: viabilità, scuole di competenza, servizi provinciali.",
+    ),
+    "municipality": (
+        "Cosa cambia nel comune",
+        "Effetti per chi vive in quel comune: tariffe, scuola, rifiuti, casa, cosa NON cambia.",
+    ),
+}
+
 SOURCE_AREAS = {
     "istituzionale": "Istituzionale",
     "agenzia": "Agenzia",
@@ -61,6 +90,21 @@ SOURCE_AREAS = {
     "tecnica": "Tecnica",
     "altro": "Altro",
 }
+
+# N4: these hosts cannot back a published claim (home pages already fail elsewhere).
+WEAK_SOURCE_HOST_SUFFIXES = (
+    "wikipedia.org",
+    "facebook.com",
+    "fb.com",
+    "twitter.com",
+    "x.com",
+    "instagram.com",
+    "tiktok.com",
+    "reddit.com",
+    "tuttitalia.it",
+    "blogspot.com",
+    "wordpress.com",
+)
 
 
 def words(text: str | None) -> int:
@@ -93,7 +137,33 @@ def text_findings(text: str | None, *, field: str, title: bool = False) -> list[
     return findings
 
 
-def source_findings(sources: list[dict], *, field: str = "fonti", minimum: int = 1) -> list[Finding]:
+def is_weak_source_host(url: str | None) -> bool:
+    """Wikipedia, social and blog hosts cannot prove a claim on VeraPolitica."""
+
+    if not url:
+        return False
+    host = urlsplit(str(url).strip()).netloc.casefold()
+    if host.startswith("www."):
+        host = host[4:]
+    return any(host == suffix or host.endswith("." + suffix) for suffix in WEAK_SOURCE_HOST_SUFFIXES)
+
+
+def cosa_cambia_label(scope: str | None) -> str:
+    return COSA_CAMBIA_BY_SCOPE.get(scope or "national", COSA_CAMBIA_BY_SCOPE["national"])[0]
+
+
+def cosa_cambia_hint(scope: str | None) -> str:
+    return COSA_CAMBIA_BY_SCOPE.get(scope or "national", COSA_CAMBIA_BY_SCOPE["national"])[1]
+
+
+def source_findings(
+    sources: list[dict],
+    *,
+    field: str = "fonti",
+    minimum: int = 1,
+    require_date: bool = False,
+    require_name: bool = False,
+) -> list[Finding]:
     usable = [item for item in sources if item.get("url") and is_complete_source_url(str(item["url"]))]
     findings: list[Finding] = []
     if len(usable) < minimum:
@@ -107,9 +177,50 @@ def source_findings(sources: list[dict], *, field: str = "fonti", minimum: int =
                 field,
             )
         )
+    seen_urls: set[str] = set()
     for item in sources:
-        if item.get("url") and not is_complete_source_url(str(item["url"])):
-            findings.append(Finding("error", "fonte_generica", f"«{item.get('name') or item['url']}» punta a una home o a una sezione: serve la pagina precisa.", field))
+        name = (item.get("name") or "").strip()
+        url = item.get("url")
+        if not url:
+            continue
+        url_text = str(url).strip()
+        if require_name and not name:
+            findings.append(
+                Finding("error", "fonte_senza_nome", "Ogni fonte ha il nome della testata o dell'ente.", field)
+            )
+        if not is_complete_source_url(url_text):
+            findings.append(
+                Finding(
+                    "error",
+                    "fonte_generica",
+                    f"«{name or url_text}» punta a una home o a una sezione: serve la pagina precisa.",
+                    field,
+                )
+            )
+        if is_weak_source_host(url_text):
+            findings.append(
+                Finding(
+                    "error",
+                    "fonte_inattendibile",
+                    f"«{name or url_text}» non è una fonte verificabile (Wikipedia, social o blog).",
+                    field,
+                )
+            )
+        if require_date and not (item.get("date") or "").strip():
+            findings.append(
+                Finding(
+                    "error",
+                    "fonte_senza_data",
+                    f"«{name or url_text}» non ha la data della pagina o dell'articolo.",
+                    field,
+                )
+            )
+        marker = url_text.casefold()
+        if marker in seen_urls:
+            findings.append(
+                Finding("warning", "fonte_duplicata", f"La fonte «{name or url_text}» è ripetuta.", field)
+            )
+        seen_urls.add(marker)
     return findings
 
 
@@ -124,6 +235,7 @@ def news_findings(post: dict) -> list[Finding]:
     """Checks for the "Modello Notizia" (nine blocks)."""
 
     blocks = post.get("blocks") or {}
+    scope = post.get("scope") or "national"
     official = is_official_publication(post)
     findings = text_findings(post.get("title"), field="titolo", title=True)
     if len(post.get("title") or "") > 90:
@@ -131,9 +243,18 @@ def news_findings(post: dict) -> list[Finding]:
     findings += text_findings(blocks.get("sommario"), field="sommario")
     if not (blocks.get("sommario") or "").strip():
         findings.append(Finding("error", "blocco_vuoto", "Manca il sommario: chi ha deciso cosa, quando.", "sommario"))
-    required_empty = {"fatto", "cosa_cambia"} if official else {"fatto", "cosa_cambia", "destra", "sinistra"}
+    # N2: fatto + interesse pubblico are always part of the proposal triad.
+    required_empty = {"fatto", "cosa_cambia", "perche"} if official else {
+        "fatto",
+        "cosa_cambia",
+        "perche",
+        "destra",
+        "sinistra",
+    }
     total = 0
     for key, label, low, high in NEWS_BLOCKS:
+        if key == "cosa_cambia":
+            label = cosa_cambia_label(scope)
         text = blocks.get(key) or ""
         if key == "fatto":
             text = f"{text}\n{blocks.get('perche_deciso') or ''}"
@@ -142,7 +263,15 @@ def news_findings(post: dict) -> list[Finding]:
         findings += text_findings(text, field=key)
         if not text.strip():
             level = "error" if key in required_empty else "warning"
-            findings.append(Finding(level, "blocco_vuoto", f"Blocco vuoto: «{label}». Se uno schieramento non si è espresso, lo si scrive.", key))
+            if key == "perche":
+                message = "Manca l'interesse per il pubblico: perché questa notizia riguarda i lettori."
+            elif key == "fatto":
+                message = "Manca il fatto: cosa è successo o succederà."
+            elif key == "cosa_cambia":
+                message = f"Blocco vuoto: «{label}»."
+            else:
+                message = f"Blocco vuoto: «{label}». Se uno schieramento non si è espresso, lo si scrive."
+            findings.append(Finding(level, "blocco_vuoto", message, key))
         elif count < low * 0.75 or count > high * 1.25:
             findings.append(Finding("warning", "lunghezza", f"«{label}»: {count} parole, indicazione {low}–{high}.", key))
     if total and not NEWS_TOTAL_WORDS[0] <= total <= NEWS_TOTAL_WORDS[1]:
@@ -157,7 +286,12 @@ def news_findings(post: dict) -> list[Finding]:
         if right_points != left_points:
             findings.append(Finding("warning", "equilibrio_punti", f"Destra {right_points} punti, sinistra {left_points}: stesso numero di punti.", "sinistra"))
     sources = post.get("sources") or []
-    findings += source_findings(sources, minimum=1 if official else 3)
+    findings += source_findings(
+        sources,
+        minimum=1 if official else 3,
+        require_date=True,
+        require_name=True,
+    )
     areas = {item.get("area") for item in sources if item.get("url")}
     if not areas & {"istituzionale", "agenzia"}:
         findings.append(Finding("error", "fonte_istituzionale", "Serve almeno una fonte istituzionale o di agenzia.", "fonti"))

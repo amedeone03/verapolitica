@@ -193,7 +193,7 @@ def test_territorio_is_a_main_tab_with_the_map():
     politics = html.split('id="politics-view"')[1].split('id="territory-view"')[0]
     assert 'id="territories-title"' not in politics and "?view=regions" not in politics
     assert 'territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory"' in script
-    assert 'if (params.get("province") || params.get("region") || params.get("municipality")) return "territory";' in script
+    assert 'params.get("municipality") || params.get("municipio")) return "territory";' in script
     assert 'import("./territory-map.js")' in script and "export function renderTownFilter(towns)" in script
 
 
@@ -216,9 +216,22 @@ def test_archivio_lists_city_timelines_and_opens_verona():
     script = (APP / "app.js").read_text(encoding="utf-8")
     console = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
     history = html.split('id="history-view"')[1].split('id="legislature-view"')[0]
+    # Default Archivio opens the national timeline, not the legislature grid.
+    assert 'data-archive-tab="italia"' in history and 'id="nation-archive"' in history
+    assert 'href="./?view=history">Italia</a>' in history
+    assert 'archive=legislature">Legislature</a>' in history
+    assert 'archive=parties">Partiti</a>' in history
     assert 'id="city-archive"' in history and "Cerca Verona, Milano, Veneto" in history
+    assert 'id="party-archive"' in history
     assert 'data-archive-tab="cities"' in history and 'class="archive-dir"' in history
+    assert 'data-archive-tab="parties"' in history
+    assert 'return "italia"' in script and 'value === "parties"' in script
+    assert "export function renderTerritoryGuide()" in script
+    assert 'view=territory-guide' in script or 'view === "territory-guide"' in script
+    assert 'id="territory-guide-view"' in html
     assert "export function renderArchiveTimeline(timeline" in script
+    assert "hub: true" in script and 'return "italia"' in script
+    assert "archive-timeline" in script
     assert "showArchiveTimeline(api, timelineSlug)" in script
     assert 'listArchiveTimelines:' in script
     assert "export function renderArchiveTimelineChip(item)" in script and "archive-dir-item" in script
@@ -260,7 +273,11 @@ def test_politica_opens_with_regioni_camera_senato():
     assert 'id="government-row"' in quadro and 'id="government-chart"' in quadro
     assert 'id="quadro-governo"' in quadro and 'show("governo");' in script
     # Regions are coloured only by the coalition the redazione published; the rest is «Da compilare».
-    assert 'const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];' in script
+    assert 'indipendente_destra' in script and 'autonomista' in script
+    assert "COALITION_ORDER" in script and "indipendente_sinistra" in script
+    assert "territoryGiuntaTable" in script and "territoryConsiglioChart" in script
+    assert "renderRomaMunicipiHub" in script and "showMunicipioDetail" in script
+    assert 't-giunta' in (APP / "styles.css").read_text(encoding="utf-8")
     assert "export function hemicycle(count" in script and "export function renderChamberQuadro(chamber)" in script
     assert 'getParliament: () => request("/parliament/composition")' in script
     assert 'getRegionsOverview: () => request("/territories/regions")' in script

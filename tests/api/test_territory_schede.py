@@ -64,11 +64,20 @@ def console(tmp_path):
 def test_the_scheda_follows_the_writing_models_and_keeps_the_official_base(console):
     client, ids = console
     region = client.get(f"/redazione/api/territori/region/{ids['region']}", headers=ANNA).json()
-    assert [block["key"] for block in region["definitions"]] == ["rapida", "presidente", "giunta", "consiglio", "promesse", "elezioni", "titolare"]
+    assert [block["key"] for block in region["definitions"]] == [
+        "rapida", "utile", "indirizzo", "come_funziona", "presidente", "giunta", "consiglio", "promesse", "elezioni", "titolare",
+    ]
+    giunta = next(block for block in region["definitions"] if block["key"] == "giunta")
+    assert [column["key"] for column in giunta["columns"]] == ["ruolo", "nome", "partito", "delega"]
+    consiglio = next(block for block in region["definitions"] if block["key"] == "consiglio")
+    assert consiglio["type"] == "rows" and [column["key"] for column in consiglio["columns"]] == ["gruppo", "consiglieri", "capogruppo", "sostiene_giunta"]
     assert region["base"]["name"] == "Lombardia" and region["base"]["municipality_count"] == 1
     assert region["base"]["provinces"] == [{"abbreviation": "MI", "name": "Milano", "municipalities": 1}]
     town = client.get(f"/redazione/api/territori/municipality/{ids['municipality']}", headers=ANNA).json()
-    assert [block["title"] for block in town["definitions"]] == ["Scheda rapida", "Il sindaco", "La giunta", "Consiglio e opposizione", "Promesse del mandato", "Elezioni (storico e prossime)", "Collega il sindaco"]
+    assert [block["title"] for block in town["definitions"]] == [
+        "Scheda rapida", "Cosa conta", "Indirizzo politico", "Come funziona", "Il sindaco", "La giunta",
+        "Consiglio e opposizione", "Promesse del mandato", "Elezioni (storico e prossime)", "Collega il sindaco",
+    ]
     assert town["base"]["province"] == {"abbreviation": "MI", "name": "Milano"}
     province = client.get("/redazione/api/territori/province/mi", headers=ANNA).json()
     assert province["base"]["name"] == "Milano" and province["base"]["key"] == "MI"
@@ -79,6 +88,7 @@ def test_the_scheda_follows_the_writing_models_and_keeps_the_official_base(conso
     # Capoluoghi (Milano, Verona, …) appear on the Comuni tab without a query.
     empty = client.get("/redazione/api/territori", headers=ANNA).json()
     assert any(row["kind"] == "municipality" and row["name"] == "Milano" for row in empty)
+    assert any(row["kind"] == "municipio" and row["key"] == "roma-1" for row in empty)
     exact = [row for row in client.get("/redazione/api/territori?q=Milano", headers=ANNA).json() if row["kind"] == "municipality"]
     assert exact and exact[0]["name"] == "Milano"
 
@@ -94,11 +104,11 @@ def test_a_block_goes_through_the_second_person_and_any_published_block_can_chan
     assert item["territory"] == {"kind": "municipality", "key": str(ids["municipality"]), "title": "Comune di Milano"}
     # Not published yet: the citizen sees the base only.
     public = client.get(f"/territories/municipality/{ids['municipality']}").json()
-    assert public["blocks"][1]["data"] is None
+    assert next(block for block in public["blocks"] if block["key"] == "sindaco")["data"] is None
     assert client.post(f"/redazione/api/coda/territory/{item['id']}/approva", headers=ANNA, json={}).status_code == 409
     assert client.post(f"/redazione/api/coda/territory/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
     public = client.get(f"/territories/municipality/{ids['municipality']}").json()
-    sindaco = public["blocks"][1]
+    sindaco = next(block for block in public["blocks"] if block["key"] == "sindaco")
     assert sindaco["data"]["body"] == body and sindaco["written_by"] == "Anna Redattrice" and sindaco["published_by"] == "Bruno Verificatore"
     assert {"name": "Comune di Milano", "url": "https://www.comune.milano.it/comune/sindaco", "date": None} in public["sources"]
     # A published block can always be changed: the new version replaces it once approved.
@@ -106,7 +116,7 @@ def test_a_block_goes_through_the_second_person_and_any_published_block_can_chan
     second = next(item for item in client.get("/redazione/api/coda", headers=ANNA).json() if item["kind"] == "territory")
     client.post(f"/redazione/api/coda/territory/{second['id']}/approva", headers=ANNA, json={})
     public = client.get(f"/territories/municipality/{ids['municipality']}").json()
-    assert "1° luglio 2016" in public["blocks"][1]["data"]["body"]
+    assert "1° luglio 2016" in next(block for block in public["blocks"] if block["key"] == "sindaco")["data"]["body"]
     scheda = client.get(f"/redazione/api/territori/municipality/{ids['municipality']}", headers=ANNA).json()
     assert scheda["blocks"]["sindaco"]["published"]["created_by"] == "Bruno Verificatore"
     assert scheda["blocks"]["sindaco"]["pending"] == []
@@ -166,7 +176,15 @@ def test_regions_overview_shows_the_coalition_the_redazione_published(tmp_path):
     with client:
         empty = client.get("/territories/regions").json()
         assert empty["items"][0]["short"] == "LOM" and empty["items"][0]["coalition"] is None
-        assert empty["counts"] == {"centrosinistra": 0, "centrodestra": 0, "altro": 0, "da_compilare": 1}
+        assert empty["counts"] == {
+            "centrosinistra": 0,
+            "centrodestra": 0,
+            "indipendente_destra": 0,
+            "indipendente_sinistra": 0,
+            "autonomista": 0,
+            "altro": 0,
+            "da_compilare": 1,
+        }
         client.post(
             f"/redazione/api/territori/region/{ids['region']}/blocchi/rapida",
             headers=CARLA,
@@ -330,3 +348,67 @@ def test_editorial_holder_overlay_does_not_invent_a_dait_mandate(console):
     assert all(block["key"] != "titolare" for block in public["blocks"])
     with client.app.state.session_factory() as session:
         assert list(session.scalars(select(TerritorialOfficeMandate))) == []
+
+
+def test_giunta_consiglio_and_coalition_options(console):
+    client, ids = console
+    base = f"/redazione/api/territori/region/{ids['region']}/blocchi"
+    giunta = client.post(
+        f"{base}/giunta",
+        headers=ANNA,
+        json={
+            "rows": [
+                {"ruolo": "presidente", "nome": "Attilio Fontana", "partito": "Lega", "delega": "Coordinamento"},
+                {"ruolo": "assessore", "nome": "Guido Bertolaso", "partito": "Indipendente", "delega": "Welfare"},
+            ],
+            "sources": [{"name": "Regione Lombardia", "url": "https://www.regione.lombardia.it/wps/portal/istituzionale/HP/istituzione/Giunta/composizione"}],
+        },
+    )
+    assert giunta.status_code == 200, giunta.text
+    item = next(row for row in client.get("/redazione/api/coda", headers=BRUNO).json() if row["kind"] == "territory")
+    assert client.post(f"/redazione/api/coda/territory/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    consiglio = client.post(
+        f"{base}/consiglio",
+        headers=ANNA,
+        json={
+            "rows": [
+                {"gruppo": "Lega", "consiglieri": "29", "capogruppo": "Rossi", "sostiene_giunta": "si"},
+                {"gruppo": "PD", "consiglieri": "17", "capogruppo": "Bianchi", "sostiene_giunta": "no"},
+            ],
+            "sources": [{"name": "Consiglio regionale Lombardia", "url": "https://www.consiglio.regione.lombardia.it/groups/consiglieri"}],
+        },
+    )
+    assert consiglio.status_code == 200, consiglio.text
+    pending = next(row for row in client.get("/redazione/api/coda", headers=BRUNO).json() if row["kind"] == "territory")
+    assert client.post(f"/redazione/api/coda/territory/{pending['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    public = client.get(f"/territories/region/{ids['region']}").json()
+    giunta_block = next(block for block in public["blocks"] if block["key"] == "giunta")
+    assert giunta_block["data"]["rows"][0]["ruolo"] == "presidente"
+    assert giunta_block["data"]["rows"][0]["partito"] == "Lega"
+    consiglio_block = next(block for block in public["blocks"] if block["key"] == "consiglio")
+    assert consiglio_block["type"] == "rows" and consiglio_block["data"]["rows"][0]["gruppo"] == "Lega"
+    # New coalition keys are accepted.
+    client.post(
+        f"{base}/rapida",
+        headers=ANNA,
+        json={"fields": {"capoluogo": "Milano", "coalizione": "autonomista"}, "sources": [ISTAT]},
+    )
+    draft = next(row for row in client.get("/redazione/api/coda", headers=BRUNO).json() if row["kind"] == "territory")
+    assert draft["preview"]["data"]["coalizione"] == "autonomista"
+
+
+def test_roma_municipi_hub_and_scheda(console):
+    client, ids = console
+    catalog = client.get("/territories/municipi/roma").json()
+    assert len(catalog["items"]) == 15
+    assert catalog["items"][0]["key"] == "roma-1" and catalog["items"][-1]["key"] == "roma-15"
+    scheda = client.get("/redazione/api/territori/municipio/roma-3", headers=ANNA).json()
+    assert scheda["base"]["title"] == "Roma — Municipio III"
+    assert scheda["base"]["roman"] == "III"
+    assert [block["key"] for block in scheda["definitions"] if not block.get("hidden")][:4] == [
+        "rapida", "utile", "indirizzo", "come_funziona",
+    ]
+    public = client.get("/territories/municipio/roma-3").json()
+    assert public["base"]["key"] == "roma-3"
+    assert public["base"]["municipi"][2]["key"] == "roma-3"
+    assert client.get("/territories/municipio/roma-99").status_code == 404

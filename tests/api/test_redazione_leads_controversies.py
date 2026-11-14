@@ -28,12 +28,12 @@ NEWS = {
         "cosa_succede": "Il decreto va convertito in legge entro il 16 novembre 2026.",
     },
     "sources": [
-        {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html", "area": "agenzia"},
-        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/bollo-auto-2027.html", "area": "centrodestra"},
-        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/bollo-auto-2027-esenzione", "area": "centrosinistra"},
+        {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html", "date": "2026-09-16", "area": "agenzia"},
+        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/bollo-auto-2027.html", "date": "2026-09-16", "area": "centrodestra"},
+        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/bollo-auto-2027-esenzione", "date": "2026-09-16", "area": "centrosinistra"},
     ],
 }
-SENATO = {"name": "Senato della Repubblica", "url": "https://www.senato.it/leg19/resoconto", "area": "istituzionale"}
+SENATO = {"name": "Senato della Repubblica", "url": "https://www.senato.it/leg19/resoconto", "date": "2022-10-25", "area": "istituzionale"}
 
 
 @pytest.fixture

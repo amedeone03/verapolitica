@@ -111,6 +111,22 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px var(--gutter) 80px; }
 .chip-published { background: var(--verdict-kept-bg); color: var(--verdict-kept); }
 .chip-rejected { background: var(--color-danger-light); color: var(--color-danger); }
 .chip-muted { background: var(--verdict-unrated-bg); color: var(--verdict-unrated); }
+
+.news-week {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-control-border);
+  background: linear-gradient(135deg, var(--color-accent-light), #fff 60%);
+}
+.news-week[data-phase="proposte"] { border-color: var(--color-warning); background: var(--color-warning-light); }
+.news-week[data-phase="assegnazioni"] { border-color: var(--color-primary); background: var(--color-accent-light); }
+.news-week > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.news-week p { margin: 6px 0 0; }
+#proposal-triad { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+#proposal-triad li { display: flex; gap: 8px; align-items: flex-start; font-size: .875rem; color: var(--color-text-muted); }
+#proposal-triad li.is-ready { color: var(--verdict-kept); font-weight: 600; }
+#proposal-triad .triad-mark { flex: none; width: 1em; }
 .verdict { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
 .verdict-kept { background: var(--verdict-kept-bg); color: var(--verdict-kept); }
 .verdict-partially_kept { background: var(--verdict-partial-bg); color: var(--verdict-partial); }

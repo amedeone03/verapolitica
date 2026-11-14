@@ -173,17 +173,23 @@
           <h1 id="history-title">Archivio</h1>
         </div>
         <nav class="filter-pills archive-tabs" aria-label="Sezioni dell'archivio">
-          <a class="filter-pill is-active" data-archive-tab="legislature" href="./?view=history">Legislature</a>
+          <a class="filter-pill is-active" data-archive-tab="italia" href="./?view=history">Italia</a>
+          <a class="filter-pill" data-archive-tab="legislature" href="./?view=history&amp;archive=legislature">Legislature</a>
           <a class="filter-pill" data-archive-tab="cities" href="./?view=history&amp;archive=cities">Città e regioni</a>
+          <a class="filter-pill" data-archive-tab="parties" href="./?view=history&amp;archive=parties">Partiti</a>
           <a class="filter-pill" data-archive-tab="consultazioni" href="./?view=history&amp;archive=consultazioni">Consultazioni</a>
         </nav>
-        <form id="history-search-panel" class="search-panel" action="./" method="get">
+        <form id="history-search-panel" class="search-panel" action="./" method="get" hidden>
           <input type="hidden" name="view" value="parliamentarians" />
           <label class="visually-hidden" for="history-q">Cerca un parlamentare</label>
           <input id="history-q" name="q" type="search" minlength="2" maxlength="100" placeholder="Cerca un parlamentare dal 1948" autocomplete="off" />
           <button type="submit">Cerca</button>
         </form>
         <div id="history-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento dell'archivio…</strong></div></div>
+        <section id="nation-archive" class="archive-nation" aria-labelledby="nation-archive-title" hidden>
+          <h2 id="nation-archive-title" class="visually-hidden">Cronologia d'Italia</h2>
+          <div id="nation-archive-body"></div>
+        </section>
         <div id="era-list" hidden></div>
         <section id="city-archive" class="detail-card" aria-labelledby="city-archive-title" hidden>
           <h2 id="city-archive-title">Città e regioni</h2>
@@ -191,6 +197,13 @@
           <label class="visually-hidden" for="city-archive-q">Cerca una città o una regione</label>
           <input id="city-archive-q" type="search" maxlength="80" placeholder="Cerca Verona, Milano, Veneto…" autocomplete="off" />
           <div id="city-archive-list" class="archive-dir"></div>
+        </section>
+        <section id="party-archive" class="detail-card" aria-labelledby="party-archive-title" hidden>
+          <h2 id="party-archive-title">Partiti</h2>
+          <p class="empty-note">Cronologie dei partiti in bozza. Jacopo le completa e le verifica su fonte ufficiale; Wikipedia resta bozza.</p>
+          <label class="visually-hidden" for="party-archive-q">Cerca un partito</label>
+          <input id="party-archive-q" type="search" maxlength="80" placeholder="Cerca un partito…" autocomplete="off" />
+          <div id="party-archive-list" class="archive-dir"></div>
         </section>
         <section id="territory-archive" class="detail-card" aria-labelledby="territory-archive-title" hidden><h2 id="territory-archive-title">Consultazioni e leggi</h2>
           <div class="shortcut-grid">
@@ -201,7 +214,7 @@
       </section>
 
       <section id="legislature-view" aria-labelledby="legislature-title" hidden>
-        <a class="back-link" href="./?view=history"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Archivio storico</a>
+        <a class="back-link" href="./?view=history&amp;archive=legislature"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Legislature</a>
         <div id="legislature-status" class="state-card loading-state" role="status"><span class="loading-mark" aria-hidden="true"></span><div><strong>Caricamento della legislatura…</strong></div></div>
         <article id="legislature-detail" hidden></article>
       </section>
@@ -370,6 +383,14 @@
           <div><strong>Caricamento del referendum…</strong></div>
         </div>
         <article id="referendum-detail" hidden></article>
+      </section>
+
+      <section id="territory-guide-view" aria-labelledby="territory-guide-title" hidden>
+        <div class="hero compact-hero">
+          <h1 id="territory-guide-title">Come funzionano regioni e città</h1>
+          <p class="hero-copy">Chi decide cosa, in linguaggio semplice. La redazione aggiorna il testo; le schede territoriali riprendono lo stesso livello di chiarezza.</p>
+        </div>
+        <article id="territory-guide-body" class="detail-card territory-guide"></article>
       </section>
 
       <section id="voting-guide-view" aria-labelledby="voting-guide-title" hidden>

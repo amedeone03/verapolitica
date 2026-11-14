@@ -1038,18 +1038,67 @@ export function renderTerritoryFacts(t) {
     ${rapida?.data?.note ? `<p class="territory-note">${escapeHtml(rapida.data.note)}</p>` : ""}`;
 }
 
+function territoryGiuntaTable(block) {
+  const data = block.data || {};
+  const rows = data.rows || [];
+  if (!rows.length) return data.body ? newsText(data.body) : "";
+  const columns = block.columns || [
+    { key: "ruolo", label: "Ruolo", options: { presidente: "Presidente", vicepresidente: "Vicepresidente", assessore: "Assessore o assessora" } },
+    { key: "nome", label: "Nome" },
+    { key: "partito", label: "Partito" },
+    { key: "delega", label: "Deleghe o competenze" },
+  ];
+  // Legacy rows only had nome + delega.
+  const hasRuolo = rows.some((row) => row.ruolo) || columns.some((column) => column.key === "ruolo");
+  const head = columns.filter((column) => hasRuolo || column.key !== "ruolo");
+  return `<div class="territory-table"><table class="t-giunta"><thead><tr>${head.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => {
+    const rank = row.ruolo === "presidente" || row.ruolo === "vicepresidente" ? ` class="is-${escapeHtml(row.ruolo)}"` : "";
+    return `<tr${rank}>${head.map((column) => {
+      if (column.options) {
+        return `<td>${escapeHtml(column.options[row[column.key]] || row[column.key] || "")}</td>`;
+      }
+      return `<td>${escapeHtml(row[column.key] || "")}</td>`;
+    }).join("")}</tr>`;
+  }).join("")}</tbody></table></div>${data.body ? newsText(data.body) : ""}`;
+}
+
+function territoryConsiglioChart(rows) {
+  const seats = rows.map((row) => Math.max(0, Number.parseInt(String(row.consiglieri || "0").replace(/\D/g, ""), 10) || 0));
+  const total = seats.reduce((sum, value) => sum + value, 0);
+  if (!total) return "";
+  const items = [];
+  rows.forEach((row, index) => {
+    for (let i = 0; i < seats[index]; i += 1) items.push(index);
+  });
+  const palette = ["#1D4ED8", "#C2410C", "#047857", "#7C3AED", "#B45309", "#0F766E", "#BE123C", "#334155"];
+  const layout = hemicycle(items.length, { width: 280, inner: 0.42, rows: Math.min(5, Math.max(3, Math.ceil(items.length / 18))) });
+  const r = layout.radius;
+  const dots = layout.points.map((point, index) => {
+    const group = items[index];
+    return `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${r}" fill="${palette[group % palette.length]}"><title>${escapeHtml(rows[group].gruppo || "")}</title></circle>`;
+  }).join("");
+  const legend = rows.map((row, index) => `<li><span class="t-council-swatch" style="--c:${palette[index % palette.length]}" aria-hidden="true"></span>${escapeHtml(row.gruppo || "Gruppo")} <b>${seats[index]}</b>${row.sostiene_giunta === "si" ? " · maggioranza" : ""}</li>`).join("");
+  return `<figure class="t-council-chart"><svg class="quadro-hemicycle is-council" viewBox="0 0 280 ${Math.ceil(layout.height + r + 4)}" role="img" aria-label="Composizione del consiglio">${dots}</svg><ul class="t-council-legend">${legend}</ul></figure>`;
+}
+
 function territoryBlockBody(block) {
   const data = block.data || {};
+  if (block.type === "fields" && block.key === "utile") {
+    const facts = ["cosa_conta_1", "cosa_conta_2", "cosa_conta_3"].map((key) => data[key]).filter(Boolean);
+    const poteri = data.poteri;
+    if (!facts.length && !poteri) return "";
+    return `<div class="t-utile">${facts.length ? `<ul class="t-utile-list">${facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join("")}</ul>` : ""}${poteri ? `<p class="t-utile-poteri"><strong>Poteri:</strong> ${escapeHtml(poteri)}</p>` : ""}</div>`;
+  }
   if (block.type === "text") return newsText(data.body);
   if (block.type === "rows") {
     const rows = data.rows || [];
-    if (block.key === "giunta") {
-      return `<ul class="territory-people">${rows.map((row) => `<li><strong>${escapeHtml(row.nome)}</strong>${row.delega ? `<span>${escapeHtml(row.delega)}</span>` : ""}</li>`).join("")}</ul>${data.body ? newsText(data.body) : ""}`;
-    }
+    if (block.key === "giunta") return territoryGiuntaTable(block);
+    if (!rows.length && data.body) return newsText(data.body);
     const columns = block.columns || [];
-    return `<div class="territory-table"><table><thead><tr>${columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => column.options
-      ? `<td><span class="verdict-chip tone-${TERRITORY_PROMISE_TONE[row[column.key]] || "unrated"}">${escapeHtml(column.options[row[column.key]] || row[column.key])}</span></td>`
-      : `<td>${escapeHtml(row[column.key])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${data.body ? newsText(data.body) : ""}`;
+    const chart = block.key === "consiglio" ? territoryConsiglioChart(rows) : "";
+    return `${chart}<div class="territory-table"><table><thead><tr>${columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => column.options
+      ? `<td>${column.key === "stato" ? `<span class="verdict-chip tone-${TERRITORY_PROMISE_TONE[row[column.key]] || "unrated"}">${escapeHtml(column.options[row[column.key]] || row[column.key])}</span>` : escapeHtml(column.options[row[column.key]] || row[column.key] || "")}</td>`
+      : `<td>${escapeHtml(row[column.key] || "")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${data.body ? newsText(data.body) : ""}`;
   }
   return "";
 }
@@ -1057,7 +1106,14 @@ function territoryBlockBody(block) {
 // The top of a territory scheda, in the same family as a politician's profile:
 // a picture (the cover photo, or the coat of arms on a quiet panel), the coat
 // of arms as a badge, the name, a one-line summary and who governs it.
-const TERRITORY_COALITION_TONE = { centrosinistra: "#C2410C", centrodestra: "#1D4ED8", altro: "#047857" };
+const TERRITORY_COALITION_TONE = {
+  centrosinistra: "#C2410C",
+  centrodestra: "#1D4ED8",
+  indipendente_sinistra: "#EA580C",
+  indipendente_destra: "#2563EB",
+  autonomista: "#0F766E",
+  altro: "#047857",
+};
 
 function territoryMonogram(base) {
   if (base.kind === "province") return base.key;
@@ -1109,7 +1165,7 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
       ${photo || logo ? `<div class="t-hero-credits">${credit(images.photo, "Foto")}${credit(images.logo, "Stemma")}</div>` : ""}
     </header>`;
 }
-const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune" };
+const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune", municipio: "Municipio di Roma" };
 
 // A list of comuni that stays usable with 1,500 names: a labelled filter, a
 // polite count, links in a grid.
@@ -1142,30 +1198,50 @@ export function bindTownDirectory(root, id = "t-comuni") {
   });
 }
 
+function renderRomaMunicipiHub(municipi, { municipalityId = null } = {}) {
+  if (!municipi?.length) return "";
+  return `<section class="territory-block t-roma-hub" aria-labelledby="t-municipi-title">
+    <h2 id="t-municipi-title">Municipi di Roma</h2>
+    <p class="empty-note">Ogni municipio ha la sua giunta e il suo consiglio. Le schede servono in vista delle prossime elezioni: qui sotto i quindici municipi.</p>
+    ${municipalityId ? `<p><a class="profile-link" href="./?municipality=${encodeURIComponent(municipalityId)}">Torna al Comune di Roma ${icon("arrowRight")}</a></p>` : ""}
+    <ul class="t-dir t-municipi-dir">${municipi.map((item) => `<li><a href="./?municipio=${encodeURIComponent(item.key)}"><strong>${escapeHtml(item.name)}</strong><small>Roma</small></a></li>`).join("")}</ul>
+  </section>`;
+}
+
 export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "" } = {}) {
   const base = t.base;
+  const leadKeys = new Set(["utile", "indirizzo", "come_funziona"]);
   const written = t.blocks.filter((block) => block.key !== "rapida" && block.data);
+  const lead = written.filter((block) => leadKeys.has(block.key));
+  const rest = written.filter((block) => !leadKeys.has(block.key));
   const total = t.blocks.filter((block) => block.key !== "rapida").length;
   const meta = t.updated_at
     ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(String(t.updated_at).slice(0, 10)))}${t.writers.length ? ` · Scritto da ${escapeHtml(t.writers.join(", "))}` : ""}${t.publishers.length ? ` · Pubblicato da ${escapeHtml(t.publishers.join(", "))}` : ""}</p>`
     : "";
-  const sections = written.map((block) => `<section class="territory-block" id="t-${escapeHtml(block.key)}" aria-labelledby="t-${escapeHtml(block.key)}-title">
+  const sectionHtml = (block) => `<section class="territory-block" id="t-${escapeHtml(block.key)}" aria-labelledby="t-${escapeHtml(block.key)}-title">
       <h2 id="t-${escapeHtml(block.key)}-title">${escapeHtml(block.title)}</h2>
       ${territoryBlockBody(block)}
       ${block.sources?.length ? `<p class="territory-sources">Fonti: ${block.sources.map((source) => {
         const url = safeExternalUrl(source.url);
         return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.name || new URL(url).hostname)}</a>` : escapeHtml(source.name);
       }).join(" · ")}</p>` : ""}
-    </section>`).join("");
+    </section>`;
   const index = written.length > 1
     ? `<nav class="territory-index" aria-label="In questa scheda">${written.map((block) => `<a href="#t-${escapeHtml(block.key)}">${escapeHtml(block.title)}</a>`).join("")}<a href="#t-notizie">${escapeHtml(t.news_title)}</a></nav>`
     : "";
   const portrait = base.holder?.politician_id ? resolvePortrait(base.holder.politician_id) : null;
+  const romaHub = base.municipi?.length
+    ? renderRomaMunicipiHub(base.municipi, { municipalityId: base.kind === "municipio" ? base.municipality?.id : null })
+    : "";
+  const guideNudge = `<p class="territory-guide-link"><a class="profile-link" href="./?view=territory-guide">Come funzionano regioni e città ${icon("arrowRight")}</a></p>`;
   return `${renderTerritoryHero(t, { eyebrow, titleId, portrait })}
+    ${lead.map(sectionHtml).join("")}
+    ${guideNudge}
     <div class="territory-summary">${renderTerritoryFacts(t)}${meta}</div>
     ${index}
-    ${sections}
+    ${rest.map(sectionHtml).join("")}
     ${written.length < total ? `<p class="territory-pending">${written.length ? `Scheda incompleta: ${written.length} di ${total} parti pubblicate. La redazione sta completando il resto.` : "Scheda incompleta: la redazione non ha ancora scritto questa scheda. Qui sopra ci sono solo i dati ufficiali (ISTAT e, se c'è, il titolare)."}</p>` : ""}
+    ${romaHub}
     ${extra}
     <div id="t-notizie" class="territory-news"></div>
     <section class="territory-block territory-fonti" aria-labelledby="t-fonti-title"><h2 id="t-fonti-title">Fonti</h2>
@@ -3006,6 +3082,34 @@ async function showMunicipalityDetail(api, municipalityId) {
   }
 }
 
+async function showMunicipioDetail(api, municipioKey) {
+  byId("archive-view").hidden = true;
+  byId("municipality-detail-view").hidden = false;
+  try {
+    const scheda = await api.getTerritory("municipio", municipioKey);
+    const back = byId("municipality-detail-view").querySelector(".back-link");
+    if (back) {
+      back.href = scheda.base.municipality?.id
+        ? `./?municipality=${encodeURIComponent(scheda.base.municipality.id)}`
+        : "./?view=territory";
+      [...back.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).forEach((node) => node.remove());
+      back.append(" Comune di Roma");
+    }
+    byId("municipality-detail-status").hidden = true;
+    byId("municipality-detail").hidden = false;
+    byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, {
+      eyebrow: "Municipio di Roma",
+      titleId: "municipality-detail-title",
+    });
+    const news = byId("t-notizie");
+    if (news) news.innerHTML = `<section class="territory-block"><h2>${escapeHtml(scheda.news_title)}</h2><p class="empty-note">Le notizie del municipio compariranno quando la redazione le collegherà a Roma.</p></section>`;
+    document.title = `${scheda.base.title} — VeraPolitica`;
+  } catch (error) {
+    const missing = error.status === 404;
+    showState(byId("municipality-detail-status"), missing ? "Questo municipio non è disponibile." : "Non è stato possibile caricare il municipio.", missing ? "I municipi di Roma vanno da I a XV." : PUBLIC_UNAVAILABLE, true);
+  }
+}
+
 export function renderReferendumCard(item) {
   const synthetic = item.is_synthetic
     ? `<span class="institutional-note">Record dimostrativo sintetico</span>`
@@ -3422,13 +3526,14 @@ const SECTION_BY_VIEW = {
   ask: "politics", search: "search",
   history: "history", parliamentarians: "history", "referendum-archive": "history",
   territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory",
+  "territory-guide": "territory",
   profile: "profile",
 };
 
 export function sectionFor(params) {
   const view = params.get("view");
   if (view && SECTION_BY_VIEW[view]) return SECTION_BY_VIEW[view];
-  if (params.get("province") || params.get("region") || params.get("municipality")) return "territory";
+  if (params.get("province") || params.get("region") || params.get("municipality") || params.get("municipio")) return "territory";
   if (params.get("politician") || params.get("proposal") || params.get("political_party") || params.get("parliamentary_group")) return "politics";
   if (params.get("timeline") || params.get("legislature") || params.get("history_region") || params.get("history_province")) return "history";
   return "home";
@@ -3453,10 +3558,30 @@ function markSection(section) {
 
 // Mobile menu: a modal dialog with focus trap, Escape, scroll lock and focus return.
 
+const TERRITORY_GUIDE_SECTIONS = [
+  ["Regione", "Il presidente è eletto e guida la giunta degli assessori. Il consiglio regionale approva le leggi della regione. Sanità, trasporti locali e formazione sono tra le materie che i cittadini incontrano più spesso."],
+  ["Comune", "Il sindaco e la giunta gestiscono i servizi quotidiani; il consiglio comunale rappresenta maggioranza e opposizione. Scuola dell’obbligo locale, rifiuti, casa e tariffe passano di qui."],
+  ["Provincia", "Dopo la riforma del 2014, nella maggior parte dei territori non è più eletta direttamente. Restano competenze su viabilità e edilizia scolastica, a seconda dell’ordinamento."],
+  ["Municipi di Roma", "Ogni municipio ha presidente, giunta e consiglio, distinti dal Campidoglio. Le schede VeraPolitica li trattano uno per uno in vista delle elezioni locali."],
+  ["Su VeraPolitica", "Ogni scheda apre con cosa conta per chi vive lì e con l’indirizzo della maggioranza, poi spiega come funziona l’ente, e solo dopo mostra tabelle di nomi e risultati elettorali."],
+];
+
+export function renderTerritoryGuide() {
+  return TERRITORY_GUIDE_SECTIONS.map(([title, text]) => `<section class="news-block"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`).join("")
+    + `<p class="empty-note">Testo di partenza, da aggiornare con fonti quando la redazione completa la guida (Jacopo). Outline in docs/come-funzionano-regioni-citta.md.</p>`;
+}
+
+async function showTerritoryGuide() {
+  byId("territory-guide-view").hidden = false;
+  byId("territory-guide-body").innerHTML = renderTerritoryGuide();
+  document.title = "Come funzionano regioni e città — VeraPolitica";
+}
+
 const VIEW_DESCRIPTIONS = {
   politics: "Governo, Parlamento e partiti: chi governa e cosa ha promesso.",
   territory: "La mappa di regioni e province: chi governa, i comuni e le notizie del territorio.",
-  history: "Legislature dal 1946, parlamentari, referendum e territori, con fonti ufficiali.",
+  history: "Cronologia d'Italia, legislature, città, regioni, partiti e consultazioni, con fonti.",
+  "territory-guide": "Chi decide cosa in regioni, città, province e municipi di Roma.",
   profile: "La tua zona e i tuoi politici preferiti, salvati solo su questo dispositivo.",
   proposals: "Proposte di legge e promesse esplicite verificate, con la cronologia ufficiale.",
   referendums: "Referendum e consultazioni con quesiti ufficiali e date.",
@@ -3466,7 +3591,7 @@ function syncPageMeta(params) {
   const description = VIEW_DESCRIPTIONS[params.get("view")];
   if (description) document.querySelector('meta[name="description"]')?.setAttribute("content", description);
   // Canonical URL: the view, the record id or the search query; no tracking or paging noise.
-  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "post", "glossary", "history_region", "history_province", "timeline", "archive"];
+  const keep = ["view", "politician", "proposal", "referendum", "political_party", "legislature", "province", "region", "municipality", "municipio", "post", "glossary", "history_region", "history_province", "timeline", "archive"];
   const canonical = new URL(window.location.pathname, window.location.origin);
   for (const key of keep) if (params.get(key)) canonical.searchParams.set(key, params.get(key));
   let link = document.querySelector('link[rel="canonical"]');
@@ -3728,7 +3853,7 @@ async function showHome(api) {
 }
 
 const NEWS_SECTIONS = [
-  ["perche", "Perché ne parliamo"],
+  ["perche", "Perché interessa"],
   ["fatto", "Il fatto"],
   ["cosa_cambia", "Cosa cambia per te"],
   ["destra", "Cosa dice la destra"],
@@ -3737,6 +3862,13 @@ const NEWS_SECTIONS = [
   ["numeri", "I numeri e l'impatto economico"],
   ["cosa_succede", "Cosa succede adesso"],
 ];
+
+const COSA_CAMBIA_BY_SCOPE = {
+  national: "Cosa cambia a livello nazionale",
+  region: "Cosa cambia in regione",
+  province: "Cosa cambia in provincia",
+  municipality: "Cosa cambia nel comune",
+};
 
 function newsText(text) {
   const lines = String(text || "").split("\n").map((line) => line.trim()).filter(Boolean);
@@ -3748,11 +3880,14 @@ function newsText(text) {
 }
 
 // The nine blocks of the redazione's news model, always in the same order.
-export function renderNewsBlocks(blocks) {
-  const sections = NEWS_SECTIONS.filter(([key]) => blocks[key]).map(([key, label]) => `<section class="news-block news-${key}">
-      <h2>${escapeHtml(label)}</h2>${newsText(blocks[key])}
+export function renderNewsBlocks(blocks, { scope } = {}) {
+  const sections = NEWS_SECTIONS.filter(([key]) => blocks[key]).map(([key, label]) => {
+    const heading = key === "cosa_cambia" ? (COSA_CAMBIA_BY_SCOPE[scope] || label) : label;
+    return `<section class="news-block news-${key}">
+      <h2>${escapeHtml(heading)}</h2>${newsText(blocks[key])}
       ${key === "fatto" && blocks.perche_deciso ? `<p><strong>Perché è stato deciso, secondo chi ha deciso:</strong> ${escapeHtml(blocks.perche_deciso)}</p>` : ""}
-    </section>`).join("");
+    </section>`;
+  }).join("");
   return `${blocks.sommario ? `<p class="lead">${escapeHtml(blocks.sommario)}</p>` : ""}<div class="news-blocks">${sections}</div>`;
 }
 
@@ -3773,7 +3908,7 @@ async function showPost(api, postId) {
     <section class="proposal-detail-hero post-deep">
       <p class="eyebrow">Approfondimento</p>
       ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
-      ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
+      ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }, { scope: item.scope }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
     <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
     ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Scritto da ${escapeHtml(item.written_by)}` : ""}${item.verified_by && item.verified_by !== item.written_by ? ` · Pubblicato da ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
@@ -3932,8 +4067,24 @@ export function renderPersonBubble(person) {
 // published it (the official results are the source); a region still to be
 // filled in is dashed, never guessed. Seats come from the official group
 // memberships of camera.it and senato.it.
-const COALITION_ORDER = ["centrosinistra", "altro", "da_compilare", "centrodestra"];
-const COALITION_COLOR = { centrosinistra: "#eb6834", altro: "#1baf7a", centrodestra: "#2a78d6", da_compilare: "#7D8E8B" };
+const COALITION_ORDER = [
+  "centrosinistra",
+  "indipendente_sinistra",
+  "autonomista",
+  "altro",
+  "da_compilare",
+  "indipendente_destra",
+  "centrodestra",
+];
+const COALITION_COLOR = {
+  centrosinistra: "#eb6834",
+  indipendente_sinistra: "#f08a4b",
+  autonomista: "#0f766e",
+  altro: "#1baf7a",
+  da_compilare: "#7D8E8B",
+  indipendente_destra: "#5b8fd9",
+  centrodestra: "#2a78d6",
+};
 const GROUP_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
 
 // Seat positions on concentric arcs, left to right: the classic parliament chart.
@@ -4525,20 +4676,33 @@ function timelineHref(item) {
 }
 
 export function renderArchiveTimelineChip(item) {
-  const kind = item.kind === "city" ? "Comune" : item.kind === "region" ? "Regione" : "Italia";
+  const kind = item.kind === "city" ? "Comune" : item.kind === "region" ? "Regione" : item.kind === "party" ? "Partito" : "Italia";
   return `<a class="archive-dir-item" data-name="${escapeHtml(item.name.toLocaleLowerCase("it"))}" href="${escapeHtml(timelineHref(item))}"><strong>${escapeHtml(item.name)}</strong><small>${kind} · ${item.event_count} voci</small></a>`;
 }
 
-export function renderArchiveTimeline(timeline, { compact = false } = {}) {
-  const kind = timeline.kind === "city" ? "Comune" : timeline.kind === "region" ? "Regione" : "Italia";
-  const events = timeline.events.length
-    ? `<ol class="proposal-timeline">${timeline.events.map((event) => `<li><time>${escapeHtml(event.date_label || String(event.date || "").slice(0, 4))}</time><div><strong>${escapeHtml(event.title)}</strong>${event.verified ? `<span class="verified-badge">Verificata</span>` : `<span class="status-chip">Bozza</span>`}${event.body ? `<p>${escapeHtml(event.body)}</p>` : ""}${event.official_url ? `<p class="empty-note">Fonte ufficiale: ${safeExternalUrl(event.official_url) ? `<a href="${escapeHtml(safeExternalUrl(event.official_url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(event.official_name || event.official_url)}</a>` : escapeHtml(event.official_name || "")}</p>` : event.sources?.length ? `<p class="empty-note">${escapeHtml(event.sources.join(" · "))}</p>` : ""}</div></li>`).join("")}</ol>`
-    : `<p class="empty-note">Nessuna voce in questa bozza.</p>`;
+function archiveTimelineEvents(timeline) {
+  if (!timeline.events.length) return `<p class="empty-note">Nessuna voce in questa bozza.</p>`;
+  return `<ol class="proposal-timeline archive-timeline">${timeline.events.map((event, index) => `<li style="--i:${index}"><time datetime="${escapeHtml(event.date || "")}">${escapeHtml(event.date_label || String(event.date || "").slice(0, 4))}</time><div><strong>${escapeHtml(event.title)}</strong>${event.verified ? `<span class="verified-badge">Verificata</span>` : `<span class="status-chip">Bozza</span>`}${event.body ? `<p>${escapeHtml(event.body)}</p>` : ""}${event.official_url ? `<p class="empty-note">Fonte ufficiale: ${safeExternalUrl(event.official_url) ? `<a href="${escapeHtml(safeExternalUrl(event.official_url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(event.official_name || event.official_url)}</a>` : escapeHtml(event.official_name || "")}</p>` : event.sources?.length ? `<p class="empty-note">${escapeHtml(event.sources.join(" · "))}</p>` : ""}</div></li>`).join("")}</ol>`;
+}
+
+export function renderArchiveTimeline(timeline, { compact = false, hub = false } = {}) {
+  const kind = timeline.kind === "city" ? "Comune" : timeline.kind === "region" ? "Regione" : timeline.kind === "party" ? "Partito" : "Italia";
+  const events = archiveTimelineEvents(timeline);
   const live = timeline.municipality_id
     ? `<a class="profile-link" href="./?municipality=${encodeURIComponent(timeline.municipality_id)}">Scheda del comune ${icon("arrowRight")}</a>`
     : timeline.region_id && timeline.kind === "region"
       ? `<a class="profile-link" href="./?region=${encodeURIComponent(timeline.region_id)}">Scheda della regione ${icon("arrowRight")}</a>`
-      : "";
+      : timeline.kind === "party"
+        ? `<a class="profile-link" href="./?view=politics">Partiti in Politica ${icon("arrowRight")}</a>`
+        : "";
+  if (hub) {
+    return `<section class="detail-card archive-nation-card">
+      <p class="feed-meta">${kind} · ${timeline.draft ? "bozza non verificata" : "voci verificate su fonte ufficiale"}</p>
+      <h2>${escapeHtml(timeline.name)}</h2>
+      <p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>
+      ${events}
+    </section>`;
+  }
   if (compact) {
     return `<section class="detail-card"><h2>${timeline.draft ? "Cronologia (bozza)" : "Cronologia"}</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
   }
@@ -4546,9 +4710,9 @@ export function renderArchiveTimeline(timeline, { compact = false } = {}) {
     <section class="detail-card"><h2>Cronologia</h2><p class="empty-note">${escapeHtml(timeline.disclaimer)}</p>${events}</section>`;
 }
 
-function bindCityArchiveFilter() {
-  const field = byId("city-archive-q");
-  const chips = [...document.querySelectorAll("#city-archive-list .archive-dir-item")];
+function bindArchiveDirFilter(fieldId, listId) {
+  const field = byId(fieldId);
+  const chips = [...document.querySelectorAll(`#${listId} .archive-dir-item`)];
   if (!field) return;
   field.addEventListener("input", () => {
     const q = field.value.trim().toLocaleLowerCase("it");
@@ -4556,9 +4720,18 @@ function bindCityArchiveFilter() {
   });
 }
 
+function bindCityArchiveFilter() {
+  bindArchiveDirFilter("city-archive-q", "city-archive-list");
+}
+
+function bindPartyArchiveFilter() {
+  bindArchiveDirFilter("party-archive-q", "party-archive-list");
+}
+
 function archiveTab() {
   const value = new URLSearchParams(window.location.search).get("archive");
-  return value === "cities" || value === "consultazioni" ? value : "legislature";
+  if (value === "cities" || value === "consultazioni" || value === "legislature" || value === "parties") return value;
+  return "italia";
 }
 
 function paintArchiveTab(tab) {
@@ -4567,10 +4740,14 @@ function paintArchiveTab(tab) {
   }
   const search = byId("history-search-panel");
   if (search) search.hidden = tab !== "legislature";
+  const nation = byId("nation-archive");
+  if (nation) nation.hidden = tab !== "italia";
   const eras = byId("era-list");
   if (eras) eras.hidden = tab !== "legislature";
   const cities = byId("city-archive");
   if (cities) cities.hidden = tab !== "cities";
+  const parties = byId("party-archive");
+  if (parties) parties.hidden = tab !== "parties";
   const consultazioni = byId("territory-archive");
   if (consultazioni) consultazioni.hidden = tab !== "consultazioni";
 }
@@ -4604,10 +4781,33 @@ async function showHistory(api) {
       <div class="legislature-grid">${era.legislatures.map(renderLegislatureCard).join("")}</div>
     </section>`).join("")}`;
     const items = timelines.items || [];
-    byId("city-archive-list").innerHTML = items.length
-      ? items.map(renderArchiveTimelineChip).join("")
+    const nationHit = items.find((item) => item.kind === "nation" || item.slug === "italia");
+    const nationBody = byId("nation-archive-body");
+    if (nationBody) {
+      if (nationHit) {
+        try {
+          const timeline = await api.getArchiveTimeline(nationHit.slug);
+          nationBody.innerHTML = renderArchiveTimeline(timeline, { hub: true });
+        } catch {
+          nationBody.innerHTML = `<section class="detail-card"><p class="empty-note">La cronologia d'Italia non è al momento disponibile.</p></section>`;
+        }
+      } else {
+        nationBody.innerHTML = `<section class="detail-card"><p class="empty-note">La cronologia d'Italia non è ancora in archivio.</p></section>`;
+      }
+    }
+    const localItems = items.filter((item) => item.kind !== "nation" && item.kind !== "party" && item.slug !== "italia");
+    byId("city-archive-list").innerHTML = localItems.length
+      ? localItems.map(renderArchiveTimelineChip).join("")
       : `<p class="empty-note">Nessuna cronologia in bozza.</p>`;
-    if (items.length) bindCityArchiveFilter();
+    if (localItems.length) bindCityArchiveFilter();
+    const partyItems = items.filter((item) => item.kind === "party");
+    const partyList = byId("party-archive-list");
+    if (partyList) {
+      partyList.innerHTML = partyItems.length
+        ? partyItems.map(renderArchiveTimelineChip).join("")
+        : `<p class="empty-note">Nessuna cronologia di partito in bozza. Jacopo le aggiunge in <code>data/fixtures/archive/timelines/</code> con kind «party».</p>`;
+      if (partyItems.length) bindPartyArchiveFilter();
+    }
     paintArchiveTab(tab);
   } catch {
     showState(byId("history-status"), "Non è stato possibile caricare l'archivio storico.", PUBLIC_UNAVAILABLE, true);
@@ -5027,6 +5227,7 @@ const referendumId = params.get("referendum");
 const glossarySlug = params.get("glossary");
 const regionId = params.get("region");
 const municipalityId = params.get("municipality");
+const municipioKey = params.get("municipio");
 const groupId = params.get("parliamentary_group");
 const partyId = params.get("political_party");
 const legislatureNumber = params.get("legislature");
@@ -5072,6 +5273,8 @@ async function start() {
   showGlossary(api, glossarySlug);
 } else if (isId(municipalityId)) {
   showMunicipalityDetail(api, municipalityId);
+} else if (municipioKey && /^roma-([1-9]|1[0-5])$/.test(municipioKey)) {
+  showMunicipioDetail(api, municipioKey);
 } else if (isId(historyRegionId)) {
   showTerritoryHistory(api, { regionId: historyRegionId });
 } else if (isId(regionId)) {
@@ -5112,6 +5315,8 @@ async function start() {
   showReferendums(api);
 } else if (view === "voting-guide") {
   showVotingGuide(api);
+} else if (view === "territory-guide") {
+  showTerritoryGuide();
 } else if (view === "glossary") {
   showGlossary(api);
 } else if (view === "regions") {

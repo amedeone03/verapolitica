@@ -133,16 +133,32 @@ const PROCEEDING_TYPE_LABELS = Object.fromEntries(PROCEEDING_TYPES);
 const OUTCOMES = [["", "—"], ["ongoing", "In corso"], ["archived", "Archiviato"], ["dismissed", "Prosciolto / assolto"], ["unknown", "Non noto"]];
 const options = (pairs, selected) => pairs.map(([value, label]) => `<option value="${esc(value)}"${value === selected ? " selected" : ""}>${esc(label)}</option>`).join("");
 
-// Final checklist of the "Modelli di scrittura" (page 13).
+// Final checklist of the "Modelli di scrittura" (page 13), plus the CEO proposal triad.
 const CHECKLIST = [
-  "Fonti: ogni fatto e ogni cifra ha una fonte con data; i dati elettorali vengono da Eligendo.",
+  "Proposta: cosa è successo o succederà, interesse per il pubblico, fonti verificabili con data e pagina precisa.",
+  "Fonti: ogni fatto e ogni cifra ha una fonte con data; niente Wikipedia, social o home di sito; i dati elettorali vengono da Eligendo.",
   "Varietà: almeno una fonte istituzionale o di agenzia, una di centrodestra e una di centrosinistra (per le notizie).",
+  "Ambito: «Cosa cambia» risponde al livello della notizia (nazionale, regionale, provinciale o comunale).",
   "Attribuzione: ogni opinione ha nome, ruolo e partito; nessun «si dice».",
   "Equilibrio: destra e sinistra hanno lo stesso numero di punti, la stessa lunghezza e lo stesso tono; chi non si è espresso è indicato come tale.",
   "Linguaggio: frasi corte, termini tecnici spiegati, nessun aggettivo di parte, titolo neutro.",
   "Parentesi quadre: nessuna rimasta aperta nel testo.",
   "Verifica: ho controllato fatti, fonti ed equilibrio sulla fonte originale.",
 ];
+
+function newsWeekCard(week = state.rules?.news_week) {
+  if (!week) return "";
+  return `<aside class="news-week" data-phase="${esc(week.phase)}">
+    <div><strong>Settimana notizie</strong> <span class="chip chip-kind">${esc(week.phase_label)}</span></div>
+    <p class="small">${esc(week.summary)}</p>
+    <p class="small muted">In prova: martedì–lunedì · proposte al venerdì · assegnazioni il lunedì.</p>
+  </aside>`;
+}
+
+function cosaCambiaMeta(scope) {
+  const map = state.rules?.cosa_cambia_by_scope || {};
+  return map[scope] || map.national || { label: "Cosa cambia per te", hint: "" };
+}
 
 // ------------------------------------------------------------- sources editor
 function sourcesEditor(name, sources = [], { area = true } = {}) {
@@ -477,6 +493,8 @@ async function showQueue() {
       <input id="home-q" type="search" placeholder="Cerca un politico" autocomplete="off" />
       <ul class="home-results" id="home-results" hidden></ul>
     </form>
+
+    ${newsWeekCard()}
 
     <nav class="home-create" aria-label="Crea">
       <a class="button button-secondary" href="#/notizie/nuova">Nuova notizia</a>
@@ -833,27 +851,58 @@ async function showPoliticians(query = "") {
   }));
 }
 
-const GOVERNMENT_OFFICES = [
-  ["", "Nessun incarico di Governo (solo scheda)"],
-  ["presidente del consiglio", "Presidente del Consiglio"],
-  ["vice presidente del consiglio", "Vicepresidente del Consiglio"],
-  ["ministro", "Ministro"],
-  ["ministro senza portafoglio", "Ministro senza portafoglio"],
-  ["sottosegretario", "Sottosegretario"],
+const POLITICAL_OFFICE_GROUPS = [
+  ["", [["", "Nessun incarico (solo scheda)"]]],
+  ["Istituzioni nazionali", [
+    ["presidente della repubblica", "Presidente della Repubblica"],
+    ["presidente del consiglio", "Presidente del Consiglio"],
+    ["vice presidente del consiglio", "Vicepresidente del Consiglio"],
+    ["ministro", "Ministro"],
+    ["ministro senza portafoglio", "Ministro senza portafoglio"],
+    ["sottosegretario", "Sottosegretario"],
+    ["deputato", "Deputato"],
+    ["senatore", "Senatore"],
+    ["europarlamentare", "Europarlamentare"],
+  ]],
+  ["Regioni", [
+    ["presidente della regione", "Presidente della Regione"],
+    ["vicepresidente della regione", "Vicepresidente della Regione"],
+    ["assessore regionale", "Assessore regionale"],
+    ["consigliere regionale", "Consigliere regionale"],
+  ]],
+  ["Province", [
+    ["presidente della provincia", "Presidente della Provincia"],
+    ["consigliere provinciale", "Consigliere provinciale"],
+  ]],
+  ["Comuni", [
+    ["sindaco", "Sindaco"],
+    ["vicesindaco", "Vicesindaco"],
+    ["assessore comunale", "Assessore comunale"],
+    ["consigliere comunale", "Consigliere comunale"],
+  ]],
 ];
+
+function politicalOfficeOptions() {
+  return POLITICAL_OFFICE_GROUPS.map(([group, rows]) => {
+    const opts = rows.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("");
+    return group ? `<optgroup label="${esc(group)}">${opts}</optgroup>` : opts;
+  }).join("");
+}
+
+const CAREER_ROLE_SUGGESTIONS = POLITICAL_OFFICE_GROUPS.flatMap(([, rows]) => rows.map(([, label]) => label).filter(Boolean));
 
 function newPoliticianForm(pending) {
   let open = false;
   try { open = sessionStorage.getItem("vp-open-new-politico") === "1"; sessionStorage.removeItem("vp-open-new-politico"); } catch { /* storage off */ }
-  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico di Governo</span></summary>
+  return `<details class="card new-party"${open ? " open" : ""}><summary><strong>Aggiungi un politico</strong> <span class="muted small">— nome, fonte ufficiale, eventuale incarico</span></summary>
     <form id="politician-form" class="stack" style="margin-top:12px">
       <div class="grid-2">
         <div class="field"><label for="pol-given">Nome</label><input id="pol-given" name="given_name" type="text" required minlength="2" maxlength="200" /></div>
         <div class="field"><label for="pol-family">Cognome</label><input id="pol-family" name="family_name" type="text" required minlength="2" maxlength="200" /></div>
         <div class="field"><label for="pol-birth">Data di nascita <span class="hint">facoltativa, aiuta a non duplicare</span></label><input id="pol-birth" name="birth_date" type="date" /></div>
-        <div class="field"><label for="pol-source">Fonte <span class="hint">scheda Camera, Senato, Governo o pagina ufficiale</span></label><input id="pol-source" name="source_url" type="url" required placeholder="https://" /></div>
-        <div class="field"><label for="pol-office">Incarico di Governo</label><select id="pol-office" name="office">${GOVERNMENT_OFFICES.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}</select></div>
-        <div class="field"><label for="pol-start">Inizio incarico</label><input id="pol-start" name="start_date" type="date" /><span class="hint">Obbligatorio solo se scegli un incarico di Governo.</span></div>
+        <div class="field"><label for="pol-source">Fonte <span class="hint">scheda ufficiale o pagina istituzionale</span></label><input id="pol-source" name="source_url" type="url" required placeholder="https://" /></div>
+        <div class="field"><label for="pol-office">Incarico</label><select id="pol-office" name="office">${politicalOfficeOptions()}</select></div>
+        <div class="field"><label for="pol-start">Inizio incarico</label><input id="pol-start" name="start_date" type="date" /><span class="hint">Obbligatorio solo se scegli un incarico.</span></div>
       </div>
       ${imageFields("pol", "Foto")}
       <div class="actions"><button class="button button-primary" type="submit">${saveLabel("Invia all'admin")}</button></div>
@@ -986,7 +1035,7 @@ function blockForm(kind, d = {}) {
   const key = `<input type="hidden" name="identity_key" value="${esc(d.identity_key || "")}" />`;
   let fields = "";
   if (kind === "biography") fields = `<div class="field"><label for="${id}-body">Testo <span class="counter"></span></label><textarea id="${id}-body" name="body" class="tall" ${counted(50, 80)} required>${esc(d.body || "")}</textarea><span class="hint">Formazione e percorso, solo fatti. Le parti da compilare vanno tra [parentesi quadre]: con parentesi aperte non si pubblica.</span></div>`;
-  if (kind === "career_entry") fields = `<div class="field-row"><div class="field"><label for="${id}-role">Incarico</label><input id="${id}-role" type="text" name="role" value="${esc(d.role || "")}" required /></div><div class="field"><label for="${id}-inst">Istituzione</label><input id="${id}-inst" type="text" name="institution" value="${esc(d.institution || "")}" required /></div><div class="field"><label for="${id}-party">Partito o gruppo</label><input id="${id}-party" type="text" name="party_or_group" value="${esc(d.party_or_group || "")}" /></div></div>
+  if (kind === "career_entry") fields = `<div class="field-row"><div class="field"><label for="${id}-role">Incarico</label><input id="${id}-role" type="text" name="role" list="career-role-suggestions" value="${esc(d.role || "")}" required /><datalist id="career-role-suggestions">${CAREER_ROLE_SUGGESTIONS.map((label) => `<option value="${esc(label)}"></option>`).join("")}</datalist></div><div class="field"><label for="${id}-inst">Istituzione</label><input id="${id}-inst" type="text" name="institution" value="${esc(d.institution || "")}" required /></div><div class="field"><label for="${id}-party">Partito o gruppo</label><input id="${id}-party" type="text" name="party_or_group" value="${esc(d.party_or_group || "")}" /></div></div>
     <div class="field-row"><div class="field"><label for="${id}-start">Inizio</label><input id="${id}-start" type="date" name="start_date" value="${esc(d.start_date || "")}" required /></div><div class="field"><label for="${id}-end">Fine</label><input id="${id}-end" type="date" name="end_date" value="${esc(d.end_date || "")}" /></div><div class="field"><span class="label">&nbsp;</span><label class="check"><input type="checkbox" name="is_current"${d.is_current ? " checked" : ""} />In corso</label></div></div>`;
   if (kind === "position") fields = `<div class="field-row"><div class="field"><label for="${id}-topic">Tema</label><input id="${id}-topic" type="text" name="topic" value="${esc(d.topic || "")}" required /></div><div class="field"><label for="${id}-date">Data della dichiarazione o del voto</label><input id="${id}-date" type="date" name="statement_date" value="${esc(d.statement_date || "")}" required /></div></div>
     <div class="field"><label for="${id}-pos">Posizione <span class="hint">Come l'ha espressa la persona, attribuita: «ha dichiarato…», «ha votato…».</span></label><textarea id="${id}-pos" name="position_statement" required>${esc(d.position_statement || "")}</textarea></div>
@@ -1224,19 +1273,21 @@ function bindTerritoryPicker(form, post) {
 
 async function showNews() {
   const list = await api("/notizie");
+  const scopeLabel = { national: "Nazionale", region: "Regionale", province: "Provinciale", municipality: "Comunale" };
   view.innerHTML = `<div class="page-head"><div><h1>Notizie</h1>
-    <p>Nazionali, regionali, provinciali o di un comune.</p></div>
+    <p>Nazionali, regionali, provinciali o di un comune. Ogni proposta: fatto, interesse pubblico, fonti verificabili.</p></div>
     <a class="button button-primary" href="#/notizie/nuova">Nuova notizia</a></div>
-    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
-    ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
+    ${newsWeekCard()}
+    ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Ambito</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
+    ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip chip-muted">${esc(scopeLabel[n.scope] || n.scope || "—")}</span></td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="empty">Nessuna notizia. <a href="#/notizie/nuova">Scrivi la prima</a>.</div>`}`;
   bindDiscardButtons(view, showNews);
 }
 
 const NEWS_HINTS = {
-  perche: ["Quante persone riguarda, quale scadenza, perché proprio ora.", "Scrivere «importante» senza dire per chi."],
-  fatto: ["Cosa è successo, chi ha deciso, quando, dove.", "Opinioni. Motivazioni presentate come verità."],
-  cosa_cambia: ["Per chi cambia e per chi no, 2–3 esempi concreti con numeri, e cosa NON cambia. Il blocco più utile.", "Gergo tecnico. Risparmi promessi senza averli calcolati."],
+  perche: ["Interesse pubblico: quante persone riguarda, quale scadenza, perché proprio ora. È il secondo pezzo obbligatorio di ogni proposta.", "Scrivere «importante» senza dire per chi."],
+  fatto: ["Cosa è successo o succederà: chi ha deciso, quando, dove. È il primo pezzo obbligatorio di ogni proposta.", "Opinioni. Motivazioni presentate come verità."],
+  cosa_cambia: ["Per chi cambia e per chi no a questo livello (nazionale/regionale/provinciale/comunale): 2–3 esempi concreti con numeri, e cosa NON cambia.", "Gergo tecnico. Risparmi promessi senza averli calcolati. Effetti di un altro livello territoriale."],
   destra: ["Maggioranza di governo e centrodestra: 3–4 punti, ognuno con persona, ruolo e partito.", "Citare solo i più duri o solo i più morbidi."],
   sinistra: ["Opposizioni di centrosinistra: stesso numero di punti, stessa lunghezza, stesso tono del blocco 4.", "Un tono diverso dal blocco 4. Punti senza nome."],
   altri: ["Centro, Regioni, associazioni, imprese, sindacati, esperti.", "Ometterli perché «non fanno notizia»."],
@@ -1255,45 +1306,59 @@ async function showNewsEditor(postId) {
   const editable = post.status === "pending" || !postId;
   const b = post.blocks || {};
   const blocks = state.rules.news_blocks;
+  const initialScope = post.scope || "national";
+  const cambia0 = cosaCambiaMeta(initialScope);
   view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a></p><h1>${postId ? esc(post.title) : "Nuova notizia"}</h1>
       ${postId ? `<p>Scritta da ${esc(post.created_by)}${post.reviewed_by ? ` · verificata da ${esc(post.reviewed_by)}` : ""} · <span class="chip ${post.status === "published" ? "chip-published" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa di verifica" }[post.status]}</span></p>` : ""}</div>
       ${post.public_url || post.can_discard ? `<div class="actions" style="margin-top:0">${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}${post.can_discard ? `<button type="button" class="button button-danger" id="n-discard">Elimina la notizia</button>` : ""}</div>` : ""}</div>
+    ${newsWeekCard()}
     ${!editable ? `<p class="own-note" style="margin-bottom:16px">Una notizia pubblicata non si modifica: un errore si corregge in modo visibile con una rettifica («Corretto il [data]: …»).</p>` : ""}
     <div class="layout-side"><form id="news-form" class="stack">
-      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo e sommario</h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Titolo: il fatto in forma neutra, soggetto + azione + quando. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div></details>
+      <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo, ambito e sommario</h2></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Prima scegli l'ambito: determina il blocco «Cosa cambia». Titolo: il fatto in forma neutra. Sommario: 2 righe con chi, cosa, quando.</div><div><b>Lunghezza</b>Titolo ~90 caratteri</div><div class="avoid"><b>Da evitare</b>Verbi emotivi (attacca, boccia, trionfa); promesse nel titolo.</div></div></details>
         <div class="field"><label for="n-title">Titolo</label><input id="n-title" type="text" name="title" maxlength="300" value="${esc(post.title)}" required /></div>
-        <div class="field"><label for="n-sommario">Sommario <span class="hint">È il testo della card nel feed.</span></label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
-      </section>
-      ${composer.html()}
-      ${blocks.map((block, index) => `<section class="card"><div class="card-head"><h2><span class="block-number">${index + 1}</span>${esc(block.label)}</h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>${esc(NEWS_HINTS[block.key][0])}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
-        <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
-        ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
-        ${block.key === "sinistra" ? `<div class="label">Equilibrio destra / sinistra</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
-      </section>`).join("")}
-      <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti</h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Elencare fonti non lette.</div></div></details>
-        ${newsSourcesEditor(post.sources)}
-        <div class="field-row"><div class="field"><label for="n-scope">Ambito</label><select id="n-scope" name="scope">${options([["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"]], post.scope || "national")}</select></div>
+        <div class="field-row"><div class="field"><label for="n-scope">Ambito</label><select id="n-scope" name="scope">${options([["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"]], initialScope)}</select></div>
           <input type="hidden" name="territory" value="${esc(post.region_id || post.municipality_id || "")}" />
           <div class="field" data-scope-field="region" hidden><label for="n-region">Regione</label><select id="n-region" data-region-select><option value="">Caricamento…</option></select></div>
           <div class="field territory-search" data-scope-field="municipality" hidden><label for="n-town">Comune</label><input id="n-town" type="search" autocomplete="off" placeholder="Scrivi il nome del comune" /><ul class="home-results" data-town-results hidden></ul></div>
           <div class="field" data-scope-field="province" hidden><label for="n-prov">Sigla provincia</label><input id="n-prov" type="text" name="province" maxlength="2" placeholder="es. MI" value="${esc(post.province_abbreviation || "")}" /></div></div>
+        <div class="field"><label for="n-sommario">Sommario <span class="hint">È il testo della card nel feed.</span></label><textarea id="n-sommario" name="sommario" rows="2">${esc(b.sommario || "")}</textarea></div>
+      </section>
+      ${composer.html()}
+      ${blocks.map((block, index) => {
+        const title = block.key === "cosa_cambia" ? cambia0.label : block.label;
+        const writeHint = block.key === "cosa_cambia" && cambia0.hint ? cambia0.hint : NEWS_HINTS[block.key][0];
+        return `<section class="card" data-news-block="${esc(block.key)}"><div class="card-head"><h2><span class="block-number">${index + 1}</span><span data-block-title>${esc(title)}</span></h2></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b><span data-block-hint>${esc(writeHint)}</span></div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
+        <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
+        ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
+        ${block.key === "sinistra" ? `<div class="label">Equilibrio destra / sinistra</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
+      </section>`;
+      }).join("")}
+      <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti verificabili</h2></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data e link alla pagina precisa. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia. Terzo pezzo obbligatorio di ogni proposta.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Wikipedia, social, blog, home di sito, fonti non lette. Una fonte sbagliata compromette la credibilità.</div></div></details>
+        ${newsSourcesEditor(post.sources)}
         <div class="field"><label for="n-pol">Politici citati <span class="hint">La notizia compare in «Notizie collegate» nel loro profilo.</span></label>
           <div class="actions" style="margin-top:0"><input id="n-pol" type="search" placeholder="Cerca un politico" style="flex:1 1 220px" /><button type="button" class="button button-secondary" id="n-pol-add">Aggiungi</button></div>
           <ul class="item-sources" id="n-pol-list">${(post.politicians || []).map(politicianChip).join("")}</ul></div>
       </section>
       ${editable ? `<div class="actions"><button class="button button-primary" type="submit">${saveLabel(postId ? "Salva" : "Invia all'admin")}</button></div>` : ""}
     </form>
-    <aside class="card side-panel"><h3>Anteprima nel feed</h3>
+    <aside class="card side-panel"><h3>Triade della proposta</h3>
+      <p class="small muted">Ogni proposta al venerdì deve avere questi tre pezzi. Poi si scrive il resto.</p>
+      <ul class="criteria" id="proposal-triad">${(state.rules?.proposal_triad || [
+        { key: "fatto", label: "Cosa è successo o succederà" },
+        { key: "perche", label: "Interesse per il pubblico" },
+        { key: "fonti", label: "Fonti verificabili" },
+      ]).map((item) => `<li data-triad="${esc(item.key)}"><span class="triad-mark" aria-hidden="true">○</span>${esc(item.label)}</li>`).join("")}</ul>
+      <h3 style="margin-top:20px">Anteprima nel feed</h3>
       <div id="card-preview" class="card-preview"></div>
       <h3 style="margin-top:20px">Quando una notizia merita una sintesi</h3>
       <p class="small muted">Ne bastano 3 su 5. Con meno di 3 criteri non si scrive: resta tra le segnalazioni.</p>
       <ul class="criteria" id="criteria">${["Cambia qualcosa di concreto nella vita di molte persone", "È una decisione formale (legge, decreto, sentenza, voto)", "Gli schieramenti hanno posizioni diverse e verificabili", "C'è una scadenza", "Ha effetti economici misurabili"].map((text, i) => `<li><label class="check"><input type="checkbox" data-criterion="${i}" />${esc(text)}</label></li>`).join("")}</ul>
       <p class="small" id="criteria-text"></p>
       <h3 style="margin-top:16px">Controlli</h3><div id="news-findings">${findingsList(post.findings)}</div>
-      <p class="small muted" style="margin-top:12px">Gli errori bloccano la pubblicazione; gli avvisi li valuta chi verifica.</p>
+      <p class="small muted" style="margin-top:12px">Gli errori bloccano la pubblicazione; gli avvisi li valuta chi verifica. Controlla sempre le fonti sulla pagina originale.</p>
     </aside></div>`;
   const form = view.querySelector("#news-form");
   if (!editable) form.querySelectorAll("input, textarea, select, button").forEach((el) => { el.disabled = true; });
@@ -1344,6 +1409,29 @@ async function showNewsEditor(postId) {
     bar.children[1].style.width = `${(left / total) * 100}%`;
     view.querySelector("#balance-text").textContent = `Destra ${right} parole · Sinistra ${left} parole`;
   };
+  const refreshCosaCambia = () => {
+    const meta = cosaCambiaMeta(form.scope.value);
+    const block = view.querySelector('[data-news-block="cosa_cambia"]');
+    if (!block) return;
+    const title = block.querySelector("[data-block-title]");
+    const hint = block.querySelector("[data-block-hint]");
+    if (title) title.textContent = meta.label;
+    if (hint) hint.textContent = meta.hint || NEWS_HINTS.cosa_cambia[0];
+  };
+  const refreshTriad = () => {
+    const data = collect();
+    const ready = {
+      fatto: Boolean((data.blocks.fatto || "").trim()),
+      perche: Boolean((data.blocks.perche || "").trim()),
+      fonti: data.sources.filter((s) => s.url && s.name && s.date).length >= 1,
+    };
+    view.querySelectorAll("#proposal-triad [data-triad]").forEach((li) => {
+      const ok = ready[li.dataset.triad];
+      li.classList.toggle("is-ready", Boolean(ok));
+      const mark = li.querySelector(".triad-mark");
+      if (mark) mark.textContent = ok ? "●" : "○";
+    });
+  };
   let timer;
   const check = () => {
     clearTimeout(timer);
@@ -1354,11 +1442,13 @@ async function showNewsEditor(postId) {
       } catch { /* ignore */ }
     }, 500);
   };
-  form.addEventListener("input", () => { balance(); check(); preview(); });
-  form.addEventListener("change", () => { check(); preview(); });
+  form.addEventListener("input", () => { balance(); check(); preview(); refreshTriad(); });
+  form.addEventListener("change", () => { refreshCosaCambia(); check(); preview(); refreshTriad(); });
   view.querySelectorAll("[data-count]").forEach(updateCounter);
+  refreshCosaCambia();
   balance();
   preview();
+  refreshTriad();
   bindPoliticianPicker();
   bindTerritoryPicker(form, post);
   form.addEventListener("submit", async (event) => {
@@ -1827,6 +1917,15 @@ function showRules() {
   ];
   view.innerHTML = `<div class="page-head"><div><h1>Regole</h1>
     <p>Valgono per ogni contenuto. Se un modello e una regola sembrano in conflitto, vince la regola.</p></div></div>
+    <section class="card"><h2>Per chi inizia (Donatella e nuovi redattori)</h2>
+      <ol class="item-sources" style="margin-top:8px">
+        <li>Apri <strong>Da fare</strong>: vedi la settimana notizie (martedì–lunedì; proposte venerdì; assegnazioni lunedì).</li>
+        <li>In <strong>Notizie → Nuova</strong> scegli subito l’ambito (nazionale o regionale). Ogni proposta ha tre pezzi: fatto, interesse pubblico, fonti con data e pagina precisa.</li>
+        <li>Controlla le fonti sulla pagina originale: Wikipedia e social bloccano la pubblicazione.</li>
+        <li>Per i territori: consiglio ed elezioni sono tabelle — si compilano ora. Guida «Come funziona»: outline con Jacopo; sul sito <code>?view=territory-guide</code>.</li>
+        <li>Foto e loghi: flusso già pronto; il testo verificabile ha priorità.</li>
+      </ol>
+      <p class="small muted" style="margin-top:10px">Guida lunga in repo: <code>docs/bachin-guida-pratica.md</code>.</p></section>
     <div class="rules-grid">${rules.map(([title, text], i) => `<div class="rule"><b>${i + 1}</b><h3>${esc(title)}</h3><p class="small">${esc(text)}</p></div>`).join("")}</div>
     <section class="card" style="margin-top:20px"><h2>Convenzioni di scrittura</h2><div class="table-wrap" style="margin-top:10px"><table class="data-table"><thead><tr><th>Cosa</th><th>Come si scrive</th></tr></thead><tbody>
       <tr><td>Date</td><td>Per esteso: «16 settembre 2026». Mai «16/9». Orari 24 ore.</td></tr>
@@ -1839,9 +1938,16 @@ function showRules() {
     </tbody></table></div></section>
     <section class="card"><h2>Checklist prima di pubblicare</h2><ul class="findings" style="margin-top:10px">${CHECKLIST.map((text) => `<li class="ok">${esc(text)}</li>`).join("")}</ul>
       <p class="small muted" style="margin-top:10px">Chi verifica la spunta voce per voce prima di approvare.</p></section>
+    <section class="card"><h2>Settimana notizie (in prova)</h2>
+      ${newsWeekCard()}
+      <ul class="item-sources" style="margin-top:8px">
+        <li><strong>Martedì–lunedì:</strong> settimana di pubblicazione.</li>
+        <li><strong>Venerdì:</strong> riunione proposte (fatto + interesse pubblico + fonti verificabili).</li>
+        <li><strong>Lunedì:</strong> lista completa e assegnazioni.</li>
+      </ul></section>
     <section class="card"><h2>Cosa controlla la console</h2><ul class="item-sources" style="margin-top:8px">
-      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti mancanti o che puntano a una home; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area (una pubblicazione ufficiale, tipo elenco istituzionale, basta la pagina ufficiale); posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
-      <li><strong>Avvisa:</strong> lunghezze fuori indicazione, squilibrio destra/sinistra, titoli con parole cariche, giudizi, opinioni senza nome, date abbreviate.</li>
+      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti senza nome, senza data o che puntano a una home; Wikipedia/social/blog; notizia senza interesse pubblico, senza fatto o senza «cosa cambia» al livello giusto; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area (una pubblicazione ufficiale basta la pagina ufficiale); posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
+      <li><strong>Avvisa:</strong> lunghezze fuori indicazione, squilibrio destra/sinistra, titoli con parole cariche, giudizi, opinioni senza nome, date abbreviate, fonti duplicate.</li>
       <li><strong>Punteggio:</strong> conta solo le promesse pubblicate, classificate e con uno stato approvato. «Non mantenuta» richiede due persone diverse da chi l'ha proposta e un motivo tra scadenza passata, mandato finito o rinuncia esplicita.</li>
     </ul></section>`;
 }
@@ -2095,7 +2201,7 @@ function symbolDialog(kind, name, licenses) {
 // base (ISTAT, DAIT) is the fixed reference at the top; every block of the
 // model can always be rewritten, and the new version replaces the published
 // one once an admin (or a second member) publishes it.
-const TERRITORY_KIND_LABEL = { region: "Regioni", province: "Province", municipality: "Comuni" };
+const TERRITORY_KIND_LABEL = { region: "Regioni", province: "Province", municipality: "Comuni", municipio: "Municipi Roma" };
 let territoryTab = "region";
 const TERRITORY_REJECT_REASONS = ["Fonte mancante o non valida", "Testo da correggere", "Immagine non adatta", "Licenza non verificabile", "Doppione"];
 const TERRITORY_IMAGE_KINDS = {
@@ -2160,10 +2266,12 @@ async function showTerritories(query = "") {
     api(`/territori${query ? `?q=${encodeURIComponent(query)}` : ""}`),
     query ? Promise.resolve([]) : api("/coda").catch(() => []),
   ]);
-  const tabs = query ? ["region", "province", "municipality"].filter((kind) => rows.some((row) => row.kind === kind)) : ["region", "province", "municipality"];
+  const tabs = query
+    ? ["region", "province", "municipality", "municipio"].filter((kind) => rows.some((row) => row.kind === kind))
+    : ["region", "province", "municipality", "municipio"];
   if (!tabs.includes(territoryTab)) territoryTab = tabs[0] || "region";
   const list = rows.filter((row) => row.kind === territoryTab);
-  view.innerHTML = `<div class="page-head"><div><h1>Territorio</h1><p class="muted">Regioni, province e comuni: scheda, stemma e foto.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><h1>Territorio</h1><p class="muted">Regioni, province, comuni e municipi di Roma: scheda, stemma e foto.</p></div></div>
     ${query ? "" : territoryWaiting(Array.isArray(queue) ? queue : queue.items || [])}
     <form id="territory-search" class="t-search" role="search">
       <label class="visually-hidden" for="tq">Cerca una regione, una provincia o un comune</label>
@@ -2171,6 +2279,7 @@ async function showTerritories(query = "") {
     </form>
     <div class="t-tabs" role="group" aria-label="Livello">${tabs.map((kind) => `<button type="button" data-tab="${kind}" aria-pressed="${kind === territoryTab}">${TERRITORY_KIND_LABEL[kind]}</button>`).join("")}</div>
     ${territoryTab === "municipality" && !query ? `<p class="small muted t-hint">I capoluoghi (Verona, Milano, …) stanno in elenco. Per gli altri comuni cerca il nome, oppure aprili dalla provincia.</p>` : ""}
+    ${territoryTab === "municipio" ? `<p class="small muted t-hint">I quindici municipi di Roma: ognuno ha giunta e consiglio. Compila le schede in vista delle prossime elezioni.</p>` : ""}
     ${list.length ? `<ul class="t-list">${list.map(territoryRowHtml).join("")}</ul>` : `<div class="empty">${territoryTab === "municipality" && !query ? "Nessun capoluogo in archivio territoriale. Cerca «Verona» per aprire il Comune." : `Nessun risultato${query ? ` per «${esc(query)}»` : ""}.`}</div>`}`;
   const input = view.querySelector("#tq");
   let timer = null;

@@ -166,6 +166,62 @@ def test_profile_block_needs_a_second_person_and_no_open_brackets(console):
             session.flush()
 
 
+def test_promise_works_without_camera_senato_governo_identifier(console):
+    """Europarlamentari, sindaci, presidenti: no Camera/Senato/Governo id yet."""
+
+    client, _, factory = console
+    with factory() as session:
+        politician = Politician(
+            canonical_given_name="Virginia",
+            canonical_family_name="Raggi",
+            normalized_name=normalize_person_name("Virginia", "Raggi"),
+            birth_date=date(1978, 7, 18),
+        )
+        session.add(politician)
+        session.flush()
+        version = PoliticianVersion(
+            politician_id=politician.id,
+            version_number=1,
+            profile_schema_version=1,
+            profile_data={"given_name": "Virginia", "family_name": "Raggi", "mandates": []},
+            published_at=NOW,
+        )
+        session.add(version)
+        session.flush()
+        politician.current_version = version
+        session.commit()
+        politician_id = politician.id
+
+    response = client.post(
+        f"/redazione/api/politici/{politician_id}/promesse",
+        headers=ANNA,
+        json={
+            "title": "Ridurre il debito del Comune",
+            "exact_statement": "Ridurremo il debito del Comune entro la fine del mandato.",
+            "introduced_at": "2016-06-20",
+            "where": "Programma elettorale",
+            "source": {
+                "name": "Comune di Roma",
+                "url": "https://www.comune.roma.it/web/it/notizia.page?contentId=NWS123",
+            },
+            "classification": CLASSIFICATION,
+        },
+    )
+    assert response.status_code == 200, response.text
+    created = response.json()
+    assert created["draft_id"]
+    assert client.post(f"/redazione/api/coda/promise/{created['draft_id']}/approva", headers=BRUNO, json={}).status_code == 200
+
+    with factory() as session:
+        identifier = session.scalar(
+            select(PoliticianSourceIdentifier).where(PoliticianSourceIdentifier.politician_id == politician_id)
+        )
+        assert identifier is not None
+        assert identifier.value == f"politician:{politician_id}"
+        source = session.get(Source, identifier.source_id)
+        assert source is not None and source.key == "redazione-identities"
+
+
 def test_promise_status_drives_the_scorecard(console):
     client, politician_id, _ = console
     base = f"/redazione/api/politici/{politician_id}"
@@ -280,7 +336,7 @@ def test_news_follows_the_nine_block_model(console):
     one_source = {
         "title": "Bollo auto 2027: esenzione per una sola auto fino a 80 kW",
         "blocks": blocks,
-        "sources": [{"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html", "area": "agenzia"}],
+        "sources": [{"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html", "date": "2026-09-16", "area": "agenzia"}],
         "politician_ids": [politician_id],
     }
     created = client.post("/redazione/api/notizie", headers=ANNA, json=one_source)
@@ -290,8 +346,8 @@ def test_news_follows_the_nine_block_model(console):
     assert client.post(f"/redazione/api/coda/news/{post['id']}/approva", headers=BRUNO, json={}).status_code == 422
 
     sources = one_source["sources"] + [
-        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/bollo-auto-2027.html", "area": "centrodestra"},
-        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/bollo-auto-2027-esenzione", "area": "centrosinistra"},
+        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/bollo-auto-2027.html", "date": "2026-09-16", "area": "centrodestra"},
+        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/bollo-auto-2027-esenzione", "date": "2026-09-16", "area": "centrosinistra"},
     ]
     updated = client.put(f"/redazione/api/notizie/{post['id']}", headers=ANNA, json={**one_source, "sources": sources}).json()
     assert not any(f["level"] == "error" for f in updated["findings"])
@@ -326,6 +382,7 @@ def test_official_publication_needs_only_the_institutional_page(console):
         "title": "Pubblicato l'elenco dei titolari del Governo in carica",
         "blocks": {
             "sommario": "La Presidenza del Consiglio pubblica l'elenco dei titolari in carica.",
+            "perche": "Senza la pagina ufficiale le schede pubbliche non avrebbero un elenco verificabile dei titolari.",
             "fatto": "La pagina ufficiale elenca vicepresidenti, ministri e sottosegretari con la scheda di ciascuno.",
             "cosa_cambia": "Le schede pubbliche riprendono i nomi e gli incarichi scritti su governo.it.",
         },
@@ -333,6 +390,7 @@ def test_official_publication_needs_only_the_institutional_page(console):
             {
                 "name": "Presidenza del Consiglio dei ministri",
                 "url": "https://www.governo.it/it/ministri-e-sottosegretari",
+                "date": "2022-10-22",
                 "area": "istituzionale",
             }
         ],
@@ -371,6 +429,7 @@ def test_pending_news_can_be_discarded_even_when_blocked(console):
                 {
                     "name": "ANSA",
                     "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html",
+                    "date": "2026-09-16",
                     "area": "agenzia",
                 }
             ],
@@ -494,14 +553,15 @@ def test_feed_card_with_round_image_reaches_the_timeline(console):
     }
 
     sources = [
-        {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/politica/2026/10/30/ddl-ferrovie.html", "area": "agenzia"},
-        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/ddl-ferrovie.html", "area": "centrodestra"},
-        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/ddl-ferrovie", "area": "centrosinistra"},
+        {"name": "ANSA", "url": "https://www.ansa.it/sito/notizie/politica/2026/10/30/ddl-ferrovie.html", "date": "2026-10-30", "area": "agenzia"},
+        {"name": "Il Giornale", "url": "https://www.ilgiornale.it/news/politica/ddl-ferrovie.html", "date": "2026-10-30", "area": "centrodestra"},
+        {"name": "Domani", "url": "https://www.editorialedomani.it/politica/ddl-ferrovie", "date": "2026-10-30", "area": "centrosinistra"},
     ]
     payload = {
         "title": "Disegno di legge sulle ferrovie: esame in commissione al Senato",
         "blocks": {
             "sommario": "Il disegno di legge riorganizza la gestione delle ferrovie regionali.",
+            "perche": "Riguarda chi usa i treni regionali e le aziende che gestiscono le linee.",
             "fatto": "Il Consiglio dei ministri ha approvato il disegno di legge.",
             "cosa_cambia": "- Cambia chi gestisce le linee regionali.",
             "destra": "- Maggioranza: favorevole.",
@@ -626,6 +686,18 @@ def test_redazione_can_add_a_politician_after_a_second_member(console):
         },
     )
     assert office_without_date.status_code == 422
+    unknown_office = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Sergio",
+            "family_name": "Mattarella",
+            "source_url": "https://www.quirinale.it/page/biografia",
+            "office": "carica inventata",
+            "start_date": "2015-02-03",
+        },
+    )
+    assert unknown_office.status_code == 422
     proposed = client.post(
         "/redazione/api/politici",
         headers=ANNA,
@@ -662,6 +734,47 @@ def test_redazione_can_add_a_politician_after_a_second_member(console):
         },
     )
     assert again.status_code == 409
+
+
+def test_redazione_accepts_non_government_offices(console):
+    client, _, _ = console
+    proposed = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Sergio",
+            "family_name": "Mattarella",
+            "birth_date": "1941-07-23",
+            "source_url": "https://www.quirinale.it/page/biografia",
+            "office": "presidente della repubblica",
+            "start_date": "2015-02-03",
+        },
+    )
+    assert proposed.status_code == 200, proposed.text
+    item = proposed.json()
+    queued = _queue_item(client, BRUNO, "change", id=item["id"])
+    assert queued["preview"]["payload"]["office_label"] == "Presidente della Repubblica"
+    assert queued["preview"]["payload"]["institution"] == "Presidenza della Repubblica"
+    assert client.post(f"/redazione/api/coda/change/{item['id']}/approva", headers=BRUNO, json={}).status_code == 200
+    person = next(row for row in client.get("/politicians").json()["items"] if row["family_name"] == "Mattarella")
+    mandate = person["profile"]["mandates"][0]
+    assert mandate["office"] == "presidente della repubblica"
+    assert mandate["mandate_type"] == "quirinale"
+    assert mandate["institution"] == "Presidenza della Repubblica"
+
+    ep = client.post(
+        "/redazione/api/politici",
+        headers=ANNA,
+        json={
+            "given_name": "Roberto",
+            "family_name": "Vannacci",
+            "source_url": "https://www.europarl.europa.eu/meps/it/example",
+            "office": "europarlamentare",
+            "start_date": "2024-07-16",
+        },
+    )
+    assert ep.status_code == 200, ep.text
+    assert _queue_item(client, BRUNO, "change", id=ep.json()["id"])["preview"]["payload"]["office_label"] == "Europarlamentare"
 
 
 def test_the_redazione_can_always_edit_a_party(console):

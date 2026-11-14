@@ -45,11 +45,22 @@ The photo of a new politician goes in the «Nuovo politico» form, the logo of a
 new party in the «Nuovo partito» form: file, credit (e.g. «Camera dei
 deputati»), optional source link. An existing scheda has «Aggiungi/Cambia la
 foto» in its first block. Nothing is fetched from Camera, Senato or Governo.
+Photos take time: publish verified text first; images can follow without
+blocking the scheda.
 
 ### Notizie locali
 
 A news item is national, regional, provincial or about one comune: pick the
-region from the list or search the comune by name.
+region from the list or search the comune by name. Local pieces (L'Aquila,
+Verona, …) are welcome in this phase — publish more to practise timing; selection
+doubts stay on the editorial group chat.
+
+### Guida pratica (Donatella e nuovi redattori)
+
+Step-by-step writing in the console:
+[bachin-guida-pratica.md](bachin-guida-pratica.md). The **Regole** page in the
+console also has a «Per chi inizia» section. Donatella covers national and
+regional news.
 
 ### Procedimenti giudiziari e controversie
 
@@ -66,19 +77,35 @@ and a controversy among the proceedings. Existing rows were sorted by the
 migration `f3a7c9d21b48`: anything with an investigation or trial against the
 politician stays a proceeding.
 
-### Territori (Regione, Provincia, Comune)
+### Territori (Regione, Provincia, Comune, Municipio)
 
-**Territori** in the console opens one scheda per regione, provincia and comune,
-written with the «Modelli di scrittura»:
+**Territori** in the console opens one scheda per regione, provincia, comune and
+municipio di Roma, written with the «Modelli di scrittura»:
 
-- **Regione** (Modello Regione): Scheda rapida, Il presidente, La giunta,
-  Il consiglio regionale, Promesse del mandato, Elezioni, then Notizie regionali
-  and Fonti.
-- **Comune** (Modello Città): Scheda rapida, Il sindaco, La giunta, Consiglio e
-  opposizione, Promesse del mandato, Elezioni (storico e prossime), then Notizie
-  locali and Fonti.
+- **Regione** (Modello Regione): Scheda rapida, Cosa conta, Indirizzo politico,
+  Come funziona, Il presidente, La giunta (ruolo/partito/deleghe), Il consiglio
+  regionale (tabella gruppi + grafico), Promesse del mandato, Elezioni (tabella),
+  then Notizie regionali and Fonti.
+- **Comune** (Modello Città): same lead blocks, Il sindaco, La giunta, Consiglio
+  e opposizione (tabella), Promesse, Elezioni, then Notizie locali and Fonti.
+  Roma also lists Municipi I–XV.
+- **Municipio** (Roma I–XV): same shape as the comune scheda for each municipio.
 - **Provincia** (the same rules, with the blocks a province has): Scheda rapida,
   Il presidente, Il consiglio provinciale, Elezioni, then Notizie and Fonti.
+
+Coalizione options include centrosinistra, centrodestra, indipendente di
+destra/sinistra, autonomista, and altra lista.
+
+**Consiglio ed elezioni sono pronti:** non aspettare un altro redesign. Compilare
+le tabelle gruppi/consiglieri/capogruppo e i risultati elettorali sulle schede
+regione e comune (e sui municipi di Roma). Outline della guida trasversale
+«Come funzionano»: [come-funzionano-regioni-citta.md](come-funzionano-regioni-citta.md);
+pagina pubblica `?view=territory-guide`.
+
+**Partiti:** dopo lo storico assegnato, Tommaso carica i due partiti mancanti
+(nome ufficiale, fonte, logo quando pronto). Cronologie di partito in Archivio:
+tab **Partiti** (`?view=history&archive=parties`) — Jacopo aggiunge i file JSON
+come per Italia/città (vedi [historical-archive.md](historical-archive.md)).
 
 The **official base** (ISTAT names and counts, presidents and mayors from the
 DAIT registry) sits at the top of every scheda and is read-only: it is the
@@ -89,8 +116,9 @@ version, and the new version replaces the published one. Open `[parentesi]`, a
 missing source, a population without its year, a promise without a source or a
 «Non mantenuta» without the fact are errors that block publication.
 
-On the public site the schede live in **Politica** (`?region=`, `?province=`,
-`?municipality=`); the history of a region or province stays in the Archivio
+On the public site the schede live in **Politica** / **Territorio** (`?region=`,
+`?province=`, `?municipality=`, `?municipio=roma-N`); the history of a region or
+province stays in the Archivio
 (`?history_region=`, `?history_province=`). The public API is
 `GET /territories/{region|province|municipality}/{id or sigla}`.
 
@@ -127,9 +155,9 @@ then appears on the public home at `/app/`. Give tokens out of band.
 | --- | --- |
 | Da verificare | Everything waiting for a second person: profile blocks, promises, proposals, promise statuses, news, withdrawals and re-classifications. The verifier ticks the final checklist of the writing models, then approves or rejects (a rejection needs a note). A pending or rejected news draft can be deleted by any member (`Elimina la notizia`); a published news item cannot. |
 | Politici | The "Modello Politico" in blocks 0–6: scheda rapida (from the official import), Chi è, Cosa ha fatto, Posizioni, Promesse (with status and classification), Procedimenti, Notizie collegate e fonti. **Aggiungi un politico** proposes a new public identity (name, official https source, optional Governo office); another member must approve it. |
-| Notizie | The "Modello Notizia" in nine blocks with live checks: word counts, right/left balance, sources from both sides plus an institutional or agency source. |
+| Notizie | The "Modello Notizia" in nine blocks with live checks: word counts, right/left balance, sources from both sides plus an institutional or agency source. Scope (national / region / province / municipality) drives the «Cosa cambia» label. Every proposal needs the triad: fact, public interest, dated page-level sources. |
 | Registro modifiche | The append-only log: who, when, what, with before/after details. |
-| Regole | The eight rules, the conventions and the checklist. |
+| Regole | The eight rules, the conventions, the checklist, and the trial news week (Tue–Mon; proposals Friday; assignments Monday). |
 
 ## The feed (Home)
 
@@ -165,12 +193,14 @@ Blocking (the item cannot be approved):
 - open `[square brackets]` in the text;
 - a missing source, or a source that is a home or section page;
 - a position without a date, a career entry without a start date;
-- a news item without at least three sources, one institutional or agency,
-  one centre-right and one centre-left outlet, or with an empty "Il fatto",
-  "Cosa cambia", "Destra" or "Sinistra" block. A card typed
+- a news item without at least three sources (each with name, date and a
+  page-level URL — not a home, Wikipedia, social or blog), one institutional
+  or agency, one centre-right and one centre-left outlet, or with an empty
+  "Il fatto", "Perché interessa il pubblico", "Cosa cambia" (scoped to the
+  editorial level), "Destra" or "Sinistra" block. A card typed
   **Pubblicazione ufficiale** is the exception: it only announces an official
-  list (governo.it, Camera, Senato) and needs that institutional page, not
-  newspaper sources;
+  list (governo.it, Camera, Senato) and needs that institutional page (with
+  date), not newspaper sources;
 - "Non mantenuta" without a reason (deadline passed, mandate ended, explicit
   renunciation), or with a declared deadline that is not before the fact.
 

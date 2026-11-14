@@ -171,6 +171,8 @@ Do not follow README snippets as the deploy procedure. Use:
 | Search | [docs/search.md](docs/search.md) |
 | Scoring and pledges | [docs/scoring-methodology.md](docs/scoring-methodology.md) |
 | Redazione console | [docs/redazione.md](docs/redazione.md) |
+| Bachin (guida pratica) | [docs/bachin-guida-pratica.md](docs/bachin-guida-pratica.md) |
+| Regioni e città (come funzionano) | [docs/come-funzionano-regioni-citta.md](docs/come-funzionano-regioni-citta.md) |
 | Civic records | [docs/civic-features.md](docs/civic-features.md) |
 | Territorial sources | [docs/territorial-sources.md](docs/territorial-sources.md) |
 | Scheduled jobs | [docs/scheduled-jobs.md](docs/scheduled-jobs.md) |

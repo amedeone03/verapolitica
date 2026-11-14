@@ -42,9 +42,9 @@ def test_notizia_payload_has_no_blocking_findings():
             "title": TITLE,
             "blocks": BLOCKS,
             "sources": [
-                {"name": "Senato", "url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula", "area": "istituzionale"},
-                {"name": "Sky", "url": "https://tg24.sky.it/politica/2025/10/18/manovra-meloni", "area": "centrodestra"},
-                {"name": "Il Fatto", "url": "https://www.ilfattoquotidiano.it/2024/01/29/ius-soli-giuseppe-conte-a-che-tempo-che-fa-non-sono-favorevole-serve-lo-ius-scholae-e-lo-ius-culturae/7425636/", "area": "centrosinistra"},
+                {"name": "Senato", "url": "https://www.senato.it/show-doc?id=1361012&leg=19&tipodoc=Resaula", "date": "2022-10-25", "area": "istituzionale"},
+                {"name": "Sky", "url": "https://tg24.sky.it/politica/2025/10/18/manovra-meloni", "date": "2025-10-18", "area": "centrodestra"},
+                {"name": "Il Fatto", "url": "https://www.ilfattoquotidiano.it/2024/01/29/ius-soli-giuseppe-conte-a-che-tempo-che-fa-non-sono-favorevole-serve-lo-ius-scholae-e-lo-ius-culturae/7425636/", "date": "2024-01-29", "area": "centrosinistra"},
             ],
             "card": {"category": "notizia"},
         }

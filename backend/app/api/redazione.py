@@ -31,6 +31,7 @@ from backend.app.schemas import (
 from backend.app.services import IdentityResolutionService
 from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
+from backend.app.services.redazione.news_week import news_week
 from backend.app.services.redazione.service import RedazioneError, RedazioneService
 
 
@@ -160,6 +161,11 @@ def rules(member: Member) -> dict:
         "judgement_words": list(style.JUDGEMENT_WORDS),
         "unattributed": list(style.UNATTRIBUTED),
         "topics": CAP_MAJOR_TOPICS,
+        "proposal_triad": [{"key": key, "label": label} for key, label in style.PROPOSAL_TRIAD],
+        "cosa_cambia_by_scope": {
+            key: {"label": label, "hint": hint} for key, (label, hint) in style.COSA_CAMBIA_BY_SCOPE.items()
+        },
+        "news_week": news_week().as_dict(),
     }
 
 
@@ -246,8 +252,8 @@ def save_politics_edit(
 
 
 # Territory schede: Regione, Provincia, Comune. Same flow as a politician's scheda.
-TerritoryKindPath = Annotated[str, Path(pattern=r"^(region|province|municipality)$")]
-TerritoryKeyPath = Annotated[str, Path(pattern=r"^[A-Za-z0-9]{1,12}$")]
+TerritoryKindPath = Annotated[str, Path(pattern=r"^(region|province|municipality|municipio)$")]
+TerritoryKeyPath = Annotated[str, Path(pattern=r"^[A-Za-z0-9-]{1,16}$")]
 
 
 @router.get("/territori")

@@ -56,6 +56,9 @@ def _clean(value: Any, limit: int = 4000) -> str:
 COALITIONS = {
     "centrosinistra": "Centrosinistra",
     "centrodestra": "Centrodestra",
+    "indipendente_destra": "Indipendente di destra",
+    "indipendente_sinistra": "Indipendente di sinistra",
+    "autonomista": "Autonomista",
     "altro": "Altra coalizione o lista",
 }
 
@@ -66,6 +69,18 @@ REGION_SHORT = {
     "15": "CAM", "16": "PUG", "17": "BAS", "18": "CAL", "19": "SIC", "20": "SAR",
 }
 
+# Roma municipi (I–XV). Not ISTAT rows: editorial territory keys under the Comune di Roma.
+ROMA_MUNICIPI: tuple[dict[str, str], ...] = tuple(
+    {
+        "key": f"roma-{number}",
+        "number": str(number),
+        "roman": ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV")[number - 1],
+        "name": f"Municipio {('I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV')[number - 1]}",
+    }
+    for number in range(1, 16)
+)
+ROMA_MUNICIPIO_KEYS = {item["key"] for item in ROMA_MUNICIPI}
+
 PROMISE_STATES = {
     "da_compilare": "Da compilare",
     "in_corso": "In corso",
@@ -73,6 +88,13 @@ PROMISE_STATES = {
     "parzialmente_mantenuta": "Mantenuta parzialmente",
     "non_mantenuta": "Non mantenuta",
 }
+
+GIUNTA_RUOLI = {
+    "presidente": "Presidente",
+    "vicepresidente": "Vicepresidente",
+    "assessore": "Assessore o assessora",
+}
+SI_NO = {"si": "Sì", "no": "No"}
 
 PROMISES = {
     "type": "rows",
@@ -87,9 +109,65 @@ PROMISES = {
 GIUNTA = {
     "type": "rows",
     "columns": [
-        {"key": "nome", "label": "Assessore o assessora"},
-        {"key": "delega", "label": "Deleghe"},
+        {"key": "ruolo", "label": "Ruolo", "options": GIUNTA_RUOLI},
+        {"key": "nome", "label": "Nome"},
+        {"key": "partito", "label": "Partito"},
+        {"key": "delega", "label": "Deleghe o competenze"},
     ],
+}
+CONSIGLIO = {
+    "type": "rows",
+    "columns": [
+        {"key": "gruppo", "label": "Gruppo"},
+        {"key": "consiglieri", "label": "N. consiglieri"},
+        {"key": "capogruppo", "label": "Capogruppo"},
+        {"key": "sostiene_giunta", "label": "Sostiene la giunta", "options": SI_NO},
+    ],
+}
+ELEZIONI = {
+    "type": "rows",
+    "columns": [
+        {"key": "candidato", "label": "Candidato o candidata"},
+        {"key": "coalizione", "label": "Coalizione o lista"},
+        {"key": "voti_pct", "label": "Voti %"},
+        {"key": "esito", "label": "Esito"},
+    ],
+}
+UTILE = {
+    "type": "fields",
+    "fields": [
+        {"key": "cosa_conta_1", "label": "Cosa conta 1"},
+        {"key": "cosa_conta_2", "label": "Cosa conta 2"},
+        {"key": "cosa_conta_3", "label": "Cosa conta 3"},
+        {"key": "poteri", "label": "Poteri principali (una riga)"},
+    ],
+    "guide": {
+        "what": "Tre fatti utili al cittadino (sanità, trasporti, tasse, casa) e, se serve, i poteri che contano di più a questo livello.",
+        "length": "Riquadro",
+        "avoid": "Elenco di nomi e incarichi; giudizi.",
+    },
+}
+INDIRIZZO = {
+    "type": "text",
+    "guide": {
+        "what": "Indirizzo politico della maggioranza in carica: partito o coalizione, priorità dichiarate, con fonte.",
+        "length": "40–70 parole",
+        "avoid": "Etichette ideologiche senza fonte; giudizi («estremista», «moderato»).",
+    },
+    "words": [40, 70],
+}
+COME_FUNZIONA = {
+    "type": "text",
+    "guide": {
+        "what": (
+            "Come funziona questo ente per il cittadino: chi decide cosa (giunta, consiglio, "
+            "presidente/sindaco), in linguaggio semplice. Outline e bozza condivisa: "
+            "docs/come-funzionano-regioni-citta.md (Jacopo). Sul sito: ?view=territory-guide."
+        ),
+        "length": "80–140 parole",
+        "avoid": "Copiare lo statuto; elenchi di articoli di legge senza spiegazione.",
+    },
+    "words": [80, 140],
 }
 
 # Block definitions, in the order of the model. "notizie" and "fonti" are not
@@ -110,16 +188,19 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
             ],
             "guide": {"what": "Capoluogo, numero di province e di comuni (dato ISTAT), popolazione, tipo (ordinaria o statuto speciale), presidente, ultime e prossime elezioni.", "length": "Riquadro", "avoid": "Dati senza anno di riferimento."},
         },
-        {"key": "presidente", "n": 1, "title": "Il presidente", "type": "text",
+        {"key": "utile", "n": 1, "title": "Cosa conta", **UTILE},
+        {"key": "indirizzo", "n": 2, "title": "Indirizzo politico", **INDIRIZZO},
+        {"key": "come_funziona", "n": 3, "title": "Come funziona", **COME_FUNZIONA},
+        {"key": "presidente", "n": 4, "title": "Il presidente", "type": "text",
          "guide": {"what": "Partito o coalizione, in carica dal, percorso politico, eventuale rielezione.", "length": "40–70 parole", "avoid": "Giudizi sul suo operato."}, "words": [40, 70]},
-        {"key": "giunta", "n": 2, "title": "La giunta", **GIUNTA,
-         "guide": {"what": "Assessori principali con le deleghe che toccano di più i cittadini (sanità, trasporti, ambiente, istruzione).", "length": "Elenco", "avoid": "Elencare tutti gli incarichi minori."}},
-        {"key": "consiglio", "n": 3, "title": "Il consiglio regionale", "type": "text",
-         "guide": {"what": "Composizione: partiti di maggioranza e di opposizione, capigruppo principali, numero di consiglieri.", "length": "40–70 parole", "avoid": "Seggi senza data di riferimento."}, "words": [40, 70]},
-        {"key": "promesse", "n": 4, "title": "Promesse del mandato", **PROMISES,
+        {"key": "giunta", "n": 5, "title": "La giunta", **GIUNTA,
+         "guide": {"what": "Presidente, vice e assessori principali con partito e deleghe (o competenze, come in Trentino) che toccano di più i cittadini.", "length": "Tabella", "avoid": "Elencare tutti gli incarichi minori."}},
+        {"key": "consiglio", "n": 6, "title": "Il consiglio regionale", **CONSIGLIO,
+         "guide": {"what": "Una riga per gruppo: nome, numero di consiglieri, capogruppo, se sostiene la giunta. Nota breve sotto la tabella se serve.", "length": "Tabella", "avoid": "Seggi senza data di riferimento."}},
+        {"key": "promesse", "n": 7, "title": "Promesse del mandato", **PROMISES,
          "guide": {"what": "3–5 impegni del programma elettorale, in tabella come per i Politici: stato, aggiornamento, fonte.", "length": "Tabella", "avoid": "Promesse generiche non verificabili."}},
-        {"key": "elezioni", "n": 5, "title": "Elezioni", "type": "text",
-         "guide": {"what": "Ultime regionali: data, candidati, coalizioni, risultati, affluenza. Poi la data delle prossime, se nota.", "length": "Tabella + 2 righe", "avoid": "Previsioni sul prossimo voto."}},
+        {"key": "elezioni", "n": 8, "title": "Elezioni", **ELEZIONI,
+         "guide": {"what": "Ultime regionali in tabella: candidati, coalizioni, % voti, esito. Nella nota: data e prossime elezioni se note.", "length": "Tabella + nota", "avoid": "Previsioni sul prossimo voto."}},
         {
             "key": "titolare", "n": 9, "title": "Collega il presidente", "type": "fields", "hidden": True,
             "fields": [
@@ -156,22 +237,25 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
             "fields": [
                 {"key": "abitanti", "label": "Abitanti (ISTAT)"},
                 {"key": "abitanti_anno", "label": "Anno del dato"},
-                {"key": "coalizione", "label": "Coalizione del sindaco"},
+                {"key": "coalizione", "label": "Coalizione del sindaco", "options": COALITIONS},
                 {"key": "ultime_elezioni", "label": "Ultime elezioni"},
                 {"key": "prossime_elezioni", "label": "Prossime elezioni"},
             ],
             "guide": {"what": "Provincia, regione, abitanti (ISTAT), sindaco, in carica dal, coalizione, ultime e prossime elezioni.", "length": "Riquadro", "avoid": "Dati senza anno di riferimento."},
         },
-        {"key": "sindaco", "n": 1, "title": "Il sindaco", "type": "text",
+        {"key": "utile", "n": 1, "title": "Cosa conta", **UTILE},
+        {"key": "indirizzo", "n": 2, "title": "Indirizzo politico", **INDIRIZZO},
+        {"key": "come_funziona", "n": 3, "title": "Come funziona", **COME_FUNZIONA},
+        {"key": "sindaco", "n": 4, "title": "Il sindaco", "type": "text",
          "guide": {"what": "Partito o lista, in carica dal, percorso, eventuale rielezione.", "length": "40–70 parole", "avoid": "Giudizi sul suo operato."}, "words": [40, 70]},
-        {"key": "giunta", "n": 2, "title": "La giunta", **GIUNTA,
-         "guide": {"what": "Assessori principali e deleghe che toccano di più i cittadini.", "length": "Elenco", "avoid": "Elencare tutte le deleghe minori."}},
-        {"key": "consiglio", "n": 3, "title": "Consiglio e opposizione", "type": "text",
-         "guide": {"what": "Maggioranza, principali forze di opposizione, capigruppo: le «altre voci della politica locale».", "length": "40–70 parole", "avoid": "Dare spazio solo alla maggioranza."}, "words": [40, 70]},
-        {"key": "promesse", "n": 4, "title": "Promesse del mandato", **PROMISES,
+        {"key": "giunta", "n": 5, "title": "La giunta", **GIUNTA,
+         "guide": {"what": "Sindaco/presidente, vicesindaco e assessori principali con partito e deleghe che toccano di più i cittadini.", "length": "Tabella", "avoid": "Elencare tutte le deleghe minori."}},
+        {"key": "consiglio", "n": 6, "title": "Consiglio e opposizione", **CONSIGLIO,
+         "guide": {"what": "Gruppi in consiglio: nome, seggi, capogruppo, se sostengono la giunta.", "length": "Tabella", "avoid": "Dare spazio solo alla maggioranza."}},
+        {"key": "promesse", "n": 7, "title": "Promesse del mandato", **PROMISES,
          "guide": {"what": "3–5 impegni del programma elettorale in tabella, con stato, aggiornamento e fonte.", "length": "Tabella", "avoid": "Promesse senza fonte."}},
-        {"key": "elezioni", "n": 5, "title": "Elezioni (storico e prossime)", "type": "text",
-         "guide": {"what": "Esito delle ultime comunali. Per i comuni al voto: data (quando fissata), candidati emersi, regole del ballottaggio (sopra i 15.000 abitanti se nessuno supera il 50%).", "length": "60–100 parole", "avoid": "Indicare «favoriti»; candidati non dichiarati."}, "words": [60, 100]},
+        {"key": "elezioni", "n": 8, "title": "Elezioni (storico e prossime)", **ELEZIONI,
+         "guide": {"what": "Esito delle ultime comunali in tabella. Nella nota: data delle prossime e regole del ballottaggio se rilevanti.", "length": "Tabella + nota", "avoid": "Indicare «favoriti»; candidati non dichiarati."}},
         {
             "key": "titolare", "n": 9, "title": "Collega il sindaco", "type": "fields", "hidden": True,
             "fields": [
@@ -182,9 +266,49 @@ DEFINITIONS: dict[str, list[dict[str, Any]]] = {
             "guide": {"what": "Collega il sindaco a una scheda già in archivio. Serve una fonte ufficiale (Eligendo, Ministero, sito del comune), non Wikipedia.", "length": "Riquadro", "avoid": "Inventare un mandato DAIT. Non usare Tuttitalia come prova."},
         },
     ],
+    "municipio": [
+        {
+            "key": "rapida", "n": 0, "title": "Scheda rapida", "type": "fields",
+            "fields": [
+                {"key": "abitanti", "label": "Abitanti (stima o dato ufficiale)"},
+                {"key": "abitanti_anno", "label": "Anno del dato"},
+                {"key": "coalizione", "label": "Coalizione del presidente", "options": COALITIONS},
+                {"key": "ultime_elezioni", "label": "Ultime elezioni"},
+                {"key": "prossime_elezioni", "label": "Prossime elezioni"},
+            ],
+            "guide": {"what": "Abitanti, coalizione, ultime e prossime elezioni del municipio.", "length": "Riquadro", "avoid": "Dati senza anno di riferimento."},
+        },
+        {"key": "utile", "n": 1, "title": "Cosa conta", **UTILE},
+        {"key": "indirizzo", "n": 2, "title": "Indirizzo politico", **INDIRIZZO},
+        {"key": "come_funziona", "n": 3, "title": "Come funziona", **COME_FUNZIONA},
+        {"key": "sindaco", "n": 4, "title": "Il presidente", "type": "text",
+         "guide": {"what": "Presidente del municipio: partito o lista, in carica dal, percorso.", "length": "40–70 parole", "avoid": "Giudizi sul suo operato."}, "words": [40, 70]},
+        {"key": "giunta", "n": 5, "title": "La giunta", **GIUNTA,
+         "guide": {"what": "Presidente, vice e assessori del municipio con partito e deleghe.", "length": "Tabella", "avoid": "Elencare tutte le deleghe minori."}},
+        {"key": "consiglio", "n": 6, "title": "Il consiglio municipale", **CONSIGLIO,
+         "guide": {"what": "Gruppi del consiglio municipale: nome, seggi, capogruppo, sostegno alla giunta.", "length": "Tabella", "avoid": "Seggi senza riferimento."}},
+        {"key": "promesse", "n": 7, "title": "Promesse del mandato", **PROMISES,
+         "guide": {"what": "3–5 impegni del programma, con stato, aggiornamento e fonte.", "length": "Tabella", "avoid": "Promesse senza fonte."}},
+        {"key": "elezioni", "n": 8, "title": "Elezioni", **ELEZIONI,
+         "guide": {"what": "Ultime elezioni del municipio in tabella; nella nota le prossime se note.", "length": "Tabella + nota", "avoid": "Previsioni."}},
+        {
+            "key": "titolare", "n": 9, "title": "Collega il presidente", "type": "fields", "hidden": True,
+            "fields": [
+                {"key": "politician_id", "label": "ID della scheda politica"},
+                {"key": "nome", "label": "Nome visibile se la scheda non è ancora pubblica"},
+                {"key": "in_carica_dal", "label": "In carica dal (AAAA-MM-GG)"},
+            ],
+            "guide": {"what": "Collega il presidente del municipio a una scheda già in archivio, con fonte ufficiale.", "length": "Riquadro", "avoid": "Inventare un mandato DAIT."},
+        },
+    ],
 }
-KIND_TITLES = {"region": "Regione", "province": "Provincia", "municipality": "Comune"}
-NEWS_TITLES = {"region": "Notizie regionali", "province": "Notizie della provincia", "municipality": "Notizie locali"}
+KIND_TITLES = {"region": "Regione", "province": "Provincia", "municipality": "Comune", "municipio": "Municipio"}
+NEWS_TITLES = {
+    "region": "Notizie regionali",
+    "province": "Notizie della provincia",
+    "municipality": "Notizie locali",
+    "municipio": "Notizie del municipio",
+}
 
 
 class TerritoryError(RuntimeError):
@@ -237,7 +361,12 @@ def sanitize(kind: str, block: str, payload: dict) -> tuple[dict, list[dict]]:
             for column in spec["columns"]:
                 value = _clean(row.get(column["key"]), 600)
                 if column.get("options") and value not in column["options"]:
-                    value = next(iter(column["options"]))
+                    # Status-like columns need a default; role/flags may stay blank.
+                    value = (
+                        next(iter(column["options"]))
+                        if column["key"] in {"stato", "sostiene_giunta"}
+                        else ""
+                    )
                 clean[column["key"]] = value
             if any(clean.get(column["key"]) for column in spec["columns"] if not column.get("options")):
                 rows.append(clean)
@@ -280,7 +409,9 @@ def findings(kind: str, block: str, data: dict, sources: list[dict]) -> list[dic
             found.append(style.Finding("warning", "lunghezza", f"{count} parole: l'indicazione è {low}–{high}.", "testo"))
     else:
         rows = data.get("rows") or []
-        if not rows:
+        body = (data.get("body") or "").strip()
+        # Consiglio/elezioni may still be legacy free text (body only, no rows).
+        if not rows and not (block in {"consiglio", "elezioni"} and body):
             found.append(style.Finding("error", "blocco_vuoto", "Aggiungi almeno una riga.", "righe"))
         for row in rows:
             texts.extend((column["label"], row.get(column["key"]) or "") for column in spec["columns"] if not column.get("options"))
@@ -293,6 +424,9 @@ def findings(kind: str, block: str, data: dict, sources: list[dict]) -> list[dic
             if any(row.get("stato") == "non_mantenuta" and not row.get("aggiornamento") for row in rows):
                 found.append(style.Finding("error", "motivo_mancante", "«Non mantenuta» solo con il fatto e la data nell'aggiornamento (scadenza passata, mandato finito, rinuncia).", "aggiornamento"))
         texts.append(("Testo", data.get("body") or ""))
+    if block == "utile":
+        if not any(data.get(key) for key in ("cosa_conta_1", "cosa_conta_2", "cosa_conta_3", "poteri")):
+            found.append(style.Finding("error", "blocco_vuoto", "Compila almeno un fatto utile al cittadino.", "dati"))
     if block == "titolare":
         politician_id = (data.get("politician_id") or "").strip()
         if politician_id and not politician_id.isdigit():
@@ -329,6 +463,8 @@ IMAGE_KINDS = {
 def _images(session: Session, kind: str, key: str) -> dict:
     """The approved coat of arms and cover photo, with credit and licence (or None)."""
 
+    if kind not in IMAGE_KINDS:
+        return {"logo": None, "photo": None}
     logo_kind, photo_kind = IMAGE_KINDS[kind]
     rows = {
         row.kind: row
@@ -396,13 +532,47 @@ class TerritorySchede:
             if not key.isdigit() or session.get(Municipality, int(key)) is None:
                 raise TerritoryNotFound("Comune non trovato.")
             municipality = territory.get_municipality(int(key))
-            return {
+            payload = {
                 "kind": kind, "key": key, "name": municipality.name, "title": f"Comune di {municipality.name}",
                 "istat_code": municipality.istat_code,
                 "province": {"abbreviation": municipality.province_abbreviation, "name": municipality.province_name},
                 "holder": _holder(municipality.current_mayor, "Sindaco"),
                 "region": {"id": municipality.region_id, "name": municipality.region_name},
                 "source": {"name": municipality.source.name, "url": municipality.source.url},
+            }
+            if municipality.name.casefold() == "roma":
+                payload["municipi"] = [
+                    {"key": item["key"], "name": item["name"], "roman": item["roman"], "number": item["number"]}
+                    for item in ROMA_MUNICIPI
+                ]
+            return payload
+        if kind == "municipio":
+            item = next((row for row in ROMA_MUNICIPI if row["key"] == key.casefold()), None)
+            if item is None:
+                raise TerritoryNotFound("Municipio non trovato.")
+            roma = session.scalar(
+                select(Municipality).where(func.lower(Municipality.canonical_name) == "roma").limit(1)
+            )
+            region = session.get(Region, roma.region_id) if roma is not None else None
+            return {
+                "kind": kind,
+                "key": item["key"],
+                "name": item["name"],
+                "title": f"Roma — {item['name']}",
+                "roman": item["roman"],
+                "number": item["number"],
+                "holder": None,
+                "municipality": {"id": roma.id, "name": roma.canonical_name} if roma is not None else {"id": None, "name": "Roma"},
+                "province": {"abbreviation": roma.province_abbreviation, "name": roma.province_name} if roma is not None else {"abbreviation": "RM", "name": "Roma"},
+                "region": {"id": region.id, "name": region.canonical_name} if region is not None else None,
+                "source": {
+                    "name": "Comune di Roma — Municipi",
+                    "url": "https://www.comune.roma.it/web/it/municipi.page",
+                },
+                "municipi": [
+                    {"key": row["key"], "name": row["name"], "roman": row["roman"], "number": row["number"]}
+                    for row in ROMA_MUNICIPI
+                ],
             }
         raise TerritoryNotFound("Tipo di territorio sconosciuto.")
 
@@ -612,6 +782,24 @@ class TerritorySchede:
                 listed = select(Municipality).where(or_(capoluogo, Municipality.id.in_(ids))) if ids else select(Municipality).where(capoluogo)
                 for town in session.scalars(listed.order_by(Municipality.canonical_name)):
                     results.append(_search_row("municipality", str(town.id), f"Comune di {town.canonical_name}", f"{town.province_abbreviation} · {region_names.get(town.region_id, '')}", done, pictures, name=town.canonical_name, region_id=town.region_id))
+            # Roma municipi: always listable; filter by "roma", "municipio", or roman numeral.
+            municipi_query = text.casefold() if text else ""
+            for item in ROMA_MUNICIPI:
+                hay = f"{item['name']} {item['key']} roma municipio".casefold()
+                if municipi_query and municipi_query not in hay and municipi_query not in item["roman"].casefold():
+                    continue
+                results.append(
+                    _search_row(
+                        "municipio",
+                        item["key"],
+                        f"Roma — {item['name']}",
+                        "Comune di Roma",
+                        done,
+                        pictures,
+                        name=item["name"],
+                        region_id=None,
+                    )
+                )
             return results
 
     # --------------------------------------------------------------- writes
@@ -707,6 +895,8 @@ class TerritorySchede:
 
     @staticmethod
     def _news(session: Session, kind: str, base: dict) -> list[dict]:
+        if kind == "municipio":
+            return []
         query = select(EditorialPost).where(EditorialPost.status.in_((EditorialPostStatus.PUBLISHED, EditorialPostStatus.PENDING)))
         if kind == "region":
             query = query.where(EditorialPost.scope == FeedScope.REGION, EditorialPost.region_id == int(base["key"]))
@@ -737,7 +927,12 @@ def _overlay_holder(session: Session, kind: str, holder: dict | None, row: Terri
 
     if holder is not None:
         return holder
-    role = "Sindaco" if kind == "municipality" else "Presidente della Regione" if kind == "region" else None
+    role = (
+        "Sindaco" if kind == "municipality"
+        else "Presidente della Regione" if kind == "region"
+        else "Presidente del Municipio" if kind == "municipio"
+        else None
+    )
     if role is None or row is None or not row.data:
         return None
     data = row.data
@@ -767,6 +962,8 @@ def _overlay_holder(session: Session, kind: str, holder: dict | None, row: Terri
 
 
 def _public_url(kind: str, key: str) -> str:
+    if kind == "municipio":
+        return f"/app/?municipio={key}"
     return f"/app/?{kind}={key}"
 
 

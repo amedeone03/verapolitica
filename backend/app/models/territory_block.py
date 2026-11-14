@@ -25,6 +25,7 @@ class TerritoryKind(StrEnum):
     REGION = "region"
     PROVINCE = "province"
     MUNICIPALITY = "municipality"
+    MUNICIPIO = "municipio"
 
 
 class TerritoryBlockStatus(StrEnum):

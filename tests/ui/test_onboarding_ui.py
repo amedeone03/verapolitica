@@ -48,6 +48,10 @@ def test_welcome_and_registration_flow() -> None:
     assert 'params.set("politicians"' in script and 'params.set("parties"' in script
     # Motion respects the reader's settings.
     assert ".ob-screen.is-entering, .ob-stat { animation: none; }" in styles
+    # Italy silhouette stays atmospheric — not a mid-screen pale stain over Accedi.
+    assert "welcome-italy" in onboarding
+    assert "right: -28%; bottom: -18%;" in styles
+    assert "opacity: .07;" in styles
 
 
 def test_logos_reach_every_view() -> None:

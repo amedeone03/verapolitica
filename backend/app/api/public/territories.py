@@ -24,10 +24,29 @@ def regions_overview(
     return apply_regions(TerritorySchede(factory).regions_overview(), PoliticsEdits(factory).published())
 
 
+@router.get("/municipi/roma")
+def roma_municipi(
+    response: Response,
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> dict[str, Any]:
+    """Catalog of Roma municipi I–XV for the public hub."""
+
+    del factory
+    from backend.app.services.redazione.territory import ROMA_MUNICIPI
+
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return {
+        "items": [
+            {"key": item["key"], "name": item["name"], "roman": item["roman"], "number": item["number"]}
+            for item in ROMA_MUNICIPI
+        ]
+    }
+
+
 @router.get("/{kind}/{key}")
 def territory(
-    kind: Annotated[str, Path(pattern=r"^(region|province|municipality)$")],
-    key: Annotated[str, Path(pattern=r"^[A-Za-z0-9]{1,12}$")],
+    kind: Annotated[str, Path(pattern=r"^(region|province|municipality|municipio)$")],
+    key: Annotated[str, Path(pattern=r"^[A-Za-z0-9-]{1,16}$")],
     response: Response,
     factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
 ) -> dict[str, Any]:

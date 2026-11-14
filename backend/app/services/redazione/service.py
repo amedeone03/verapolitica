@@ -129,13 +129,18 @@ from backend.app.services.proposal_service import ProposalService, ProposalServi
 from backend.app.services.public_politician_service import PublicPoliticianQueryService
 from backend.app.services.redazione import card as card_module
 from backend.app.services.redazione import style
-from backend.app.services.redazione.territory import TerritoryError, TerritorySchede
-from backend.app.services.redazione.politics import PoliticsEditError, PoliticsEdits
 from backend.app.services.redazione.archive import (
     ArchiveTimelineDesk,
     ArchiveTimelineError,
     ArchiveTimelineNotFound,
 )
+from backend.app.services.redazione.offices import (
+    POLITICAL_OFFICES,
+    office_defaults,
+    office_label,
+)
+from backend.app.services.redazione.politics import PoliticsEditError, PoliticsEdits
+from backend.app.services.redazione.territory import TerritoryError, TerritorySchede
 
 
 # --------------------------------------------------------------------- errors
@@ -222,15 +227,15 @@ SOURCE_KIND_BY_AREA = {
     "partito": ProfileSourceKind.PARTY_POLITICIAN,
     "altro": ProfileSourceKind.OTHER,
 }
+
 SYSTEM_AUTHOR = "Importazione"
 COLLECTOR = "redazione/v1"
-GOVERNMENT_OFFICES = {
-    "presidente del consiglio": "Presidente del Consiglio dei ministri",
-    "vice presidente del consiglio": "Vicepresidente del Consiglio dei ministri",
-    "ministro": "Ministro",
-    "ministro senza portafoglio": "Ministro senza portafoglio",
-    "sottosegretario": "Sottosegretario",
-}
+# Politicians added by the desk (europarlamentari, sindaci, presidenti, …) often
+# have no Camera/Senato/Governo identifier. Promises still need a stable
+# authority+value pair for ProposalService actor resolution, so we mint one here.
+REDAZIONE_IDENTITY_SOURCE_KEY = "redazione-identities"
+REDAZIONE_IDENTITY_SOURCE_NAME = "Redazione VeraPolitica"
+REDAZIONE_IDENTITY_BASE_URL = "https://verapolitica.com"
 
 
 def _utc_now() -> datetime:
@@ -424,8 +429,9 @@ class RedazioneService:
         birth = _parse_date(payload.get("birth_date"), "Data di nascita")
         source_url = _clean(payload.get("source_url"))
         office = _clean(payload.get("office"))
-        institution = _clean(payload.get("institution")) or "Governo della Repubblica"
         start = _parse_date(payload.get("start_date"), "Inizio incarico")
+        office_meta = POLITICAL_OFFICES.get(office) if office else None
+        institution = _clean(payload.get("institution")) or (office_meta.institution if office_meta else "")
         errors: dict[str, str] = {}
         if len(given) < 2:
             errors["given_name"] = "Scrivi il nome."
@@ -434,8 +440,8 @@ class RedazioneService:
         if not source_url.startswith("https://") or not urlsplit(source_url).netloc:
             errors["source_url"] = "Indica una fonte https (scheda Camera, Senato, Governo o pagina ufficiale)."
         if office:
-            if office not in GOVERNMENT_OFFICES:
-                errors["office"] = "Scegli un incarico di Governo, o lascialo vuoto."
+            if office_meta is None:
+                errors["office"] = "Scegli un incarico dall'elenco, o lascialo vuoto."
             if start is None:
                 errors["start_date"] = "Indica da quando ricopre l'incarico."
         if errors:
@@ -465,7 +471,9 @@ class RedazioneService:
                     "office": office or None,
                     "institution": institution if office else None,
                     "start_date": start.isoformat() if office and start else None,
-                    "office_label": GOVERNMENT_OFFICES.get(office) if office else None,
+                    "office_label": office_label(office),
+                    "mandate_type": office_meta.mandate_type if office_meta else None,
+                    "legislature": office_meta.legislature if office_meta else None,
                     **({"image": image} if (image := self._image_payload(session, payload)) else {}),
                 },
                 created_by=member,
@@ -1078,6 +1086,45 @@ class RedazioneService:
             session.flush()
         return source
 
+    def _ensure_politician_identifier(self, session: Session, politician: Politician) -> tuple[str, str]:
+        """Return (authority_key, source_identifier) for promise actor resolution.
+
+        Prefers any existing official identifier. If the profile was created only
+        by the redazione (no Camera/Senato/Governo/DAIT id yet), mint a stable
+        redazione-scoped one so promises can be filed and later re-linked.
+        """
+
+        identifier = session.scalar(
+            select(PoliticianSourceIdentifier)
+            .where(PoliticianSourceIdentifier.politician_id == politician.id)
+            .order_by(PoliticianSourceIdentifier.id)
+        )
+        if identifier is not None:
+            authority = session.get(Source, identifier.source_id)
+            if authority is None:
+                raise RedazioneConflict("Identificativo ufficiale senza fonte: contatta Amedeo.")
+            return authority.key, identifier.value
+
+        source = session.scalar(select(Source).where(Source.key == REDAZIONE_IDENTITY_SOURCE_KEY))
+        if source is None:
+            source = Source(
+                key=REDAZIONE_IDENTITY_SOURCE_KEY,
+                name=REDAZIONE_IDENTITY_SOURCE_NAME,
+                base_url=REDAZIONE_IDENTITY_BASE_URL,
+            )
+            session.add(source)
+            session.flush()
+        value = f"politician:{politician.id}"
+        session.add(
+            PoliticianSourceIdentifier(
+                politician_id=politician.id,
+                source_id=source.id,
+                value=value,
+            )
+        )
+        session.flush()
+        return source.key, value
+
     def _snapshot(self, session: Session, *, source: Source, url: str, text: str, label: str, member: str) -> RawDocument:
         """Store the passage the editor copied from the source, with its URL.
 
@@ -1125,19 +1172,13 @@ class RedazioneService:
             raise RedazioneValidation("La promessa non rispetta i modelli.", [item.as_dict() for item in findings])
         with self.session_factory.begin() as session:
             politician = self._require_politician(session, politician_id)
-            identifier = session.scalar(
-                select(PoliticianSourceIdentifier).where(PoliticianSourceIdentifier.politician_id == politician_id)
-            )
-            if identifier is None:
-                raise RedazioneConflict("Il politico non ha un identificativo ufficiale: importalo prima da Camera, Senato o Governo.")
-            authority = session.get(Source, identifier.source_id)
+            authority_key, source_identifier = self._ensure_politician_identifier(session, politician)
             outlet = self._outlet_source(session, source["name"], source["url"])
             document = self._snapshot(
                 session, source=outlet, url=source["url"], text=f"{title}\n{statement}", label="promesse", member=member
             )
             source_key, document_id = outlet.key, document.id
             display = f"{politician.canonical_given_name} {politician.canonical_family_name}"
-            authority_key, source_identifier = authority.key, identifier.value
         proposal_identifier = f"redazione:promessa:{politician_id}:{_slug(title)}:{introduced.isoformat()}"
         evidence = [
             ("title", "redazione:promessa", title),
@@ -1468,7 +1509,13 @@ class RedazioneService:
         findings = [
             item.as_dict()
             for item in style.news_findings(
-                {"title": post.title, "blocks": blocks, "sources": sources, "card": composed}
+                {
+                    "title": post.title,
+                    "blocks": blocks,
+                    "sources": sources,
+                    "card": composed,
+                    "scope": post.scope.value if post.scope else "national",
+                }
             )
         ]
         if not composed:
@@ -2526,12 +2573,20 @@ class RedazioneService:
                 session.flush()
                 mandates = []
                 if payload.get("office") and payload.get("start_date"):
+                    meta = (
+                        office_defaults(payload["office"])
+                        if payload["office"] in POLITICAL_OFFICES
+                        else None
+                    )
                     mandates.append(
                         {
-                            "institution": payload.get("institution") or "Governo della Repubblica",
+                            "institution": payload.get("institution")
+                            or (meta.institution if meta else "Istituzione"),
                             "office": payload["office"],
-                            "legislature": "Governo",
-                            "mandate_type": "government",
+                            "legislature": payload.get("legislature")
+                            or (meta.legislature if meta else "Mandato"),
+                            "mandate_type": payload.get("mandate_type")
+                            or (meta.mandate_type if meta else "other"),
                             "start_date": payload["start_date"],
                             "end_date": None,
                         }
@@ -2556,6 +2611,7 @@ class RedazioneService:
                 session.add(version)
                 session.flush()
                 politician.current_version_id = version.id
+                self._ensure_politician_identifier(session, politician)
                 self._attach_image(session, "politician", str(politician.id), payload.get("image"), proposed_by=row.created_by, approved_by=member)
                 row.target_id = politician.id
                 row.politician_id = politician.id
