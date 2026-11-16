@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -63,7 +63,8 @@ def _app(tmp_path):
         official_question="Synthetic official question",
         referendum_type=ReferendumType.CONSULTATIVE,
         status=ReferendumStatus.SCHEDULED,
-        vote_date=date(2026, 11, 15),
+        # Keep the vote in the future so ?upcoming=true stays stable as calendar days pass.
+        vote_date=date.today() + timedelta(days=30),
         start_time=time(7, 0),
         end_time=time(23, 0),
         scope_type=GeographicScopeType.NATIONAL,
