@@ -319,6 +319,7 @@ async function route() {
     else if (section === "politica") await showPoliticaAttuale(id || "governo");
     else if (section === "territori" && id && extra) await showTerritoryScheda(id, decodeURIComponent(extra), location.hash.split("/")[4]);
     else if (section === "territori") await showTerritories();
+    else if (section === "notizie" && id === "proposta") await showNewsPitch();
     else if (section === "notizie" && id) await showNewsEditor(id === "nuova" ? null : Number(id));
     else if (section === "notizie") await showNews();
     else if (section === "registro") await showLog();
@@ -1276,7 +1277,7 @@ async function showNews() {
   const scopeLabel = { national: "Nazionale", region: "Regionale", province: "Provinciale", municipality: "Comunale" };
   view.innerHTML = `<div class="page-head"><div><h1>Notizie</h1>
     <p>Nazionali, regionali, provinciali o di un comune. Ogni proposta: fatto, interesse pubblico, fonti verificabili.</p></div>
-    <a class="button button-primary" href="#/notizie/nuova">Nuova notizia</a></div>
+    <div class="actions" style="margin-top:0"><a class="button button-primary" href="#/notizie/proposta">Proposta in 3 campi</a><a class="button button-secondary" href="#/notizie/nuova">Modello completo</a></div></div>
     ${newsWeekCard()}
     ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Ambito</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
     ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip chip-muted">${esc(scopeLabel[n.scope] || n.scope || "—")}</span></td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
@@ -1294,6 +1295,64 @@ const NEWS_HINTS = {
   numeri: ["Costo, platea, copertura, effetti attesi. Ogni cifra con fonte e data; se due fonti divergono, affiancarle.", "Cifre senza fonte. Stime presentate come certezze."],
   cosa_succede: ["Prossimi passi con date: iter in Parlamento, scadenze, voti. Se non ci sono date, dirlo.", "Prevedere come andrà a finire."],
 };
+
+async function showNewsPitch() {
+  state.cardOptions = state.cardOptions || await api("/card");
+  view.innerHTML = `<div class="page-head"><div><p class="eyebrow"><a href="#/notizie">Notizie</a></p><h1>Proposta in 3 campi</h1>
+    <p>Venerdì: fatto, interesse pubblico e fonti. Poi completi il modello a 9 blocchi.</p></div>
+    <a class="button button-secondary" href="#/notizie/nuova">Apri il modello completo</a></div>
+    <form id="pitch-form" class="stack" style="max-width:42rem">
+      <section class="card"><div class="card-head"><h2>Titolo e ambito</h2></div>
+        <div class="field"><label for="p-title">Titolo</label><input id="p-title" name="title" type="text" maxlength="300" required /></div>
+        <div class="field"><label for="p-scope">Ambito</label><select id="p-scope" name="scope">${options([["national", "Nazionale"], ["region", "Regionale"], ["province", "Provinciale"], ["municipality", "Comunale"]], "national")}</select></div>
+      </section>
+      <section class="card"><div class="card-head"><h2>1 · Cosa è successo</h2></div>
+        <div class="field"><label for="p-fatto">Fatto</label><textarea id="p-fatto" name="fatto" class="tall" required></textarea></div></section>
+      <section class="card"><div class="card-head"><h2>2 · Interesse per il pubblico</h2></div>
+        <div class="field"><label for="p-perche">Perché interessa</label><textarea id="p-perche" name="perche" class="tall" required></textarea></div></section>
+      <section class="card"><div class="card-head"><h2>3 · Fonti verificabili</h2></div>
+        ${newsSourcesEditor([])}
+      </section>
+      <div class="actions"><button class="button button-primary" type="submit">Salva proposta e continua</button></div>
+    </form>`;
+  const form = view.querySelector("#pitch-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const sources = readNewsSources(form);
+    if (!sources.filter((item) => item.url && item.name).length) {
+      toast("Serve almeno una fonte con nome e link alla pagina precisa.", true);
+      return;
+    }
+    const title = form.title.value.trim();
+    const fatto = form.fatto.value.trim();
+    const perche = form.perche.value.trim();
+    const body = {
+      title,
+      scope: form.scope.value,
+      blocks: {
+        fatto,
+        perche,
+        sommario: fatto.slice(0, 280),
+        cosa_cambia: "",
+        destra: "",
+        sinistra: "",
+        numeri: "",
+        contesto: "",
+        perche_deciso: "",
+      },
+      sources,
+      politician_ids: [],
+      publish_now: false,
+    };
+    try {
+      const saved = await api("/notizie", { method: "POST", body });
+      toast("Proposta salvata: completa i blocchi restanti.");
+      location.hash = `#/notizie/${saved.id}`;
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+}
 
 async function showNewsEditor(postId) {
   const post = postId ? await api(`/notizie/${postId}`) : { title: "", blocks: {}, sources: [], politicians: [], status: "pending", findings: [] };

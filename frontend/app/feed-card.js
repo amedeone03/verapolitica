@@ -459,11 +459,13 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
     const share = target.closest("[data-card-share]");
     if (share) {
       const url = new URL(share.dataset.cardShare, window.location.href).href;
+      const title = share.dataset.cardTitle || "VeraPolitica";
+      const text = `${title}\n${url}`;
       try {
-        if (navigator.share) await navigator.share({ title: share.dataset.cardTitle, url });
+        if (navigator.share) await navigator.share({ title, text, url });
         else {
-          await navigator.clipboard.writeText(url);
-          share.setAttribute("aria-label", "Link copiato");
+          await navigator.clipboard.writeText(text);
+          share.setAttribute("aria-label", "Testo e link copiati (incolla anche su WhatsApp)");
           share.classList.add("is-done");
         }
       } catch { /* cancelled */ }

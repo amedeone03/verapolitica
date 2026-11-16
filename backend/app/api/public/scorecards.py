@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.api.deps import get_db_session, get_session_factory
 from backend.app.schemas.pledge import (
     PublicComparison,
+    PublicPartyComparison,
     PublicPartyScorecard,
     PublicScorecard,
     ScorecardWindow,
@@ -70,6 +71,27 @@ def compare_politicians(
 
     try:
         return PartyScorecardService(session_factory).compare_politicians(
+            [int(item) for item in ids.split(",")], role=role, as_of=as_of
+        )
+    except ComparisonValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
+        ) from None
+    except PartyNotFoundError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from None
+
+
+@router.get("/compare/parties", response_model=PublicPartyComparison)
+def compare_parties(
+    session_factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+    ids: Annotated[str, Query(min_length=3, max_length=100, pattern=r"^\d+(,\d+)*$")],
+    role: HolderRole,
+    as_of: Annotated[date | None, Query()] = None,
+) -> PublicPartyComparison:
+    """Compare parties inside one role stratum (pooled pledges, not mean of rates)."""
+
+    try:
+        return PartyScorecardService(session_factory).compare_parties(
             [int(item) for item in ids.split(",")], role=role, as_of=as_of
         )
     except ComparisonValidationError as error:

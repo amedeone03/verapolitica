@@ -42,10 +42,12 @@ from backend.app.models import (
 )
 from backend.app.schemas.pledge import (
     ComparisonEntry,
+    PartyComparisonEntry,
     PartyContributor,
     PartyScorecardPledge,
     PledgeAttribution,
     PublicComparison,
+    PublicPartyComparison,
     PublicPartyScorecard,
     ScorecardWindow,
 )
@@ -280,6 +282,48 @@ class PartyScorecardService:
             high for _, high in intervals
         )
         return PublicComparison(
+            role=role,
+            methodology_version=self.methodology.version,
+            methodology_url=METHODOLOGY_URL,
+            as_of=as_of,
+            credible_level=self.methodology.credible_level,
+            min_closed_for_rate=self.methodology.min_closed_for_rate,
+            entries=tuple(entries),
+            overlapping_intervals=overlapping,
+        )
+
+    def compare_parties(
+        self,
+        party_ids: list[int],
+        *,
+        role: HolderRole,
+        as_of: date | None = None,
+        window: ScorecardWindow = ScorecardWindow.ALL,
+    ) -> PublicPartyComparison:
+        unique = list(dict.fromkeys(party_ids))
+        if not 2 <= len(unique) <= MAX_COMPARED:
+            raise ComparisonValidationError(
+                f"compare between 2 and {MAX_COMPARED} distinct parties"
+            )
+        as_of = as_of or self.clock().date()
+        entries = []
+        for party_id in unique:
+            card = self.scorecard_for_party(party_id, window=window, as_of=as_of)
+            stratum = next((item for item in card.strata if item.role is role), None)
+            entries.append(
+                PartyComparisonEntry(
+                    political_party_id=party_id, name=card.name, stratum=stratum
+                )
+            )
+        intervals = [
+            entry.stratum.credible_interval
+            for entry in entries
+            if entry.stratum is not None and entry.stratum.credible_interval is not None
+        ]
+        overlapping = len(intervals) >= 2 and max(low for low, _ in intervals) <= min(
+            high for _, high in intervals
+        )
+        return PublicPartyComparison(
             role=role,
             methodology_version=self.methodology.version,
             methodology_url=METHODOLOGY_URL,

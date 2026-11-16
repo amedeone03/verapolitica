@@ -175,6 +175,10 @@ def test_comparison_stays_inside_one_stratum(session_factory, data):
         service.compare_politicians([data.politician_id], role=HolderRole.OPPOSITION)
     with pytest.raises(PartyNotFoundError):
         service.compare_politicians([data.politician_id, 999], role=HolderRole.OPPOSITION)
+    with pytest.raises(ComparisonValidationError):
+        service.compare_parties([data.party_id], role=HolderRole.GOVERNMENT_COALITION)
+    with pytest.raises(PartyNotFoundError):
+        service.compare_parties([data.party_id, 999], role=HolderRole.GOVERNMENT_COALITION)
 
 
 def test_party_api_lists_members_and_scorecard(tmp_path):
@@ -216,6 +220,8 @@ def _check_party_api(client, data, member):
     assert compare.status_code == 200, compare.text
     assert client.get(f"/compare/politicians?ids={data.politician_id}&role=opposition").status_code == 422
     assert client.get(f"/compare/politicians?ids={data.politician_id},{member}").status_code == 422
+    assert client.get(f"/compare/parties?ids={data.party_id}&role=opposition").status_code == 422
+    assert client.get(f"/compare/parties?ids={data.party_id},999&role=opposition").status_code == 404
     assert "party_aggregation" in client.get("/methodology/scoring").json()
 
 

@@ -16,11 +16,16 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.api.deps import get_api_settings, get_session_factory
 from backend.app.core.config import Settings
+from backend.app.models.civic import NotificationEventType
 from backend.app.services.civic_account_service import (
     AttemptLimiter,
     CivicAccountService,
     CivicAuthError,
     CivicAuthNotFound,
+)
+from backend.app.services.notification_service import (
+    NotificationService,
+    NotificationValidationError,
 )
 from backend.app.services.post_reaction_service import PostReactionService
 
@@ -30,6 +35,11 @@ reactions_router = APIRouter(prefix="/reactions", tags=["reactions"])
 COOKIE_NAME = "vp_civic"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+def _reminder_token(account_id: int) -> str:
+    # Opaque to the notification table; not an email address.
+    return f"civic:{account_id:08d}"
 
 
 class CredentialsBody(BaseModel):
@@ -187,6 +197,58 @@ def update_profile(
 ) -> dict[str, Any]:
     account_id = _run(_account_id_from_cookie, request, settings)
     return _run(service.update_profile, account_id, body.model_dump())
+
+
+class ReminderBody(BaseModel):
+    referendum_id: int = Field(gt=0)
+    event_type: NotificationEventType = NotificationEventType.REFERENDUM_UPCOMING
+    enabled: bool = True
+
+
+@router.get("/reminders")
+def list_reminders(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_api_settings)],
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> dict[str, Any]:
+    """In-app reminder inbox + active referendum subscriptions (no push delivery yet)."""
+
+    account_id = _run(_account_id_from_cookie, request, settings)
+    token = _reminder_token(account_id)
+    service = NotificationService(factory)
+    return {
+        "subscriptions": [item.model_dump(mode="json") for item in service.list_subscriptions(destination_token=token)],
+        "inbox": service.list_inbox(destination_token=token),
+        "push": {"available": False, "note": "Web Push non attivo: restano solo gli avvisi in app."},
+    }
+
+
+@router.put("/reminders")
+def set_reminder(
+    body: ReminderBody,
+    request: Request,
+    settings: Annotated[Settings, Depends(get_api_settings)],
+    factory: Annotated[sessionmaker[Session], Depends(get_session_factory)],
+) -> dict[str, Any]:
+    account_id = _run(_account_id_from_cookie, request, settings)
+    token = _reminder_token(account_id)
+    service = NotificationService(factory)
+    try:
+        if body.enabled:
+            result = service.subscribe(
+                destination_token=token,
+                event_type=body.event_type,
+                referendum_id=body.referendum_id,
+            )
+            return {"ok": True, "subscription": result.model_dump(mode="json")}
+        service.unsubscribe(
+            destination_token=token,
+            referendum_id=body.referendum_id,
+            event_type=body.event_type,
+        )
+        return {"ok": True, "subscription": None}
+    except NotificationValidationError as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
 
 
 # ---------------------------------------------------------------------------

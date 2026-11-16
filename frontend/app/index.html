@@ -18,6 +18,9 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VeraPolitica — Profili pubblici verificati" />
+    <meta name="twitter:description" content="Profili, promesse, leggi e referendum ricavati da fonti istituzionali ufficiali e pubblicati dopo verifica editoriale." />
+    <meta name="twitter:image" content="./og-image.png" />
     <link rel="preload" href="./fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./fonts/source-serif-4-latin-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -155,16 +158,21 @@
         <a class="back-link" href="./?view=politics"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Politica</a>
         <div class="hero compact-hero">
           <h1 id="compare-title">Confronto</h1>
-          <p class="hero-copy">Solo tra persone nello stesso ruolo.</p>
+          <p class="hero-copy">Politici o partiti, sempre nello stesso ruolo.</p>
         </div>
         <form id="compare-form" class="compare-form" action="./" method="get">
           <input type="hidden" name="view" value="compare" />
+          <label for="compare-kind">Cosa confronti</label>
+          <select id="compare-kind" name="kind">
+            <option value="politicians">Politici</option>
+            <option value="parties">Partiti</option>
+          </select>
           <label for="compare-role">Ruolo</label>
           <select id="compare-role" name="role"></select>
-          <fieldset><legend>Politici (da 2 a 6)</legend><div id="compare-people" class="compare-people"></div></fieldset>
+          <fieldset><legend id="compare-legend">Politici (da 2 a 6)</legend><div id="compare-people" class="compare-people"></div></fieldset>
           <button type="submit">Confronta</button>
         </form>
-        <div id="compare-status" class="state-card" role="status"><div><strong>Scegli un ruolo e almeno due persone.</strong></div></div>
+        <div id="compare-status" class="state-card" role="status"><div><strong>Scegli un ruolo e almeno due voci.</strong></div></div>
         <div id="compare-result" hidden></div>
       </section>
 
@@ -268,11 +276,12 @@
           <a class="button" href="./?view=accedi">Accedi</a>
         </section>
         <div id="profile-space" hidden>
-          <div id="profile-tabs" class="feed-segments profile-tabs" role="tablist" aria-label="Il tuo profilo" style="--n:3;--a:0">
+          <div id="profile-tabs" class="feed-segments profile-tabs" role="tablist" aria-label="Il tuo profilo" style="--n:4;--a:0">
             <button type="button" role="tab" id="profile-tab-saved" data-tab="saved" aria-selected="true" aria-controls="profile-panel-saved">Salvati <span class="tab-count" data-count="saved"></span></button>
             <button type="button" role="tab" id="profile-tab-shared" data-tab="shared" aria-selected="false" aria-controls="profile-panel-shared" tabindex="-1">Condivisi <span class="tab-count" data-count="shared"></span></button>
             <button type="button" role="tab" id="profile-tab-follows" data-tab="follows" aria-selected="false" aria-controls="profile-panel-follows" tabindex="-1">Seguiti</button>
-            <div class="feed-segments-active" aria-hidden="true"><span>Salvati <span class="tab-count" data-count="saved"></span></span><span>Condivisi <span class="tab-count" data-count="shared"></span></span><span>Seguiti</span></div>
+            <button type="button" role="tab" id="profile-tab-alerts" data-tab="alerts" aria-selected="false" aria-controls="profile-panel-alerts" tabindex="-1">Avvisi</button>
+            <div class="feed-segments-active" aria-hidden="true"><span>Salvati <span class="tab-count" data-count="saved"></span></span><span>Condivisi <span class="tab-count" data-count="shared"></span></span><span>Seguiti</span><span>Avvisi</span></div>
           </div>
           <div id="profile-panel-saved" class="profile-panel" role="tabpanel" aria-labelledby="profile-tab-saved">
             <div id="profile-saved" class="feed-timeline"></div>
@@ -290,7 +299,7 @@
               <p class="empty-note">Usa la stella sulla scheda di un politico.</p>
             </section>
             <section id="zone-section" class="profile-group" aria-labelledby="zone-title"><h2 id="zone-title">Zona</h2>
-              <p class="profile-hint">Serve ai feed Regionale e Provinciale.</p>
+              <p class="profile-hint">Serve ai feed Regionale e Provinciale e alle schede locali.</p>
               <form id="zone-form" class="zone-form">
                 <label for="zone-region">Regione</label><select id="zone-region"><option value="">Scegli una regione</option></select>
                 <label for="zone-province">Provincia</label><select id="zone-province" disabled><option value="">Scegli una provincia</option></select>
@@ -298,6 +307,14 @@
                 <div class="zone-actions"><button type="submit">Salva zona</button><button type="button" id="zone-clear" class="ghost-button">Rimuovi</button></div>
               </form>
               <p id="zone-saved" class="empty-note" role="status"></p>
+              <p id="zone-scheda-link" class="profile-hint"></p>
+            </section>
+          </div>
+          <div id="profile-panel-alerts" class="profile-panel" role="tabpanel" aria-labelledby="profile-tab-alerts" hidden>
+            <section class="profile-group" aria-labelledby="alerts-title">
+              <h2 id="alerts-title">Avvisi</h2>
+              <p class="profile-hint">Promemoria in app sui referendum che segui. La push web non è ancora attiva.</p>
+              <div id="profile-alerts" class="stack"></div>
             </section>
           </div>
           <div class="profile-foot">

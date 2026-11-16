@@ -277,6 +277,25 @@ class PublicComparison(_Frozen):
     overlapping_intervals: bool
 
 
+class PartyComparisonEntry(_Frozen):
+    political_party_id: int
+    name: str
+    stratum: ScorecardStratumResponse | None
+
+
+class PublicPartyComparison(_Frozen):
+    """Party comparison inside one role stratum (pooled pledges, not mean of rates)."""
+
+    role: HolderRole
+    methodology_version: str
+    methodology_url: str
+    as_of: date
+    credible_level: float
+    min_closed_for_rate: int
+    entries: tuple[PartyComparisonEntry, ...]
+    overlapping_intervals: bool
+
+
 class AuditSampleRequest(_Frozen):
     sample_key: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.:-]+$")
     size: int = Field(gt=0, le=10_000)

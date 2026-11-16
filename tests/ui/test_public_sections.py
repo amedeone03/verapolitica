@@ -360,7 +360,13 @@ def test_standout_public_surfaces_keep_gaps_visible_and_ask_threaded():
     map_script = (APP / "territory-map.js").read_text(encoding="utf-8")
     assert 'class="vp-aside vp-place"' in cards
     assert "Il feed Per te è vuoto." in script
-    assert 'href="./?view=profile&amp;tab=follows">Scegli chi seguire' in script
+    assert "Imposta Per te" in script
+    assert "compareParties" in script
+    assert "whatsAppShareUrl" in script
+    assert "t-promesse-tracciate" in script
+    assert 'data-tab="alerts"' in html
+    redazione = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
+    assert "#/notizie/proposta" in redazione and "showNewsPitch" in redazione
     assert "Scheda incompleta" in script and "Titolare non ancora collegato" in script
     assert "Cerca un comune, una provincia o una regione" in html
     assert 'api.search({ q, type: "municipality", limit: 12' in map_script

@@ -1234,22 +1234,52 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     ? renderRomaMunicipiHub(base.municipi, { municipalityId: base.kind === "municipio" ? base.municipality?.id : null })
     : "";
   const guideNudge = `<p class="territory-guide-link"><a class="profile-link" href="./?view=territory-guide">Come funzionano regioni e città ${icon("arrowRight")}</a></p>`;
+  const askQuestion = `Cosa conta oggi a ${base.name}?`;
+  const askCta = `<div class="profile-cta-bar territory-ask">
+      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}">${icon("ask", { size: 18 })}Chiedi a VeraPolitica su ${escapeHtml(base.name)}</a>
+      <a class="button button-secondary" href="${escapeHtml(whatsAppShareUrl(`${base.title} — VeraPolitica`, typeof window !== "undefined" ? window.location.href.split("#")[0] : ""))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+    </div>`;
+  const scoredSlot = base.holder?.politician_id
+    ? `<section class="territory-block" id="t-promesse-tracciate" aria-labelledby="t-promesse-tracciate-title">
+        <h2 id="t-promesse-tracciate-title">Promesse tracciate su VeraPolitica</h2>
+        <p class="empty-note">Le righe «Promesse del mandato» sopra sono editoriali. Qui sotto, se c'è, il punteggio verificato della scheda del titolare.</p>
+        <div id="territory-scorecard" class="territory-scorecard" aria-busy="true"></div>
+        <p><a class="profile-link" href="./?politician=${encodeURIComponent(base.holder.politician_id)}">Apri la scheda di ${escapeHtml(base.holder.name)} ${icon("arrowRight")}</a></p>
+      </section>`
+    : "";
   return `${renderTerritoryHero(t, { eyebrow, titleId, portrait })}
     ${lead.map(sectionHtml).join("")}
     ${guideNudge}
     <div class="territory-summary">${renderTerritoryFacts(t)}${meta}</div>
     ${index}
     ${rest.map(sectionHtml).join("")}
+    ${scoredSlot}
     ${written.length < total ? `<p class="territory-pending">${written.length ? `Scheda incompleta: ${written.length} di ${total} parti pubblicate. La redazione sta completando il resto.` : "Scheda incompleta: la redazione non ha ancora scritto questa scheda. Qui sopra ci sono solo i dati ufficiali (ISTAT e, se c'è, il titolare)."}</p>` : ""}
     ${romaHub}
     ${extra}
     <div id="t-notizie" class="territory-news"></div>
+    ${askCta}
     <section class="territory-block territory-fonti" aria-labelledby="t-fonti-title"><h2 id="t-fonti-title">Fonti</h2>
       <ul>${t.sources.map((source) => {
         const url = safeExternalUrl(source.url);
         return `<li>${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.name || url)} ${icon("external", { size: 13 })}</a>` : escapeHtml(source.name)}</li>`;
       }).join("")}</ul>
     </section>`;
+}
+
+async function attachTerritoryScorecard(api, root, scheda) {
+  const holderId = scheda?.base?.holder?.politician_id;
+  const target = root?.querySelector("#territory-scorecard");
+  if (!holderId || !target) return;
+  try {
+    const scorecard = await api.getScorecard(holderId);
+    target.removeAttribute("aria-busy");
+    target.innerHTML = scorecard ? renderScorecard(scorecard) : `<p class="empty-note">Nessuna promessa classificata per questo titolare.</p>`;
+    bindProfileMotion(target);
+  } catch {
+    target.removeAttribute("aria-busy");
+    target.innerHTML = `<p class="empty-note">Punteggio non disponibile al momento.</p>`;
+  }
 }
 
 export function renderRegionDetail(region, municipalities = []) {
@@ -1801,15 +1831,20 @@ function bindProfileShare(root) {
   if (!button) return;
   button.addEventListener("click", async () => {
     const url = window.location.href.split("#")[0];
+    const title = button.dataset.shareTitle || document.title;
     try {
       if (navigator.share) {
-        await navigator.share({ title: button.dataset.shareTitle, url });
+        await navigator.share({ title, text: title, url });
         return;
       }
-      await navigator.clipboard.writeText(url);
-      if (status) status.textContent = "Link del profilo copiato.";
+      await navigator.clipboard.writeText(`${title}\n${url}`);
+      if (status) {
+        status.innerHTML = `Link copiato. <a href="${escapeHtml(whatsAppShareUrl(title, url))}" target="_blank" rel="noopener noreferrer">Apri WhatsApp</a>`;
+      }
     } catch {
-      if (status) status.textContent = "Copia il link dalla barra degli indirizzi.";
+      if (status) {
+        status.innerHTML = `Copia il link oppure <a href="${escapeHtml(whatsAppShareUrl(title, url))}" target="_blank" rel="noopener noreferrer">condividi su WhatsApp</a>.`;
+      }
     }
   });
 }
@@ -2063,6 +2098,9 @@ export function createPublicApiClient(fetchImpl = fetch) {
     listParties: ({ all = false } = {}) => request(`/political-parties${all ? "?all=true" : ""}`),
     getPartyScorecard: (id, window = "all") => request(`/political-parties/${encodeURIComponent(id)}/scorecard?window=${encodeURIComponent(window)}`),
     compare: (ids, role) => request(`/compare/politicians?ids=${encodeURIComponent(ids.join(","))}&role=${encodeURIComponent(role)}`),
+    compareParties: (ids, role) => request(`/compare/parties?ids=${encodeURIComponent(ids.join(","))}&role=${encodeURIComponent(role)}`),
+    listReminders: () => request("/auth/reminders"),
+    setReminder: (body) => request("/auth/reminders", { method: "PUT", body }),
     listLegislatures: () => request("/archive/legislatures"),
     getLegislature: (number) => request(`/archive/legislatures/${encodeURIComponent(number)}`),
     listParliamentarians: ({ legislature = null, chamber = "", q = "", offset = 0 } = {}) => {
@@ -2256,6 +2294,10 @@ async function showDetail(api, politicianId) {
     bindPledgeFilters(detail);
     bindExplainPledges(detail, api);
     document.title = `${displayPersonName(person.given_name, person.family_name)} — VeraPolitica`;
+    setShareMeta({
+      title: document.title,
+      description: `Profilo verificato di ${displayPersonName(person.given_name, person.family_name)}: promesse, fonti e incarichi.`,
+    });
   } catch (error) {
     const missing = error.status === 404;
     showState(
@@ -2443,12 +2485,14 @@ async function showRegionDetail(api, regionId) {
         ${renderTownDirectory(municipalities, { withProvince: true, footer: `<p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>` })}`;
       byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Regione", titleId: "region-detail-title", extra });
       bindTownDirectory(byId("region-detail"));
+      await attachTerritoryScorecard(api, byId("region-detail"), scheda);
       renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true });
     } else {
       byId("region-detail").innerHTML = renderRegionDetail(region, municipalities);
       renderLocalNews(api, byId("region-news"), { region_id: region.id }, region.name);
     }
     document.title = `${region.name} — VeraPolitica`;
+    setShareMeta({ title: document.title, description: `Scheda regionale di ${region.name}: poteri, promesse e fonti ufficiali.` });
     await attachArchiveTimeline(api, byId("region-detail"), (item) => item.kind === "region" && Number(item.region_id) === Number(region.id));
   } catch (error) {
     const missing = error.status === 404;
@@ -3069,12 +3113,14 @@ async function showMunicipalityDetail(api, municipalityId) {
     byId("municipality-detail").hidden = false;
     if (scheda) {
       byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Comune", titleId: "municipality-detail-title" });
+      await attachTerritoryScorecard(api, byId("municipality-detail"), scheda);
       renderLocalNews(api, byId("t-notizie"), { municipality_id: municipality.id }, scheda.news_title, { title: true });
     } else {
       byId("municipality-detail").innerHTML = `${renderMunicipalityDetail(municipality)}<div id="municipality-news"></div>`;
       renderLocalNews(api, byId("municipality-news"), { municipality_id: municipality.id }, municipality.name);
     }
     document.title = `Comune di ${municipality.name} — VeraPolitica`;
+    setShareMeta({ title: document.title, description: `Scheda del Comune di ${municipality.name}: poteri, promesse e fonti.` });
     await attachArchiveTimeline(api, byId("municipality-detail"), (item) => item.kind === "city" && Number(item.municipality_id) === Number(municipality.id));
   } catch (error) {
     const missing = error.status === 404;
@@ -3101,9 +3147,11 @@ async function showMunicipioDetail(api, municipioKey) {
       eyebrow: "Municipio di Roma",
       titleId: "municipality-detail-title",
     });
+    await attachTerritoryScorecard(api, byId("municipality-detail"), scheda);
     const news = byId("t-notizie");
     if (news) news.innerHTML = `<section class="territory-block"><h2>${escapeHtml(scheda.news_title)}</h2><p class="empty-note">Le notizie del municipio compariranno quando la redazione le collegherà a Roma.</p></section>`;
     document.title = `${scheda.base.title} — VeraPolitica`;
+    setShareMeta({ title: document.title, description: `Scheda del ${scheda.base.title}: poteri, promesse e fonti.` });
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("municipality-detail-status"), missing ? "Questo municipio non è disponibile." : "Non è stato possibile caricare il municipio.", missing ? "I municipi di Roma vanno da I a XV." : PUBLIC_UNAVAILABLE, true);
@@ -3144,6 +3192,12 @@ export function renderReferendumDetail(item) {
     ${item.voting_hours_description ? `<p>${escapeHtml(item.voting_hours_description)}</p>` : ""}
     ${quorum}
     ${guide}
+    <div class="profile-cta-bar">
+      <button type="button" class="button button-secondary" id="referendum-remind" data-referendum="${escapeHtml(item.id)}">Ricordami in app</button>
+      <a class="button button-secondary" href="${escapeHtml(whatsAppShareUrl(item.title, typeof window !== "undefined" ? window.location.href.split("#")[0] : ""))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <a class="button button-primary" href="./?view=ask&amp;prefill=${encodeURIComponent(`Spiegami il referendum: ${item.title}`)}">${icon("ask", { size: 18 })}Chiedi a VeraPolitica</a>
+    </div>
+    <p id="referendum-remind-status" class="empty-note" role="status"></p>
     <div class="section-rule"></div>
     ${sources || `<p><a href="${escapeHtml(item.official_source_url)}" rel="noreferrer">${escapeHtml(item.official_source_url)}</a></p>`}
   </article>`;
@@ -3203,6 +3257,21 @@ async function showReferendumDetail(api, referendumId) {
     byId("referendum-detail").hidden = false;
     byId("referendum-detail").innerHTML = renderReferendumDetail(record);
     document.title = `${record.title} — VeraPolitica`;
+    setShareMeta({ title: document.title, description: record.official_question || record.title });
+    const remind = byId("referendum-remind");
+    const status = byId("referendum-remind-status");
+    remind?.addEventListener("click", async () => {
+      if (!isMember()) {
+        demoNotice();
+        return;
+      }
+      try {
+        await api.setReminder({ referendum_id: Number(remind.dataset.referendum), enabled: true });
+        if (status) status.textContent = "Promemoria attivo: lo trovi in Profilo → Avvisi.";
+      } catch (error) {
+        if (status) status.textContent = error?.status === 401 ? "Accedi per attivare il promemoria." : "Non è stato possibile salvare il promemoria.";
+      }
+    });
   } catch (error) {
     const missing = error.status === 404;
     showState(byId("referendum-detail-status"), missing ? "Questo referendum non è disponibile." : "Non è stato possibile caricare questo referendum.", missing ? "Potrebbe non essere ancora stato pubblicato." : PUBLIC_UNAVAILABLE, true);
@@ -3587,6 +3656,24 @@ const VIEW_DESCRIPTIONS = {
   referendums: "Referendum e consultazioni con quesiti ufficiali e date.",
 };
 
+function setShareMeta({ title = "", description = "" } = {}) {
+  const pageTitle = title || document.title;
+  const pageDescription = description
+    || document.querySelector('meta[name="description"]')?.getAttribute("content")
+    || "";
+  document.querySelector('meta[property="og:title"]')?.setAttribute("content", pageTitle);
+  document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", pageTitle);
+  if (pageDescription) {
+    document.querySelector('meta[name="description"]')?.setAttribute("content", pageDescription);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", pageDescription);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", pageDescription);
+  }
+}
+
+function whatsAppShareUrl(title, url) {
+  return `https://wa.me/?text=${encodeURIComponent(`${title}\n${url}`)}`;
+}
+
 function syncPageMeta(params) {
   const description = VIEW_DESCRIPTIONS[params.get("view")];
   if (description) document.querySelector('meta[name="description"]')?.setAttribute("content", description);
@@ -3602,6 +3689,7 @@ function syncPageMeta(params) {
   }
   link.href = canonical.href;
   document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical.href);
+  setShareMeta({ description: description || undefined });
 }
 
 // ---------------------------------------------------------------------------
@@ -3765,16 +3853,30 @@ async function showHome(api) {
   let offset = 0;
   try { await loadPortraits(api); } catch { /* portraits are optional */ }
   bindFeedCards(list, cardHandlers(api));
+  const perTeSetupHref = () => (isMember(profile) ? "./?view=profile&tab=follows" : "./?view=registrati");
+  const zoneSchedaHref = () => {
+    if (zone?.municipality_id) return `./?municipality=${encodeURIComponent(zone.municipality_id)}`;
+    if (zone?.province) return `./?province=${encodeURIComponent(zone.province)}`;
+    if (zone?.region_id) return `./?region=${encodeURIComponent(zone.region_id)}`;
+    return "";
+  };
   const zoneLine = () => {
     const line = byId("home-zone");
+    const scheda = zoneSchedaHref();
     if (choice.value === "region") {
-      line.innerHTML = zone?.region_id ? `${escapeHtml(zone.region_name || "La tua regione")} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+      line.innerHTML = zone?.region_id
+        ? `${escapeHtml(zone.region_name || "La tua regione")}${scheda ? ` · <a href="${escapeHtml(scheda)}">Scheda</a>` : ""} · <a href="./?view=profile&amp;tab=follows">Cambia</a>`
+        : "";
     } else if (choice.value === "province") {
-      line.innerHTML = zone?.province ? `Provincia di ${escapeHtml(zone.province_name || zone.province)} · <a href="./?view=profile&amp;tab=follows">Cambia</a>` : "";
+      line.innerHTML = zone?.province
+        ? `Provincia di ${escapeHtml(zone.province_name || zone.province)}${scheda ? ` · <a href="${escapeHtml(scheda)}">Scheda</a>` : ""} · <a href="./?view=profile&amp;tab=follows">Cambia</a>`
+        : "";
     } else if (choice.value === "all" && !followsOf(profile)) {
-      line.innerHTML = `Segui politici e partiti per un feed Per te · <a href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>`;
+      line.innerHTML = `Segui politici e partiti per un feed Per te · <a href="${escapeHtml(perTeSetupHref())}">Imposta Per te</a>`;
     } else if (choice.value === "all" && !zone) {
-      line.innerHTML = `Scegli un comune per le notizie vicino a te · <a href="./?view=profile&amp;tab=follows">Imposta la zona</a>`;
+      line.innerHTML = `Scegli un comune per le notizie vicino a te · <a href="${escapeHtml(perTeSetupHref())}">Imposta la zona</a>`;
+    } else if (choice.value === "all" && scheda) {
+      line.innerHTML = `La tua zona · <a href="${escapeHtml(scheda)}">Apri la scheda</a> · <a href="./?view=profile&amp;tab=follows">Cambia</a>`;
     } else line.textContent = "";
   };
   // Only the territory the segment asks for, so "Regionale" is not narrowed to the comune.
@@ -3794,7 +3896,7 @@ async function showHome(api) {
     const territory = zoneFor();
     if (!territory) {
       const what = choice.value === "region" ? "la tua regione" : "la tua provincia";
-      return showEmpty(`Scegli ${what}.`, "La imposti una volta nel profilo; resta salvata su questo dispositivo e nel tuo account.", `<a class="button feed-empty-action" href="./?view=profile&amp;tab=follows">Imposta la zona</a>`);
+      return showEmpty(`Scegli ${what}.`, "La imposti una volta nel profilo; resta salvata su questo dispositivo e nel tuo account.", `<a class="button feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta la zona</a>`);
     }
     more.disabled = true;
     if (!append) list.setAttribute("aria-busy", "true");
@@ -3806,10 +3908,10 @@ async function showHome(api) {
         page = await api.getFeed({ scope: "all", zone: {}, offset, redazione: true });
       }
       if (choice.value === "all" && !followsOf(profile) && !append) {
-        byId("home-zone").innerHTML = `Segui politici e partiti per un feed Per te · <a href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>`;
+        byId("home-zone").innerHTML = `Segui politici e partiti per un feed Per te · <a href="${escapeHtml(perTeSetupHref())}">Imposta Per te</a>`;
       }
       if (forYouFallback && choice.value === "all") {
-        byId("home-zone").innerHTML = `Ancora niente su chi segui: ecco tutte le notizie della redazione. <a href="./?view=profile&amp;tab=follows">Aggiungi preferiti</a>`;
+        byId("home-zone").innerHTML = `Ancora niente su chi segui: ecco tutte le notizie della redazione. <a href="${escapeHtml(perTeSetupHref())}">Aggiungi preferiti</a>`;
       }
       status.hidden = true;
       if (!append) list.innerHTML = "";
@@ -3818,9 +3920,9 @@ async function showHome(api) {
         showEmpty(
           forYou && !followsOf(profile) ? "Il feed Per te è vuoto." : "Nessuna notizia qui, per ora.",
           forYou && !followsOf(profile)
-            ? "Segui politici o partiti nel profilo: le loro notizie compariranno qui dopo la verifica della redazione."
+            ? "Scegli zona e almeno un politico o partito: le notizie verificate compariranno qui."
             : "Le notizie compaiono dopo la verifica di una seconda persona della redazione.",
-          forYou && !followsOf(profile) ? `<a class="button feed-empty-action" href="./?view=profile&amp;tab=follows">Scegli chi seguire</a>` : "",
+          forYou && !followsOf(profile) ? `<a class="button feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta Per te</a>` : "",
         );
       } else {
         list.hidden = false;
@@ -4596,16 +4698,20 @@ async function showParty(api, partyId) {
   }
 }
 
-export function renderComparison(result) {
+export function renderComparison(result, { kind = "politicians" } = {}) {
   const rows = result.entries.map((entry) => {
     const stratum = entry.stratum;
     const body = stratum
       ? `${renderCompositionBar(stratum.composition, { compact: true })}${renderRateBlock(stratum, result.credible_level)}`
       : `<p class="empty-note">Nessuna promessa classificata in questo ruolo.</p>`;
-    return `<article class="compare-card"><h3><a href="./?politician=${encodeURIComponent(entry.politician_id)}">${escapeHtml(entry.name)}</a></h3>${body}</article>`;
+    const href = kind === "parties"
+      ? `./?political_party=${encodeURIComponent(entry.political_party_id)}`
+      : `./?politician=${encodeURIComponent(entry.politician_id)}`;
+    return `<article class="compare-card"><h3><a href="${href}">${escapeHtml(entry.name)}</a></h3>${body}</article>`;
   }).join("");
+  const who = kind === "parties" ? "questi partiti" : "queste persone";
   const overlap = result.overlapping_intervals
-    ? `<p class="method-note">Gli intervalli plausibili si sovrappongono: con i dati attuali la differenza tra queste persone <strong>non è distinguibile</strong> dal caso.</p>`
+    ? `<p class="method-note">Gli intervalli plausibili si sovrappongono: con i dati attuali la differenza tra ${who} <strong>non è distinguibile</strong> dal caso.</p>`
     : "";
   return `${overlap}<div class="compare-grid">${rows}</div><p class="publication-meta">Ruolo: ${escapeHtml(ROLE_LABELS[result.role] || result.role)} · Dati al ${escapeHtml(formatDate(result.as_of))}</p>`;
 }
@@ -4614,26 +4720,46 @@ async function showCompare(api) {
   byId("compare-view").hidden = false;
   document.title = "Confronto — VeraPolitica";
   const params = new URLSearchParams(window.location.search);
+  const kind = params.get("kind") === "parties" ? "parties" : "politicians";
   const role = params.get("role") || "government_coalition";
   const chosen = new Set(params.getAll("id").filter((value) => /^\d+$/.test(value)));
+  const kindSelect = byId("compare-kind");
+  if (kindSelect) kindSelect.value = kind;
+  byId("compare-legend").textContent = kind === "parties" ? "Partiti (da 2 a 6)" : "Politici (da 2 a 6)";
   byId("compare-role").innerHTML = Object.entries(ROLE_LABELS).filter(([key]) => key !== "unknown").map(([key, label]) => `<option value="${key}"${key === role ? " selected" : ""}>${escapeHtml(label)}</option>`).join("");
   try {
-    const people = await listAllPoliticians(api);
-    byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(displayPersonName(person.given_name, person.family_name))}</label>`).join("");
+    if (kind === "parties") {
+      const parties = await api.listParties({ all: true });
+      byId("compare-people").innerHTML = (parties.items || []).map((party) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(party.id)}"${chosen.has(String(party.id)) ? " checked" : ""} /> ${escapeHtml(party.name)}</label>`).join("");
+    } else {
+      const people = await listAllPoliticians(api);
+      byId("compare-people").innerHTML = people.items.map((person) => `<label class="compare-person"><input type="checkbox" name="id" value="${escapeHtml(person.id)}"${chosen.has(String(person.id)) ? " checked" : ""} /> ${escapeHtml(displayPersonName(person.given_name, person.family_name))}</label>`).join("");
+    }
   } catch {
     byId("compare-people").innerHTML = `<p class="empty-note">${escapeHtml(PUBLIC_UNAVAILABLE)}</p>`;
   }
+  if (kindSelect) {
+    kindSelect.addEventListener("change", () => {
+      const next = new URL(window.location.href);
+      next.searchParams.set("kind", kindSelect.value);
+      next.searchParams.delete("id");
+      window.location.href = next.href;
+    }, { once: true });
+  }
   if (chosen.size < 2) return;
   if (chosen.size > 6) {
-    showState(byId("compare-status"), "Puoi confrontare al massimo 6 persone.", "Togli qualche selezione e riprova.", true);
+    showState(byId("compare-status"), "Puoi confrontare al massimo 6 voci.", "Togli qualche selezione e riprova.", true);
     return;
   }
   try {
-    const result = await api.compare([...chosen], role);
+    const result = kind === "parties"
+      ? await api.compareParties([...chosen], role)
+      : await api.compare([...chosen], role);
     byId("compare-status").hidden = true;
     byId("compare-result").hidden = false;
-    byId("compare-result").innerHTML = renderComparison(result);
+    byId("compare-result").innerHTML = renderComparison(result, { kind });
     bindProfileMotion(byId("compare-result"));
+    setShareMeta({ title: document.title, description: "Confronto di promesse nello stesso ruolo, con intervalli." });
   } catch {
     showState(byId("compare-status"), "Non è stato possibile calcolare il confronto.", PUBLIC_UNAVAILABLE, true);
   }
@@ -4999,8 +5125,10 @@ async function showProvinceDetail(api, code) {
     byId("province-detail").hidden = false;
     byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });
     bindTownDirectory(byId("province-detail"));
+    await attachTerritoryScorecard(api, byId("province-detail"), scheda);
     renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true });
     document.title = `${base.title} — VeraPolitica`;
+    setShareMeta({ title: document.title, description: `Scheda della provincia di ${base.name}: poteri, promesse e fonti.` });
   } catch (error) {
     showState(byId("province-detail-status"), error.status === 404 ? "Questa provincia non è disponibile." : "Non è stato possibile caricare la provincia.", error.status === 404 ? "Controlla la sigla." : PUBLIC_UNAVAILABLE, true);
   }
@@ -5031,7 +5159,37 @@ async function showReferendumArchive(api) {
 
 // ---------------------------------------------------------------------------
 // Profilo.
-const PROFILE_TABS = ["saved", "shared", "follows"];
+const PROFILE_TABS = ["saved", "shared", "follows", "alerts"];
+
+async function renderProfileAlerts(api) {
+  const target = byId("profile-alerts");
+  if (!target) return;
+  if (!civicAccount) {
+    target.innerHTML = `<p class="empty-note">Accedi per salvare i promemoria referendum sul tuo account.</p>`;
+    return;
+  }
+  target.setAttribute("aria-busy", "true");
+  try {
+    const payload = await api.listReminders();
+    const inbox = payload.inbox || [];
+    const subs = payload.subscriptions || [];
+    if (!inbox.length && !subs.length) {
+      target.innerHTML = `<div class="profile-empty"><strong>Nessun avviso ancora</strong><p>Apri un referendum e tocca «Ricordami in app». La push web non è ancora attiva.</p><a class="button" href="./?view=referendums">Vai ai referendum</a></div>`;
+      return;
+    }
+    const labels = {
+      referendum_upcoming: "In arrivo",
+      voting_day_reminder: "Giorno del voto",
+    };
+    target.innerHTML = `${inbox.length ? `<ul class="item-sources">${inbox.map((item) => `<li><a href="./?referendum=${encodeURIComponent(item.referendum_id)}"><strong>${escapeHtml(item.title)}</strong></a><br /><span class="empty-note">${escapeHtml(labels[item.event_type] || item.event_type)} · ${escapeHtml(formatDate(item.scheduled_for))}</span></li>`).join("")}</ul>` : ""}
+      ${subs.length ? `<p class="profile-hint">${subs.length} ${subs.length === 1 ? "promemoria attivo" : "promemoria attivi"}.</p>` : ""}
+      <p class="empty-note">${escapeHtml(payload.push?.note || "Web Push non attivo.")}</p>`;
+  } catch {
+    target.innerHTML = `<p class="empty-note">${escapeHtml(PUBLIC_UNAVAILABLE)}</p>`;
+  } finally {
+    target.removeAttribute("aria-busy");
+  }
+}
 
 // Saved and re-shared posts are shown as the same cards as the feed, newest first.
 async function renderProfileList(api, kind) {
@@ -5075,7 +5233,10 @@ function setupProfileTabs(api) {
       if (active && focus) button.focus();
     }
     for (const name of PROFILE_TABS) byId(`profile-panel-${name}`).hidden = name !== tab;
-    if (tab !== "follows" && !loaded.has(tab)) {
+    if (tab === "alerts" && !loaded.has(tab)) {
+      loaded.add(tab);
+      renderProfileAlerts(api);
+    } else if (tab !== "follows" && tab !== "alerts" && !loaded.has(tab)) {
       loaded.add(tab);
       renderProfileList(api, tab);
     }
@@ -5161,6 +5322,13 @@ async function showProfile(api) {
   };
   renderFavorites();
   saved.textContent = profile.zone ? `Zona salvata: ${zoneLabel(profile.zone)}` : "Nessuna zona salvata.";
+  const schedaLink = byId("zone-scheda-link");
+  if (schedaLink) {
+    if (profile.zone?.municipality_id) schedaLink.innerHTML = `<a class="profile-link" href="./?municipality=${encodeURIComponent(profile.zone.municipality_id)}">Apri la scheda del tuo comune ${icon("arrowRight")}</a>`;
+    else if (profile.zone?.province) schedaLink.innerHTML = `<a class="profile-link" href="./?province=${encodeURIComponent(profile.zone.province)}">Apri la scheda della tua provincia ${icon("arrowRight")}</a>`;
+    else if (profile.zone?.region_id) schedaLink.innerHTML = `<a class="profile-link" href="./?region=${encodeURIComponent(profile.zone.region_id)}">Apri la scheda della tua regione ${icon("arrowRight")}</a>`;
+    else schedaLink.textContent = "";
+  }
   try {
     const regions = await api.listRegions();
     regionSelect.insertAdjacentHTML("beforeend", regions.items.map((region) => option(region.id, region.name, String(region.id) === String(profile.zone?.region_id))).join(""));
