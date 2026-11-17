@@ -149,8 +149,7 @@ def overview(
 
 
 @router.get("/regole")
-def rules(member: Member) -> dict:
-    del member
+def rules(member: Member, service: Service) -> dict:
     return {
         "news_blocks": [
             {"key": key, "label": label, "min": low, "max": high} for key, label, low, high in style.NEWS_BLOCKS
@@ -166,6 +165,7 @@ def rules(member: Member) -> dict:
             key: {"label": label, "hint": hint} for key, (label, hint) in style.COSA_CAMBIA_BY_SCOPE.items()
         },
         "news_week": news_week().as_dict(),
+        "daily_news_trial": service.daily_news_trial(member=member),
     }
 
 

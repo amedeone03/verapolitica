@@ -54,13 +54,21 @@ NEWS_BLOCKS: tuple[tuple[str, str, int, int], ...] = (
     ("perche", "Perché interessa il pubblico", 40, 60),
     ("fatto", "Il fatto (cosa è successo o succederà)", 80, 120),
     ("cosa_cambia", "Cosa cambia per te", 80, 120),
-    ("destra", "Cosa dice la destra", 60, 90),
-    ("sinistra", "Cosa dice la sinistra", 60, 90),
+    ("maggioranza", "Cosa dice la maggioranza", 60, 90),
+    ("opposizione", "Cosa dice l'opposizione", 60, 90),
     ("altri", "Cosa dicono gli altri", 40, 70),
     ("numeri", "I numeri e l'impatto economico", 60, 100),
     ("cosa_succede", "Cosa succede adesso", 30, 60),
 )
+# Legacy keys kept readable so older posts and fixtures still check out.
+_NEWS_SIDE_ALIASES = {"maggioranza": "destra", "opposizione": "sinistra"}
 NEWS_TOTAL_WORDS = (450, 700)
+# Trial cadence shown in redazione (soft warning, not a hard block).
+DAILY_NEWS_TRIAL = {
+    "active": True,
+    "target_per_day": 1,
+    "note": "Prova di due settimane: una notizia al giorno (avviso, non blocco).",
+}
 
 # N3: «cosa cambia» is scoped to the editorial level of the piece.
 COSA_CAMBIA_BY_SCOPE: dict[str, tuple[str, str]] = {
@@ -231,10 +239,28 @@ def is_official_publication(post: dict) -> bool:
     return card.get("category") == "pubblicazione"
 
 
+def normalize_news_side_blocks(blocks: dict) -> dict:
+    """Map legacy destra/sinistra onto maggioranza/opposizione without dropping old keys."""
+
+    out = dict(blocks or {})
+    for new_key, old_key in _NEWS_SIDE_ALIASES.items():
+        if not (out.get(new_key) or "").strip() and (out.get(old_key) or "").strip():
+            out[new_key] = out[old_key]
+    return out
+
+
+def news_block_text(blocks: dict, key: str) -> str:
+    blocks = normalize_news_side_blocks(blocks)
+    text = blocks.get(key) or ""
+    if key in _NEWS_SIDE_ALIASES and not text.strip():
+        text = blocks.get(_NEWS_SIDE_ALIASES[key]) or ""
+    return text
+
+
 def news_findings(post: dict) -> list[Finding]:
     """Checks for the "Modello Notizia" (nine blocks)."""
 
-    blocks = post.get("blocks") or {}
+    blocks = normalize_news_side_blocks(post.get("blocks") or {})
     scope = post.get("scope") or "national"
     official = is_official_publication(post)
     findings = text_findings(post.get("title"), field="titolo", title=True)
@@ -249,14 +275,14 @@ def news_findings(post: dict) -> list[Finding]:
         "fatto",
         "cosa_cambia",
         "perche",
-        "destra",
-        "sinistra",
+        "maggioranza",
+        "opposizione",
     }
     total = 0
     for key, label, low, high in NEWS_BLOCKS:
         if key == "cosa_cambia":
             label = cosa_cambia_label(scope)
-        text = blocks.get(key) or ""
+        text = news_block_text(blocks, key)
         if key == "fatto":
             text = f"{text}\n{blocks.get('perche_deciso') or ''}"
         count = words(text)
@@ -275,17 +301,33 @@ def news_findings(post: dict) -> list[Finding]:
             findings.append(Finding(level, "blocco_vuoto", message, key))
         elif count < low * 0.75 or count > high * 1.25:
             findings.append(Finding("warning", "lunghezza", f"«{label}»: {count} parole, indicazione {low}–{high}.", key))
+        if key in {"maggioranza", "opposizione"} and text.strip():
+            findings.extend(_side_attribution_findings(text, field=key, label=label))
     if total and not NEWS_TOTAL_WORDS[0] <= total <= NEWS_TOTAL_WORDS[1]:
         findings.append(Finding("warning", "lunghezza_totale", f"Lunghezza totale {total} parole, indicazione 450–700.", None))
-    right, left = blocks.get("destra") or "", blocks.get("sinistra") or ""
-    if right.strip() and left.strip():
-        right_words, left_words = words(right), words(left)
+    majority, opposition = news_block_text(blocks, "maggioranza"), news_block_text(blocks, "opposizione")
+    if majority.strip() and opposition.strip():
+        right_words, left_words = words(majority), words(opposition)
         ratio = max(right_words, left_words) / max(1, min(right_words, left_words))
         if ratio > 1.3:
-            findings.append(Finding("warning", "equilibrio", f"Destra {right_words} parole, sinistra {left_words}: stesso spazio per tutti.", "sinistra"))
-        right_points, left_points = _points(right), _points(left)
+            findings.append(
+                Finding(
+                    "warning",
+                    "equilibrio",
+                    f"Maggioranza {right_words} parole, opposizione {left_words}: stesso spazio per tutti.",
+                    "opposizione",
+                )
+            )
+        right_points, left_points = _points(majority), _points(opposition)
         if right_points != left_points:
-            findings.append(Finding("warning", "equilibrio_punti", f"Destra {right_points} punti, sinistra {left_points}: stesso numero di punti.", "sinistra"))
+            findings.append(
+                Finding(
+                    "warning",
+                    "equilibrio_punti",
+                    f"Maggioranza {right_points} punti, opposizione {left_points}: stesso numero di punti.",
+                    "opposizione",
+                )
+            )
     sources = post.get("sources") or []
     findings += source_findings(
         sources,
@@ -295,9 +337,23 @@ def news_findings(post: dict) -> list[Finding]:
     )
     areas = {item.get("area") for item in sources if item.get("url")}
     if not areas & {"istituzionale", "agenzia"}:
-        findings.append(Finding("error", "fonte_istituzionale", "Serve almeno una fonte istituzionale o di agenzia.", "fonti"))
+        findings.append(
+            Finding(
+                "error",
+                "fonte_istituzionale",
+                "Serve almeno una fonte istituzionale o di agenzia. Per dati oggettivi (Camera, ISTAT, elenco ufficiale) basta quella pagina; per notizie e controversie no.",
+                "fonti",
+            )
+        )
     if not official and ("centrodestra" not in areas or "centrosinistra" not in areas):
-        findings.append(Finding("error", "fonti_varie", "Servono almeno una testata di centrodestra e una di centrosinistra.", "fonti"))
+        findings.append(
+            Finding(
+                "error",
+                "fonti_varie",
+                "Per le notizie servono almeno una testata di centrodestra e una di centrosinistra, oltre alla fonte istituzionale o di agenzia. Una sola fonte istituzionale non basta per una controversia.",
+                "fonti",
+            )
+        )
     return findings
 
 
@@ -305,6 +361,36 @@ def _points(text: str) -> int:
     lines = [line for line in text.splitlines() if line.strip()]
     bullets = [line for line in lines if line.lstrip().startswith(("-", "•", "*"))]
     return len(bullets) or len(lines)
+
+
+# «- Nome Cognome (Partito): …» — person plus party/role in parentheses.
+_ATTRIBUTED_POINT = re.compile(
+    r"[A-ZÀÈÉÌÒÓÙ][\w'’àèéìòóù.-]*(?:\s+[A-ZÀÈÉÌÒÓÙ][\w'’àèéìòóù.-]*)*"
+    r"\s*\([^)]{2,}\)"
+    r"\s*[:—,-]",
+    re.UNICODE,
+)
+
+
+def _side_attribution_findings(text: str, *, field: str, label: str) -> list[Finding]:
+    """Each majority/opposition point should name a person and a party/role."""
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    points = [line.lstrip("-•* ").strip() for line in lines if line.lstrip().startswith(("-", "•", "*"))]
+    if not points:
+        points = lines
+    missing = [point for point in points if not _ATTRIBUTED_POINT.search(point)]
+    if missing:
+        return [
+            Finding(
+                "warning",
+                "esponente_mancante",
+                f"«{label}»: ogni punto indica esponente e partito (es. «- Mario Rossi (PD): …»). Manca in {len(missing)} "
+                f"{'punto' if len(missing) == 1 else 'punti'}.",
+                field,
+            )
+        ]
+    return []
 
 
 def profile_findings(kind: str, data: dict) -> list[Finding]:

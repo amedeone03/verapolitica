@@ -6,10 +6,12 @@ from datetime import date, datetime
 
 from backend.app.services.redazione.news_week import news_week, week_bounds
 from backend.app.services.redazione.style import (
+    DAILY_NEWS_TRIAL,
     cosa_cambia_label,
     has_errors,
     is_weak_source_host,
     news_findings,
+    normalize_news_side_blocks,
 )
 
 
@@ -19,8 +21,8 @@ def _base_blocks(**extra):
         "perche": "Il bollo riguarda la gran parte degli automobilisti e il decreto va convertito entro il 16 novembre.",
         "fatto": "Il Consiglio dei ministri ha approvato un decreto-legge che azzera il bollo 2027 per una sola auto fino a 80 kW.",
         "cosa_cambia": "- Una sola auto fino a 80 kW: non paghi il bollo nel 2027.\n- Auto sopra i 185 kW: continui a pagare.",
-        "destra": "- Fratelli d'Italia: misura pensata per essere strutturale.\n- Lega: valuta anche il superbollo.",
-        "sinistra": "- Partito Democratico: misura limitata al 2027.\n- Movimento 5 Stelle: il risparmio medio è basso.",
+        "maggioranza": "- Giorgia Meloni (FdI): misura pensata per essere strutturale.\n- Matteo Salvini (Lega): valuta anche il superbollo.",
+        "opposizione": "- Elly Schlein (PD): misura limitata al 2027.\n- Giuseppe Conte (M5S): il risparmio medio è basso.",
     }
     blocks.update(extra)
     return blocks
@@ -111,3 +113,43 @@ def test_weak_or_undated_sources_block_approval():
         }
     )
     assert not has_errors(ok)
+
+
+def test_legacy_destra_sinistra_blocks_still_check():
+    legacy = _base_blocks()
+    legacy.pop("maggioranza")
+    legacy.pop("opposizione")
+    legacy["destra"] = "- Giorgia Meloni (FdI): misura pensata per essere strutturale."
+    legacy["sinistra"] = "- Elly Schlein (PD): misura limitata al 2027."
+    normalized = normalize_news_side_blocks(legacy)
+    assert "FdI" in normalized["maggioranza"] and "PD" in normalized["opposizione"]
+    findings = news_findings(
+        {
+            "title": "Bollo auto 2027: esenzione per una sola auto fino a 80 kW",
+            "scope": "national",
+            "blocks": legacy,
+            "sources": _good_sources(),
+        }
+    )
+    assert not has_errors(findings)
+
+
+def test_side_points_without_speaker_warn():
+    findings = news_findings(
+        {
+            "title": "Bollo auto 2027: esenzione per una sola auto fino a 80 kW",
+            "scope": "national",
+            "blocks": _base_blocks(
+                maggioranza="- Fratelli d'Italia: misura pensata per essere strutturale.",
+                opposizione="- Partito Democratico: misura limitata al 2027.",
+            ),
+            "sources": _good_sources(),
+        }
+    )
+    assert any(f.code == "esponente_mancante" for f in findings)
+    assert not has_errors(findings)
+
+
+def test_daily_news_trial_is_soft():
+    assert DAILY_NEWS_TRIAL["active"] is True
+    assert DAILY_NEWS_TRIAL["target_per_day"] == 1

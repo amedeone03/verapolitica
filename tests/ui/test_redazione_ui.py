@@ -48,6 +48,9 @@ def test_console_is_self_contained_and_in_cambridge_colours(tmp_path):
     assert "Presidente della Repubblica" in script and "Europarlamentare" in script
     assert "Consigliere comunale" in script and "POLITICAL_OFFICE_GROUPS" in script
     assert "career-role-suggestions" in script
+    assert "Aggiungi un incarico" in script and "Cambio di partito o nuovo mandato" in script
+    assert "maggioranza" in script and "opposizione" in script
+    assert "newsTrialCard" in script and "Ritmo in prova" in script
     assert 'method: "DELETE"' in script
     assert demo.status_code == 307 and demo.headers["location"] == "/redazione/"
     assert [m["name"] for m in access["demo_members"]] == ["Redattore demo", "Verificatore demo", "Caporedattore demo"]

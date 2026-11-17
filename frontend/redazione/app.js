@@ -137,10 +137,10 @@ const options = (pairs, selected) => pairs.map(([value, label]) => `<option valu
 const CHECKLIST = [
   "Proposta: cosa è successo o succederà, interesse per il pubblico, fonti verificabili con data e pagina precisa.",
   "Fonti: ogni fatto e ogni cifra ha una fonte con data; niente Wikipedia, social o home di sito; i dati elettorali vengono da Eligendo.",
-  "Varietà: almeno una fonte istituzionale o di agenzia, una di centrodestra e una di centrosinistra (per le notizie).",
+  "Varietà: per le notizie almeno una fonte istituzionale o di agenzia più una testata di centrodestra e una di centrosinistra; per un dato oggettivo o una pubblicazione ufficiale basta la pagina istituzionale.",
   "Ambito: «Cosa cambia» risponde al livello della notizia (nazionale, regionale, provinciale o comunale).",
-  "Attribuzione: ogni opinione ha nome, ruolo e partito; nessun «si dice».",
-  "Equilibrio: destra e sinistra hanno lo stesso numero di punti, la stessa lunghezza e lo stesso tono; chi non si è espresso è indicato come tale.",
+  "Attribuzione: ogni punto di maggioranza/opposizione ha esponente e partito (es. «- Mario Rossi (PD): …»); nessun «si dice».",
+  "Equilibrio: maggioranza e opposizione hanno lo stesso numero di punti, la stessa lunghezza e lo stesso tono; chi non si è espresso è indicato come tale.",
   "Linguaggio: frasi corte, termini tecnici spiegati, nessun aggettivo di parte, titolo neutro.",
   "Parentesi quadre: nessuna rimasta aperta nel testo.",
   "Verifica: ho controllato fatti, fonti ed equilibrio sulla fonte originale.",
@@ -153,6 +153,24 @@ function newsWeekCard(week = state.rules?.news_week) {
     <p class="small">${esc(week.summary)}</p>
     <p class="small muted">In prova: martedì–lunedì · proposte al venerdì · assegnazioni il lunedì.</p>
   </aside>`;
+}
+
+function newsTrialCard(trial = state.rules?.daily_news_trial) {
+  if (!trial?.active) return "";
+  const written = trial.written_today ?? 0;
+  const target = trial.target_per_day ?? 1;
+  const tone = written > target ? "is-over" : written >= target ? "is-at" : "";
+  return `<aside class="news-week news-trial ${tone}">
+    <div><strong>Ritmo in prova</strong> <span class="chip chip-kind">${esc(`${written} / ${target} oggi`)}</span></div>
+    <p class="small">${esc(trial.note || "Una notizia al giorno (avviso, non blocco).")}</p>
+  </aside>`;
+}
+
+function normalizeNewsBlocks(blocks = {}) {
+  const out = { ...blocks };
+  if (!(out.maggioranza || "").trim() && (out.destra || "").trim()) out.maggioranza = out.destra;
+  if (!(out.opposizione || "").trim() && (out.sinistra || "").trim()) out.opposizione = out.sinistra;
+  return out;
 }
 
 function cosaCambiaMeta(scope) {
@@ -640,8 +658,9 @@ function sourcesList(sources, withArea = false) {
 }
 
 function newsPreview(blocks = {}) {
+  const normalized = normalizeNewsBlocks(blocks);
   const sections = [["sommario", "Sommario"], ...((state.rules?.news_blocks || []).map((b) => [b.key, b.label]))];
-  return sections.filter(([key]) => blocks[key]).map(([key, label]) => `<section><h4>${esc(label)}</h4><p class="item-body">${esc(blocks[key])}${key === "fatto" && blocks.perche_deciso ? `\n\nPerché è stato deciso: ${esc(blocks.perche_deciso)}` : ""}</p></section>`).join("");
+  return sections.filter(([key]) => normalized[key]).map(([key, label]) => `<section><h4>${esc(label)}</h4><p class="item-body">${esc(normalized[key])}${key === "fatto" && normalized.perche_deciso ? `\n\nPerché è stato deciso: ${esc(normalized.perche_deciso)}` : ""}</p></section>`).join("");
 }
 
 function bindQueueActions(root, reload) {
@@ -1037,7 +1056,8 @@ function blockForm(kind, d = {}) {
   let fields = "";
   if (kind === "biography") fields = `<div class="field"><label for="${id}-body">Testo <span class="counter"></span></label><textarea id="${id}-body" name="body" class="tall" ${counted(50, 80)} required>${esc(d.body || "")}</textarea><span class="hint">Formazione e percorso, solo fatti. Le parti da compilare vanno tra [parentesi quadre]: con parentesi aperte non si pubblica.</span></div>`;
   if (kind === "career_entry") fields = `<div class="field-row"><div class="field"><label for="${id}-role">Incarico</label><input id="${id}-role" type="text" name="role" list="career-role-suggestions" value="${esc(d.role || "")}" required /><datalist id="career-role-suggestions">${CAREER_ROLE_SUGGESTIONS.map((label) => `<option value="${esc(label)}"></option>`).join("")}</datalist></div><div class="field"><label for="${id}-inst">Istituzione</label><input id="${id}-inst" type="text" name="institution" value="${esc(d.institution || "")}" required /></div><div class="field"><label for="${id}-party">Partito o gruppo</label><input id="${id}-party" type="text" name="party_or_group" value="${esc(d.party_or_group || "")}" /></div></div>
-    <div class="field-row"><div class="field"><label for="${id}-start">Inizio</label><input id="${id}-start" type="date" name="start_date" value="${esc(d.start_date || "")}" required /></div><div class="field"><label for="${id}-end">Fine</label><input id="${id}-end" type="date" name="end_date" value="${esc(d.end_date || "")}" /></div><div class="field"><span class="label">&nbsp;</span><label class="check"><input type="checkbox" name="is_current"${d.is_current ? " checked" : ""} />In corso</label></div></div>`;
+    <div class="field-row"><div class="field"><label for="${id}-start">Inizio</label><input id="${id}-start" type="date" name="start_date" value="${esc(d.start_date || "")}" required /></div><div class="field"><label for="${id}-end">Fine</label><input id="${id}-end" type="date" name="end_date" value="${esc(d.end_date || "")}" /></div><div class="field"><span class="label">&nbsp;</span><label class="check"><input type="checkbox" name="is_current"${d.is_current ? " checked" : ""} />In corso</label></div></div>
+    <p class="small muted">${d.identity_key ? "Stai modificando questa riga della cronologia." : "Cambio di partito o nuovo mandato: «Aggiungi un incarico» crea una nuova riga. Chiudi la precedente con una data di fine."}</p>`;
   if (kind === "position") fields = `<div class="field-row"><div class="field"><label for="${id}-topic">Tema</label><input id="${id}-topic" type="text" name="topic" value="${esc(d.topic || "")}" required /></div><div class="field"><label for="${id}-date">Data della dichiarazione o del voto</label><input id="${id}-date" type="date" name="statement_date" value="${esc(d.statement_date || "")}" required /></div></div>
     <div class="field"><label for="${id}-pos">Posizione <span class="hint">Come l'ha espressa la persona, attribuita: «ha dichiarato…», «ha votato…».</span></label><textarea id="${id}-pos" name="position_statement" required>${esc(d.position_statement || "")}</textarea></div>
     <div class="field"><label for="${id}-ver">Dichiarazione o voto verificabile</label><textarea id="${id}-ver" name="verifiable_statement" rows="2" required>${esc(d.verifiable_statement || "")}</textarea></div>`;
@@ -1274,11 +1294,13 @@ function bindTerritoryPicker(form, post) {
 
 async function showNews() {
   const list = await api("/notizie");
+  try { state.rules = await api("/regole"); } catch { /* keep cached rules */ }
   const scopeLabel = { national: "Nazionale", region: "Regionale", province: "Provinciale", municipality: "Comunale" };
   view.innerHTML = `<div class="page-head"><div><h1>Notizie</h1>
     <p>Nazionali, regionali, provinciali o di un comune. Ogni proposta: fatto, interesse pubblico, fonti verificabili.</p></div>
     <div class="actions" style="margin-top:0"><a class="button button-primary" href="#/notizie/proposta">Proposta in 3 campi</a><a class="button button-secondary" href="#/notizie/nuova">Modello completo</a></div></div>
     ${newsWeekCard()}
+    ${newsTrialCard()}
     ${list.length ? `<div class="table-wrap card" style="padding:0"><table class="data-table"><thead><tr><th>Titolo</th><th>Ambito</th><th>Stato</th><th>Scritta da</th><th>Pubblicata da</th><th>Data</th><th></th></tr></thead><tbody>
     ${list.map((n) => `<tr><td><a href="#/notizie/${n.id}"><strong>${esc(n.title)}</strong></a>${n.findings.some((f) => f.level === "error") && n.status === "pending" ? ` <span class="chip chip-rejected">Da correggere</span>` : ""}</td><td><span class="chip chip-muted">${esc(scopeLabel[n.scope] || n.scope || "—")}</span></td><td><span class="chip ${n.status === "published" ? "chip-published" : n.status === "rejected" ? "chip-rejected" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa" }[n.status]}</span></td><td>${esc(n.created_by)}</td><td>${esc(n.reviewed_by || "—")}</td><td>${longDate(n.published_at || n.created_at)}</td><td>${n.can_discard ? `<button type="button" class="button button-danger" data-discard="${n.id}" data-title="${esc(n.title)}">Elimina</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="empty">Nessuna notizia. <a href="#/notizie/nuova">Scrivi la prima</a>.</div>`}`;
@@ -1289,8 +1311,8 @@ const NEWS_HINTS = {
   perche: ["Interesse pubblico: quante persone riguarda, quale scadenza, perché proprio ora. È il secondo pezzo obbligatorio di ogni proposta.", "Scrivere «importante» senza dire per chi."],
   fatto: ["Cosa è successo o succederà: chi ha deciso, quando, dove. È il primo pezzo obbligatorio di ogni proposta.", "Opinioni. Motivazioni presentate come verità."],
   cosa_cambia: ["Per chi cambia e per chi no a questo livello (nazionale/regionale/provinciale/comunale): 2–3 esempi concreti con numeri, e cosa NON cambia.", "Gergo tecnico. Risparmi promessi senza averli calcolati. Effetti di un altro livello territoriale."],
-  destra: ["Maggioranza di governo e centrodestra: 3–4 punti, ognuno con persona, ruolo e partito.", "Citare solo i più duri o solo i più morbidi."],
-  sinistra: ["Opposizioni di centrosinistra: stesso numero di punti, stessa lunghezza, stesso tono del blocco 4.", "Un tono diverso dal blocco 4. Punti senza nome."],
+  maggioranza: ["Maggioranza di governo: 3–4 punti, ognuno con esponente e partito (es. «- Mario Rossi (FdI): …»).", "Citare solo i più duri o solo i più morbidi. Punti senza nome."],
+  opposizione: ["Opposizione: stesso numero di punti, stessa lunghezza, stesso tono del blocco maggioranza; ogni punto con esponente e partito.", "Un tono diverso dal blocco maggioranza. Punti senza nome."],
   altri: ["Centro, Regioni, associazioni, imprese, sindacati, esperti.", "Ometterli perché «non fanno notizia»."],
   numeri: ["Costo, platea, copertura, effetti attesi. Ogni cifra con fonte e data; se due fonti divergono, affiancarle.", "Cifre senza fonte. Stime presentate come certezze."],
   cosa_succede: ["Prossimi passi con date: iter in Parlamento, scadenze, voti. Se non ci sono date, dirlo.", "Prevedere come andrà a finire."],
@@ -1334,8 +1356,8 @@ async function showNewsPitch() {
         perche,
         sommario: fatto.slice(0, 280),
         cosa_cambia: "",
-        destra: "",
-        sinistra: "",
+        maggioranza: "",
+        opposizione: "",
         numeri: "",
         contesto: "",
         perche_deciso: "",
@@ -1356,6 +1378,7 @@ async function showNewsPitch() {
 
 async function showNewsEditor(postId) {
   const post = postId ? await api(`/notizie/${postId}`) : { title: "", blocks: {}, sources: [], politicians: [], status: "pending", findings: [] };
+  try { state.rules = await api("/regole"); } catch { /* keep cached rules */ }
   state.cardOptions = state.cardOptions || await api("/card");
   if (!state.portraits) {
     try { state.portraits = await fetch("/portraits").then((r) => (r.ok ? r.json() : {})); } catch { state.portraits = {}; }
@@ -1363,7 +1386,7 @@ async function showNewsEditor(postId) {
   state.parties = state.parties || await api("/partiti");
   const composer = createCardComposer(post.card, post.card_public);
   const editable = post.status === "pending" || !postId;
-  const b = post.blocks || {};
+  const b = normalizeNewsBlocks(post.blocks || {});
   const blocks = state.rules.news_blocks;
   const initialScope = post.scope || "national";
   const cambia0 = cosaCambiaMeta(initialScope);
@@ -1371,6 +1394,7 @@ async function showNewsEditor(postId) {
       ${postId ? `<p>Scritta da ${esc(post.created_by)}${post.reviewed_by ? ` · verificata da ${esc(post.reviewed_by)}` : ""} · <span class="chip ${post.status === "published" ? "chip-published" : "chip-pending"}">${{ published: "Pubblicata", rejected: "Respinta", pending: "In attesa di verifica" }[post.status]}</span></p>` : ""}</div>
       ${post.public_url || post.can_discard ? `<div class="actions" style="margin-top:0">${post.public_url ? `<a class="button button-secondary" href="${esc(post.public_url)}" target="_blank" rel="noopener">Vedi come la vede il cittadino</a>` : ""}${post.can_discard ? `<button type="button" class="button button-danger" id="n-discard">Elimina la notizia</button>` : ""}</div>` : ""}</div>
     ${newsWeekCard()}
+    ${newsTrialCard(post.daily_news_trial || state.rules?.daily_news_trial)}
     ${!editable ? `<p class="own-note" style="margin-bottom:16px">Una notizia pubblicata non si modifica: un errore si corregge in modo visibile con una rettifica («Corretto il [data]: …»).</p>` : ""}
     <div class="layout-side"><form id="news-form" class="stack">
       <section class="card"><div class="card-head"><h2><span class="block-number">0</span>Titolo, ambito e sommario</h2></div>
@@ -1389,13 +1413,13 @@ async function showNewsEditor(postId) {
         const writeHint = block.key === "cosa_cambia" && cambia0.hint ? cambia0.hint : NEWS_HINTS[block.key][0];
         return `<section class="card" data-news-block="${esc(block.key)}"><div class="card-head"><h2><span class="block-number">${index + 1}</span><span data-block-title>${esc(title)}</span></h2></div>
         <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b><span data-block-hint>${esc(writeHint)}</span></div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
-        <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["destra", "sinistra", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Destra e sinistra: stesso numero di punti.</span>` : ""}</div>
+        <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["maggioranza", "opposizione", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Maggioranza e opposizione: stesso numero di punti, ognuno con esponente e partito.</span>` : ""}</div>
         ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
-        ${block.key === "sinistra" ? `<div class="label">Equilibrio destra / sinistra</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
+        ${block.key === "opposizione" ? `<div class="label">Equilibrio maggioranza / opposizione</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
       </section>`;
       }).join("")}
       <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti verificabili</h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data e link alla pagina precisa. Almeno 3 fonti: una di centrodestra, una di centrosinistra, una istituzionale o di agenzia. Terzo pezzo obbligatorio di ogni proposta.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Wikipedia, social, blog, home di sito, fonti non lette. Una fonte sbagliata compromette la credibilità.</div></div></details>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data e link alla pagina precisa. Per le notizie: almeno 3 fonti (istituzionale o agenzia + centrodestra + centrosinistra). Per un dato oggettivo o una pubblicazione ufficiale basta la pagina istituzionale. Terzo pezzo obbligatorio di ogni proposta.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Wikipedia, social, blog, home di sito, fonti non lette. Una sola fonte istituzionale non basta per una controversia.</div></div></details>
         ${newsSourcesEditor(post.sources)}
         <div class="field"><label for="n-pol">Politici citati <span class="hint">La notizia compare in «Notizie collegate» nel loro profilo.</span></label>
           <div class="actions" style="margin-top:0"><input id="n-pol" type="search" placeholder="Cerca un politico" style="flex:1 1 220px" /><button type="button" class="button button-secondary" id="n-pol-add">Aggiungi</button></div>
@@ -1461,12 +1485,13 @@ async function showNewsEditor(postId) {
   composer.bind(form, preview);
   bindFeedCards(view.querySelector("#card-preview"));
   const balance = () => {
-    const right = words(form.destra.value), left = words(form.sinistra.value);
-    const total = right + left || 1;
     const bar = view.querySelector("#balance");
+    if (!bar || !form.maggioranza || !form.opposizione) return;
+    const right = words(form.maggioranza.value), left = words(form.opposizione.value);
+    const total = right + left || 1;
     bar.children[0].style.width = `${(right / total) * 100}%`;
     bar.children[1].style.width = `${(left / total) * 100}%`;
-    view.querySelector("#balance-text").textContent = `Destra ${right} parole · Sinistra ${left} parole`;
+    view.querySelector("#balance-text").textContent = `Maggioranza ${right} parole · Opposizione ${left} parole`;
   };
   const refreshCosaCambia = () => {
     const meta = cosaCambiaMeta(form.scope.value);
@@ -1514,8 +1539,11 @@ async function showNewsEditor(postId) {
     event.preventDefault();
     try {
       const saved = await api(postId ? `/notizie/${postId}` : "/notizie", { method: postId ? "PUT" : "POST", body: collect() });
+      if (saved.daily_news_trial && state.rules) state.rules.daily_news_trial = saved.daily_news_trial;
       const errors = saved.findings.filter((f) => f.level === "error").length;
+      const trialWarn = saved.findings.some((f) => f.code === "ritmo_prova");
       if (errors) toast(`Salvata con ${errors} errori: va corretta prima della verifica.`, true);
+      else if (trialWarn) toast("Salvata. Ritmo in prova: più di una notizia oggi (avviso, non blocco).");
       else savedToast(saved, "Inviata all'admin.");
       location.hash = `#/notizie/${saved.id}`;
       if (postId) showNewsEditor(saved.id);
@@ -1966,8 +1994,8 @@ async function showJobs() {
 function showRules() {
   const rules = [
     ["Il fatto non si tocca", "Solo elementi verificabili, con la fonte. Nessuna interpretazione, nessun aggettivo di parte."],
-    ["Attribuire sempre", "Ogni opinione ha un nome e un ruolo: «secondo…», «ha dichiarato…». Mai «si dice», «molti pensano»."],
-    ["Stesso spazio per tutti", "Destra e sinistra: stesso numero di punti, stessa lunghezza, stesso livello di dettaglio, stesso tono."],
+    ["Attribuire sempre", "Ogni opinione ha un nome e un ruolo: «secondo…», «ha dichiarato…». Mai «si dice», «molti pensano». Maggioranza e opposizione: ogni punto con esponente e partito."],
+    ["Stesso spazio per tutti", "Maggioranza e opposizione: stesso numero di punti, stessa lunghezza, stesso livello di dettaglio, stesso tono."],
     ["Chi tace, tace", "Se uno schieramento non si è espresso, lo si scrive. Non si inventa una posizione plausibile."],
     ["Numeri con fonte e data", "Cifra, unità, anno, fonte. Se due fonti divergono si riportano entrambe e si spiega la differenza."],
     ["Linguaggio semplice", "Frasi corte, termini tecnici spiegati subito. Si scrive per chi non ha studiato politica."],
@@ -1999,14 +2027,16 @@ function showRules() {
       <p class="small muted" style="margin-top:10px">Chi verifica la spunta voce per voce prima di approvare.</p></section>
     <section class="card"><h2>Settimana notizie (in prova)</h2>
       ${newsWeekCard()}
+      ${newsTrialCard()}
       <ul class="item-sources" style="margin-top:8px">
         <li><strong>Martedì–lunedì:</strong> settimana di pubblicazione.</li>
         <li><strong>Venerdì:</strong> riunione proposte (fatto + interesse pubblico + fonti verificabili).</li>
         <li><strong>Lunedì:</strong> lista completa e assegnazioni.</li>
+        <li><strong>Ritmo:</strong> prova di due settimane a una notizia al giorno (avviso soft, non blocco).</li>
       </ul></section>
     <section class="card"><h2>Cosa controlla la console</h2><ul class="item-sources" style="margin-top:8px">
-      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti senza nome, senza data o che puntano a una home; Wikipedia/social/blog; notizia senza interesse pubblico, senza fatto o senza «cosa cambia» al livello giusto; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area (una pubblicazione ufficiale basta la pagina ufficiale); posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
-      <li><strong>Avvisa:</strong> lunghezze fuori indicazione, squilibrio destra/sinistra, titoli con parole cariche, giudizi, opinioni senza nome, date abbreviate, fonti duplicate.</li>
+      <li><strong>Blocca la pubblicazione:</strong> parentesi quadre aperte; fonti senza nome, senza data o che puntano a una home; Wikipedia/social/blog; notizia senza interesse pubblico, senza fatto o senza «cosa cambia» al livello giusto; notizia senza una fonte istituzionale o di agenzia e senza una testata per ciascuna area (dato oggettivo o pubblicazione ufficiale: basta la pagina ufficiale); posizione o incarico senza data; chi ha scritto che prova ad approvare.</li>
+      <li><strong>Avvisa:</strong> lunghezze fuori indicazione, squilibrio maggioranza/opposizione, punti senza esponente e partito, titoli con parole cariche, giudizi, opinioni senza nome, date abbreviate, fonti duplicate, più di una notizia al giorno nella prova.</li>
       <li><strong>Punteggio:</strong> conta solo le promesse pubblicate, classificate e con uno stato approvato. «Non mantenuta» richiede due persone diverse da chi l'ha proposta e un motivo tra scadenza passata, mandato finito o rinuncia esplicita.</li>
     </ul></section>`;
 }

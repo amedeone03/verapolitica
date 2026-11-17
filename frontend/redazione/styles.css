@@ -123,6 +123,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px var(--gutter) 80px; }
 .news-week[data-phase="assegnazioni"] { border-color: var(--color-primary); background: var(--color-accent-light); }
 .news-week > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .news-week p { margin: 6px 0 0; }
+.news-trial.is-at { border-color: var(--color-primary); }
+.news-trial.is-over { border-color: var(--color-warning); background: var(--color-warning-light); }
 #proposal-triad { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 #proposal-triad li { display: flex; gap: 8px; align-items: flex-start; font-size: .875rem; color: var(--color-text-muted); }
 #proposal-triad li.is-ready { color: var(--verdict-kept); font-weight: 600; }

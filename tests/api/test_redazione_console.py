@@ -108,6 +108,43 @@ def test_members_sign_in_with_their_own_token(console):
     assert client.get("/redazione/").status_code == 200
 
 
+def test_career_party_change_creates_a_new_timeline_row(console):
+    client, politician_id, _ = console
+    base = f"/redazione/api/politici/{politician_id}/blocchi/career_entry"
+    first = client.post(
+        base,
+        headers=ANNA,
+        json={
+            "role": "Senatore",
+            "institution": "Senato della Repubblica",
+            "party_or_group": "Forza Italia",
+            "start_date": "2018-03-23",
+            "end_date": "2022-10-12",
+            "is_current": False,
+            "sources": [SOURCE],
+        },
+    )
+    assert first.status_code == 200, first.text
+    second = client.post(
+        base,
+        headers=ANNA,
+        json={
+            "role": "Senatore",
+            "institution": "Senato della Repubblica",
+            "party_or_group": "Fratelli d'Italia",
+            "start_date": "2022-10-13",
+            "is_current": True,
+            "sources": [SOURCE],
+        },
+    )
+    assert second.status_code == 200, second.text
+    a, b = first.json(), second.json()
+    assert a["id"] != b["id"]
+    assert a["identity_key"] != b["identity_key"]
+    assert "forza-italia" in a["identity_key"]
+    assert "fratelli-d-italia" in b["identity_key"]
+
+
 def test_profile_block_needs_a_second_person_and_no_open_brackets(console):
     client, politician_id, factory = console
     base = f"/redazione/api/politici/{politician_id}"

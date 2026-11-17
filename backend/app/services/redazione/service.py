@@ -27,7 +27,7 @@ import binascii
 import hashlib
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -725,7 +725,12 @@ class RedazioneService:
                     "is_current": bool(payload.get("is_current")),
                     "start_precision": DatePrecision(payload.get("start_precision") or "day"),
                 }
-                identity = identity or _slug(f"{fields['role']}-{fields['institution']}-{start.year}")
+                # Include party + full start date so a party change or a new mandate
+                # becomes a new timeline row instead of overwriting the previous one.
+                party_bit = fields["party_or_group"] or "senza-partito"
+                identity = identity or _slug(
+                    f"{fields['role']}-{fields['institution']}-{party_bit}-{start.isoformat()}"
+                )
                 draft = CareerEntryDraftInput(identity_key=identity, sources=sources, created_by=member, **fields)
             elif kind == "position":
                 fields = {
@@ -1395,7 +1400,15 @@ class RedazioneService:
     # ------------------------------------------------------------------ news
     def save_news(self, payload: dict, *, member: str, post_id: int | None = None) -> dict:
         title = _clean(payload.get("title"))
-        blocks = {key: _clean(value) for key, value in (payload.get("blocks") or {}).items() if isinstance(value, str)}
+        blocks = style.normalize_news_side_blocks(
+            {key: _clean(value) for key, value in (payload.get("blocks") or {}).items() if isinstance(value, str)}
+        )
+        # Prefer the new side keys; drop empty legacy aliases so the payload stays clean.
+        for new_key, old_key in (("maggioranza", "destra"), ("opposizione", "sinistra")):
+            if (blocks.get(new_key) or "").strip():
+                blocks.pop(old_key, None)
+            elif (blocks.get(old_key) or "").strip():
+                blocks[new_key] = blocks.pop(old_key)
         sources = [
             {
                 "name": _clean(item.get("name")),
@@ -1470,18 +1483,67 @@ class RedazioneService:
                 summary=summary,
                 details={"before": _jsonable(before), "after": {"title": title, "blocks": stored_blocks}},
             )
-            return self._news_dict(session, post, member)
+            result = self._news_dict(session, post, member)
+        trial = self.daily_news_trial(member=member)
+        result["daily_news_trial"] = trial
+        if action == "scrittura" and trial.get("active") and trial.get("over_target"):
+            result["findings"] = [
+                *result["findings"],
+                {
+                    "level": "warning",
+                    "code": "ritmo_prova",
+                    "message": (
+                        f"Prova di due settimane: oggi hai già {trial['written_today']} notizie "
+                        f"(obiettivo {trial['target_per_day']}/giorno). Puoi salvare lo stesso: è un avviso, non un blocco."
+                    ),
+                    "field": None,
+                },
+            ]
+        return result
 
     @staticmethod
     def _news_body(blocks: dict) -> str:
+        blocks = style.normalize_news_side_blocks(blocks)
         parts = [blocks.get("sommario") or ""]
         for key, label, *_ in style.NEWS_BLOCKS:
-            text = blocks.get(key)
+            text = style.news_block_text(blocks, key)
             if key == "fatto" and blocks.get("perche_deciso"):
                 text = f"{text or ''}\nPerché è stato deciso: {blocks['perche_deciso']}"
             if text:
                 parts.append(f"{label}\n{text}")
         return "\n\n".join(part for part in parts if part).strip()
+
+    def news_written_today(self, *, member: str) -> int:
+        """How many news drafts this member opened today (for the soft daily trial)."""
+
+        now = self.clock()
+        today = now.date()
+        tz = now.tzinfo or timezone.utc
+        start = datetime.combine(today, time.min, tzinfo=tz)
+        end = start + timedelta(days=1)
+        with self.session_factory() as session:
+            return session.scalar(
+                select(func.count())
+                .select_from(EditorialPost)
+                .where(
+                    EditorialPost.created_by == member,
+                    EditorialPost.created_at >= start,
+                    EditorialPost.created_at < end,
+                )
+            ) or 0
+
+    def daily_news_trial(self, *, member: str) -> dict:
+        trial = dict(style.DAILY_NEWS_TRIAL)
+        written = self.news_written_today(member=member)
+        target = int(trial.get("target_per_day") or 1)
+        trial.update(
+            {
+                "written_today": written,
+                "at_target": written >= target,
+                "over_target": written > target,
+            }
+        )
+        return trial
 
     def list_news(self, *, member: str) -> list[dict]:
         with self.session_factory() as session:
@@ -1498,7 +1560,7 @@ class RedazioneService:
             return self._news_dict(session, post, member)
 
     def _news_dict(self, session: Session, post: EditorialPost, member: str) -> dict:
-        blocks = dict(post.blocks or {})
+        blocks = style.normalize_news_side_blocks(dict(post.blocks or {}))
         sources = blocks.pop("fonti", None) or [
             {"name": item.get("title"), "url": item.get("url"), "area": "altro", "date": None} for item in post.citations
         ]

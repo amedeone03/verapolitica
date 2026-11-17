@@ -3958,8 +3958,8 @@ const NEWS_SECTIONS = [
   ["perche", "Perché interessa"],
   ["fatto", "Il fatto"],
   ["cosa_cambia", "Cosa cambia per te"],
-  ["destra", "Cosa dice la destra"],
-  ["sinistra", "Cosa dice la sinistra"],
+  ["maggioranza", "Cosa dice la maggioranza"],
+  ["opposizione", "Cosa dice l'opposizione"],
   ["altri", "Cosa dicono gli altri"],
   ["numeri", "I numeri e l'impatto economico"],
   ["cosa_succede", "Cosa succede adesso"],
@@ -3972,6 +3972,14 @@ const COSA_CAMBIA_BY_SCOPE = {
   municipality: "Cosa cambia nel comune",
 };
 
+function normalizePublicNewsBlocks(blocks = {}) {
+  return {
+    ...blocks,
+    maggioranza: blocks.maggioranza || blocks.destra,
+    opposizione: blocks.opposizione || blocks.sinistra,
+  };
+}
+
 function newsText(text) {
   const lines = String(text || "").split("\n").map((line) => line.trim()).filter(Boolean);
   const bullets = lines.filter((line) => /^[-•*]\s/.test(line));
@@ -3983,14 +3991,15 @@ function newsText(text) {
 
 // The nine blocks of the redazione's news model, always in the same order.
 export function renderNewsBlocks(blocks, { scope } = {}) {
-  const sections = NEWS_SECTIONS.filter(([key]) => blocks[key]).map(([key, label]) => {
+  const normalized = normalizePublicNewsBlocks(blocks);
+  const sections = NEWS_SECTIONS.filter(([key]) => normalized[key]).map(([key, label]) => {
     const heading = key === "cosa_cambia" ? (COSA_CAMBIA_BY_SCOPE[scope] || label) : label;
     return `<section class="news-block news-${key}">
-      <h2>${escapeHtml(heading)}</h2>${newsText(blocks[key])}
-      ${key === "fatto" && blocks.perche_deciso ? `<p><strong>Perché è stato deciso, secondo chi ha deciso:</strong> ${escapeHtml(blocks.perche_deciso)}</p>` : ""}
+      <h2>${escapeHtml(heading)}</h2>${newsText(normalized[key])}
+      ${key === "fatto" && normalized.perche_deciso ? `<p><strong>Perché è stato deciso, secondo chi ha deciso:</strong> ${escapeHtml(normalized.perche_deciso)}</p>` : ""}
     </section>`;
   }).join("");
-  return `${blocks.sommario ? `<p class="lead">${escapeHtml(blocks.sommario)}</p>` : ""}<div class="news-blocks">${sections}</div>`;
+  return `${normalized.sommario ? `<p class="lead">${escapeHtml(normalized.sommario)}</p>` : ""}<div class="news-blocks">${sections}</div>`;
 }
 
 async function showPost(api, postId) {
