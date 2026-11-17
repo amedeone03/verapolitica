@@ -214,13 +214,18 @@ export function renderFeedCard(item, options = {}) {
       ${card.institution ? `<p class="vp-institution">${esc(card.institution)}</p>` : ""}
       <h3 class="vp-title"><a href="${esc(href)}">${esc(item.title)}</a></h3>
       ${summary ? `<p class="vp-summary${long ? " is-clamped" : ""}" id="sum-${esc(key)}">${esc(summary)}</p>${long ? `<button type="button" class="vp-more" data-card-more="sum-${esc(key)}" aria-expanded="false">Mostra altro</button>` : ""}` : ""}
+      <div class="vp-prova" aria-label="Prova">
+        <p class="vp-prova-mark"><span class="vp-prova-dot" aria-hidden="true"></span>Fatto verificato · fonti con pagina</p>
+        ${coverageBar(item.coverage) || (sources.length
+          ? `<p class="vp-prova-count">${sources.length} ${sources.length === 1 ? "fonte" : "fonti"} allegate</p>`
+          : `<p class="vp-prova-count">Fonte in corso di pubblicazione</p>`)}
+      </div>
       <div class="vp-pills">
         <a class="vp-pill is-primary" href="${esc(href)}">${cardIcon("info", 15)}Info</a>
         ${sources.length ? `<button type="button" class="vp-pill" data-card-sources="src-${esc(key)}" aria-expanded="false">${cardIcon("sources", 15)}Fonti <span class="vp-count">${sources.length}</span></button>` : ""}
         <a class="vp-pill" href="${options.preview ? "#" : `./?view=ask&amp;prefill=${encodeURIComponent(question)}`}">${cardIcon("question", 15)}Chiedi</a>
       </div>
       ${sources.length ? `<ul class="vp-sources" id="src-${esc(key)}" hidden>${sources.join("")}</ul>` : ""}
-      ${coverageBar(item.coverage)}
       ${iterData?.steps ? `<ol class="vp-iter" aria-label="Iter" style="--vp-progress:${Math.max(0, iterData.steps.findIndex((step) => step.state !== "done") === -1 ? 1 : iterData.steps.findIndex((step) => step.state !== "done") / (iterData.steps.length - 1))}">${iterData.steps.map((step, index) => `<li class="vp-step is-${esc(step.state)}"><span class="vp-step-dot">${cardIcon(STEP_ICON[index], 14)}</span><span class="vp-step-name">${esc(step.label)}</span><span class="vp-hidden"> (${esc({ done: "completato", current: "fase attuale", stopped: "fermo", todo: "da fare" }[step.state] || step.state)})</span></li>`).join("")}</ol>
         ${iterData.status ? `<p class="vp-stage">${esc(iterData.status)}</p>` : ""}
         ${iterData.since ? `<p class="vp-since">${esc(iterData.since_label || "Presentato il")} ${esc(longDate(iterData.since))}</p>` : ""}` : ""}
@@ -233,7 +238,7 @@ export function renderFeedCard(item, options = {}) {
       ${link ? `<a class="vp-outline" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(card.link.label)} ${cardIcon("external", 14)}</a>` : ""}
       <span class="vp-foot-spacer"></span>
       <button type="button" class="vp-action vp-save" data-card-save="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-pressed="${options.saved ? "true" : "false"}" aria-label="${options.saved ? "Salvata nel profilo: togli" : "Salva nel profilo"}">${cardIcon("bookmark", 20, options.saved)}</button>
-      <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" aria-label="Condividi">${cardIcon("share", 20)}</button>
+      <button type="button" class="vp-action" data-card-share="${esc(item.url)}" data-card-title="${esc(item.title)}" data-card-proof="${sources.length}" aria-label="Condividi">${cardIcon("share", 20)}</button>
     </footer>
   </article>`;
 }
@@ -460,7 +465,11 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
     if (share) {
       const url = new URL(share.dataset.cardShare, window.location.href).href;
       const title = share.dataset.cardTitle || "VeraPolitica";
-      const text = `${title}\n${url}`;
+      const proof = Number(share.dataset.cardProof) || 0;
+      const proofLine = proof
+        ? `${proof} ${proof === 1 ? "fonte verificata" : "fonti verificate"} · VeraPolitica`
+        : "i fatti, con fonte · VeraPolitica";
+      const text = `${title}\n${proofLine}\n${url}`;
       try {
         if (navigator.share) await navigator.share({ title, text, url });
         else {

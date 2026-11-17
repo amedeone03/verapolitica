@@ -81,6 +81,26 @@
 .vp-summary.is-clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .vp-more { margin: 4px 0 0; padding: 0; min-height: 32px; border: 0; background: none; color: var(--vp-navy); font: 700 .9375rem var(--font-body, sans-serif); cursor: pointer; }
 
+/* Signature strip: fact → proof → sources (readable in a WhatsApp screenshot). */
+.vp-prova {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--vp-line);
+  background: linear-gradient(180deg, #fff 0%, var(--vp-soft) 100%);
+}
+.vp-prova-mark {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 8px;
+  color: var(--vp-green); font-size: .8125rem; font-weight: 700; letter-spacing: .01em;
+}
+.vp-prova-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--vp-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vp-green) 22%, transparent);
+}
+.vp-prova-count { margin: 0; color: var(--vp-muted); font-size: .8125rem; font-weight: 600; }
+.vp-prova .vp-coverage { margin: 0; }
+.vp-prova .vp-coverage-legend { margin-top: 8px; }
+
 .vp-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
 .vp-pill {
   display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px;
@@ -120,11 +140,18 @@
 
 @media (max-width: 600px) {
   .vp-body, .vp-band, .vp-sub { padding-left: 14px; padding-right: 14px; }
-  .vp-title { font-size: 1.25rem; }
-  .vp-card.is-feature .vp-title { font-size: 1.375rem; }
+  .vp-body { padding-top: 18px; padding-bottom: 18px; }
+  .vp-title { font-size: 1.3125rem; }
+  .vp-card.is-feature .vp-title { font-size: 1.5rem; }
+  .vp-summary { font-size: 1.0625rem; line-height: 1.55; }
+  .vp-summary.is-clamped { -webkit-line-clamp: 5; }
   .vp-avatar { width: 52px; height: 52px; }
   .vp-card.is-feature .vp-avatar { width: 68px; height: 68px; }
   .vp-step-name { font-size: .6875rem; }
+  .vp-card { border-radius: 18px; }
+  /* Civic-stories rhythm: one card feels like a unit on the phone. */
+  .vp-card.is-feature { min-height: min(72vh, 560px); display: flex; flex-direction: column; }
+  .vp-card.is-feature .vp-body { flex: 1 1 auto; }
 }
 
 .vp-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

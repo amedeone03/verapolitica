@@ -1579,6 +1579,26 @@ function renderPledgeFilters(counts) {
   }</div>`;
 }
 
+function renderPledgeScoreboard(counts, total) {
+  const kept = counts.kept || 0;
+  const broken = counts.broken || 0;
+  const open = (counts.in_progress || 0) + (counts.stalled || 0) + (counts.not_yet_rated || 0);
+  const closed = kept + broken + (counts.partially_kept || 0);
+  const pct = closed ? Math.round(((kept + 0.5 * (counts.partially_kept || 0)) / closed) * 100) : null;
+  return `<div class="pledge-scoreboard" role="group" aria-label="Tabellino delle promesse">
+    <div class="pledge-scoreboard-main">
+      <p class="pledge-scoreboard-kicker">Tabellino · solo stati pubblicati</p>
+      <p class="pledge-scoreboard-value">${pct === null ? "—" : `<strong data-count-to="${pct}" data-count-suffix="%">${pct}%</strong>`}<span>mantenimento sulle concluse</span></p>
+    </div>
+    <ul class="pledge-scoreboard-grid">
+      <li class="is-kept"><strong data-count-to="${kept}">${kept}</strong><span>Mantenute</span></li>
+      <li class="is-broken"><strong data-count-to="${broken}">${broken}</strong><span>Non mantenute</span></li>
+      <li class="is-open"><strong data-count-to="${open}">${open}</strong><span>Aperte</span></li>
+      <li class="is-all"><strong data-count-to="${total}">${total}</strong><span>Monitorate</span></li>
+    </ul>
+  </div>`;
+}
+
 export function renderScorecard(scorecard) {
   if (!scorecard || !scorecard.tracked_pledges) {
     return `<div class="state-card"><div><strong>Nessuna promessa è ancora tracciata per questa persona.</strong><small>Le promesse esplicite pubblicate compaiono qui dopo la classificazione.</small></div></div>`;
@@ -1587,6 +1607,7 @@ export function renderScorecard(scorecard) {
   const pledges = scorecard.pledges || [];
   const counts = countPledgeVerdicts(pledges);
   return `<div class="scorecard">
+    ${renderPledgeScoreboard(counts, counts.all)}
     ${renderVerdictLegend()}
     ${progress ? `<div class="mandate-progress"><div><span>Mandato trascorso</span><strong data-count-to="${Math.round(progress.elapsed_fraction * 100)}" data-count-suffix="%">${percent(progress.elapsed_fraction)}</strong></div><div class="progress-track"><span style="width:${progress.elapsed_fraction * 100}%"></span></div><small>${escapeHtml(formatDate(progress.start))} – ${escapeHtml(formatDate(progress.end))}</small></div>` : ""}
     <div class="strata">${scorecard.strata.map((stratum) => renderStratum(stratum, scorecard)).join("")}</div>
@@ -2582,6 +2603,7 @@ function askPinnedIds(payload) {
 
 function renderAskResult(payload, { follow = true } = {}) {
   const rows = payload.results || [];
+  const sourceList = payload.sources || [];
   const results = rows.map((item) => {
     const href = item.url || (item.type === "politician" ? `./?politician=${encodeURIComponent(item.id)}` : `./?proposal=${encodeURIComponent(item.id)}`);
     const chip = item.verdict ? renderVerdictChip(item.verdict) : "";
@@ -2590,16 +2612,35 @@ function renderAskResult(payload, { follow = true } = {}) {
       <h3><a href="${escapeHtml(href)}">${escapeHtml(item.title)}</a></h3>
     </article>`;
   }).join("");
-  const sources = (payload.sources || []).map((source) => {
+  const proofChips = [
+    ...rows.slice(0, 4).map((item) => {
+      const href = item.url || (item.type === "politician" ? `./?politician=${encodeURIComponent(item.id)}` : `./?proposal=${encodeURIComponent(item.id)}`);
+      return `<a class="ask-proof-chip" href="${escapeHtml(href)}">${escapeHtml(item.title)}</a>`;
+    }),
+    ...sourceList.slice(0, 3).map((source) => {
+      const url = safeExternalUrl(source.url);
+      const title = source.title || "Fonte ufficiale";
+      return url
+        ? `<a class="ask-proof-chip is-source" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a>`
+        : `<span class="ask-proof-chip is-source">${escapeHtml(title)}</span>`;
+    }),
+  ].join("");
+  const sources = sourceList.map((source) => {
     const url = safeExternalUrl(source.url);
     const title = escapeHtml(source.title || "Fonte ufficiale");
     return url
       ? `<li><a class="source-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title} ${icon("external", { size: 14 })}</a></li>`
       : `<li>${title}</li>`;
   }).join("");
-  const empty = !rows.length && payload.intent !== "unsupported"
-    ? `<p class="empty-note">Nessuna promessa pubblicata corrisponde. Prova un altro tema o il nome di un politico.</p>`
-    : "";
+  const noProof = !rows.length && !sourceList.length;
+  const empty = noProof
+    ? `<div class="ask-empty-proof">
+        <p class="ask-empty-title">Non ancora verificato</p>
+        <p class="empty-note">Rispondiamo solo se c’è una scheda o una fonte già pubblicata. Prova un altro tema o il nome di un politico.</p>
+      </div>`
+    : (!rows.length && payload.intent !== "unsupported"
+      ? `<p class="empty-note">Nessuna promessa pubblicata corrisponde. Prova un altro tema o il nome di un politico.</p>`
+      : "");
   const next = follow ? askFollowUps(payload) : [];
   const followHtml = next.length
     ? `<p class="ask-disclaimer">Approfondisci in questo filo</p><div class="ask-followups" aria-label="Domande successive">${next.map((item) => `<button type="button" class="ask-suggestion" data-ask-follow="${escapeHtml(item.question)}">${escapeHtml(item.label)}</button>`).join("")}</div>`
@@ -2607,7 +2648,13 @@ function renderAskResult(payload, { follow = true } = {}) {
   const note = payload.generated_by_ai
     ? "Testo generato automaticamente su dati verificati."
     : "Risposta generata dai dati pubblicati da VeraPolitica.";
-  return `<p class="ask-answer">${escapeHtml(payload.answer)}</p>
+  const proof = proofChips
+    ? `<div class="ask-proof"><p class="ask-proof-label">Prove usate</p><div class="ask-proof-chips">${proofChips}</div></div>`
+    : "";
+  return `<div class="ask-answer-panel${noProof ? " is-empty" : ""}">
+      <p class="ask-answer">${escapeHtml(payload.answer)}</p>
+      ${proof}
+    </div>
     ${results ? `<div class="ask-cards">${results}</div>` : empty}
     ${sources ? `<ul class="explanation-sources">${sources}</ul>` : ""}
     ${followHtml}
@@ -3670,8 +3717,13 @@ function setShareMeta({ title = "", description = "" } = {}) {
   }
 }
 
-function whatsAppShareUrl(title, url) {
-  return `https://wa.me/?text=${encodeURIComponent(`${title}\n${url}`)}`;
+function whatsAppShareUrl(title, url, proofLine = "i fatti, con fonte · VeraPolitica") {
+  return `https://wa.me/?text=${encodeURIComponent(`${title}\n${proofLine}\n${url}`)}`;
+}
+
+function shareProofLine(sourceCount = 0) {
+  if (!sourceCount) return "i fatti, con fonte · VeraPolitica";
+  return `${sourceCount} ${sourceCount === 1 ? "fonte verificata" : "fonti verificate"} · VeraPolitica`;
 }
 
 function syncPageMeta(params) {
@@ -3992,14 +4044,27 @@ function newsText(text) {
 // The nine blocks of the redazione's news model, always in the same order.
 export function renderNewsBlocks(blocks, { scope } = {}) {
   const normalized = normalizePublicNewsBlocks(blocks);
-  const sections = NEWS_SECTIONS.filter(([key]) => normalized[key]).map(([key, label]) => {
+  const parts = [];
+  let sides = "";
+  for (const [key, label] of NEWS_SECTIONS) {
+    if (!normalized[key]) continue;
     const heading = key === "cosa_cambia" ? (COSA_CAMBIA_BY_SCOPE[scope] || label) : label;
-    return `<section class="news-block news-${key}">
+    const section = `<section class="news-block news-${key}">
       <h2>${escapeHtml(heading)}</h2>${newsText(normalized[key])}
       ${key === "fatto" && normalized.perche_deciso ? `<p><strong>Perché è stato deciso, secondo chi ha deciso:</strong> ${escapeHtml(normalized.perche_deciso)}</p>` : ""}
     </section>`;
-  }).join("");
-  return `${normalized.sommario ? `<p class="lead">${escapeHtml(normalized.sommario)}</p>` : ""}<div class="news-blocks">${sections}</div>`;
+    if (key === "maggioranza" || key === "opposizione") {
+      sides += section;
+      continue;
+    }
+    if (sides) {
+      parts.push(`<div class="news-sides">${sides}</div>`);
+      sides = "";
+    }
+    parts.push(section);
+  }
+  if (sides) parts.push(`<div class="news-sides">${sides}</div>`);
+  return `${normalized.sommario ? `<p class="lead">${escapeHtml(normalized.sommario)}</p>` : ""}<div class="news-blocks">${parts.join("")}</div>`;
 }
 
 async function showPost(api, postId) {
@@ -4014,19 +4079,39 @@ async function showPost(api, postId) {
     }).join("");
     try { await loadPortraits(api); } catch { /* optional */ }
     const detail = byId("post-detail");
+    const pageUrl = typeof window !== "undefined" ? window.location.href.split("#")[0] : "";
+    const proofLine = shareProofLine(item.sources?.length || 0);
     detail.innerHTML = `<h1 class="visually-hidden">${escapeHtml(item.title)}</h1>
     <div class="post-card">${renderFeedTimelineItem(item, loadReaderProfile())}</div>
+    <div class="share-strip post-deep">
+      <p class="share-strip-copy"><strong>Condividi la prova</strong> · ${escapeHtml(proofLine)}</p>
+      <div class="share-strip-actions">
+        <a class="button button-secondary" href="${escapeHtml(whatsAppShareUrl(item.title, pageUrl, proofLine))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        <button type="button" class="button" data-copy-share="${escapeHtml(pageUrl)}" data-copy-title="${escapeHtml(item.title)}" data-copy-proof="${escapeHtml(proofLine)}">Copia link</button>
+      </div>
+    </div>
     <section class="proposal-detail-hero post-deep">
       <p class="eyebrow">Approfondimento</p>
       ${item.label === "correction" ? `<p class="lead">Questo aggiornamento rettifica una pubblicazione precedente.</p>` : ""}
       ${item.blocks ? renderNewsBlocks({ ...item.blocks, sommario: null }, { scope: item.scope }) : `<p class="post-body">${escapeHtml(item.detail)}</p>`}
     </section>
-    <section class="detail-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
+    <section class="detail-card sources-card"><h2>Fonti</h2><ul class="explanation-sources">${sources}</ul>
     ${item.written_by || item.verified_by ? `<p class="publication-meta">Aggiornato al ${escapeHtml(formatDate(item.occurred_on))}${item.written_by ? ` · Scritto da ${escapeHtml(item.written_by)}` : ""}${item.verified_by && item.verified_by !== item.written_by ? ` · Pubblicato da ${escapeHtml(item.verified_by)}` : ""}</p>` : ""}
     <p class="empty-note">Ogni aggiornamento è approvato da una persona diversa da chi lo ha scritto e non viene modificato dopo la pubblicazione: le correzioni sono nuovi aggiornamenti.</p></section>`;
     bindFeedCards(detail, cardHandlers(api));
     loadReactions(api, detail);
+    detail.querySelector("[data-copy-share]")?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const text = `${button.dataset.copyTitle}\n${button.dataset.copyProof}\n${button.dataset.copyShare}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copiato";
+      } catch {
+        button.textContent = "Copia non riuscita";
+      }
+    });
     document.title = `${item.title} — VeraPolitica`;
+    setShareMeta({ title: `${item.title} — VeraPolitica`, description: proofLine });
   } catch (error) {
     showState(byId("post-status"), error.status === 404 ? "Questo aggiornamento non è disponibile." : "Non è stato possibile caricare l'aggiornamento.", error.status === 404 ? "Potrebbe non essere ancora pubblicato." : PUBLIC_UNAVAILABLE, true);
   }

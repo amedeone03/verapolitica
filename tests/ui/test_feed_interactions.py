@@ -52,4 +52,16 @@ def test_category_band_and_session_entrance():
     # Entrance: three cards, non-uniform delays, once per session, never on tab switches.
     assert "const ENTER = [[0, 10], [60, 6], [100, 6]];" in card
     assert "load(false, { animate: firstFeedOpen() })" in script
+    # Signature strip: fact → proof → sources.
+    assert 'class="vp-prova"' in card and "Fatto verificato" in card
+    assert ".vp-prova" in css
+
+
+def test_frontend_standout_surfaces_are_wired():
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    css = (APP / "styles.css").read_text(encoding="utf-8")
+    assert "renderPledgeScoreboard" in script and "pledge-scoreboard" in css
+    assert "news-sides" in script and ".news-sides" in css
+    assert "ask-proof-chip" in script and "Non ancora verificato" in script
+    assert "share-strip" in script and "Condividi la prova" in script
 
