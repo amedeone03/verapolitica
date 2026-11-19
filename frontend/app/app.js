@@ -1,5 +1,5 @@
 import { applyReactions, bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
-import { citiesInProvince, citiesInRegion } from "./key-cities.js";
+import { citiesInProvince, citiesInRegion, keyCity } from "./key-cities.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
 export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
@@ -1142,6 +1142,13 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
   const coalitionKey = rapida?.data?.coalizione;
   const coalition = territoryFieldValue(rapida, "coalizione");
   const capital = territoryFieldValue(rapida, "capoluogo");
+  // The cities VeraPolitica follows read as «Città», with their plain name and, for
+  // regional capitals, a «Capoluogo di regione» chip.
+  const followed = base.kind === "municipality" ? keyCity(String(base.istat_code || "")) : null;
+  const heading = followed ? base.name : base.title;
+  const kindLabel = followed ? "Città" : (eyebrow || KIND_EYEBROW[base.kind] || "");
+  const people = territoryFieldValue(rapida, "popolazione") || territoryFieldValue(rapida, "abitanti");
+  const nextVote = territoryFieldValue(rapida, "prossime_elezioni");
   const where = base.kind !== "region" && base.region ? base.region.name : "";
   const credit = (item, label) => item ? `<p class="t-hero-credit">${label}: ${escapeHtml(item.credit)}${item.license ? ` · ${escapeHtml(item.license)}` : ""}${safeExternalUrl(item.source_url) ? ` · <a href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">fonte</a>` : ""}</p>` : "";
   // Same anatomy as the politician's cover (detail sheet): full-bleed media with
@@ -1151,8 +1158,11 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
   const stats = [
     base.province_count ? [base.province_count, base.province_count === 1 ? "Provincia" : "Province"] : null,
     base.municipality_count ? [base.municipality_count, "Comuni"] : null,
+    people ? [people, "Abitanti"] : null,
+    base.municipi?.length ? [base.municipi.length, "Municipi"] : null,
     capital ? [capital, "Capoluogo"] : null,
-  ].filter(Boolean);
+    nextVote ? [nextVote, "Prossime elezioni"] : null,
+  ].filter(Boolean).slice(0, 3);
   const statRow = stats.length >= 2
     ? `<div class="stat-row t-stats">${stats.map(([value, label]) => `<div class="stat-tile"><strong>${escapeHtml(typeof value === "number" ? value.toLocaleString("it-IT") : value)}</strong><span>${escapeHtml(label)}</span></div>`).join("")}</div>`
     : "";
@@ -1167,8 +1177,9 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
         <div class="cover-identity">
           <div class="cover-text">
             ${crest}
-            <p class="t-hero-eyebrow">${escapeHtml(eyebrow || KIND_EYEBROW[base.kind] || "")}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
-            <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
+            <p class="t-hero-eyebrow">${escapeHtml(kindLabel)}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
+            <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(heading)}</h1>
+            ${followed?.capital ? `<p class="t-hero-chips"><span class="t-chip is-plain">Capoluogo di regione</span></p>` : ""}
             ${coalition ? `<p class="t-hero-chips"><span class="t-chip" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#7F93A8"}">${escapeHtml(coalition)}</span></p>` : ""}
           </div>
         </div>
@@ -1264,8 +1275,7 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     </div>`;
   const scoredSlot = base.holder?.politician_id
     ? `<section class="territory-block" id="t-promesse-tracciate" aria-labelledby="t-promesse-tracciate-title">
-        <h2 id="t-promesse-tracciate-title">Promesse tracciate su VeraPolitica</h2>
-        <p class="empty-note">Le righe «Promesse del mandato» sopra sono editoriali. Qui sotto, se c'è, il punteggio verificato della scheda del titolare.</p>
+        <h2 id="t-promesse-tracciate-title">Promesse di ${escapeHtml(base.holder.name)}</h2>
         <div id="territory-scorecard" class="territory-scorecard" aria-busy="true"></div>
         <p><a class="profile-link" href="./?politician=${encodeURIComponent(base.holder.politician_id)}">Apri la scheda di ${escapeHtml(base.holder.name)} ${icon("arrowRight")}</a></p>
       </section>`
@@ -1277,7 +1287,7 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     ${index}
     ${rest.map(sectionHtml).join("")}
     ${scoredSlot}
-    ${written.length < total ? `<p class="territory-pending">${written.length ? `Scheda incompleta: ${written.length} di ${total} parti pubblicate. La redazione sta completando il resto.` : "Scheda incompleta: la redazione non ha ancora scritto questa scheda. Qui sopra ci sono solo i dati ufficiali (ISTAT e, se c'è, il titolare)."}</p>` : ""}
+    ${written.length < total ? `<p class="territory-pending">${written.length ? `In aggiornamento: ${written.length} di ${total} parti pubblicate.` : "Scheda in preparazione: per ora ci sono i dati ufficiali."}</p>` : ""}
     ${romaHub}
     ${extra}
     <div id="t-notizie" class="territory-news"></div>
