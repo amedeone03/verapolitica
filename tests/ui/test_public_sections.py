@@ -51,23 +51,31 @@ def test_routes_and_privacy_of_the_reader_profile():
     assert "non è distinguibile" in script
 
 
-def test_cambridge_classic_tokens_fonts_and_accessibility():
+def test_dark_mode_tokens_fonts_and_accessibility():
     styles = (APP / "styles.css").read_text(encoding="utf-8")
     script = (APP / "app.js").read_text(encoding="utf-8")
     html = (APP / "index.html").read_text(encoding="utf-8")
-    for token in ("--color-primary: #0F2747", "--color-secondary: #003C71", "--color-accent: #85B09A",
-                  "--color-accent-light: #DCEBE5", "--color-background: #F4EFE6", "--color-border: #D9D0C4",
-                  "--color-surface: #FFFCF7", "--color-text: #1A1F24"):
+    # Dark Mode palette (mockup "Proposta 4 di 4"): one accent, stepped navy surfaces.
+    for token in ("color-scheme: dark", "--color-background: #032442", "--color-surface: #052C50",
+                  "--color-surface-alt: #073D70", "--color-accent: #FFBD59", "--color-secondary: #FFBD59",
+                  "--color-text: #FFFFFF", "--color-text-muted: #B5C4D5"):
         assert token in styles
-    # Self-hosted fonts only: no @import, no third-party font host.
+    assert '<meta name="color-scheme" content="dark" />' in html
+    # Self-hosted font only: no @import, no third-party font host; one family (Inter).
     assert "@import" not in styles and "fonts.googleapis" not in html
     assert (APP / "fonts" / "inter-latin-var.woff2").exists()
-    assert (APP / "fonts" / "source-serif-4-latin-var.woff2").exists()
-    # Inter for UI and body; Source Serif 4 for display titles (H1, wordmark).
-    assert "Source Serif 4" in styles and "source-serif-4-latin-var.woff2" in html
-    assert '--font-heading: "Inter"' in styles
-    assert '--font-display: "Source Serif 4"' in styles
-    assert html.count('rel="preload"') == 2
+    assert not (APP / "fonts" / "libre-franklin-latin-var.woff2").exists()
+    assert not (APP / "fonts" / "source-serif-4-latin-var.woff2").exists()
+    assert "inter-latin-var.woff2" in html and '--font-body: "Inter"' in styles
+    # Brand marks: white card on navy (header), navy card (light), round favicon.
+    for mark in ("logo-mark.svg", "logo-mark-navy.svg", "favicon.svg"):
+        assert (APP / mark).exists()
+    assert 'src="./logo-mark.svg"' in html and ".cut {" in styles
+    # Mobile top bar = V, feed switcher (on the Feed), profile button on every page.
+    assert 'id="header-slot"' in html and "function placeFeedSwitcher" in script
+    assert "body.is-map .site-header { position: fixed;" in styles  # profile stays on the map too
+    assert '.bottom-nav a[data-section="search"]::after' in styles  # lens aligned with the icons
+    assert html.count('rel="preload"') == 1  # one font file
     # No glow. Translucency only on the floating bottom bar,
     # with a solid fallback when the reader asks for less transparency.
     assert "radial-gradient" not in styles
@@ -187,14 +195,18 @@ def test_territorio_is_a_main_tab_with_the_map():
     order = [nav.index(f'data-section="{name}"') for name in ("home", "politics", "territory", "history", "search")]
     assert order == sorted(order)
     view = html.split('id="territory-view"')[1].split('id="compare-view"')[0]
-    for marker in ('id="tmap-canvas"', 'role="combobox"', 'id="tmap-results"', 'id="tmap-back"', 'id="tmap-zone"', 'id="tmap-sheet"', "ISTAT", "OpenStreetMap"):
+    # ISTAT (CC BY 4.0) is credited in the site footer; OpenStreetMap stays on the map.
+    assert "Confini amministrativi: <a href=\"https://www.istat.it/\"" in html.split('class="footer-legal"')[1]
+    for marker in ('id="tmap-canvas"', 'role="combobox"', 'id="tmap-results"', 'id="tmap-back"', 'id="tmap-zone"', 'id="tmap-sheet"', 'id="tmap-grip"', "OpenStreetMap"):
         assert marker in view
     # Politica no longer carries the territory block; lists and schede belong to Territorio.
     politics = html.split('id="politics-view"')[1].split('id="territory-view"')[0]
     assert 'id="territories-title"' not in politics and "?view=regions" not in politics
     assert 'territory: "territory", provinces: "territory", regions: "territory", municipalities: "territory"' in script
     assert 'params.get("municipality") || params.get("municipio")) return "territory";' in script
-    assert 'import("./territory-map.js")' in script and "export function renderTownFilter(towns)" in script
+    assert 'import("./territory-map.js")' in script
+    # Regions and provinces only: no comuni list in the map sheet.
+    assert "renderTownFilter" not in script and "listMunicipalitiesInProvince" not in (APP / "territory-map.js").read_text(encoding="utf-8")
 
 
 def test_territory_schede_go_back_to_the_map():
@@ -291,14 +303,15 @@ def test_territory_map_is_accessible_light_and_self_hosted():
     assert 'history.pushState({ territory: true }, "", territoryHref(state))' in module and 'window.addEventListener("popstate"' in module
     # Faces and pins are buttons; Escape goes up a level; keyboard activation moves focus.
     assert 'document.createElement("button")' in module and 'event.key === "Escape"' in module and "event.detail === 0" in module
-    assert 'aria-activedescendant' in module and "Elenco ${" in module
+    assert 'aria-activedescendant' in module and 'class="tmap-list" aria-label="${prov ? `Le ${listed.length} province` : "Le 20 regioni"}"' in module
     # MapLibre is self-hosted (script-src 'self'); shapes appear even without basemap tiles.
     assert './vendor/maplibre/maplibre-gl-csp.js' in module and 'map.once("style.load"' in module
     assert (APP / "vendor" / "maplibre" / "maplibre-gl-csp-worker.js").exists()
     for name in ("regioni", "province", "regioni-centri", "province-centri"):
         assert (APP / "geo" / f"{name}.geojson").exists()
     assert "prefers-reduced-motion: reduce" in css and ".tmap-sheet-body.is-in > *, .tmap-results { animation: none; }" in css
-    assert "if (q.length < 2) return;" in module
+    # Search is local only (regions and provinces): instant, no network round trip.
+    assert "items = matchPlaces(index, input.value);" in module and "api.search(" not in module
 
 
 def test_redazione_corrections_reach_the_politica_page():
@@ -332,7 +345,9 @@ def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_ima
     # Public: photo or coat of arms, the person who governs, credits, filterable comuni.
     assert "export function renderTerritoryHero(t" in script and "export function renderTerritoryHolder(holder" in script
     assert 't-hero-badge' in script and 't-hero-credit' in script and "images.photo" in script
-    assert "export function renderTownDirectory(towns" in script and "bindTownDirectory(byId(\"province-detail\"))" in script
+    assert "export function renderTownDirectory(towns" in script and "bindTownDirectory(byId(\"province-detail\"))" not in script
+    # Territory cover = politician cover: round glass close and share, identity over the shade.
+    assert 'class="t-hero profile-cover' in script and 'data-back aria-label="Chiudi la scheda"' in script
     assert ".t-hero { " in css and "aspect-ratio: 4 / 5" in css
     # Console: «Territorio» in the menu, a simple dashboard, coat of arms and photo per scheda.
     assert '<span class="nav-text">Territorio</span>' in html
@@ -368,8 +383,8 @@ def test_standout_public_surfaces_keep_gaps_visible_and_ask_threaded():
     redazione = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
     assert "#/notizie/proposta" in redazione and "showNewsPitch" in redazione
     assert "Scheda incompleta" in script and "Titolare non ancora collegato" in script
-    assert "Cerca un comune, una provincia o una regione" in html
-    assert 'api.search({ q, type: "municipality", limit: 12' in map_script
+    assert "Cerca una regione o una provincia" in html
+    assert 'type: "municipality"' not in map_script
     assert "Leggi di questa legislatura" in script
     assert "thread.length < 3" in script and "pledge_ids: pin" in script
     assert ".ask-turn + .ask-turn" in css

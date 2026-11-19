@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#173b65"/>
-  <text x="32" y="41" fill="white" font-family="Georgia, serif" font-size="25" font-weight="700" text-anchor="middle">VP</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#032442"/><g transform="translate(10.6 10.4) scale(.66)"><path d="M14 9.5 58.5 8.6 57.6 57.4 9.8 56.6Z" fill="#FFBD59"/><path d="M5.6 9.4 52.4 5.4 55.2 51.8 7.2 55.4Z" fill="#fff"/><path d="M15.2 16.2c-.3-1 .4-1.9 1.4-1.9l7.6-.3c.9 0 1.6.5 1.8 1.4l4.6 19.3 4.3-19.8c.2-.9 1-1.5 1.9-1.5l6.7-.2c1.1 0 1.8 1 1.5 2l-8.4 29.3c-.3.9-1 1.5-2 1.5l-8 .2c-.9 0-1.7-.6-2-1.4Z" fill="#032442"/></g></svg>

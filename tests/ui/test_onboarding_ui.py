@@ -19,7 +19,7 @@ def test_welcome_and_registration_flow() -> None:
     assert 'const EDIT_STEPS = ["name", "zone", "politicians", "parties", "summary"]' in onboarding
     assert 'const REGISTER_STEPS = ["name", "zone", "politicians", "parties", "email", "password"]' in onboarding
     assert "collectAccount" in onboarding and "onCreateAccount" in onboarding
-    assert "Qual è la tua email?" in onboarding and "Scegli una password" in onboarding
+    assert "Qual è la tua <span class=\"cut\">email</span>?" in onboarding and "Scegli una <span class=\"cut\">password</span>" in onboarding
     assert "api.listPoliticians({ offset, limit: 100 })" in onboarding and "api.listParties(" in onboarding
     assert "api.listRegions()" in onboarding and "api.listProvinces(" in onboarding
     assert "Array.isArray(state.people) && !state.people.length" in onboarding
@@ -30,7 +30,7 @@ def test_welcome_and_registration_flow() -> None:
     assert 'class="account-brand"' in onboarding and 'class="account-panel"' in onboarding
     assert 'id="account-title" class="account-title"' in onboarding
     assert "place-content:start" not in onboarding
-    assert 'class="ob-title">Come ti chiami?' in onboarding
+    assert 'class="ob-title">Come ti <span class="cut">chiami</span>?' in onboarding
     assert "Come ti chiamiamo?" not in onboarding
     assert 'class="ob-faces-slot"' in onboarding and "function nameFaces" in onboarding
     # Photos come only from /portraits (stored or approved by the redazione).

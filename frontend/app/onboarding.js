@@ -36,7 +36,7 @@ export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
         <path fill="currentColor" d="M14.4 45.6c2.6.4 4 2.6 3.6 5-.4 2.6-2.6 3.6-2.2 6 .4 2 2.6 2.6 2 4.6-.6 2-3.2 1.4-4.8 2.4-1.6 1-2 3.6-4 3.6-2.2 0-3-3-2-4.6 1-1.6 3.6-1.6 4-3.6.4-2-2-2.6-1.6-4.6.4-2 2.6-3 5-8.8z"/>
       </svg>
       <div class="welcome-center">
-        <img class="welcome-logo" src="./favicon.svg" alt="" width="96" height="96" />
+        <img class="welcome-logo" src="./logo-mark.svg" alt="" width="96" height="96" />
         <h1 id="welcome-title" class="welcome-name">VeraPolitica</h1>
         <p class="welcome-line">La politica italiana, con le fonti.</p>
       </div>
@@ -57,7 +57,7 @@ export function renderAccountForm(root, { mode = "register", error = "", onSubmi
   root.innerHTML = `
     <div class="gate account-gate" role="main" aria-labelledby="account-title">
       <div class="account-brand">
-        <img class="welcome-logo" src="./favicon.svg" alt="" width="72" height="72" />
+        <img class="welcome-logo" src="./logo-mark.svg" alt="" width="72" height="72" />
         <p class="welcome-name">VeraPolitica</p>
         <p class="welcome-line">La politica italiana, con le fonti.</p>
       </div>
@@ -174,37 +174,37 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     name: () => `
       <div class="ob-faces-slot">${nameFaces()}</div>
       <p class="ob-kicker">Benvenuto</p>
-      <h1 id="ob-title" class="ob-title">Come ti chiami?</h1>
+      <h1 id="ob-title" class="ob-title">Come ti <span class="cut">chiami</span>?</h1>
       <label class="ob-label" for="ob-name">Il tuo nome</label>
       <input id="ob-name" class="ob-input" name="name" autocomplete="given-name" maxlength="40" value="${escape(state.name)}" placeholder="es. Anna" />
       <p class="ob-note">Il nome compare nel tuo profilo. Lo modifichi o cancelli l'account dal Profilo.</p>`,
     zone: () => `
       <p class="ob-kicker">Di dove sei</p>
-      <h1 id="ob-title" class="ob-title">Dove sei?</h1>
+      <h1 id="ob-title" class="ob-title"><span class="cut">Dove</span> sei?</h1>
       <p class="ob-sub">Regione e provincia: le notizie del tuo territorio entrano nel Per te.</p>
       <h2 class="ob-label">Regione</h2>
       <div class="ob-chips is-compact" role="group" aria-label="Regione">${state.regions === null ? `<p class="ob-sub">Caricamento…</p>` : regionChips()}</div>
       <div class="ob-provinces">${provinceBlock()}</div>`,
     politicians: () => `
       <p class="ob-kicker">Chi segui</p>
-      <h1 id="ob-title" class="ob-title">Chi vuoi seguire?</h1>
+      <h1 id="ob-title" class="ob-title">Chi vuoi <span class="cut">seguire</span>?</h1>
       <p class="ob-sub">Scegli almeno un politico. Le notizie che li riguardano arrivano nel tuo Per te.</p>
       <div class="ob-search">${SEARCH}<label class="visually-hidden" for="ob-q">Cerca un politico</label><input id="ob-q" type="search" placeholder="Cerca" value="${escape(state.query)}" autocomplete="off" /></div>
       <div class="ob-people" role="group" aria-label="Politici">${state.people === null ? `<p class="ob-sub">Caricamento…</p>` : peopleGrid()}</div>`,
     parties: () => `
       <p class="ob-kicker">Chi segui</p>
-      <h1 id="ob-title" class="ob-title">Quali partiti ti interessano?</h1>
+      <h1 id="ob-title" class="ob-title">Quali <span class="cut">partiti</span> ti interessano?</h1>
       <p class="ob-sub">Facoltativo. Vedrai le notizie che li coinvolgono, di qualunque area.</p>
       <div class="ob-chips" role="group" aria-label="Partiti">${state.partyList === null ? `<p class="ob-sub">Caricamento…</p>` : partyChips()}</div>`,
     email: () => `
       <p class="ob-kicker">Il tuo account</p>
-      <h1 id="ob-title" class="ob-title">Qual è la tua email?</h1>
+      <h1 id="ob-title" class="ob-title">Qual è la tua <span class="cut">email</span>?</h1>
       <label class="visually-hidden" for="ob-email">Email</label>
       <input id="ob-email" class="ob-input" name="email" type="email" autocomplete="username" maxlength="254" value="${escape(state.email)}" placeholder="la tua migliore email" />
       <p class="ob-note">Serve per accedere da un altro telefono. Non la mostriamo nel profilo pubblico.</p>`,
     password: () => `
       <p class="ob-kicker">Il tuo account</p>
-      <h1 id="ob-title" class="ob-title">Scegli una password</h1>
+      <h1 id="ob-title" class="ob-title">Scegli una <span class="cut">password</span></h1>
       <label class="visually-hidden" for="ob-password">Password</label>
       <input id="ob-password" class="ob-input" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" value="${escape(state.password)}" />
       <p class="ob-note">Almeno 10 caratteri.</p>
@@ -272,7 +272,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
     const parties = [...state.parties.values()];
     return `
       <p class="ob-kicker">La tua scheda</p>
-      <h1 id="ob-title" class="ob-title">${escape(state.name.trim())}, ecco cosa segui.</h1>
+      <h1 id="ob-title" class="ob-title"><span class="cut">${escape(state.name.trim())}</span>, ecco cosa segui.</h1>
       <div class="ob-wrap">
         <section class="ob-stat" style="--i:0">
           <p class="ob-stat-num">${people.length}</p>
