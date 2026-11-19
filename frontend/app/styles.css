@@ -2358,3 +2358,8 @@ button.tmap-person { width: 100%; border: 0; font: inherit; text-align: left; cu
 .tmap-sigla.is-city::after { border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px var(--c), 0 2px 6px rgba(0, 0, 0, .3); }
 /* The tab bar floats over text: a denser tint keeps labels readable over any content. */
 .tabbar, .tabbar-search { background: var(--glass-sheen), rgba(4, 38, 70, .8); }
+/* «Capoluogo di regione»: a neutral glass chip on the cover. */
+.t-chip.is-plain { background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .25); }
+.t-chip.is-plain::before { display: none; }
+/* Desktop: the territory cover is a narrow column; keep the identity close to the edge. */
+@media (min-width: 768px) { .t-hero.profile-cover .cover-identity { padding: var(--space-5) var(--space-5) var(--space-6); } }
