@@ -13,9 +13,9 @@
   --muted: #526570;
   --faint: #6B7C84;
   --accent: #003C71;
-  --accent-strong: #0F2747;
+  --accent-strong: #192F59;
   --accent-soft: #DCEBE5;
-  --accent-line: #85B09A;
+  --accent-line: #FDCB4A;
   --ok: #1F6B45;
   --ok-soft: #E3F1E9;
   --warn: #7A4B00;
@@ -41,14 +41,14 @@
   --teal-dark: var(--accent-strong);
   --teal-soft: var(--accent-soft);
   --navy: var(--ink);
-  --navy-dark: #0F2747;
+  --navy-dark: #192F59;
   --gold: var(--warn);
   --gold-soft: var(--warn-soft);
   --card: var(--surface);
   --paper: var(--bg);
 }
 
-@font-face { font-family: "Inter"; font-weight: 400 700; font-display: swap; src: url("/app/fonts/inter-latin-var.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 100 900; font-display: swap; src: url("/app/fonts/inter-latin-var.woff2") format("woff2"); }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -66,7 +66,7 @@ body {
     radial-gradient(circle at 0% 40%, rgba(255, 107, 26, 0.06), transparent 28rem),
     var(--bg);
   background-attachment: fixed;
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -368,9 +368,9 @@ footer {
 
 /* Cambridge overrides: navy header bar, serif headings, white text on primary buttons. */
 body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); background: var(--bg); }
-h1, h2, h3 { font-family: "Inter", system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; color: #0F2747; }
-.topbar { background: #0F2747; border-radius: 0; color: #fff; }
+h1, h2, h3 { font-family: "Inter", system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; color: #192F59; }
+.topbar { background: #192F59; border-radius: 0; color: #fff; }
 .topbar a, .topbar strong { color: #fff; }
 .topbar small, .demo-local-nav a { color: #D5DDE3; }
 .button-primary { background: #003C71; color: #fff; border-color: #003C71; }
-.button-primary:hover { background: #0F2747; color: #fff; }
+.button-primary:hover { background: #192F59; color: #fff; }

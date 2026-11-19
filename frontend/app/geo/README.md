@@ -1,11 +1,15 @@
 # Confini per la mappa del Territorio
 
 - `regioni.geojson`, `province.geojson`: confini amministrativi semplificati (mapshaper, 4% e 6%).
-- `regioni-centri.geojson`, `province-centri.geojson`: punti interni per i volti e le sigle.
+- `regioni-centri.geojson`, `province-centri.geojson`: punti interni per i volti e i pallini delle province.
+- `europa.geojson`: mare e stati confinanti (Natural Earth 1:50m, pubblico dominio), ritagliati su
+  lon −16…42, lat 12…62 (come maxBounds della mappa) e semplificati; Italia esclusa. Disegnati sotto le tessere, così il primo
+  disegno mostra già mare e vicini. Si rigenera da `world-atlas/countries-50m.json` (npm) con
+  topojson-client + shapely: ritaglio sul riquadro, mare = riquadro meno le terre, semplificazione 0.02°.
 
 Fonte: ISTAT, tramite [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy).
 Licenza: [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) — l'attribuzione a ISTAT
-compare sotto la mappa e va mantenuta.
+compare nel piè di pagina del sito e va mantenuta.
 
 Per rigenerarli:
 

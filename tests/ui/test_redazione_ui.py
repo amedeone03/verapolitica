@@ -28,7 +28,7 @@ def test_console_is_self_contained_and_in_cambridge_colours(tmp_path):
 
     assert '<html lang="it">' in page and 'name="robots" content="noindex, nofollow"' in page
     assert not re.search(r'<script[^>]+src="https?://', page)
-    assert "--color-primary: #0F2747" in styles and "--color-accent: #85B09A" in styles
+    assert "--color-background: #032442" in styles and "--color-accent: #FFBD59" in styles
     # The writing models drive the console.
     for text in ("Cosa scrivere", "Da evitare", "Come si scrive", "Pubblica un admin",
                  "Come si assegna lo stato a una promessa", "Registro",

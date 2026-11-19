@@ -1,4 +1,5 @@
 import { applyReactions, bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { citiesInProvince, citiesInRegion } from "./key-cities.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
 export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
@@ -730,7 +731,7 @@ function renderGroupMembership(membership) {
 
 export function renderParliamentaryGroups(memberships = []) {
   if (!memberships.length) {
-    return `<p class="empty-note">Nessuna appartenenza a un gruppo parlamentare è al momento disponibile dalle fonti ufficiali supportate.</p>`;
+    return `<p class="empty-note">Nessun gruppo parlamentare nelle fonti ufficiali.</p>`;
   }
   const current = memberships.filter((membership) => !membership.end_date);
   const historical = memberships.filter((membership) => membership.end_date);
@@ -760,7 +761,7 @@ function renderPartyAffiliation(affiliation) {
 
 export function renderPoliticalParties(affiliations = []) {
   if (!affiliations.length) {
-    return `<p class="empty-note">Nessuna affiliazione di partito esplicita è al momento disponibile dalle fonti ufficiali supportate.</p>`;
+    return `<p class="empty-note">Nessuna affiliazione di partito nelle fonti ufficiali.</p>`;
   }
   const current = affiliations.filter((affiliation) => !affiliation.end_date);
   const historical = affiliations.filter((affiliation) => affiliation.end_date);
@@ -927,7 +928,7 @@ export function renderProposalDetail(proposal) {
 }
 
 export function renderPoliticianProposals(proposals = []) {
-  if (!proposals.length) return `<p class="empty-note">Nessuna proposta o promessa esplicita pubblicata è collegata a questa persona.</p>`;
+  if (!proposals.length) return `<p class="empty-note">Nessuna promessa o proposta collegata.</p>`;
   return `<ul class="linked-proposals is-list">${proposals.map((proposal) => `<li><a href="./?proposal=${encodeURIComponent(proposal.id)}">${escapeHtml(proposal.title)}</a><span>${escapeHtml(proposalTypeLabel(proposal.proposal_type))} · ${escapeHtml(actorRoleLabel(proposal.role))} · ${escapeHtml(proposalStatusLabel(proposal.current_status))}</span></li>`).join("")}</ul>`;
 }
 
@@ -1140,30 +1141,52 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
   const rapida = t.blocks.find((block) => block.key === "rapida");
   const coalitionKey = rapida?.data?.coalizione;
   const coalition = territoryFieldValue(rapida, "coalizione");
-  const parts = [];
   const capital = territoryFieldValue(rapida, "capoluogo");
-  if (capital) parts.push(`Capoluogo ${capital}`);
-  if (base.kind === "municipality" && base.province) parts.push(`${base.province.name} (${base.province.abbreviation})`);
-  if (base.province_count) parts.push(`${base.province_count} province`);
-  if (base.municipality_count) parts.push(`${base.municipality_count.toLocaleString("it-IT")} ${base.municipality_count === 1 ? "comune" : "comuni"}`);
   const where = base.kind !== "region" && base.region ? base.region.name : "";
   const credit = (item, label) => item ? `<p class="t-hero-credit">${label}: ${escapeHtml(item.credit)}${item.license ? ` · ${escapeHtml(item.license)}` : ""}${safeExternalUrl(item.source_url) ? ` · <a href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">fonte</a>` : ""}</p>` : "";
-  return `<header class="t-hero${photo ? " has-photo" : ""}">
-      <div class="t-hero-media">
+  // Same anatomy as the politician's cover (detail sheet): full-bleed media with
+  // round glass buttons (close, share), the identity over the shade, then numbers and the holder.
+  const mapHref = base.kind === "province" ? `./?view=territory&provincia=${encodeURIComponent(base.key || "")}` : "./?view=territory";
+  const crest = `<span class="t-hero-badge${logo ? "" : " is-empty"}">${logo ? `<img src="${escapeHtml(logo)}" alt="Stemma: ${escapeHtml(base.name)}" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(territoryMonogram(base))}</span>`}</span>`;
+  const stats = [
+    base.province_count ? [base.province_count, base.province_count === 1 ? "Provincia" : "Province"] : null,
+    base.municipality_count ? [base.municipality_count, "Comuni"] : null,
+    capital ? [capital, "Capoluogo"] : null,
+  ].filter(Boolean);
+  const statRow = stats.length >= 2
+    ? `<div class="stat-row t-stats">${stats.map(([value, label]) => `<div class="stat-tile"><strong>${escapeHtml(typeof value === "number" ? value.toLocaleString("it-IT") : value)}</strong><span>${escapeHtml(label)}</span></div>`).join("")}</div>`
+    : "";
+  return `<header class="t-hero profile-cover${photo ? " has-photo" : ""}">
+      <div class="cover-media t-hero-media">
         ${photo
           ? `<img class="t-hero-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(images.photo.credit ? `${base.name}. Foto: ${images.photo.credit}` : base.name)}" decoding="async" fetchpriority="high" />`
           : `<span class="t-hero-pattern" aria-hidden="true"></span>`}
-        <span class="t-hero-badge${logo ? "" : " is-empty"}">${logo ? `<img src="${escapeHtml(logo)}" alt="Stemma: ${escapeHtml(base.name)}" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(territoryMonogram(base))}</span>`}</span>
-      </div>
-      <div class="t-hero-intro">
-        <p class="t-hero-eyebrow">${escapeHtml(eyebrow || KIND_EYEBROW[base.kind] || "")}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
-        <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
-        ${parts.length ? `<p class="t-hero-sub">${parts.map(escapeHtml).join('<span aria-hidden="true"> · </span>')}</p>` : ""}
-        ${coalition ? `<p class="t-hero-chips"><span class="t-chip" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#526570"}">${escapeHtml(coalition)}</span></p>` : ""}
-        ${renderTerritoryHolder(base.holder, { portrait })}
+        <div class="cover-shade" aria-hidden="true"></div>
+        <a class="cover-button cover-back" href="${mapHref}" data-back aria-label="Chiudi la scheda">${icon("x", { size: 20 })}</a>
+        <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(base.title)} — VeraPolitica" aria-label="Condividi la scheda">${icon("share", { size: 20 })}</button>
+        <div class="cover-identity">
+          <div class="cover-text">
+            ${crest}
+            <p class="t-hero-eyebrow">${escapeHtml(eyebrow || KIND_EYEBROW[base.kind] || "")}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
+            <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(base.title)}</h1>
+            ${coalition ? `<p class="t-hero-chips"><span class="t-chip" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#7F93A8"}">${escapeHtml(coalition)}</span></p>` : ""}
+          </div>
+        </div>
       </div>
       ${photo || logo ? `<div class="t-hero-credits">${credit(images.photo, "Foto")}${credit(images.logo, "Stemma")}</div>` : ""}
-    </header>`;
+      <p class="share-status" role="status" aria-live="polite"></p>
+    </header>
+    ${statRow}
+    <div class="t-holder-slot">${renderTerritoryHolder(base.holder, { portrait })}</div>`;
+}
+// The cities VeraPolitica follows, as cards that open the city on the Territorio map.
+export function renderKeyCities(list) {
+  if (!list.length) return "";
+  return `<section class="territory-block" aria-labelledby="t-citta-title"><h2 id="t-citta-title">Città <span class="t-count-pill">${list.length}</span></h2>
+    <ul class="t-cards">${list.map((city) => `<li><a href="./?view=territory&amp;citta=${encodeURIComponent(city.istat)}">
+      <span class="t-card-logo is-empty"><span aria-hidden="true">${escapeHtml(city.name.slice(0, 2).toUpperCase())}</span></span>
+      <span class="t-card-text"><strong>${escapeHtml(city.name)}</strong><small>${city.capital ? "Capoluogo di regione" : `Provincia di ${escapeHtml(city.sigla)}`}</small></span>
+      <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>`;
 }
 const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune", municipio: "Municipio di Roma" };
 
@@ -1202,7 +1225,7 @@ function renderRomaMunicipiHub(municipi, { municipalityId = null } = {}) {
   if (!municipi?.length) return "";
   return `<section class="territory-block t-roma-hub" aria-labelledby="t-municipi-title">
     <h2 id="t-municipi-title">Municipi di Roma</h2>
-    <p class="empty-note">Ogni municipio ha la sua giunta e il suo consiglio. Le schede servono in vista delle prossime elezioni: qui sotto i quindici municipi.</p>
+    <p class="empty-note">Ogni municipio ha giunta e consiglio. Ecco i quindici municipi.</p>
     ${municipalityId ? `<p><a class="profile-link" href="./?municipality=${encodeURIComponent(municipalityId)}">Torna al Comune di Roma ${icon("arrowRight")}</a></p>` : ""}
     <ul class="t-dir t-municipi-dir">${municipi.map((item) => `<li><a href="./?municipio=${encodeURIComponent(item.key)}"><strong>${escapeHtml(item.name)}</strong><small>Roma</small></a></li>`).join("")}</ul>
   </section>`;
@@ -1235,9 +1258,9 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     : "";
   const guideNudge = `<p class="territory-guide-link"><a class="profile-link" href="./?view=territory-guide">Come funzionano regioni e città ${icon("arrowRight")}</a></p>`;
   const askQuestion = `Cosa conta oggi a ${base.name}?`;
+  // One action, like the politician's sheet; sharing (WhatsApp included) lives on the cover.
   const askCta = `<div class="profile-cta-bar territory-ask">
-      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}">${icon("ask", { size: 18 })}Chiedi a VeraPolitica su ${escapeHtml(base.name)}</a>
-      <a class="button button-secondary" href="${escapeHtml(whatsAppShareUrl(`${base.title} — VeraPolitica`, typeof window !== "undefined" ? window.location.href.split("#")[0] : ""))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}" aria-label="Chiedi a VeraPolitica su ${escapeHtml(base.name)}">${icon("ask", { size: 18 })}<span class="cta-label">Chiedi a VeraPolitica</span></a>
     </div>`;
   const scoredSlot = base.holder?.politician_id
     ? `<section class="territory-block" id="t-promesse-tracciate" aria-labelledby="t-promesse-tracciate-title">
@@ -1846,6 +1869,58 @@ function bindProfileSectionNav(root) {
   }
 }
 
+// Sheet-like navigation (iOS): opening a scheda rises from the bottom, closing it
+// sinks; switching tabs swaps instantly (tabs never slide). Cross-document View Transitions.
+const SHEET_KEYS = ["politician", "proposal", "political_party", "parliamentary_group", "province", "region", "municipality", "municipio", "timeline", "legislature", "history_region", "history_province"];
+const isSheetUrl = (url) => { try { const p = new URL(url).searchParams; return SHEET_KEYS.some((key) => p.get(key)); } catch { return false; } };
+// The site sends no referrer, so the previous in-app page is kept per tab in sessionStorage.
+let previousInAppUrl = "";
+if (typeof window !== "undefined") {
+  try {
+    previousInAppUrl = sessionStorage.getItem("vp:last") || "";
+    sessionStorage.setItem("vp:last", window.location.href);
+  } catch { /* storage off: «Chiudi» falls back to its href */ }
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("pagereveal", (event) => {
+    const transition = event.viewTransition;
+    if (!transition) return;
+    const activation = window.navigation?.activation;
+    const fromUrl = activation?.from?.url || previousInAppUrl;
+    const navType = activation?.navigationType || performance.getEntriesByType?.("navigation")?.[0]?.type;
+    const from = isSheetUrl(fromUrl);
+    const to = isSheetUrl(activation?.entry?.url || window.location.href);
+    const back = (navType === "traverse" || navType === "back_forward") && from && !to;
+    transition.types?.add(to && !back ? "sheet-open" : from ? "sheet-close" : "tab");
+  });
+}
+
+// Covers (politician and territory): «Chiudi» goes back when we came from inside the
+// app (like closing a sheet), else to its fallback href; «Condividi» uses the share sheet.
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    const back = event.target instanceof Element ? event.target.closest("a[data-back]") : null;
+    if (!back) return;
+    if (previousInAppUrl && previousInAppUrl !== window.location.href && window.history.length > 1) { event.preventDefault(); window.history.back(); }
+  });
+  document.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest(".t-hero .cover-share") : null;
+    if (button) shareFrom(button, button.closest(".t-hero")?.querySelector(".share-status"));
+  });
+}
+
+async function shareFrom(button, status) {
+  const url = window.location.href.split("#")[0];
+  const title = button.dataset.shareTitle || document.title;
+  try {
+    if (navigator.share) { await navigator.share({ title, text: title, url }); return; }
+    await navigator.clipboard.writeText(`${title}\n${url}`);
+    if (status) status.innerHTML = `Link copiato. <a href="${escapeHtml(whatsAppShareUrl(title, url))}" target="_blank" rel="noopener noreferrer">Apri WhatsApp</a>`;
+  } catch {
+    if (status) status.innerHTML = `Copia il link oppure <a href="${escapeHtml(whatsAppShareUrl(title, url))}" target="_blank" rel="noopener noreferrer">condividi su WhatsApp</a>.`;
+  }
+}
+
 function bindProfileShare(root) {
   const button = root.querySelector(".cover-share");
   const status = root.querySelector(".share-status");
@@ -2008,7 +2083,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
       <div class="cover-media">
         ${portrait(person, { size: "hero" })}
         <div class="cover-shade" aria-hidden="true"></div>
-        <a class="cover-button cover-back" href="./?view=politicians" aria-label="Torna ai politici">${icon("arrowLeft", { size: 20 })}</a>
+        <a class="cover-button cover-back" href="./?view=politicians" data-back aria-label="Chiudi la scheda">${icon("x", { size: 20 })}</a>
         <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(name)} — VeraPolitica" aria-label="Condividi il profilo">${icon("share", { size: 20 })}</button>
         <div class="cover-identity">
           <div class="cover-text">
@@ -2498,14 +2573,14 @@ async function showRegionDetail(api, regionId) {
     if (scheda) {
       const provinces = scheda.base.provinces || [];
       const logos = new Map((await api.listProvinces(region.id).catch(() => ({ items: [] }))).items.map((item) => [item.abbreviation, safeImageUrl(item.logo_url)]));
-      const extra = `${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province <span class="t-count-pill">${provinces.length}</span></h2>
+      const regionIstat = String(region.istat_code || "").padStart(2, "0");
+      const extra = `${renderKeyCities(citiesInRegion(regionIstat))}${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province <span class="t-count-pill">${provinces.length}</span></h2>
           <ul class="t-cards">${provinces.map((item) => `<li><a href="./?province=${encodeURIComponent(item.abbreviation)}">
             <span class="t-card-logo${logos.get(item.abbreviation) ? "" : " is-empty"}">${logos.get(item.abbreviation) ? `<img src="${escapeHtml(logos.get(item.abbreviation))}" alt="" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(item.abbreviation)}</span>`}</span>
             <span class="t-card-text"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></span>
             <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>` : ""}
-        ${renderTownDirectory(municipalities, { withProvince: true, footer: `<p><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>` })}`;
+        <p class="t-history-link"><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>`;
       byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Regione", titleId: "region-detail-title", extra });
-      bindTownDirectory(byId("region-detail"));
       await attachTerritoryScorecard(api, byId("region-detail"), scheda);
       renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true });
     } else {
@@ -3525,6 +3600,30 @@ function markReaderMode() {
     link.href = "./?view=accedi";
     link.querySelector(".header-profile-label").textContent = "Accedi";
   }
+  // Signed in: the profile button shows the reader's initial, on every page.
+  const name = member ? loadReaderProfile().member?.name?.trim() : "";
+  const avatar = link?.querySelector(".header-avatar");
+  if (avatar && name) {
+    avatar.textContent = name.charAt(0).toUpperCase();
+    avatar.hidden = false;
+    link.classList.add("has-avatar");
+    link.setAttribute("aria-label", `Profilo di ${name}`);
+  }
+}
+
+// Mobile: the feed switcher moves into the header, next to the V and the profile button.
+function placeFeedSwitcher(segments) {
+  const slot = byId("header-slot");
+  const bar = document.querySelector("#home-view .feed-bar");
+  if (!slot || !bar || !segments) return;
+  const narrow = globalThis.matchMedia?.("(max-width: 899px)");
+  const place = () => {
+    const inHeader = Boolean(narrow?.matches);
+    (inHeader ? slot : bar).append(segments);
+    document.body.classList.toggle("has-header-feed", inHeader);
+  };
+  place();
+  narrow?.addEventListener?.("change", place);
 }
 
 function openGate(render) {
@@ -3660,9 +3759,10 @@ function markSection(section) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  const nav = document.querySelector(".bottom-nav");
+  // The lens (search) sits outside the tab capsule: the sliding lens marks only the four tabs.
+  const nav = document.querySelector(".bottom-nav .tabbar");
   if (!nav) return;
-  const order = ["home", "politics", "territory", "history", "search"];
+  const order = ["home", "politics", "territory", "history"];
   const index = order.indexOf(section);
   if (index >= 0) {
     nav.style.setProperty("--nav-a", String(index));
@@ -3684,7 +3784,7 @@ const TERRITORY_GUIDE_SECTIONS = [
 
 export function renderTerritoryGuide() {
   return TERRITORY_GUIDE_SECTIONS.map(([title, text]) => `<section class="news-block"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`).join("")
-    + `<p class="empty-note">Testo di partenza, da aggiornare con fonti quando la redazione completa la guida (Jacopo). Outline in docs/come-funzionano-regioni-citta.md.</p>`;
+    + `<p class="empty-note">Guida in aggiornamento: le fonti arrivano con la prossima revisione.</p>`;
 }
 
 async function showTerritoryGuide() {
@@ -3897,6 +3997,7 @@ async function showHome(api) {
   let profile = loadReaderProfile();
   const zone = profile.zone;
   const segments = byId("feed-choice");
+  placeFeedSwitcher(segments);
   const choice = { value: "all" };
   let forYouFallback = false;
   const list = byId("feed-list");
@@ -3937,10 +4038,16 @@ async function showHome(api) {
     if (choice.value === "province") return zone?.province ? { province: zone.province } : null;
     return {};
   };
+  // Empty feed: icon, one title, one line, one accent action. The zone
+  // line above is cleared so the same message is never said twice.
+  const ARROW = `<svg class="icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
   const showEmpty = (title, detail, action = "") => {
     list.hidden = true;
     more.hidden = true;
+    byId("home-zone").textContent = "";
     showState(status, title, detail);
+    status.classList.add("feed-empty");
+    status.insertAdjacentHTML("afterbegin", `<span class="feed-empty-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6"/></svg></span>`);
     if (action) status.querySelector("div")?.insertAdjacentHTML("beforeend", action);
   };
   const load = async (append, { animate = false } = {}) => {
@@ -3948,7 +4055,7 @@ async function showHome(api) {
     const territory = zoneFor();
     if (!territory) {
       const what = choice.value === "region" ? "la tua regione" : "la tua provincia";
-      return showEmpty(`Scegli ${what}.`, "La imposti una volta nel profilo; resta salvata su questo dispositivo e nel tuo account.", `<a class="button feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta la zona</a>`);
+      return showEmpty(`Scegli ${what}.`, "La imposti una volta e resta salvata.", `<a class="button button-primary feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta la zona ${ARROW}</a>`);
     }
     more.disabled = true;
     if (!append) list.setAttribute("aria-busy", "true");
@@ -3972,9 +4079,9 @@ async function showHome(api) {
         showEmpty(
           forYou && !followsOf(profile) ? "Il feed Per te è vuoto." : "Nessuna notizia qui, per ora.",
           forYou && !followsOf(profile)
-            ? "Scegli zona e almeno un politico o partito: le notizie verificate compariranno qui."
-            : "Le notizie compaiono dopo la verifica di una seconda persona della redazione.",
-          forYou && !followsOf(profile) ? `<a class="button feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta Per te</a>` : "",
+            ? "Segui una zona, un politico o un partito: le notizie verificate arrivano qui."
+            : "Escono dopo la verifica di due persone della redazione.",
+          forYou && !followsOf(profile) ? `<a class="button button-primary feed-empty-action" href="${escapeHtml(perTeSetupHref())}">Imposta Per te ${ARROW}</a>` : "",
         );
       } else {
         list.hidden = false;
@@ -4272,14 +4379,15 @@ const COALITION_ORDER = [
   "indipendente_destra",
   "centrodestra",
 ];
+// Coalition colours, tuned for the dark surfaces (each ≥3:1 on #052C50).
 const COALITION_COLOR = {
-  centrosinistra: "#eb6834",
-  indipendente_sinistra: "#f08a4b",
-  autonomista: "#0f766e",
-  altro: "#1baf7a",
-  da_compilare: "#7D8E8B",
-  indipendente_destra: "#5b8fd9",
-  centrodestra: "#2a78d6",
+  centrosinistra: "#FF7A45",
+  indipendente_sinistra: "#FF9A63",
+  autonomista: "#2DD4BF",
+  altro: "#34D399",
+  da_compilare: "#7F93A8",
+  indipendente_destra: "#7CB8FF",
+  centrodestra: "#4F9BFF",
 };
 const GROUP_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
 
@@ -4552,8 +4660,8 @@ export function editedMark(edited) {
 }
 
 let GOVERNMENT_NOTE_TEXT = null;
-const GOVERNMENT_NOTE = "Più grande = ruolo istituzionale più alto: Presidente del Consiglio, vicepresidenti, ministri, ministri senza portafoglio. Non è un giudizio.";
-const FEATURED_NOTE = "Schede verificate dalla redazione, con incarico in corso. Non è un giudizio.";
+const GOVERNMENT_NOTE = "Più grande = ruolo più alto. Non è un giudizio.";
+
 
 export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {}) {
   const title = byId("government-title");
@@ -4586,7 +4694,7 @@ export function paintPoliticsFaces(cloud, { government = [], featured = [] } = {
   }
   if (featured.length) {
     if (title) { title.textContent = "Profili pubblicati"; title.classList.remove("visually-hidden"); }
-    if (note) { note.hidden = false; note.textContent = FEATURED_NOTE; }
+    if (note) note.hidden = true;
     cloud.className = "people-row";
     cloud.innerHTML = featured.map(renderPersonBubble).join("");
     return "featured";
@@ -4667,49 +4775,6 @@ async function showPolitics(api) {
   await Promise.all([people, parties, renderQuadro(api)]);
 }
 
-// «Territorio» — the comuni of a province inside the map sheet: a labelled
-// filter, a polite count, the first few shown and «Mostra tutti».
-const TOWNS_SHOWN = 12;
-
-export function renderTownFilter(towns) {
-  const rows = towns.map((town, index) => {
-    const mayor = town.current_mayor ? displayPersonName(town.current_mayor.given_name, town.current_mayor.family_name) : "";
-    return `<li data-name="${escapeHtml(town.name.toLocaleLowerCase("it"))}"${index >= TOWNS_SHOWN ? " hidden" : ""}><a href="./?municipality=${encodeURIComponent(town.id)}"><strong>${escapeHtml(town.name)}</strong><small>${mayor ? `Sindaco: ${escapeHtml(mayor)}` : "Scheda incompleta"}</small></a></li>`;
-  }).join("");
-  return `<div class="tmap-towns-head"><label for="tmap-town-q">Comuni <span>${towns.length}</span></label>
-      <input id="tmap-town-q" type="search" autocomplete="off" placeholder="Filtra per nome" aria-controls="tmap-towns" aria-describedby="tmap-town-count" /></div>
-    <p id="tmap-town-count" class="tmap-count" role="status">${towns.length > TOWNS_SHOWN ? `Primi ${TOWNS_SHOWN} di ${towns.length}.` : `${towns.length} comuni.`}</p>
-    <ul id="tmap-towns" class="tmap-towns">${rows}</ul>
-    ${towns.length > TOWNS_SHOWN ? `<button type="button" class="tmap-secondary" data-towns-all>Mostra tutti i ${towns.length} comuni</button>` : ""}`;
-}
-
-export function bindTownFilter(container) {
-  const field = container.querySelector("#tmap-town-q");
-  const list = container.querySelector("#tmap-towns");
-  const count = container.querySelector("#tmap-town-count");
-  const more = container.querySelector("[data-towns-all]");
-  if (!field || !list) return;
-  const items = [...list.children];
-  let all = false;
-  const apply = () => {
-    const q = field.value.trim().toLocaleLowerCase("it");
-    let shown = 0;
-    let matches = 0;
-    for (const item of items) {
-      const match = !q || item.dataset.name.includes(q);
-      if (match) matches += 1;
-      const visible = match && (all || q || shown < TOWNS_SHOWN);
-      if (visible) shown += 1;
-      item.hidden = !visible;
-    }
-    if (more) more.hidden = Boolean(q) || all || matches <= TOWNS_SHOWN;
-    count.textContent = q
-      ? (matches ? `${matches} ${matches === 1 ? "comune trovato" : "comuni trovati"}.` : "Nessun comune con questo nome.")
-      : (shown < matches ? `Primi ${shown} di ${matches}.` : `${matches} comuni.`);
-  };
-  field.addEventListener("input", apply);
-  more?.addEventListener("click", () => { all = true; apply(); field.focus(); });
-}
 
 async function showTerritory(api) {
   const view = byId("territory-view");
@@ -4732,7 +4797,7 @@ async function showTerritory(api) {
       portrait: resolvePortrait,
       coalitionColor: COALITION_COLOR,
       zone: loadReaderProfile().zone,
-      towns: { render: (item, list) => renderTownFilter(list), bind: bindTownFilter },
+
     });
   } catch {
     byId("tmap-sheet-body").innerHTML = `<p class="tmap-note">Il territorio non è disponibile al momento. <a href="./?view=regions">Vai all'elenco delle regioni</a>.</p>`;
@@ -4878,7 +4943,7 @@ export function renderCurrentLegislatureWalk(item) {
   if (!item) return "";
   return `<section class="detail-card legislature-walk" aria-labelledby="legislature-walk-title">
     <h2 id="legislature-walk-title">Legislatura ${escapeHtml(item.roman)} in corso</h2>
-    <p class="empty-note">Elenco ufficiale Camera e Senato. Apri la legislatura, poi una camera, poi la scheda.</p>
+    <p class="empty-note">Elenco ufficiale di Camera e Senato.</p>
     <div class="filter-pills">
       <a class="filter-pill is-active" href="./?legislature=${encodeURIComponent(item.number)}">Apri la ${escapeHtml(item.roman)}</a>
       <a class="filter-pill" href="./?legislature=${encodeURIComponent(item.number)}&amp;chamber=camera">Deputati</a>
@@ -5025,7 +5090,7 @@ async function showHistory(api) {
     if (partyList) {
       partyList.innerHTML = partyItems.length
         ? partyItems.map(renderArchiveTimelineChip).join("")
-        : `<p class="empty-note">Nessuna cronologia di partito in bozza. Jacopo le aggiunge in <code>data/fixtures/archive/timelines/</code> con kind «party».</p>`;
+        : `<p class="empty-note">Nessuna cronologia di partito, per ora.</p>`;
       if (partyItems.length) bindPartyArchiveFilter();
     }
     paintArchiveTab(tab);
@@ -5108,7 +5173,7 @@ async function showLegislature(api, number) {
     </section>
     <section class="detail-card"><h2>Proposte di legge</h2>
       <p>${countLabel(detail.published_proposals, "proposta pubblicata", "proposte pubblicate")} presentate in questo periodo.</p>
-      ${detail.enacted_laws?.length ? `<h3 class="block-subhead">Leggi di questa legislatura</h3><ul class="linked-proposals is-list">${detail.enacted_laws.map((law) => `<li><a href="./?proposal=${encodeURIComponent(law.id)}">${escapeHtml(law.title)}</a><span>${escapeHtml(proposalStatusLabel(law.status))}${law.introduced_at ? ` · ${escapeHtml(formatDate(law.introduced_at))}` : ""}</span></li>`).join("")}</ul>` : `<p class="empty-note">Nessuna legge pubblicata come promulgata in questo periodo. Il registro si riempie con le proposte verificate.</p>`}
+      ${detail.enacted_laws?.length ? `<h3 class="block-subhead">Leggi di questa legislatura</h3><ul class="linked-proposals is-list">${detail.enacted_laws.map((law) => `<li><a href="./?proposal=${encodeURIComponent(law.id)}">${escapeHtml(law.title)}</a><span>${escapeHtml(proposalStatusLabel(law.status))}${law.introduced_at ? ` · ${escapeHtml(formatDate(law.introduced_at))}` : ""}</span></li>`).join("")}</ul>` : `<p class="empty-note">Nessuna legge promulgata in questo periodo.</p>`}
       <a class="profile-link" href="./?view=proposals&amp;legislature=${item.number}">Vedi le proposte ${icon("arrowRight")}</a>
     </section>
     <section class="detail-card"><h2>Referendum</h2>${referendums}</section>
@@ -5206,19 +5271,16 @@ async function showProvinceDetail(api, code) {
   byId("province-detail-view").hidden = false;
   try {
     const portraitsReady = loadPortraits(api);
-    const [scheda, towns] = await Promise.all([
-      api.getTerritory("province", code),
-      api.listMunicipalitiesInProvince(code).catch(() => []),
-    ]);
+    // Regions and provinces only: the province scheda no longer lists its comuni.
+    const scheda = await api.getTerritory("province", code);
     const base = scheda.base;
     // Back to the map, on this province.
     byId("province-back").href = `./?view=territory&provincia=${encodeURIComponent(base.key)}`;
     await portraitsReady;
-    const extra = renderTownDirectory(towns, { footer: `<p><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>` });
+    const extra = `${renderKeyCities(citiesInProvince(base.key))}<p class="t-history-link"><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>`;
     byId("province-detail-status").hidden = true;
     byId("province-detail").hidden = false;
     byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });
-    bindTownDirectory(byId("province-detail"));
     await attachTerritoryScorecard(api, byId("province-detail"), scheda);
     renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true });
     document.title = `${base.title} — VeraPolitica`;
