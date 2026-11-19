@@ -986,7 +986,10 @@ a, button, select, summary, label { touch-action: manipulation; }
 .related-posts { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }
 
 /* Feed cards: one centred column, one card per fact. */
-#home-view .feed-heading, #feed-list, #feed-status, #feed-more, #home-zone, .feed-main { max-width: 640px; margin-inline: auto; }
+#home-view .feed-heading, #feed-list, #feed-status, #feed-more, #home-zone, .feed-main { max-width: 680px; margin-inline: auto; }
+@media (min-width: 1100px) {
+  #home-view .feed-heading, #feed-list, #feed-status, #feed-more, #home-zone, .feed-main { max-width: 720px; }
+}
 .feed-list { border-top: 0; display: grid; gap: var(--space-3); }
 .feed-card { padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
 .feed-card + .feed-card { border-top: 1px solid var(--color-border); }
@@ -1035,7 +1038,8 @@ a, button, select, summary, label { touch-action: manipulation; }
 
 /* Feed (Home): one timeline of redazione posts. */
 .feed-view { max-width: 720px; margin-inline: auto; }
-.feed-bar { position: sticky; top: 0; z-index: 10; max-width: 640px; margin: 0 auto; padding: var(--space-2) 0 var(--space-3); background: var(--brand-notte); }
+.feed-bar { position: sticky; top: 0; z-index: 10; max-width: 680px; margin: 0 auto; padding: var(--space-2) 0 var(--space-3); background: var(--brand-notte); }
+@media (min-width: 1100px) { .feed-bar { max-width: 720px; } }
 body.has-header-feed .feed-bar { display: none; }
 @media (min-width: 900px) { .feed-bar { top: 72px; } }
 .feed-choice { justify-self: center; }

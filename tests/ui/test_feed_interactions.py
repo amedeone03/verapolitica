@@ -55,6 +55,9 @@ def test_category_band_and_session_entrance():
     # Signature strip: fact → proof → sources.
     assert 'class="vp-prova"' in card and "Fatto verificato" in card
     assert ".vp-prova" in css
+    # Dark theme: title/people use surface text, not the near-black ink used on bands.
+    assert ".vp-title a { color: inherit;" in css or "color: inherit" in css.split(".vp-title a")[1][:80]
+    assert "color: var(--vp-text)" in css.split(".vp-person-text a")[1][:120]
 
 
 def test_frontend_standout_surfaces_are_wired():
