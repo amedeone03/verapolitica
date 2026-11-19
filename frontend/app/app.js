@@ -3759,9 +3759,10 @@ function markSection(section) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  const nav = document.querySelector(".bottom-nav");
+  // The lens (search) sits outside the tab capsule: the sliding lens marks only the four tabs.
+  const nav = document.querySelector(".bottom-nav .tabbar");
   if (!nav) return;
-  const order = ["home", "politics", "territory", "history", "search"];
+  const order = ["home", "politics", "territory", "history"];
   const index = order.indexOf(section);
   if (index >= 0) {
     nav.style.setProperty("--nav-a", String(index));

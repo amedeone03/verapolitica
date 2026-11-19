@@ -74,12 +74,16 @@ def test_dark_mode_tokens_fonts_and_accessibility():
     # Mobile top bar = V, feed switcher (on the Feed), profile button on every page.
     assert 'id="header-slot"' in html and "function placeFeedSwitcher" in script
     assert "body.is-map .site-header { position: fixed;" in styles  # profile stays on the map too
-    assert '.bottom-nav a[data-section="search"]::after' in styles  # lens aligned with the icons
+    # Tab bar: a capsule with Feed, Politica, Mappa, Archivio; the lens is its own circle.
+    bar = html.split('<nav class="bottom-nav"')[1].split("</nav>")[0]
+    assert bar.index('<div class="tabbar">') < bar.index('data-section="history"') < bar.index("</div>") < bar.index('class="tabbar-search"')
+    assert "<span>Mappa</span>" in bar and ".tabbar-search {" in styles
     assert html.count('rel="preload"') == 1  # one font file
     # No glow. Translucency only on the floating bottom bar,
     # with a solid fallback when the reader asks for less transparency.
     assert "radial-gradient" not in styles
-    assert styles.count(" backdrop-filter: blur") == 1 and "prefers-reduced-transparency: reduce" in styles
+    # Glass is one token (floating chrome only), with a solid fallback for reduced transparency.
+    assert styles.count("--glass-blur: blur(") == 1 and "prefers-reduced-transparency: reduce" in styles
     # Feed switcher shows its options directly; every button responds on press.
     assert 'class="feed-segments"' in html and "<select" not in html.split('id="feed-choice"')[1][:200]
     assert ".button:active" in styles

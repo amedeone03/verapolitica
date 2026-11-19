@@ -1087,35 +1087,44 @@ h3, h4 { font-weight: 800; letter-spacing: -0.02em; }
 
 /* Floating bottom bar (Apple / Ground News pattern): detached from the edges, translucent,
    content scrolls underneath. Solid when the reader asks for less transparency. */
+/* Tab bar (iOS 26): a glass capsule with the four sections, and the search lens as its own
+   glass circle after a gap. The active tab is a recessed lens with accent icon and label. */
 .bottom-nav {
-  --nav-n: 5; --nav-a: 0;
   position: fixed; z-index: 30; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%); width: min(560px, calc(100vw - 24px));
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 6px;
-  background: rgba(5, 44, 80, .82); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(3, 36, 66, .08); border-radius: 28px;
-  box-shadow: 0 8px 28px rgba(3, 36, 66, .14), 0 1px 2px rgba(3, 36, 66, .08);
+  display: flex; align-items: stretch; gap: 10px;
 }
-.bottom-nav::before {
+.tabbar {
+  --nav-n: 4; --nav-a: 0;
+  position: relative; flex: 1 1 auto; min-width: 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px;
+  border-radius: 999px;
+}
+.tabbar::before {
   content: ""; position: absolute; z-index: 0; top: 6px; bottom: 6px; left: 6px;
-  width: calc((100% - 12px - 16px) / var(--nav-n));
-  border-radius: 22px; background: var(--brand-senape); pointer-events: none;
+  width: calc((100% - 12px - 12px) / var(--nav-n));
+  border-radius: 999px; background: rgba(1, 15, 29, .55);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45), inset 0 -.5px 0 rgba(255, 255, 255, .08);
+  pointer-events: none;
   transform: translateX(calc(var(--nav-a) * (100% + 4px)));
   transition: transform 220ms cubic-bezier(0.77, 0, 0.175, 1), opacity 160ms ease;
   opacity: 0;
 }
-.bottom-nav.has-active::before { opacity: 1; }
-@media (prefers-reduced-transparency: reduce) { .bottom-nav { background: var(--color-surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
-@media (prefers-contrast: more) { .bottom-nav { background: var(--color-surface); border-color: var(--color-primary); } }
+.tabbar.has-active::before { opacity: 1; }
+.tabbar-search { flex: none; width: 64px; border-radius: 50%; }
+.bottom-nav .tabbar-search { display: grid; place-items: center; align-content: center; min-height: 64px; color: #fff; }
+.bottom-nav .tabbar-search[aria-current="page"] { color: var(--brand-senape); }
+@media (prefers-reduced-transparency: reduce) { .tabbar, .tabbar-search { background: var(--color-surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (prefers-contrast: more) { .tabbar, .tabbar-search { background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-primary); } }
 .bottom-nav a {
   position: relative; z-index: 1;
-  display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; border-radius: 22px;
+  display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; border-radius: 999px;
   color: var(--color-text-muted); font-size: .6875rem; font-weight: 700; letter-spacing: .01em; text-decoration: none;
   transition: transform 100ms ease-out, background-color 150ms ease, color 150ms ease;
 }
 @media (hover: hover) and (pointer: fine) { .bottom-nav a:hover { color: var(--color-primary); } }
 .bottom-nav a:active { transform: scale(.97); }
-.bottom-nav a[aria-current="page"] { color: var(--brand-notte); background: transparent; }
+.bottom-nav a[aria-current="page"] { color: var(--brand-senape); background: transparent; }
 .bottom-nav .icon { width: 24px; height: 24px; }
 .bottom-nav-logo { width: 24px; height: 24px; border-radius: 6px; filter: grayscale(1) brightness(2.4) opacity(.7); transition: filter 150ms ease; }
 .bottom-nav a[aria-current="page"] .bottom-nav-logo { filter: none; }
@@ -1223,15 +1232,14 @@ h3, h4 { font-weight: 800; letter-spacing: -0.02em; }
 @media (min-width: 900px) {
   .site-header { position: sticky; top: 0; z-index: 29; }
   .header-inner { min-height: 72px; }
-  .bottom-nav {
-    top: 9px; bottom: auto; width: auto; grid-template-columns: repeat(5, auto); gap: 2px; padding: 4px;
-    background: rgba(255, 255, 255, .1); -webkit-backdrop-filter: none; backdrop-filter: none;
-    border-color: rgba(255, 255, 255, .18); border-radius: 999px; box-shadow: none;
-  }
-  .bottom-nav::before { display: none; }
-  .bottom-nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-size: .875rem; color: rgba(255, 255, 255, .78); }
-  .bottom-nav a[aria-current="page"] { color: var(--brand-notte); background: var(--brand-senape); }
-  @media (hover: hover) and (pointer: fine) { .bottom-nav a:hover { color: #fff; } .bottom-nav a[aria-current="page"]:hover { color: var(--brand-notte); } }
+  .bottom-nav { top: 12px; bottom: auto; width: auto; gap: 8px; }
+  .tabbar { display: flex; gap: 2px; padding: 4px; }
+  .tabbar::before { display: none; }
+  .tabbar-search { width: 52px; }
+  .bottom-nav .tabbar-search { min-height: 52px; }
+  .bottom-nav a:not(.tabbar-search) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-size: .875rem; color: rgba(255, 255, 255, .78); }
+  .bottom-nav .tabbar a[aria-current="page"] { color: var(--brand-senape); background: rgba(1, 15, 29, .55); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45); }
+  @media (hover: hover) and (pointer: fine) { .bottom-nav a:hover { color: #fff; } .bottom-nav a[aria-current="page"]:hover { color: var(--brand-senape); } }
   .bottom-nav .icon, .bottom-nav-logo { width: 20px; height: 20px; }
   .bottom-nav-logo { filter: grayscale(1) brightness(3) opacity(.8); }
   .bottom-nav a[aria-current="page"] .bottom-nav-logo { filter: none; }
@@ -2217,10 +2225,7 @@ main > section:not([hidden]) { animation: view-in 160ms var(--ease-out) both; }
   #home-view.feed-view { margin-top: 0; }
 }
 @media (max-width: 359px) { .header-slot .feed-segments button, .header-slot .feed-segments-active > span { font-size: .6875rem; } }
-/* The lens has no label: an invisible line the height of a label keeps it on the
-   same row as the other icons (it used to sit lower, centred on its own). */
-.bottom-nav a[data-section="search"]::after { content: "\00a0"; font-size: .6875rem; font-weight: 700; line-height: inherit; visibility: hidden; }
-@media (min-width: 900px) { .bottom-nav a[data-section="search"]::after { content: none; } }
+
 @media (min-width: 900px) and (max-width: 1023px) { .header-profile { padding: 0 12px; } }
 
 /* Hit areas (40px minimum). Small chips keep their look; an invisible
@@ -2240,18 +2245,16 @@ a.topic-chip.is-small::after, button.topic-chip.is-small::after { inset: -7px 0;
    One material, transform/opacity motion only, ≤300ms, reduced
    motion and reduced transparency respected, 44px round targets.
    =========================================================================== */
-.bottom-nav, .cover-button, .tmap-round, .tmap-search, .tmap-back, .header-profile, .header-slot .feed-segments, .demo-notice {
+.tabbar, .tabbar-search, .cover-button, .tmap-round, .tmap-search, .tmap-back, .header-profile, .header-slot .feed-segments, .demo-notice {
   background: var(--glass-sheen), var(--glass-tint);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   border: 0;
   box-shadow: var(--glass-rim), var(--glass-drop);
 }
-.bottom-nav { border-radius: 32px; }
 .site-header { position: sticky; top: 0; z-index: 29; background: rgba(3, 36, 66, .62); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: inset 0 -.5px 0 rgba(255, 255, 255, .14); }
 .header-profile { box-shadow: var(--glass-rim); }
 .header-slot .feed-segments { box-shadow: var(--glass-rim); }
 /* Active pill inside glass: a solid lens of the accent. */
-.bottom-nav::before { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 4px 14px rgba(255, 189, 89, .28); }
 /* Round glass buttons over covers and the map. */
 .cover-button { width: 44px; height: 44px; border-radius: 50%; color: #fff; }
 @media (hover: hover) and (pointer: fine) { .cover-button:hover { background: var(--glass-sheen), rgba(10, 79, 143, .6); color: #fff; } }
@@ -2264,7 +2267,7 @@ a.topic-chip.is-small::after, button.topic-chip.is-small::after { inset: -7px 0;
 /* Continuous-looking corners on cards: one radius, slightly larger, Apple-like. */
 .detail-card, .state-card, .stat-tile, .row-list, .vp-card, .t-holder, .tmap-sheet { border-radius: 22px; }
 @media (prefers-reduced-transparency: reduce) {
-  .bottom-nav, .cover-button, .tmap-round, .tmap-search, .tmap-back, .header-profile, .header-slot .feed-segments, .demo-notice, .site-header, .follow-button {
+  .tabbar, .tabbar-search, .cover-button, .tmap-round, .tmap-search, .tmap-back, .header-profile, .header-slot .feed-segments, .demo-notice, .site-header, .follow-button {
     background: var(--brand-elevated); -webkit-backdrop-filter: none; backdrop-filter: none;
   }
   .site-header { background: var(--brand-notte); }
@@ -2353,3 +2356,5 @@ html:active-view-transition-type(tab)::view-transition-old(root), html:active-vi
 .tmap-city-icon { flex: none; color: var(--brand-senape); }
 button.tmap-person { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .tmap-sigla.is-city::after { border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px var(--c), 0 2px 6px rgba(0, 0, 0, .3); }
+/* The tab bar floats over text: a denser tint keeps labels readable over any content. */
+.tabbar, .tabbar-search { background: var(--glass-sheen), rgba(4, 38, 70, .8); }
