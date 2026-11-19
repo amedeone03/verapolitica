@@ -2336,3 +2336,20 @@ html:active-view-transition-type(tab)::view-transition-old(root), html:active-vi
 .cta-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .t-stats .stat-tile { text-align: center; justify-items: center; }
 .t-hero.profile-cover { border: 0; }
+
+/* Cities on the map: a white square mark (distinct from the round province dots) with its
+   name on a glass label; 44px tall hit area. Active: accent mark. */
+.tmap-city { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tmap-city-mark { flex: none; width: 12px; height: 12px; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px var(--brand-notte), 0 2px 6px rgba(0, 0, 0, .4); transition: transform 150ms var(--ease-out), background-color 150ms ease; }
+.tmap-city-name { padding: 3px 9px; border-radius: 999px; background: var(--glass-sheen), var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-rim); color: #fff; font: 700 .75rem/1.2 var(--font-body); white-space: nowrap; }
+.tmap-city.is-active .tmap-city-mark { background: var(--brand-senape); transform: scale(1.25); }
+.tmap-city.is-active .tmap-city-name { background: var(--brand-senape); color: var(--brand-notte); }
+.tmap-city:focus-visible { outline: none; }
+.tmap-city:focus-visible .tmap-city-name { box-shadow: 0 0 0 2px var(--brand-senape); }
+@media (prefers-reduced-motion: reduce) { .tmap-city-mark { transition: none; } }
+@media (prefers-reduced-transparency: reduce) { .tmap-city-name { background: var(--brand-elevated); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+/* City pills in the sheet carry a small building icon. */
+.tmap-city-pills button { display: inline-flex; align-items: center; gap: 6px; }
+.tmap-city-icon { flex: none; color: var(--brand-senape); }
+button.tmap-person { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tmap-sigla.is-city::after { border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px var(--c), 0 2px 6px rgba(0, 0, 0, .3); }

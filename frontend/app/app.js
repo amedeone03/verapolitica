@@ -1,4 +1,5 @@
 import { applyReactions, bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
+import { citiesInProvince, citiesInRegion } from "./key-cities.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
 export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
@@ -1177,6 +1178,15 @@ export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = 
     </header>
     ${statRow}
     <div class="t-holder-slot">${renderTerritoryHolder(base.holder, { portrait })}</div>`;
+}
+// The cities VeraPolitica follows, as cards that open the city on the Territorio map.
+export function renderKeyCities(list) {
+  if (!list.length) return "";
+  return `<section class="territory-block" aria-labelledby="t-citta-title"><h2 id="t-citta-title">Città <span class="t-count-pill">${list.length}</span></h2>
+    <ul class="t-cards">${list.map((city) => `<li><a href="./?view=territory&amp;citta=${encodeURIComponent(city.istat)}">
+      <span class="t-card-logo is-empty"><span aria-hidden="true">${escapeHtml(city.name.slice(0, 2).toUpperCase())}</span></span>
+      <span class="t-card-text"><strong>${escapeHtml(city.name)}</strong><small>${city.capital ? "Capoluogo di regione" : `Provincia di ${escapeHtml(city.sigla)}`}</small></span>
+      <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>`;
 }
 const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune", municipio: "Municipio di Roma" };
 
@@ -2563,7 +2573,8 @@ async function showRegionDetail(api, regionId) {
     if (scheda) {
       const provinces = scheda.base.provinces || [];
       const logos = new Map((await api.listProvinces(region.id).catch(() => ({ items: [] }))).items.map((item) => [item.abbreviation, safeImageUrl(item.logo_url)]));
-      const extra = `${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province <span class="t-count-pill">${provinces.length}</span></h2>
+      const regionIstat = String(region.istat_code || "").padStart(2, "0");
+      const extra = `${renderKeyCities(citiesInRegion(regionIstat))}${provinces.length ? `<section class="territory-block" aria-labelledby="t-province-title"><h2 id="t-province-title">Province <span class="t-count-pill">${provinces.length}</span></h2>
           <ul class="t-cards">${provinces.map((item) => `<li><a href="./?province=${encodeURIComponent(item.abbreviation)}">
             <span class="t-card-logo${logos.get(item.abbreviation) ? "" : " is-empty"}">${logos.get(item.abbreviation) ? `<img src="${escapeHtml(logos.get(item.abbreviation))}" alt="" loading="lazy" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(item.abbreviation)}</span>`}</span>
             <span class="t-card-text"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></span>
@@ -5265,7 +5276,7 @@ async function showProvinceDetail(api, code) {
     // Back to the map, on this province.
     byId("province-back").href = `./?view=territory&provincia=${encodeURIComponent(base.key)}`;
     await portraitsReady;
-    const extra = `<p class="t-history-link"><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>`;
+    const extra = `${renderKeyCities(citiesInProvince(base.key))}<p class="t-history-link"><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>`;
     byId("province-detail-status").hidden = true;
     byId("province-detail").hidden = false;
     byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });

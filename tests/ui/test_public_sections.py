@@ -206,7 +206,7 @@ def test_territorio_is_a_main_tab_with_the_map():
     assert 'params.get("municipality") || params.get("municipio")) return "territory";' in script
     assert 'import("./territory-map.js")' in script
     # Regions and provinces only: no comuni list in the map sheet.
-    assert "renderTownFilter" not in script and "listMunicipalitiesInProvince" not in (APP / "territory-map.js").read_text(encoding="utf-8")
+    assert "renderTownFilter" not in script and "tmap-towns" not in (APP / "territory-map.js").read_text(encoding="utf-8")
 
 
 def test_territory_schede_go_back_to_the_map():
@@ -299,7 +299,7 @@ def test_territory_map_is_accessible_light_and_self_hosted():
     module = (APP / "territory-map.js").read_text(encoding="utf-8")
     css = (APP / "styles.css").read_text(encoding="utf-8")
     # Opens on the URL state, else the reader's zone (region + province), else Italy.
-    assert "fromUrl.regione || fromUrl.provincia ? fromUrl : { regione: zoneIstat" in module
+    assert "fromUrl.regione || fromUrl.provincia || fromUrl.citta ? fromUrl : { regione: zoneIstat" in module
     assert 'history.pushState({ territory: true }, "", territoryHref(state))' in module and 'window.addEventListener("popstate"' in module
     # Faces and pins are buttons; Escape goes up a level; keyboard activation moves focus.
     assert 'document.createElement("button")' in module and 'event.key === "Escape"' in module and "event.detail === 0" in module
@@ -383,7 +383,12 @@ def test_standout_public_surfaces_keep_gaps_visible_and_ask_threaded():
     redazione = (APP.parent / "redazione" / "app.js").read_text(encoding="utf-8")
     assert "#/notizie/proposta" in redazione and "showNewsPitch" in redazione
     assert "Scheda incompleta" in script and "Titolare non ancora collegato" in script
-    assert "Cerca una regione o una provincia" in html
+    assert "Cerca regione, provincia o città" in html
+    # Key cities (regional capitals + priority cities) are selectable inside their province.
+    cities = (APP / "key-cities.js").read_text(encoding="utf-8")
+    assert cities.count("{ istat:") == 23 and '"015146", name: "Milano", sigla: "MI"' in cities
+    assert 'import { KEY_CITIES, keyCity } from "./key-cities.js";' in map_script and "data-citta" in map_script
+    assert "export function renderKeyCities(list)" in script
     assert 'type: "municipality"' not in map_script
     assert "Leggi di questa legislatura" in script
     assert "thread.length < 3" in script and "pledge_ids: pin" in script
