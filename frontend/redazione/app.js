@@ -113,9 +113,12 @@ const SOURCE_AREAS = [
   ["agenzia", "Agenzia"],
   ["centrodestra", "Stampa centrodestra"],
   ["centrosinistra", "Stampa centrosinistra"],
+  ["stampa_locale", "Stampa locale"],
   ["tecnica", "Tecnica (ISTAT, Banca d'Italia…)"],
   ["altro", "Altro"],
 ];
+const NEWS_OPTIONAL_KEYS = new Set(["cosa_cambia", "altri", "numeri", "cosa_succede"]);
+const TERRITORIAL_SCOPES = new Set(["region", "province", "municipality"]);
 // Procedimenti giudiziari: only what concerns the politician in court.
 const JUDICIAL_TYPES = [
   ["judicial_proceeding", "Processo a suo carico"],
@@ -137,8 +140,8 @@ const options = (pairs, selected) => pairs.map(([value, label]) => `<option valu
 const CHECKLIST = [
   "Proposta: cosa è successo o succederà, interesse per il pubblico, fonti verificabili con data e pagina precisa.",
   "Fonti: ogni fatto e ogni cifra ha una fonte con data; niente Wikipedia, social o home di sito; i dati elettorali vengono da Eligendo.",
-  "Varietà: per le notizie almeno una fonte istituzionale o di agenzia più una testata di centrodestra e una di centrosinistra; per un dato oggettivo o una pubblicazione ufficiale basta la pagina istituzionale.",
-  "Ambito: «Cosa cambia» risponde al livello della notizia (nazionale, regionale, provinciale o comunale).",
+  "Varietà: notizie nazionali = istituzionale/agenzia + centrodestra + centrosinistra; notizie regionali/locali = istituzionale/agenzia + stampa locale o altre fonti (senza classificare destra/sinistra); pubblicazione ufficiale = sola pagina istituzionale.",
+  "Ambito: «Cosa cambia», numeri, altri e «cosa succede» sono facoltativi se non si applicano; «perché è stato deciso» è sempre facoltativo.",
   "Attribuzione: ogni punto di maggioranza/opposizione ha esponente e partito (es. «- Mario Rossi (PD): …»); nessun «si dice».",
   "Equilibrio: maggioranza e opposizione hanno lo stesso numero di punti, la stessa lunghezza e lo stesso tono; chi non si è espresso è indicato come tale.",
   "Linguaggio: frasi corte, termini tecnici spiegati, nessun aggettivo di parte, titolo neutro.",
@@ -1314,8 +1317,8 @@ const NEWS_HINTS = {
   maggioranza: ["Maggioranza di governo: 3–4 punti, ognuno con esponente e partito (es. «- Mario Rossi (FdI): …»).", "Citare solo i più duri o solo i più morbidi. Punti senza nome."],
   opposizione: ["Opposizione: stesso numero di punti, stessa lunghezza, stesso tono del blocco maggioranza; ogni punto con esponente e partito.", "Un tono diverso dal blocco maggioranza. Punti senza nome."],
   altri: ["Centro, Regioni, associazioni, imprese, sindacati, esperti.", "Ometterli perché «non fanno notizia»."],
-  numeri: ["Costo, platea, copertura, effetti attesi. Ogni cifra con fonte e data; se due fonti divergono, affiancarle.", "Cifre senza fonte. Stime presentate come certezze."],
-  cosa_succede: ["Prossimi passi con date: iter in Parlamento, scadenze, voti. Se non ci sono date, dirlo.", "Prevedere come andrà a finire."],
+  numeri: ["Costo, platea, copertura, effetti attesi. Ogni cifra con fonte e data; se due fonti divergono, affiancarle. Facoltativo: se la notizia è già i numeri, non ripetere qui.", "Cifre senza fonte. Stime presentate come certezze. Forzare la sezione quando non aggiunge nulla."],
+  cosa_succede: ["Prossimi passi con date: iter in Parlamento, scadenze, voti. Se non ci sono date, dirlo. Facoltativo se non c'è un seguito concreto.", "Prevedere come andrà a finire."],
 };
 
 async function showNewsPitch() {
@@ -1410,16 +1413,17 @@ async function showNewsEditor(postId) {
       ${composer.html()}
       ${blocks.map((block, index) => {
         const title = block.key === "cosa_cambia" ? cambia0.label : block.label;
+        const optional = NEWS_OPTIONAL_KEYS.has(block.key) || block.required === false;
         const writeHint = block.key === "cosa_cambia" && cambia0.hint ? cambia0.hint : NEWS_HINTS[block.key][0];
-        return `<section class="card" data-news-block="${esc(block.key)}"><div class="card-head"><h2><span class="block-number">${index + 1}</span><span data-block-title>${esc(title)}</span></h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b><span data-block-hint>${esc(writeHint)}</span></div><div><b>Lunghezza</b>${block.min}–${block.max} parole</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
+        return `<section class="card" data-news-block="${esc(block.key)}"><div class="card-head"><h2><span class="block-number">${index + 1}</span><span data-block-title>${esc(title)}</span>${optional ? ` <span class="chip chip-muted">Facoltativo</span>` : ""}</h2></div>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b><span data-block-hint>${esc(writeHint)}</span>${optional ? " Se non si applica a questa vicenda, lascia vuoto." : ""}</div><div><b>Lunghezza</b>${block.min}–${block.max} parole${optional ? " (se compilato)" : ""}</div><div class="avoid"><b>Da evitare</b>${esc(NEWS_HINTS[block.key][1])}</div></div></details>
         <div class="field"><label for="n-${block.key}">Testo <span class="counter"></span></label><textarea id="n-${block.key}" name="${block.key}" class="tall" ${counted(block.min, block.max)}>${esc(b[block.key] || "")}</textarea>${["maggioranza", "opposizione", "cosa_cambia"].includes(block.key) ? `<span class="hint">Un punto per riga, con «- ». Maggioranza e opposizione: stesso numero di punti, ognuno con esponente e partito.</span>` : ""}</div>
-        ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso</label><textarea id="n-perche_deciso" name="perche_deciso" rows="2">${esc(b.perche_deciso || "")}</textarea></div>` : ""}
+        ${block.key === "fatto" ? `<div class="field"><label for="n-perche_deciso">Perché è stato deciso, secondo chi ha deciso <span class="chip chip-muted">Facoltativo</span></label><textarea id="n-perche_deciso" name="perche_deciso" rows="2" placeholder="Solo se c'è una decisione con motivazione dichiarata">${esc(b.perche_deciso || "")}</textarea><span class="hint">Facoltativo: se la vicenda non ha una decisione motivata, lascia vuoto.</span></div>` : ""}
         ${block.key === "opposizione" ? `<div class="label">Equilibrio maggioranza / opposizione</div><div class="balance" id="balance"><span></span><span></span></div><p class="small muted" id="balance-text"></p>` : ""}
       </section>`;
       }).join("")}
       <section class="card"><div class="card-head"><h2><span class="block-number">9</span>Fonti verificabili</h2></div>
-        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b>Elenco con data e link alla pagina precisa. Per le notizie: almeno 3 fonti (istituzionale o agenzia + centrodestra + centrosinistra). Per un dato oggettivo o una pubblicazione ufficiale basta la pagina istituzionale. Terzo pezzo obbligatorio di ogni proposta.</div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Wikipedia, social, blog, home di sito, fonti non lette. Una sola fonte istituzionale non basta per una controversia.</div></div></details>
+        <details class="block-help"><summary>Come si scrive</summary><div class="block-guide"><div><b>Cosa scrivere</b><span data-fonti-hint>Elenco con data e link alla pagina precisa. Notizie nazionali: almeno 3 fonti (istituzionale o agenzia + centrodestra + centrosinistra). Notizie regionali/locali: istituzionale o agenzia più stampa locale o altre fonti, senza classificare destra/sinistra. Pubblicazione ufficiale: basta la pagina istituzionale.</span></div><div><b>Lunghezza</b>—</div><div class="avoid"><b>Da evitare</b>Wikipedia, social, blog, home di sito, fonti non lette. Una sola fonte istituzionale non basta per una controversia nazionale.</div></div></details>
         ${newsSourcesEditor(post.sources)}
         <div class="field"><label for="n-pol">Politici citati <span class="hint">La notizia compare in «Notizie collegate» nel loro profilo.</span></label>
           <div class="actions" style="margin-top:0"><input id="n-pol" type="search" placeholder="Cerca un politico" style="flex:1 1 220px" /><button type="button" class="button button-secondary" id="n-pol-add">Aggiungi</button></div>
@@ -1493,14 +1497,24 @@ async function showNewsEditor(postId) {
     bar.children[1].style.width = `${(left / total) * 100}%`;
     view.querySelector("#balance-text").textContent = `Maggioranza ${right} parole · Opposizione ${left} parole`;
   };
+  const fontiHintForScope = (scope) => TERRITORIAL_SCOPES.has(scope)
+    ? "Elenco con data e link alla pagina precisa. Notizie regionali/locali: almeno 3 fonti con istituzionale o agenzia; usa «stampa locale» per i giornali del territorio (senza classificare destra/sinistra). Pubblicazione ufficiale: basta la pagina istituzionale."
+    : "Elenco con data e link alla pagina precisa. Notizie nazionali: almeno 3 fonti (istituzionale o agenzia + centrodestra + centrosinistra). Pubblicazione ufficiale: basta la pagina istituzionale.";
   const refreshCosaCambia = () => {
-    const meta = cosaCambiaMeta(form.scope.value);
+    const scope = form.scope.value;
+    const meta = cosaCambiaMeta(scope);
     const block = view.querySelector('[data-news-block="cosa_cambia"]');
-    if (!block) return;
-    const title = block.querySelector("[data-block-title]");
-    const hint = block.querySelector("[data-block-hint]");
-    if (title) title.textContent = meta.label;
-    if (hint) hint.textContent = meta.hint || NEWS_HINTS.cosa_cambia[0];
+    if (block) {
+      const title = block.querySelector("[data-block-title]");
+      const hint = block.querySelector("[data-block-hint]");
+      if (title) title.textContent = meta.label;
+      if (hint) {
+        const base = meta.hint || NEWS_HINTS.cosa_cambia[0];
+        hint.textContent = `${base} Se non si applica a questa vicenda, lascia vuoto.`;
+      }
+    }
+    const fontiHint = view.querySelector("[data-fonti-hint]");
+    if (fontiHint) fontiHint.textContent = fontiHintForScope(scope);
   };
   const refreshTriad = () => {
     const data = collect();

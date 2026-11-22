@@ -131,7 +131,7 @@ function coverageBar(coverage) {
   const total = coverage.centrosinistra + coverage.centro + coverage.centrodestra;
   const parts = [
     ["centrosinistra", "Centrosinistra", coverage.centrosinistra],
-    ["centro", "Istituzionali e agenzie", coverage.centro],
+    ["centro", "Istituzionali, agenzie e locali", coverage.centro],
     ["centrodestra", "Centrodestra", coverage.centrodestra],
   ];
   const label = parts.map(([, name, n]) => `${n} ${name.toLowerCase()}`).join(", ");

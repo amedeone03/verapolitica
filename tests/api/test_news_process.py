@@ -153,3 +153,96 @@ def test_side_points_without_speaker_warn():
 def test_daily_news_trial_is_soft():
     assert DAILY_NEWS_TRIAL["active"] is True
     assert DAILY_NEWS_TRIAL["target_per_day"] == 1
+
+
+def test_optional_blocks_and_local_press_for_territorial_news():
+    """Regional news: blocks 3/6/7/8 and 2.2 optional; no left/right fonti gate."""
+
+    from backend.app.services.redazione.style import NEWS_OPTIONAL_BLOCKS, requires_press_side_variety
+
+    assert NEWS_OPTIONAL_BLOCKS == frozenset({"cosa_cambia", "altri", "numeri", "cosa_succede"})
+    assert requires_press_side_variety(scope="national") is True
+    assert requires_press_side_variety(scope="region") is False
+    assert requires_press_side_variety(scope="municipality") is False
+
+    regional = news_findings(
+        {
+            "title": "Tariffe rifiuti 2027: aumento di 18 euro a famiglia a Milano",
+            "scope": "municipality",
+            "blocks": {
+                "sommario": "Il Comune di Milano ha approvato il 10 novembre 2026 l'aumento della TARI 2027.",
+                "perche": "La tariffa riguarda tutte le famiglie milanesi e scatta dal 1 gennaio 2027.",
+                "fatto": "Il Consiglio comunale ha approvato l'aumento medio di 18 euro a famiglia sulla TARI 2027.",
+                # 2.2, cosa_cambia, altri, numeri, cosa_succede intentionally empty
+                "maggioranza": "- Sala (PD): copertura dei costi di raccolta e impianti.",
+                "opposizione": "- Majorino (AVS): aumento senza miglioramento del servizio.",
+            },
+            "sources": [
+                {
+                    "name": "Comune di Milano",
+                    "url": "https://www.comune.milano.it/tari-2027",
+                    "date": "2026-11-10",
+                    "area": "istituzionale",
+                },
+                {
+                    "name": "Il Giorno",
+                    "url": "https://www.ilgiorno.it/milano/cronaca/tari-2027",
+                    "date": "2026-11-10",
+                    "area": "stampa_locale",
+                },
+                {
+                    "name": "Corriere Milano",
+                    "url": "https://milano.corriere.it/notizie/cronaca/tari-2027",
+                    "date": "2026-11-11",
+                    "area": "stampa_locale",
+                },
+            ],
+        }
+    )
+    assert not any(f.code == "fonti_varie" for f in regional)
+    assert not any(f.code == "blocco_vuoto" and f.field in NEWS_OPTIONAL_BLOCKS for f in regional)
+    assert not any(f.code == "blocco_vuoto" and f.field == "fatto" for f in regional)
+    assert not has_errors(regional)
+
+    national_still_needs_sides = news_findings(
+        {
+            "title": "Bollo auto 2027: esenzione per una sola auto fino a 80 kW",
+            "scope": "national",
+            "blocks": _base_blocks(),
+            "sources": [
+                {
+                    "name": "ANSA",
+                    "url": "https://www.ansa.it/sito/notizie/economia/2026/09/16/bollo-auto.html",
+                    "date": "2026-09-16",
+                    "area": "agenzia",
+                },
+                {
+                    "name": "Il Giorno",
+                    "url": "https://www.ilgiorno.it/milano/cronaca/bollo",
+                    "date": "2026-09-16",
+                    "area": "stampa_locale",
+                },
+                {
+                    "name": "Corriere Milano",
+                    "url": "https://milano.corriere.it/notizie/cronaca/bollo",
+                    "date": "2026-09-16",
+                    "area": "stampa_locale",
+                },
+            ],
+        }
+    )
+    assert any(f.code == "fonti_varie" for f in national_still_needs_sides)
+    assert has_errors(national_still_needs_sides)
+
+
+def test_cosa_cambia_no_longer_blocks_news_analysis():
+    findings = news_findings(
+        {
+            "title": "Bollo auto 2027: esenzione per una sola auto fino a 80 kW",
+            "scope": "national",
+            "blocks": _base_blocks(cosa_cambia=""),
+            "sources": _good_sources(),
+        }
+    )
+    assert not any(f.code == "blocco_vuoto" and f.field == "cosa_cambia" for f in findings)
+    assert not has_errors(findings)

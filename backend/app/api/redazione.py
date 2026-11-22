@@ -152,10 +152,20 @@ def overview(
 def rules(member: Member, service: Service) -> dict:
     return {
         "news_blocks": [
-            {"key": key, "label": label, "min": low, "max": high} for key, label, low, high in style.NEWS_BLOCKS
+            {
+                "key": key,
+                "label": label,
+                "min": low,
+                "max": high,
+                "required": key in style.NEWS_REQUIRED_BLOCKS,
+            }
+            for key, label, low, high in style.NEWS_BLOCKS
         ],
+        "news_required_blocks": sorted(style.NEWS_REQUIRED_BLOCKS),
+        "news_optional_blocks": sorted(style.NEWS_OPTIONAL_BLOCKS),
         "news_total": list(style.NEWS_TOTAL_WORDS),
         "source_areas": style.SOURCE_AREAS,
+        "press_side_variety_scopes": ["national"],
         "loaded_title_words": list(style.LOADED_TITLE_WORDS),
         "judgement_words": list(style.JUDGEMENT_WORDS),
         "unattributed": list(style.UNATTRIBUTED),

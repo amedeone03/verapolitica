@@ -223,6 +223,7 @@ SOURCE_KIND_BY_AREA = {
     "stampa": ProfileSourceKind.NEWS,
     "centrodestra": ProfileSourceKind.NEWS,
     "centrosinistra": ProfileSourceKind.NEWS,
+    "stampa_locale": ProfileSourceKind.NEWS,
     "tecnica": ProfileSourceKind.OTHER,
     "partito": ProfileSourceKind.PARTY_POLITICIAN,
     "altro": ProfileSourceKind.OTHER,

@@ -60,6 +60,11 @@ NEWS_BLOCKS: tuple[tuple[str, str, int, int], ...] = (
     ("numeri", "I numeri e l'impatto economico", 60, 100),
     ("cosa_succede", "Cosa succede adesso", 30, 60),
 )
+# Required for every news analysis; the rest (and «perché è stato deciso») are optional.
+# Regional/local pieces often are the numbers themselves, or have no decision rationale.
+NEWS_REQUIRED_BLOCKS = frozenset({"perche", "fatto", "maggioranza", "opposizione"})
+NEWS_OPTIONAL_BLOCKS = frozenset({"cosa_cambia", "altri", "numeri", "cosa_succede"})
+TERRITORIAL_SCOPES = frozenset({"region", "province", "municipality"})
 # Legacy keys kept readable so older posts and fixtures still check out.
 _NEWS_SIDE_ALIASES = {"maggioranza": "destra", "opposizione": "sinistra"}
 NEWS_TOTAL_WORDS = (450, 700)
@@ -95,6 +100,7 @@ SOURCE_AREAS = {
     "agenzia": "Agenzia",
     "centrodestra": "Stampa di centrodestra",
     "centrosinistra": "Stampa di centrosinistra",
+    "stampa_locale": "Stampa locale",
     "tecnica": "Tecnica",
     "altro": "Altro",
 }
@@ -162,6 +168,27 @@ def cosa_cambia_label(scope: str | None) -> str:
 
 def cosa_cambia_hint(scope: str | None) -> str:
     return COSA_CAMBIA_BY_SCOPE.get(scope or "national", COSA_CAMBIA_BY_SCOPE["national"])[1]
+
+
+def is_territorial_scope(scope: str | None) -> bool:
+    return (scope or "national") in TERRITORIAL_SCOPES
+
+
+def required_news_block_keys(*, official: bool = False, scope: str | None = None) -> frozenset[str]:
+    """Blocks that block approval when empty (same set for national and territorial)."""
+
+    _ = scope
+    if official:
+        return frozenset({"fatto", "cosa_cambia"})
+    return NEWS_REQUIRED_BLOCKS
+
+
+def requires_press_side_variety(*, official: bool = False, scope: str | None = None) -> bool:
+    """National news needs centrodestra + centrosinistra; local press often has no side."""
+
+    if official:
+        return False
+    return not is_territorial_scope(scope)
 
 
 def source_findings(
@@ -271,25 +298,28 @@ def news_findings(post: dict) -> list[Finding]:
         findings.append(Finding("error", "blocco_vuoto", "Manca il sommario: chi ha deciso cosa, quando.", "sommario"))
     # N2 triad (fatto + interesse + fonti) applies to news analyses. A
     # «pubblicazione ufficiale» only announces an institutional list.
-    required_empty = {"fatto", "cosa_cambia"} if official else {
-        "fatto",
-        "cosa_cambia",
-        "perche",
-        "maggioranza",
-        "opposizione",
-    }
+    # Optional blocks (cosa_cambia, altri, numeri, cosa_succede) and
+    # «perché è stato deciso» stay empty without blocking — useful for
+    # regional pieces where those sections would feel forced.
+    required_empty = required_news_block_keys(official=official, scope=scope)
     total = 0
     for key, label, low, high in NEWS_BLOCKS:
         if key == "cosa_cambia":
             label = cosa_cambia_label(scope)
         text = news_block_text(blocks, key)
+        # Subsection 2.2 («perché è stato deciso») is optional and never
+        # substitutes for the fatto body when checking emptiness.
+        checked = text
         if key == "fatto":
-            text = f"{text}\n{blocks.get('perche_deciso') or ''}"
-        count = words(text)
+            deciso = (blocks.get("perche_deciso") or "").strip()
+            if deciso:
+                checked = f"{text}\n{deciso}"
+        count = words(checked)
         total += count
-        findings += text_findings(text, field=key)
+        findings += text_findings(checked, field=key)
         if not text.strip():
-            level = "error" if key in required_empty else "warning"
+            if key not in required_empty:
+                continue
             if key == "perche":
                 message = "Manca l'interesse per il pubblico: perché questa notizia riguarda i lettori."
             elif key == "fatto":
@@ -298,7 +328,7 @@ def news_findings(post: dict) -> list[Finding]:
                 message = f"Blocco vuoto: «{label}»."
             else:
                 message = f"Blocco vuoto: «{label}». Se uno schieramento non si è espresso, lo si scrive."
-            findings.append(Finding(level, "blocco_vuoto", message, key))
+            findings.append(Finding("error", "blocco_vuoto", message, key))
         elif count < low * 0.75 or count > high * 1.25:
             findings.append(Finding("warning", "lunghezza", f"«{label}»: {count} parole, indicazione {low}–{high}.", key))
         if key in {"maggioranza", "opposizione"} and text.strip():
@@ -345,12 +375,15 @@ def news_findings(post: dict) -> list[Finding]:
                 "fonti",
             )
         )
-    if not official and ("centrodestra" not in areas or "centrosinistra" not in areas):
+    # Local/regional press is often independent: no left/right gate there.
+    if requires_press_side_variety(official=official, scope=scope) and (
+        "centrodestra" not in areas or "centrosinistra" not in areas
+    ):
         findings.append(
             Finding(
                 "error",
                 "fonti_varie",
-                "Per le notizie servono almeno una testata di centrodestra e una di centrosinistra, oltre alla fonte istituzionale o di agenzia. Una sola fonte istituzionale non basta per una controversia.",
+                "Per le notizie nazionali servono almeno una testata di centrodestra e una di centrosinistra, oltre alla fonte istituzionale o di agenzia. Una sola fonte istituzionale non basta per una controversia. Per notizie regionali/locali basta istituzionale o agenzia più stampa locale o altre fonti (senza classificare destra/sinistra).",
                 "fonti",
             )
         )
