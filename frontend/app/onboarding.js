@@ -38,7 +38,7 @@ export function renderWelcome(root, { onRegister, onLogin, onDemo }) {
       <div class="welcome-center">
         <img class="welcome-logo" src="./logo-mark.svg" alt="" width="96" height="96" />
         <h1 id="welcome-title" class="welcome-name">VeraPolitica</h1>
-        <p class="welcome-line">La politica italiana, con le fonti.</p>
+        <p class="welcome-line">Chi non si informa non sceglie, lascia che altri scelgano per lui.</p>
       </div>
       <div class="welcome-actions">
         <button type="button" class="gate-pill is-solid" data-welcome="register">Registrati</button>
@@ -59,7 +59,7 @@ export function renderAccountForm(root, { mode = "register", error = "", onSubmi
       <div class="account-brand">
         <img class="welcome-logo" src="./logo-mark.svg" alt="" width="72" height="72" />
         <p class="welcome-name">VeraPolitica</p>
-        <p class="welcome-line">La politica italiana, con le fonti.</p>
+        <p class="welcome-line">Chi non si informa non sceglie, lascia che altri scelgano per lui.</p>
       </div>
       <div class="account-panel">
         <p class="ob-kicker">${register ? "Crea il tuo account" : "Bentornato"}</p>
@@ -352,7 +352,8 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
   // ---------------------------------------------------------------- render
   function render({ focusTitle = true } = {}) {
     const key = STEPS[state.step];
-    body.innerHTML = `<div class="ob-screen${reduceMotion ? "" : " is-entering"}">${screens[key]()}</div>`;
+    // Forward steps come in from the right, «Indietro» brings the previous one from the left.
+    body.innerHTML = `<div class="ob-screen${reduceMotion ? "" : ` is-entering${state.dir < 0 ? " is-back" : ""}`}">${screens[key]()}</div>`;
     syncBar();
     live.textContent = `Passo ${state.step + 1} di ${STEPS.length}`;
     if (key === "name") body.querySelector("#ob-name").focus();
@@ -472,6 +473,7 @@ export function runOnboarding(root, { api, portraitFor = () => null, initial = {
       return;
     }
     if (nextStep < 0) return;
+    state.dir = delta;
     state.step = nextStep;
     render();
     shell.scrollTop = 0;

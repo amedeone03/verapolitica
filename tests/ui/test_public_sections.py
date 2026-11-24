@@ -136,7 +136,7 @@ def test_proposals_section_layout() -> None:
     for marker in ("renderProposalState(proposal)", "Le parole esatte", "Chi l'ha promesso", "Cronologia", "Fonti ufficiali"):
         assert marker in detail
     assert 'bindExplainPledges(byId("proposal-detail"), api)' in script
-    assert ".proposals-tabs a:active { transform: scale(.97); }" in css
+    assert ".proposals-tabs a:active { transform: scale(var(--press-scale)); }" in css
 
 
 def test_government_cloud_sizes_by_institutional_role() -> None:
@@ -175,7 +175,8 @@ def test_search_is_grouped_instant_and_keeps_the_lens() -> None:
     # Recent searches stay on this device and can be removed.
     assert 'SEARCH_RECENT_KEY = "verapolitica.search.recent.v1"' in script
     assert "Restano solo su questo dispositivo." in script and "data-remove-recent" in script
-    assert "@keyframes search-shimmer" in css and ".skeleton-line { animation: none; }" in css
+    # Placeholders are still: no shimmer or pulse running by itself.
+    assert ".skeleton-line" in css and "search-shimmer" not in css and "sk-pulse" not in css
 
 
 def test_region_and_comune_pages_show_their_local_news():
@@ -348,11 +349,22 @@ def test_territory_schede_have_a_politician_style_hero_and_the_console_edits_ima
     html = (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
     # Public: photo or coat of arms, the person who governs, credits, filterable comuni.
     assert "export function renderTerritoryHero(t" in script and "export function renderTerritoryHolder(holder" in script
-    assert 't-hero-badge' in script and 't-hero-credit' in script and "images.photo" in script
+    # Credits for photo and coat of arms are listed under «Fonti», not on the cover.
+    assert "function territoryImageCredits(t)" in script and 't-hero-credit' in script and "images.photo" in script
+    assert "${territoryImageCredits(t)}</ul>" in script
     assert "export function renderTownDirectory(towns" in script and "bindTownDirectory(byId(\"province-detail\"))" not in script
-    # Territory cover = politician cover: round glass close and share, identity over the shade.
-    assert 'class="t-hero profile-cover' in script and 'data-back aria-label="Chiudi la scheda"' in script
-    assert ".t-hero { " in css and "aspect-ratio: 4 / 5" in css
+    # Territory and politician share one hero: picture melting into the blue, close and share,
+    # identity and the main action on the fade; then the numbers in one labelled-cell card.
+    assert "export function renderSchedaHero(" in script and 'className: "is-territory"' in script and 'className: "is-person"' in script
+    assert 'data-back aria-label="${escapeHtml(backLabel)}"' in script and 'backLabel = "Chiudi la scheda"' in script
+    assert "export function renderSchedaFacts(cells" in script and "renderSchedaFacts(cells)" in script
+    # Region: blue with the coat of arms behind; province: the capoluogo's photo (picked by the server).
+    assert 'const photo = base.kind !== "region" && images.photo' in script and "images.photo.place" in script
+    scheda = (APP / "scheda.css").read_text(encoding="utf-8")
+    assert ".scheda-hero-media::after" in scheda and "rgba(var(--scheda-fade), .96) 89%" in scheda
+    assert ".scheda-grid" in scheda and "grid-template-columns: minmax(0, 1fr) 340px" in scheda
+    page = (APP / "index.html").read_text(encoding="utf-8")
+    assert page.index("./styles.css") < page.index("./scheda.css") < page.index("./motion.css")
     # Console: «Territorio» in the menu, a simple dashboard, coat of arms and photo per scheda.
     assert '<span class="nav-text">Territorio</span>' in html
     # Simple dashboard: what waits for verification first, no counters of logos or photos.

@@ -30,7 +30,7 @@
   box-shadow: none;
   color: var(--vp-text);
   font-family: var(--font-body, "Inter", system-ui, sans-serif);
-  transition: transform 180ms var(--vp-ease-out), border-color 180ms ease;
+  transition: transform var(--press), border-color 180ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .vp-card:hover { transform: translateY(-2px); border-color: rgba(181, 196, 213, .28); }
@@ -188,7 +188,7 @@
   border: 0; border-radius: 999px; background: none; color: var(--vp-muted);
   font: 600 .875rem var(--font-body, sans-serif); font-variant-numeric: tabular-nums; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 120ms var(--vp-ease-out), background-color 150ms ease, color 150ms ease;
+  transition: transform var(--press), background-color 150ms ease, color 150ms ease;
 }
 @media (hover: hover) and (pointer: fine) { .vp-action:hover { background: var(--vp-tint); color: var(--vp-text); } }
 .vp-action:disabled { cursor: default; opacity: .55; }
@@ -199,8 +199,8 @@
 @keyframes vp-turn { from { transform: rotate(-180deg); } to { transform: rotate(0); } }
 
 /* Press feedback: on pointer-down, not on release. */
-.vp-pill, .vp-outline, .vp-more { transition: transform 120ms var(--vp-ease-out), background-color 150ms ease, border-color 150ms ease; }
-.vp-pill:active, .vp-outline:active, .vp-action:active { transform: scale(.97); }
+.vp-pill, .vp-outline, .vp-more { transition: transform var(--press), background-color 150ms ease, border-color 150ms ease; }
+.vp-pill:active, .vp-outline:active, .vp-action:active { transform: scale(var(--press-scale)); }
 
 /* Reactions: tap for the heart, press and hold for the picker. */
 .vp-react-wrap { position: relative; }
@@ -217,21 +217,18 @@
   display: flex; gap: 2px; padding: 5px;
   background: var(--color-surface, #052C50); border-radius: 999px;
   box-shadow: 0 10px 30px rgba(3, 36, 66, .18), 0 1px 3px rgba(3, 36, 66, .12), 0 0 0 1px rgba(3, 36, 66, .06);
-  transform-origin: 24px 100%;
+  transform-origin: var(--vp-origin, 24px) 100%;
   opacity: 0; transform: translateY(6px) scale(.9);
-  transition: transform 220ms var(--vp-ease-out), opacity 160ms ease-out;
+  transition: transform var(--dur-enter) var(--ease-out), opacity var(--dur-enter) var(--ease-out);
 }
 .vp-picker.is-open { opacity: 1; transform: none; }
-.vp-picker.is-leaving { opacity: 0; transform: translateY(2px) scale(.96); transition-duration: 120ms; }
+.vp-picker.is-leaving { opacity: 0; transform: translateY(6px) scale(.9); transition-duration: var(--dur-exit); }
 .vp-picker[data-keyboard], .vp-picker[data-keyboard] .vp-picker-item { transition: none; }
 .vp-picker-item {
   position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0;
   border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  opacity: 0; transform: translateY(8px) scale(.8);
-  transition: transform 200ms var(--vp-ease-out), opacity 160ms ease-out, background-color 150ms ease;
-  transition-delay: var(--vp-delay, 0ms);
+  transition: background-color var(--press);
 }
-.vp-picker.is-open .vp-picker-item { opacity: 1; transform: none; }
 .vp-picker-emoji { font-size: 1.75rem; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; transition: transform 150ms var(--vp-ease-out); }
 .vp-picker-item.is-hover .vp-picker-emoji { transform: translateY(-6px) scale(1.3); }
 @media (hover: hover) and (pointer: fine) { .vp-picker-item:hover .vp-picker-emoji { transform: translateY(-4px) scale(1.2); } }
@@ -244,8 +241,7 @@
 
 /* First open of the feed in a session: the first three cards arrive as one wave
    (lead 0ms/10px, then 60ms and 100ms/6px). Never on tab switches or "Carica altri". */
-.vp-card.is-entering { animation: vp-enter 260ms var(--vp-ease-out) both; animation-delay: var(--vp-delay, 0ms); }
-@keyframes vp-enter { from { opacity: 0; transform: translateY(var(--vp-rise, 6px)); } to { opacity: 1; transform: none; } }
+.vp-card.is-entering { animation: vp-fade var(--dur-enter) var(--ease-out) both; }
 @keyframes vp-fade { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {

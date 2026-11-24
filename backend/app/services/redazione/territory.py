@@ -475,6 +475,43 @@ def _images(session: Session, kind: str, key: str) -> dict:
     return {"logo": symbols.symbol_dict(rows.get(logo_kind)), "photo": symbols.symbol_dict(rows.get(photo_kind))}
 
 
+def _capital_city(session: Session, sigla: str, province_name: str, capoluogo: str | None) -> Municipality | None:
+    """The province's capoluogo: the name the redazione wrote, else the comune named like
+    the province, else the first part of a compound name («Monza e della Brianza» → Monza,
+    «Pesaro e Urbino» → Pesaro, «Forlì-Cesena» → Forlì, «Bolzano/Bozen» → Bolzano)."""
+
+    in_province = select(Municipality).where(Municipality.province_abbreviation == sigla)
+    names = [capoluogo or "", province_name]
+    first = province_name
+    for separator in (" e ", "-", "/"):
+        first = first.split(separator)[0]
+    names.append(first)
+    for name in (item.strip() for item in names):
+        if not name:
+            continue
+        town = session.scalar(in_province.where(func.lower(Municipality.canonical_name) == name.casefold()).limit(1))
+        if town is not None:
+            return town
+    return None
+
+
+def _province_cover(session: Session, base: dict, rapida: dict | None, images: dict) -> dict:
+    """A province opens on its capoluogo: the city's approved photo is the cover. The
+    province's own photo is kept only when the city has none yet."""
+
+    capoluogo = (rapida or {}).get("capoluogo") if isinstance(rapida, dict) else None
+    town = _capital_city(session, base["key"], base.get("name") or "", capoluogo)
+    if town is None:
+        return images
+    row = session.scalar(
+        select(EditorialSymbol).where(EditorialSymbol.kind == "municipality_photo", EditorialSymbol.key == str(town.id))
+    )
+    photo = symbols.symbol_dict(row)
+    if photo is None:
+        return images
+    return {**images, "photo": {**photo, "place": town.canonical_name, "municipality_id": town.id}}
+
+
 def _holder_photo(session: Session, holder: dict | None) -> dict | None:
     """Add the approved portrait of the president or mayor, when the redazione published one."""
 
@@ -674,6 +711,8 @@ class TerritorySchede:
                 session, _overlay_holder(session, kind, base.get("holder"), latest.get("titolare"))
             )
             images = _images(session, kind, base["key"])
+            if kind == "province":
+                images = _province_cover(session, base, latest["rapida"].data if latest.get("rapida") else None, images)
             return {
                 "base": base,
                 "images": images,

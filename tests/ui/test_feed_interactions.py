@@ -49,8 +49,8 @@ def test_category_band_and_session_entrance():
     assert '<header class="vp-band">' in card
     for tone in ("tone-ink", "tone-red", "tone-green"):
         assert f".vp-card.{tone}" in css
-    # Entrance: three cards, non-uniform delays, once per session, never on tab switches.
-    assert "const ENTER = [[0, 10], [60, 6], [100, 6]];" in card
+    # Entrance: the first screenful fades in together, once per session; no stagger.
+    assert "options.index < 3" in card and "--vp-delay" not in card and "--vp-delay" not in css
     assert "load(false, { animate: firstFeedOpen() })" in script
     # Signature strip: fact → proof → sources.
     assert 'class="vp-prova"' in card and "Fatto verificato" in card
@@ -68,3 +68,39 @@ def test_frontend_standout_surfaces_are_wired():
     assert "ask-proof-chip" in script and "Non ancora verificato" in script
     assert "share-strip" in script and "Condividi la prova" in script
 
+
+
+def test_motion_system_is_one_shared_layer():
+    """Crisp feel: shared tokens, press on press-in, exits ~70% of entrances, nothing moves by itself."""
+    motion = (APP / "motion.css").read_text(encoding="utf-8")
+    motion_js = (APP / "motion.js").read_text(encoding="utf-8")
+    styles = (APP / "styles.css").read_text(encoding="utf-8")
+    cards = (APP / "feed-card.css").read_text(encoding="utf-8")
+    html = (APP / "index.html").read_text(encoding="utf-8")
+    script = (APP / "app.js").read_text(encoding="utf-8")
+    territory = (APP / "territory-map.js").read_text(encoding="utf-8")
+    # Loaded last, so its tokens win; the redazione shares it.
+    assert html.index("./feed-card.css") < html.index("./motion.css")
+    assert "/app/motion.css" in (APP.parent / "redazione" / "index.html").read_text(encoding="utf-8")
+    for token in ("--dur-press: 120ms", "--dur-enter: 220ms", "--dur-exit: 150ms", "--dur-page: 300ms", "--dur-page-exit: 210ms", "--press-scale: .97"):
+        assert token in motion
+    # Press feedback reads the shared tokens everywhere, never a private timing.
+    for css in (styles, cards):
+        assert "transform 100ms ease-out" not in css and "transform .12s ease" not in css
+        assert "ease-in;" not in css and "ease-in " not in css.replace("ease-in-out", "")
+    assert styles.count("scale(var(--press-scale") >= 20
+    # Toast: live region present before any message, readable duration, swipe to dismiss.
+    assert 'id="toast-live" class="visually-hidden" role="status" aria-live="polite"' in html
+    assert "Math.max(4000" in motion_js and "attachVerticalDrag(root" in motion_js
+    assert "demo-notice" not in script and 'import { toast } from "./motion.js";' in script
+    # Page transitions carry a direction; tabs crossfade.
+    for kind in ("push", "pop", "sheet-open", "sheet-close", "tab"):
+        assert f"active-view-transition-type({kind})" in motion
+    assert "export function pageTransitionType" in script
+    # Sheet: finger-driven position, rubber band, release velocity into a spring.
+    assert "attachVerticalDrag(sheetBox" in territory and "rubberband(" in territory and "project(velocity)" in territory
+    assert "touchend" not in territory
+    # Nothing animates without the reader: no breathing art, pulses, shimmer or count-ups.
+    for gone in ("italy-breath", "sk-pulse", "search-shimmer", "animation-delay: calc(var(--i"):
+        assert gone not in styles
+    assert "IntersectionObserver" not in script.split("function bindProfileMotion")[1].split("\nfunction ")[0]

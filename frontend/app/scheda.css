@@ -1,0 +1,242 @@
+/* ==========================================================================
+   Scheda — the shared page of a region, province, city and politician.
+
+   Hero (Netflix title page): the picture runs edge to edge and melts into
+   VeraPolitica blue; kind, name, one meta line and the main action sit on the
+   fade. Below (Flighty): who governs, the explanation, then the numbers in one
+   card of labelled cells with hairlines, like a boarding pass.
+   Loaded after styles.css and feed-card.css; motion tokens come from motion.css.
+   ========================================================================== */
+
+.scheda-hero {
+  --scheda-bg: var(--color-background, #032442);
+  --scheda-fade: 3, 36, 66; /* rgb of --brand-notte, for the gradient stops */
+  position: relative; isolation: isolate;
+  margin: calc(-1 * var(--space-7)) calc(-1 * var(--gutter)) 0;
+  color: #fff;
+}
+
+/* --- The picture ------------------------------------------------------------ */
+.scheda-hero-media {
+  position: relative; overflow: hidden;
+  height: clamp(340px, 60svh, 540px);
+  background: var(--brand-card) var(--gradient-notte);
+}
+.scheda-hero:not(.has-photo) .scheda-hero-media { height: clamp(250px, 38svh, 340px); }
+.scheda-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scheda-hero .scheda-hero-media .portrait,
+.scheda-hero .scheda-hero-media .portrait.is-hero {
+  position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; margin: 0; border-radius: 0; box-shadow: none;
+  background: var(--brand-card) var(--gradient-notte); color: rgba(181, 196, 213, .14);
+}
+.scheda-hero .scheda-hero-media .portrait img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.scheda-hero .scheda-hero-media .portrait .monogram { font-size: clamp(7rem, 34vw, 12rem); transform: translateY(-18%); }
+
+/* No photo: the coat of arms (or the initials) as a quiet watermark on the blue. */
+.scheda-hero-pattern { position: absolute; inset: 0; display: grid; place-items: center; background: var(--gradient-notte); }
+.scheda-hero-pattern img { width: min(44%, 220px); height: auto; opacity: .16; filter: grayscale(1) brightness(2.2); transform: translateY(-18%); }
+.scheda-hero-pattern span { color: rgba(181, 196, 213, .1); font-size: clamp(6rem, 30vw, 11rem); font-weight: 800; letter-spacing: -.04em; transform: translateY(-22%); }
+
+/* The fade. Many stops on an eased curve, so the blue arrives without a band;
+   a light scrim at the top keeps the round buttons readable on bright skies. */
+.scheda-hero-media::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(var(--scheda-fade), .5) 0%, rgba(var(--scheda-fade), .18) 12%, rgba(var(--scheda-fade), 0) 24%),
+    linear-gradient(180deg,
+      rgba(var(--scheda-fade), 0) 34%,
+      rgba(var(--scheda-fade), .04) 40%,
+      rgba(var(--scheda-fade), .14) 47%,
+      rgba(var(--scheda-fade), .3) 54%,
+      rgba(var(--scheda-fade), .5) 62%,
+      rgba(var(--scheda-fade), .7) 70%,
+      rgba(var(--scheda-fade), .86) 79%,
+      rgba(var(--scheda-fade), .96) 89%,
+      var(--scheda-bg) 100%);
+}
+
+.scheda-hero .cover-button { z-index: 3; }
+
+/* --- Identity on the fade --------------------------------------------------- */
+.scheda-hero-body {
+  position: relative; z-index: 2;
+  display: grid; gap: 10px; justify-items: start;
+  margin-top: -148px; padding: 0 var(--gutter);
+}
+.scheda-hero:not(.has-photo) .scheda-hero-body { margin-top: -112px; }
+.scheda-eyebrow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0;
+  color: rgba(255, 255, 255, .84); font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+}
+.scheda-eyebrow a { color: inherit; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) { .scheda-eyebrow a:hover { text-decoration: underline; text-underline-offset: 3px; } }
+.scheda-eyebrow .t-hero-badge {
+  position: static; display: grid; place-items: center; width: 28px; height: 28px; padding: 3px; margin: 0;
+  border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); transform: none;
+}
+.scheda-eyebrow .t-hero-badge img { width: 100%; height: 100%; object-fit: contain; }
+.scheda-hero h1 {
+  margin: 0; max-width: 18ch; color: #fff;
+  font-family: var(--font-display); font-size: clamp(2.25rem, 1.6rem + 3.4vw, 3.75rem); font-weight: 800;
+  line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; overflow-wrap: anywhere;
+  text-shadow: 0 2px 24px rgba(var(--scheda-fade), .45);
+}
+.scheda-hero h1 .verified-mark { margin-left: 6px; vertical-align: .05em; color: var(--brand-senape); }
+/* Meta line: «● Centrodestra · 10 mln abitanti · Al voto: 2028». Each item
+   carries its dot in front; the inner line is pulled left by one dot and the
+   outer box clips it, so the dot of an item that starts a line is never seen. */
+.scheda-meta { --sep: 22px; margin: 0; overflow: hidden; color: rgba(255, 255, 255, .8); font-size: .9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.scheda-meta-line { display: flex; flex-wrap: wrap; align-items: center; row-gap: 4px; margin-left: calc(-1 * var(--sep)); }
+.scheda-meta-line > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.scheda-meta-line > span::before { content: "·"; flex: none; width: var(--sep); margin-right: -6px; color: rgba(255, 255, 255, .45); text-align: center; }
+.scheda-meta .vp-logo { width: 20px; height: 20px; margin: 0; padding: 1px; border-radius: 5px; background: #fff; }
+.scheda-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--c, #7F93A8); box-shadow: 0 0 0 2px rgba(255, 255, 255, .14); }
+
+/* One main action (the «Play»), plus round secondary actions. */
+.scheda-actions { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 8px; }
+.scheda-actions .scheda-cta { flex: 1 1 auto; min-width: 0; min-height: 52px; padding: 0 22px; border-radius: 999px; font-size: 1rem; gap: 8px; }
+.scheda-round, .scheda-actions .follow-button {
+  flex: none; display: grid; place-items: center; height: 52px; border-radius: 999px;
+  color: #fff; text-decoration: none;
+  background: var(--glass-sheen, none), rgba(255, 255, 255, .12); box-shadow: var(--glass-rim, inset 0 0 0 1px rgba(255, 255, 255, .2));
+  -webkit-backdrop-filter: var(--glass-blur, none); backdrop-filter: var(--glass-blur, none);
+}
+.scheda-round { width: 52px; }
+.scheda-actions .follow-button { display: inline-flex; gap: 6px; min-width: 0; width: auto; padding: 0 20px; border: 0; }
+.scheda-actions .follow-button.is-active { background: rgba(255, 255, 255, .92); color: var(--brand-notte); box-shadow: none; }
+.scheda-round:focus-visible, .scheda-actions .follow-button:focus-visible { outline: 3px solid var(--brand-senape); outline-offset: 2px; }
+.scheda-round { transition: transform var(--press), background-color var(--press); }
+.scheda-round:active { transform: scale(var(--press-scale)); }
+@media (hover: hover) and (pointer: fine) { .scheda-round:hover { background: var(--glass-sheen, none), rgba(255, 255, 255, .2); } }
+
+.scheda-credits { display: grid; gap: 2px; margin-top: 2px; }
+.scheda-credits .t-hero-credit, .scheda-credits .photo-credit { display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 0; color: rgba(181, 196, 213, .62); font-size: .6875rem; line-height: 1.5; text-decoration: none; }
+.scheda-credits a { color: inherit; }
+.scheda-hero .share-status { margin: 0; }
+/* Picture credits sit at the foot of the page, with the sources. */
+.territory-fonti .t-hero-credit { color: var(--color-text-muted); font-size: .8125rem; }
+.territory-fonti .t-hero-credit a { color: inherit; }
+.scheda-photo-credit { margin: var(--space-5) 2px 0; }
+.scheda-photo-credit .photo-credit { color: var(--color-text-muted); font-size: .75rem; text-decoration: none; }
+
+/* --- Below the hero ----------------------------------------------------------- */
+.scheda-body { margin-top: var(--space-6); }
+.scheda-body > .t-holder-slot { margin: 0 0 var(--space-5); }
+.scheda-body > .scheda-aside { margin: var(--space-5) 0; }
+.scheda-aside > * + * { margin-top: var(--space-4); }
+.scheda-aside .publication-meta { margin: var(--space-3) 2px 0; }
+.scheda-aside .territory-guide-link { margin: var(--space-3) 2px 0; }
+
+/* Who governs: a single row, like the airline row on a flight. */
+.scheda-body .t-holder {
+  margin: 0; padding: 12px 14px; border-radius: 22px;
+  background: var(--brand-card); box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.scheda-body .t-holder-photo { width: 52px; height: 52px; }
+.scheda-body .t-holder { grid-template-columns: 52px minmax(0, 1fr) auto; }
+.scheda-body .t-holder-text small:first-child { color: var(--color-text-muted); font-size: .6875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.scheda-body .t-holder-text strong { color: #fff; font-size: 1.125rem; }
+
+/* Cards and the boarding-pass grid. */
+.scheda-card {
+  overflow: hidden; padding: 16px 16px 0; border-radius: 22px;
+  background: var(--brand-card); box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.scheda-card-title { margin: 0 0 12px; color: var(--color-text-muted); font-size: .6875rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.scheda-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px;
+  margin: 0 -16px; padding: 0; border-top: 1px solid var(--color-border); background: var(--color-border);
+}
+.scheda-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Labels may wrap («Non mantenute»): the numbers still line up along the bottom. */
+.scheda-grid.is-3 .scheda-cell { align-content: space-between; }
+.scheda-cell { display: grid; align-content: start; gap: 4px; min-width: 0; padding: 12px 16px 14px; background: var(--brand-card); }
+.scheda-cell.is-wide { grid-column: 1 / -1; }
+.scheda-cell dt { color: var(--color-text-muted); font-size: .6875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.scheda-cell dd { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0; color: #fff; font-size: 1.0625rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.scheda-cell dd small { flex-basis: 100%; color: var(--color-text-muted); font-size: .75rem; font-weight: 500; }
+.scheda-cell dd a { color: inherit; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .3); text-underline-offset: 3px; }
+.scheda-cell .is-num { font-size: 1.375rem; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.scheda-cell .scheda-dot { width: 10px; height: 10px; }
+
+/* Promises: a split progress bar, then three numbers coloured by verdict. */
+.scheda-score-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.scheda-score-head .scheda-card-title { margin: 0; }
+.scheda-score-head strong { color: #fff; font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.scheda-progress { display: flex; gap: 3px; height: 8px; margin: 12px 0 16px; overflow: hidden; border-radius: 999px; background: rgba(181, 196, 213, .12); }
+.scheda-progress span { display: block; height: 100%; border-radius: 999px; }
+.scheda-progress .is-kept { background: var(--verdict-kept); }
+.scheda-progress .is-broken { background: var(--color-danger); }
+.scheda-progress .is-progress { background: var(--brand-senape); }
+.scheda-score .scheda-cell { border-radius: 0; box-shadow: none; }
+.scheda-score .is-kept dd { color: var(--verdict-kept); }
+.scheda-score .is-broken dd { color: var(--color-danger); }
+.scheda-score .is-progress dd { color: var(--brand-senape); }
+.scheda-score.is-empty { padding-bottom: 16px; }
+.scheda-empty { margin: 0; color: var(--color-text-muted); font-size: .9375rem; line-height: 1.5; }
+
+/* The territory's own blocks read as sections of the same page. */
+.scheda-body .territory-block > h2 { font-size: 1.375rem; letter-spacing: -.02em; }
+.scheda-body .t-utile-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: utile; }
+.scheda-body .t-utile-list li {
+  position: relative; padding: 14px 16px 14px 52px; border-radius: 18px;
+  background: var(--brand-card); box-shadow: inset 0 0 0 1px var(--color-border); counter-increment: utile; line-height: 1.45;
+}
+.scheda-body .t-utile-list li::before {
+  content: counter(utile); position: absolute; left: 14px; top: 13px; display: grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--brand-senape); color: var(--brand-notte); font-size: .8125rem; font-weight: 800;
+}
+.scheda-body .t-utile-poteri { margin: 12px 2px 0; color: var(--color-text-muted); }
+
+/* --- Old cover pieces that no longer apply on these pages --------------------- */
+.scheda-body ~ .profile-cta-bar { display: none; }
+#profile-detail { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+
+/* --- Tablets: the hero becomes a rounded panel ---------------------------------- */
+@media (min-width: 768px) {
+  .scheda-hero { margin: 0; overflow: hidden; border-radius: 28px; box-shadow: 0 0 0 1px var(--color-border); }
+  .scheda-hero-body { padding: 0 32px 32px; }
+}
+
+/* --- Wide screens: Netflix's desktop title page -------------------------------
+   Picture on the right, the blue comes in from the left; the identity sits on
+   the left over the solid part; below, explanations left and numbers right. */
+@media (min-width: 1024px) {
+  #profile-detail, .territory-page { display: block; }
+  .territory-page { max-width: 1120px; }
+  #profile-detail > .scheda-hero, .territory-page > .scheda-hero { position: relative; top: auto; }
+  .scheda-hero-media, .scheda-hero:not(.has-photo) .scheda-hero-media { height: 500px; }
+  .scheda-hero .scheda-hero-photo,
+  .scheda-hero .scheda-hero-media .portrait,
+  .scheda-hero .scheda-hero-media .portrait.is-hero { left: auto; right: 0; width: 68%; }
+  .scheda-hero .scheda-hero-media .portrait img { object-position: 50% 22%; }
+  .scheda-hero-media::after {
+    background:
+      linear-gradient(90deg, var(--scheda-bg) 0%, var(--scheda-bg) 30%, rgba(var(--scheda-fade), .9) 38%, rgba(var(--scheda-fade), .62) 46%, rgba(var(--scheda-fade), .3) 54%, rgba(var(--scheda-fade), .1) 62%, rgba(var(--scheda-fade), 0) 72%),
+      linear-gradient(180deg, rgba(var(--scheda-fade), .45) 0%, rgba(var(--scheda-fade), 0) 18%, rgba(var(--scheda-fade), 0) 62%, rgba(var(--scheda-fade), .55) 84%, var(--scheda-bg) 100%);
+  }
+  .scheda-hero-pattern { place-items: center end; padding-right: 10%; }
+  .scheda-hero-pattern img, .scheda-hero-pattern span { transform: none; }
+  .scheda-hero-body, .scheda-hero:not(.has-photo) .scheda-hero-body {
+    position: absolute; left: 48px; bottom: 44px; width: min(560px, 48%); margin: 0; padding: 0;
+  }
+  .scheda-actions { width: auto; }
+  .scheda-actions .scheda-cta { flex: 0 0 auto; }
+
+  .scheda-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 40px; align-items: start; margin-top: var(--space-7); }
+  .scheda-body > * { grid-column: 1; min-width: 0; }
+  .scheda-body > .scheda-aside { grid-column: 2; grid-row: 1 / span 60; position: sticky; top: 96px; margin: 0; }
+  #profile-detail .scheda-body > .profile-section-nav { margin-top: 0; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .scheda-round, .scheda-actions .follow-button { background: var(--brand-elevated); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .scheda-hero-media::after { background: linear-gradient(180deg, rgba(var(--scheda-fade), .5) 0%, rgba(var(--scheda-fade), 0) 20%, rgba(var(--scheda-fade), 0) 30%, rgba(var(--scheda-fade), .92) 60%, var(--scheda-bg) 100%); }
+  .scheda-meta, .scheda-eyebrow { color: #fff; }
+}
+@media print {
+  .scheda-hero .cover-button, .scheda-actions { display: none !important; }
+  .scheda-hero-media { height: 220px; }
+}

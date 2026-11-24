@@ -13,6 +13,7 @@
 // ./geo. MapLibre is self-hosted in ./vendor so the page keeps script-src 'self'.
 
 import { KEY_CITIES, keyCity } from "./key-cities.js";
+import { animateSpring, attachVerticalDrag, project, rubberband } from "./motion.js";
 
 const ITALY_BOUNDS = [[6.4, 36.4], [18.8, 47.2]];
 const TILES = "https://tiles.openfreemap.org/planet";
@@ -293,24 +294,64 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
       ${record ? `<a class="tmap-primary" href="./?municipality=${encodeURIComponent(record.id)}">Apri la scheda della città</a>` : `<p class="tmap-note">La scheda di questa città non è ancora pubblicata.</p>`}`;
   };
 
-  // Mobile sheet (Apple Maps pattern): a peek with the controls, a grip
-  // that opens it to read the list; tap or swipe the grip. Desktop: always open.
+  // Mobile sheet (Apple Maps pattern): a 184px peek with the controls; drag it
+  // (1:1 with the finger), flick it, or tap the grip. Its position is one number,
+  // --sheet-y (motion.css): 0 = open, closedY = peek. Past either end it
+  // rubber-bands; on release it springs to the stop the flick was heading for,
+  // starting from the finger's velocity. Desktop: a side panel, always open.
   const sheetBox = $("tmap-sheet");
   const grip = $("tmap-grip");
-  const setOpen = (open) => {
+  const PEEK = 184;
+  const mobile = typeof matchMedia === "function" ? matchMedia("(max-width: 899px)") : { matches: false };
+  let sheetY = 0;
+  let closedY = 0;
+  let targetY = 0;
+  let stopSpring = null;
+  const isOpen = () => sheetBox.classList.contains("is-open");
+  const applyY = (value) => {
+    sheetY = value;
+    const progress = closedY ? Math.min(1, Math.max(0, value / closedY)) : 0;
+    sheetBox.style.setProperty("--sheet-y", `${value.toFixed(2)}px`);
+    sheetBox.style.setProperty("--sheet-fade", `${(28 * progress).toFixed(2)}px`);
+  };
+  const measure = () => {
+    if (!mobile.matches) { closedY = 0; targetY = 0; stopSpring?.(); stopSpring = null; sheetBox.style.removeProperty("--sheet-y"); sheetBox.style.removeProperty("--sheet-fade"); return; }
+    closedY = Math.max(0, sheetBox.offsetHeight - PEEK);
+    targetY = isOpen() ? 0 : closedY;
+    if (!stopSpring && !sheetBox.classList.contains("is-dragging")) applyY(targetY);
+  };
+  const setOpen = (open, { velocity = 0, animate = true } = {}) => {
+    if (!open && isOpen()) sheetBox.scrollTop = 0;
     sheetBox.classList.toggle("is-open", open);
     grip?.setAttribute("aria-expanded", String(open));
     if (grip) grip.querySelector("span").textContent = open ? "Riduci il pannello" : "Espandi il pannello";
+    if (!mobile.matches) return;
+    closedY = Math.max(0, sheetBox.offsetHeight - PEEK);
+    targetY = open ? 0 : closedY;
+    stopSpring?.();
+    stopSpring = null;
+    if (!animate || reduced) { applyY(targetY); return; }
+    stopSpring = animateSpring({ from: sheetY, to: targetY, velocity, onUpdate: applyY, onDone: () => { stopSpring = null; } });
   };
-  grip?.addEventListener("click", () => setOpen(!sheetBox.classList.contains("is-open")));
-  let dragY = null;
-  grip?.addEventListener("touchstart", (event) => { dragY = event.touches[0].clientY; }, { passive: true });
-  grip?.addEventListener("touchend", (event) => {
-    if (dragY === null) return;
-    const dy = event.changedTouches[0].clientY - dragY;
-    dragY = null;
-    if (Math.abs(dy) > 24) { event.preventDefault(); setOpen(dy < 0); }
+  grip?.addEventListener("click", () => setOpen(!isOpen()));
+  let dragFrom = 0;
+  attachVerticalDrag(sheetBox, {
+    // Open: only the grip drags (the list scrolls). Closed: the whole peek does.
+    enabled: (event) => mobile.matches && (Boolean(event.target.closest(".tmap-grip")) || !isOpen()),
+    onStart: () => { stopSpring?.(); stopSpring = null; dragFrom = sheetY; sheetBox.classList.add("is-dragging"); },
+    onMove: (dy) => {
+      const next = dragFrom + dy;
+      const room = sheetBox.offsetHeight;
+      applyY(next < 0 ? -rubberband(-next, room) : next > closedY ? closedY + rubberband(next - closedY, room) : next);
+    },
+    onEnd: (_dy, velocity) => {
+      sheetBox.classList.remove("is-dragging");
+      const rest = sheetY + project(velocity);
+      setOpen(Math.abs(rest) < Math.abs(rest - closedY), { velocity });
+    },
   });
+  if (typeof ResizeObserver === "function") new ResizeObserver(measure).observe(sheetBox);
+  mobile.addEventListener?.("change", measure);
 
   let renderSeq = 0;
   // Keyboard actions and the first paint swap content instantly (no motion).
@@ -325,7 +366,7 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
     if (seq !== renderSeq) return;
     sheet.innerHTML = html;
     sheet.removeAttribute("aria-busy");
-    setOpen(Boolean(state.regione || state.provincia || state.citta));
+    setOpen(Boolean(state.regione || state.provincia || state.citta), { animate });
     sheet.classList.remove("is-in");
     if (animate && !reduced) {
       void sheet.offsetWidth;
@@ -350,7 +391,8 @@ export async function mountTerritoryMap({ api, root, escapeHtml, portrait, coali
   const padding = () => {
     if (desktop()) return { top: 80, bottom: 40, left: 420, right: 80 };
     // Keep the shape above the sheet (which itself sits above the tab bar).
-    const covered = canvas.getBoundingClientRect().bottom - $("tmap-sheet").getBoundingClientRect().top;
+    // Measured where the sheet is going, not where its spring is right now.
+    const covered = canvas.getBoundingClientRect().bottom - ($("tmap-sheet").getBoundingClientRect().top - sheetY + targetY);
     return { top: 76, bottom: Math.max(24, Math.min(covered + 12, canvas.clientHeight * 0.74)), left: 16, right: 64 };
   };
   // Moving on screen: MapLibre's ease-in-out, short; instant for keyboard and reduced motion.
@@ -588,8 +630,13 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, ci
   const index = [...regions, ...cities, ...provinces];
   let items = [];
   let active = -1;
+  let leaving = 0;
+  const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const close = () => {
-    list.hidden = true;
+    if (!list.hidden && !reducedMotion && !list.classList.contains("is-leaving")) {
+      list.classList.add("is-leaving");
+      leaving = setTimeout(() => { list.hidden = true; list.classList.remove("is-leaving"); }, 150);
+    } else if (reducedMotion) list.hidden = true;
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
     active = -1;
@@ -604,6 +651,8 @@ function bindSearch({ root, input, list, api, esc, color, regions, provinces, ci
         return `<li id="tmap-opt-${i}" role="option" aria-selected="${i === active}" data-index="${i}"><span class="tmap-sigla${item.kind === "citta" ? " is-city" : ""}" style="--c:${tone}" aria-hidden="true"></span><span><strong>${esc(item.name)}</strong><small>${esc(sub)}</small></span></li>`;
       }).join("")
       : `<li class="tmap-empty" role="option" aria-disabled="true">Nessun risultato</li>`;
+    clearTimeout(leaving);
+    list.classList.remove("is-leaving");
     list.hidden = false;
     input.setAttribute("aria-expanded", "true");
   };

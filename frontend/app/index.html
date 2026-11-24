@@ -25,6 +25,8 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./feed-card.css" />
+    <link rel="stylesheet" href="./scheda.css" />
+    <link rel="stylesheet" href="./motion.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"VeraPolitica","inLanguage":"it"}</script>
   </head>
   <body>
@@ -571,6 +573,8 @@
       </div>
     </footer>
 
+    <div id="toast" class="toast" hidden></div>
+    <p id="toast-live" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
