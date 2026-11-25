@@ -94,7 +94,8 @@ def test_profile_information_architecture_uses_published_fields_only(tmp_path):
 
     assert scorecard["methodology_version"] == "pledge-score/v1"
     assert "Tasso di mantenimento" in script
-    assert "export function renderCoverMeter" in script
+    # The kept/broken meter lives in the promises card (split progress bar) under the hero.
+    assert "export function renderProfileStats" in script and 'class="scheda-progress"' in script
     assert 'span>Mantenute</span>' in script
     assert "Spiegami questa promessa" in script
     assert "/explanation" in script
@@ -115,8 +116,8 @@ def test_profile_section_nav_omits_missing_optional_blocks(tmp_path):
     assert '"tablist"' in script and '"tabpanel"' in script and "aria-selected" in script
     assert "bindProfileMotion" in script
     assert "bindProfileTabs" not in script
-    # Cover: back, share, verified mark, follow (favourites), sticky question.
-    assert 'class="cover-button cover-back"' in script
+    # Cover: back, share, verified mark, follow (favourites), the question as the hero's main action.
+    assert 'class="cover-button cover-back"' in script and 'class="button button-primary scheda-cta"' in script
     assert "bindProfileShare" in script
     assert 'class="verified-mark"' in script
     assert 'data-follow="1"' in script

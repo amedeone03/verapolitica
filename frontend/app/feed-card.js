@@ -195,10 +195,9 @@ export function renderFeedCard(item, options = {}) {
   const question = `Spiegami: ${item.title}`;
   const badgeDate = badge.date || item.occurred_on;
   const aside = card.aside || item.place;
-  // Entrance (choreograph): only the first three cards, lead first, gaps shrinking (0, 60, 100ms).
-  const ENTER = [[0, 10], [60, 6], [100, 6]];
-  const enter = Number.isInteger(options.index) && options.index < ENTER.length ? ENTER[options.index] : null;
-  const style = enter ? ` style="--vp-delay:${enter[0]}ms;--vp-rise:${enter[1]}px"` : "";
+  // Entrance: the first screenful fades in once, together (no stagger, no rise).
+  const enter = Number.isInteger(options.index) && options.index < 3;
+  const style = "";
   return `<article class="vp-card tone-${esc(tone)}${feature ? " is-feature" : ""}${options.preview ? " is-preview" : ""}${enter ? " is-entering" : ""}" data-card="${esc(key)}"${style}>
     <header class="vp-band">${cardIcon(CATEGORY_ICON[card.category] || "news", 16)}<span>${esc(card.category_label || "Notizia")}</span></header>
     <div class="vp-sub">
@@ -309,7 +308,7 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
     if (reduceMotion() || root.dataset.keyboard) { root.remove(); return; }
     root.classList.add("is-leaving");
     root.addEventListener("transitionend", () => root.remove(), { once: true });
-    setTimeout(() => root.remove(), 200);
+    setTimeout(() => root.remove(), 180);
   };
 
   const openPicker = (button, { keyboard = false } = {}) => {
@@ -321,7 +320,9 @@ export function bindFeedCards(container, { onSave, onRepost, onReact } = {}) {
     root.setAttribute("role", "menu");
     root.setAttribute("aria-label", "Reazioni");
     if (keyboard) root.dataset.keyboard = "1";
-    root.innerHTML = REACTIONS.map((item, index) => `<button type="button" role="menuitemradio" aria-checked="${mine === item.code}" class="vp-picker-item${mine === item.code ? " is-mine" : ""}" data-react-code="${item.code}" style="--vp-delay:${[0, 25, 45, 60][index]}ms" aria-label="${esc(item.label)}${counts[item.code] ? `, ${counts[item.code]}` : ""}"><span class="vp-picker-emoji" aria-hidden="true">${item.emoji}</span><span class="vp-picker-count" aria-hidden="true">${counts[item.code] ? compactCount(counts[item.code]) : ""}</span></button>`).join("");
+    root.innerHTML = REACTIONS.map((item) => `<button type="button" role="menuitemradio" aria-checked="${mine === item.code}" class="vp-picker-item${mine === item.code ? " is-mine" : ""}" data-react-code="${item.code}" aria-label="${esc(item.label)}${counts[item.code] ? `, ${counts[item.code]}` : ""}"><span class="vp-picker-emoji" aria-hidden="true">${item.emoji}</span><span class="vp-picker-count" aria-hidden="true">${counts[item.code] ? compactCount(counts[item.code]) : ""}</span></button>`).join("");
+    // The menu grows out of the button that opened it.
+    root.style.setProperty("--vp-origin", `${button.offsetLeft + button.offsetWidth / 2}px`);
     button.parentElement.appendChild(root);
     button.setAttribute("aria-expanded", "true");
     picker = { root, button };

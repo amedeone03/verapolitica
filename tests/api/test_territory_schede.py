@@ -412,3 +412,46 @@ def test_roma_municipi_hub_and_scheda(console):
     assert public["base"]["key"] == "roma-3"
     assert public["base"]["municipi"][2]["key"] == "roma-3"
     assert client.get("/territories/municipio/roma-99").status_code == 404
+
+
+def test_a_province_opens_on_its_capoluogo_photo(console):
+    client, ids = console
+    assert client.get("/territories/province/MI").json()["images"]["photo"] is None
+    # The province's own photo first, then the city's: the city wins.
+    own = client.post("/redazione/api/immagini", headers=ANNA, json={"data": _photo((90, 90, 90)), "purpose": "photo"}).json()
+    province = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "province_photo", "key": "MI", "image_id": own["id"], "credit": "Archivio provinciale",
+        "license": "cc-by-sa", "source_url": "https://commons.wikimedia.org/wiki/File:Provincia.jpg",
+    }).json()
+    client.post(f"/redazione/api/coda/change/{province['id']}/approva", headers=BRUNO, json={})
+    assert client.get("/territories/province/MI").json()["images"]["photo"]["credit"] == "Archivio provinciale"
+    city = client.post("/redazione/api/immagini", headers=ANNA, json={"data": _photo((20, 60, 160)), "purpose": "photo"}).json()
+    proposal = client.post("/redazione/api/simboli", headers=ANNA, json={
+        "kind": "municipality_photo", "key": str(ids["municipality"]), "image_id": city["id"], "credit": "Mario Rossi",
+        "license": "cc-by-sa", "source_url": "https://commons.wikimedia.org/wiki/File:Milano.jpg",
+    }).json()
+    client.post(f"/redazione/api/coda/change/{proposal['id']}/approva", headers=BRUNO, json={})
+    photo = client.get("/territories/province/MI").json()["images"]["photo"]
+    assert photo["url"] == city["url"] and photo["credit"] == "Mario Rossi"
+    assert photo["place"] == "Milano" and photo["municipality_id"] == ids["municipality"]
+
+
+def test_the_capoluogo_of_a_compound_province_name(tmp_path):
+    from backend.app.services.redazione.territory import _capital_city
+
+    _, _, engine = _client(tmp_path)
+    factory = create_session_factory(engine)
+    with factory() as session:
+        milano = session.scalar(select(Municipality).where(Municipality.canonical_name == "Milano"))
+        for code, name, sigla in (("108033", "Monza", "MB"), ("108028", "Lissone", "MB"), ("041044", "Pesaro", "PU"), ("040012", "Forlì", "FC")):
+            session.add(Municipality(
+                istat_code=code, region_id=milano.region_id, canonical_name=name, province_abbreviation=sigla,
+                province_name={"MB": "Monza e della Brianza", "PU": "Pesaro e Urbino", "FC": "Forlì-Cesena"}[sigla],
+                source_id=milano.source_id, raw_document_id=milano.raw_document_id, source_url=milano.source_url,
+            ))
+        session.commit()
+        assert _capital_city(session, "MB", "Monza e della Brianza", None).canonical_name == "Monza"
+        assert _capital_city(session, "PU", "Pesaro e Urbino", None).canonical_name == "Pesaro"
+        assert _capital_city(session, "FC", "Forlì-Cesena", None).canonical_name == "Forlì"
+        assert _capital_city(session, "MB", "Monza e della Brianza", "Lissone").canonical_name == "Lissone"
+        assert _capital_city(session, "MI", "Milano", None).canonical_name == "Milano"

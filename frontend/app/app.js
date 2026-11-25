@@ -1,6 +1,7 @@
 import { applyReactions, bindFeedCards, displayPersonName, hostedImageUrl, partyLogo, postIdOf, renderFeedCard, sourceCoverage } from "./feed-card.js";
 import { citiesInProvince, citiesInRegion, keyCity } from "./key-cities.js";
 import { renderAccountForm, renderWelcome, runOnboarding } from "./onboarding.js";
+import { toast } from "./motion.js";
 export { displayPersonName, hostedImageUrl };
 const byId = (id) => document.getElementById(id);
 
@@ -1018,25 +1019,80 @@ function territoryFieldValue(block, key) {
   return field?.options?.[value] || value;
 }
 
+// ---------------------------------------------------------------------------
+// Scheda: the shared anatomy of a region, province, city and politician page.
+// A full-bleed picture that melts into VeraPolitica blue (the Netflix title
+// page), the identity and one main action on the fade, then the explanations;
+// the numbers sit in one card of labelled cells (Flighty's boarding pass).
+
+// «10.020.528» → «10 mln», «3.214.630» → «3,2 mln», «48.512» stays as it is.
+export function compactPeople(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  const n = Number(digits);
+  if (!digits || !Number.isFinite(n)) return String(value ?? "");
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("it-IT", { maximumFractionDigits: n >= 10_000_000 ? 0 : 1 })} mln`;
+  return n.toLocaleString("it-IT");
+}
+
+export function renderSchedaHero({ media, hasPhoto = false, eyebrow = "", titleHtml, titleId = "", meta = [], actions = "", credits = "", backHref, backLabel = "Chiudi la scheda", shareTitle, shareLabel = "Condividi la scheda", className = "" }) {
+  return `<header class="scheda-hero${hasPhoto ? " has-photo" : ""}${className ? ` ${className}` : ""}">
+      <div class="scheda-hero-media">${media}</div>
+      <a class="cover-button cover-back" href="${escapeHtml(backHref)}" data-back aria-label="${escapeHtml(backLabel)}">${icon("x", { size: 20 })}</a>
+      <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(shareTitle)}" aria-label="${escapeHtml(shareLabel)}">${icon("share", { size: 20 })}</button>
+      <div class="scheda-hero-body">
+        ${eyebrow ? `<p class="scheda-eyebrow">${eyebrow}</p>` : ""}
+        <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${titleHtml}</h1>
+        ${meta.length ? `<p class="scheda-meta"><span class="scheda-meta-line">${meta.map((item) => `<span>${item}</span>`).join("")}</span></p>` : ""}
+        ${actions ? `<div class="scheda-actions">${actions}</div>` : ""}
+        ${credits ? `<div class="scheda-credits">${credits}</div>` : ""}
+        <p class="share-status" role="status" aria-live="polite"></p>
+      </div>
+    </header>`;
+}
+
+// One card of labelled cells. Each cell: [label, valueHtml, { wide, sub, tone }].
+export function renderSchedaFacts(cells, { title = "Dati chiave", id = "" } = {}) {
+  const list = cells.filter((cell) => cell && cell[1]);
+  if (!list.length) return "";
+  // Two cells per row; when the half-width ones come out odd, the last of them
+  // takes the whole row instead of leaving a hole (the boarding pass has none).
+  const narrow = list.filter(([, , options = {}]) => !options.wide);
+  const stretch = narrow.length % 2 === 1 ? narrow[narrow.length - 1] : null;
+  return `<section class="scheda-card scheda-facts"${id ? ` id="${escapeHtml(id)}"` : ""} aria-label="${escapeHtml(title)}">
+      <h2 class="scheda-card-title">${escapeHtml(title)}</h2>
+      <dl class="scheda-grid">${list.map((cell) => {
+        const [label, value, options = {}] = cell;
+        const wide = options.wide || cell === stretch;
+        return `<div class="scheda-cell${wide ? " is-wide" : ""}"${options.tone ? ` style="--c:${escapeHtml(options.tone)}"` : ""}><dt>${escapeHtml(label)}</dt><dd>${value}${options.sub ? `<small>${escapeHtml(options.sub)}</small>` : ""}</dd></div>`;
+      }).join("")}</dl>
+    </section>`;
+}
+
 export function renderTerritoryFacts(t) {
   const base = t.base;
   const rapida = t.blocks.find((block) => block.key === "rapida");
-  const facts = [];
-  const add = (label, value, href = null) => { if (value) facts.push([label, value, href]); };
-  if (base.kind !== "region" && base.region) add("Regione", base.region.name, `./?region=${encodeURIComponent(base.region.id)}`);
-  if (base.province) add("Provincia", `${base.province.name} (${base.province.abbreviation})`, `./?province=${encodeURIComponent(base.province.abbreviation)}`);
-  add("Capoluogo", territoryFieldValue(rapida, "capoluogo"));
-  add("Tipo", territoryFieldValue(rapida, "tipo"));
+  const cell = (label, value, options) => (value ? [label, escapeHtml(value), options] : null);
+  const link = (label, text, href) => (text ? [label, `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>`] : null);
   const people = territoryFieldValue(rapida, "popolazione") || territoryFieldValue(rapida, "abitanti");
   const year = territoryFieldValue(rapida, "popolazione_anno") || territoryFieldValue(rapida, "abitanti_anno");
-  if (people) add(base.kind === "municipality" ? "Abitanti" : "Popolazione", `${people}${year ? ` (ISTAT, ${year})` : ""}`);
-  add("Coalizione", territoryFieldValue(rapida, "coalizione"));
-  add("Ultime elezioni", territoryFieldValue(rapida, "ultime_elezioni"));
-  add("Prossime elezioni", territoryFieldValue(rapida, "prossime_elezioni"));
-  // Province and comuni counts live in the hero line; an empty grid is not drawn.
-  if (!facts.length && !rapida?.data?.note) return "";
-  return `<dl class="territory-facts">${facts.map(([label, value, href]) => `<div><dt>${escapeHtml(label)}</dt><dd>${href ? `<a href="${escapeHtml(href)}">${escapeHtml(value)}</a>` : escapeHtml(value)}</dd></div>`).join("")}</dl>
-    ${rapida?.data?.note ? `<p class="territory-note">${escapeHtml(rapida.data.note)}</p>` : ""}`;
+  const coalitionKey = rapida?.data?.coalizione;
+  const coalition = territoryFieldValue(rapida, "coalizione");
+  const cells = [
+    base.kind !== "region" && base.region ? link("Regione", base.region.name, `./?region=${encodeURIComponent(base.region.id)}`) : null,
+    base.province ? link("Provincia", `${base.province.name} (${base.province.abbreviation})`, `./?province=${encodeURIComponent(base.province.abbreviation)}`) : null,
+    cell("Capoluogo", territoryFieldValue(rapida, "capoluogo")),
+    people ? [base.kind === "municipality" ? "Abitanti" : "Popolazione", `<span class="is-num">${escapeHtml(people)}</span>`, { sub: year ? `ISTAT, ${year}` : "" }] : null,
+    base.province_count ? ["Province", `<span class="is-num">${base.province_count.toLocaleString("it-IT")}</span>`] : null,
+    base.municipality_count ? ["Comuni", `<span class="is-num">${base.municipality_count.toLocaleString("it-IT")}</span>`] : null,
+    base.municipi?.length ? ["Municipi", `<span class="is-num">${base.municipi.length}</span>`] : null,
+    coalition ? ["Coalizione", `<span class="scheda-dot" aria-hidden="true"></span>${escapeHtml(coalition)}`, { tone: TERRITORY_COALITION_TONE[coalitionKey] || "#7F93A8" }] : null,
+    cell("Ultime elezioni", territoryFieldValue(rapida, "ultime_elezioni")),
+    cell("Prossime elezioni", territoryFieldValue(rapida, "prossime_elezioni")),
+    cell("Tipo", territoryFieldValue(rapida, "tipo"), { wide: true }),
+  ];
+  const grid = renderSchedaFacts(cells);
+  if (!grid && !rapida?.data?.note) return "";
+  return `${grid}${rapida?.data?.note ? `<p class="territory-note">${escapeHtml(rapida.data.note)}</p>` : ""}`;
 }
 
 function territoryGiuntaTable(block) {
@@ -1133,63 +1189,66 @@ export function renderTerritoryHolder(holder, { portrait = null } = {}) {
   return href ? `<a class="t-holder" href="${href}">${inner}</a>` : `<div class="t-holder">${inner}</div>`;
 }
 
-export function renderTerritoryHero(t, { eyebrow = "", titleId = "", portrait = null } = {}) {
+export function renderTerritoryHero(t, { titleId = "" } = {}) {
   const base = t.base;
   const images = t.images || {};
-  const photo = images.photo ? safeImageUrl(images.photo.url) : null;
+  // A region opens on VeraPolitica blue with its coat of arms behind the name; a
+  // province opens on a photo of its capoluogo (the server picks it); a city on its own.
+  const photo = base.kind !== "region" && images.photo ? safeImageUrl(images.photo.url) : null;
   const logo = images.logo ? safeImageUrl(images.logo.url) : null;
   const rapida = t.blocks.find((block) => block.key === "rapida");
   const coalitionKey = rapida?.data?.coalizione;
   const coalition = territoryFieldValue(rapida, "coalizione");
-  const capital = territoryFieldValue(rapida, "capoluogo");
+  const photoPlace = photo && images.photo.place && images.photo.place !== base.name ? images.photo.place : "";
   // The cities VeraPolitica follows read as «Città», with their plain name and, for
-  // regional capitals, a «Capoluogo di regione» chip.
+  // regional capitals, «Capoluogo di regione» in the line under the name.
   const followed = base.kind === "municipality" ? keyCity(String(base.istat_code || "")) : null;
   const heading = followed ? base.name : base.title;
-  const kindLabel = followed ? "Città" : (eyebrow || KIND_EYEBROW[base.kind] || "");
   const people = territoryFieldValue(rapida, "popolazione") || territoryFieldValue(rapida, "abitanti");
   const nextVote = territoryFieldValue(rapida, "prossime_elezioni");
-  const where = base.kind !== "region" && base.region ? base.region.name : "";
-  const credit = (item, label) => item ? `<p class="t-hero-credit">${label}: ${escapeHtml(item.credit)}${item.license ? ` · ${escapeHtml(item.license)}` : ""}${safeExternalUrl(item.source_url) ? ` · <a href="${escapeHtml(safeExternalUrl(item.source_url))}" target="_blank" rel="noopener noreferrer">fonte</a>` : ""}</p>` : "";
-  // Same anatomy as the politician's cover (detail sheet): full-bleed media with
-  // round glass buttons (close, share), the identity over the shade, then numbers and the holder.
   const mapHref = base.kind === "province" ? `./?view=territory&provincia=${encodeURIComponent(base.key || "")}` : "./?view=territory";
-  const crest = `<span class="t-hero-badge${logo ? "" : " is-empty"}">${logo ? `<img src="${escapeHtml(logo)}" alt="Stemma: ${escapeHtml(base.name)}" decoding="async" />` : `<span aria-hidden="true">${escapeHtml(territoryMonogram(base))}</span>`}</span>`;
-  const stats = [
-    base.province_count ? [base.province_count, base.province_count === 1 ? "Provincia" : "Province"] : null,
-    base.municipality_count ? [base.municipality_count, "Comuni"] : null,
-    people ? [people, "Abitanti"] : null,
-    base.municipi?.length ? [base.municipi.length, "Municipi"] : null,
-    capital ? [capital, "Capoluogo"] : null,
-    nextVote ? [nextVote, "Prossime elezioni"] : null,
-  ].filter(Boolean).slice(0, 3);
-  const statRow = stats.length >= 2
-    ? `<div class="stat-row t-stats">${stats.map(([value, label]) => `<div class="stat-tile"><strong>${escapeHtml(typeof value === "number" ? value.toLocaleString("it-IT") : value)}</strong><span>${escapeHtml(label)}</span></div>`).join("")}</div>`
-    : "";
-  return `<header class="t-hero profile-cover${photo ? " has-photo" : ""}">
-      <div class="cover-media t-hero-media">
-        ${photo
-          ? `<img class="t-hero-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(images.photo.credit ? `${base.name}. Foto: ${images.photo.credit}` : base.name)}" decoding="async" fetchpriority="high" />`
-          : `<span class="t-hero-pattern" aria-hidden="true"></span>`}
-        <div class="cover-shade" aria-hidden="true"></div>
-        <a class="cover-button cover-back" href="${mapHref}" data-back aria-label="Chiudi la scheda">${icon("x", { size: 20 })}</a>
-        <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(base.title)} — VeraPolitica" aria-label="Condividi la scheda">${icon("share", { size: 20 })}</button>
-        <div class="cover-identity">
-          <div class="cover-text">
-            ${crest}
-            <p class="t-hero-eyebrow">${escapeHtml(kindLabel)}${where ? ` · <a href="./?region=${encodeURIComponent(base.region.id)}">${escapeHtml(where)}</a>` : ""}</p>
-            <h1${titleId ? ` id="${escapeHtml(titleId)}"` : ""}>${escapeHtml(heading)}</h1>
-            ${followed?.capital ? `<p class="t-hero-chips"><span class="t-chip is-plain">Capoluogo di regione</span></p>` : ""}
-            ${coalition ? `<p class="t-hero-chips"><span class="t-chip" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#7F93A8"}">${escapeHtml(coalition)}</span></p>` : ""}
-          </div>
-        </div>
-      </div>
-      ${photo || logo ? `<div class="t-hero-credits">${credit(images.photo, "Foto")}${credit(images.logo, "Stemma")}</div>` : ""}
-      <p class="share-status" role="status" aria-live="polite"></p>
-    </header>
-    ${statRow}
-    <div class="t-holder-slot">${renderTerritoryHolder(base.holder, { portrait })}</div>`;
+  const media = photo
+    ? `<img class="scheda-hero-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(`${photoPlace || base.name}${images.photo.credit ? `. Foto: ${images.photo.credit}` : ""}`)}" decoding="async" fetchpriority="high" />`
+    : `<span class="scheda-hero-pattern" aria-hidden="true">${logo ? `<img src="${escapeHtml(logo)}" alt="" decoding="async" />` : `<span>${escapeHtml(territoryMonogram(base))}</span>`}</span>`;
+  const meta = [
+    coalition ? `<span class="scheda-dot" style="--c:${TERRITORY_COALITION_TONE[coalitionKey] || "#7F93A8"}" aria-hidden="true"></span>${escapeHtml(coalition)}` : "",
+    followed?.capital ? "Capoluogo di regione" : "",
+    people ? `${escapeHtml(compactPeople(people))} abitanti` : "",
+    nextVote ? `Al voto: ${escapeHtml(nextVote)}` : "",
+  ].filter(Boolean);
+  const askQuestion = `Cosa conta oggi a ${base.name}?`;
+  const actions = `<a class="button button-primary scheda-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}" aria-label="Chiedi a VeraPolitica su ${escapeHtml(base.name)}">${icon("ask", { size: 18 })}<span class="cta-label">Chiedi a VeraPolitica</span></a>
+      <a class="scheda-round" href="${escapeHtml(mapHref)}" aria-label="Apri ${escapeHtml(base.name)} sulla mappa">${icon("map", { size: 20 })}</a>`;
+  return renderSchedaHero({
+    media,
+    hasPhoto: Boolean(photo),
+    // No breadcrumb over the name: the title already says what it is, and the
+    // region sits in «Dati chiave». Picture credits live with the sources.
+    eyebrow: "",
+    titleHtml: escapeHtml(heading),
+    titleId,
+    meta,
+    actions,
+    credits: "",
+    backHref: mapHref,
+    shareTitle: `${base.title} — VeraPolitica`,
+    className: "is-territory",
+  });
 }
+// Picture credits, listed under «Fonti» at the foot of the scheda rather than on the cover.
+function territoryImageCredits(t) {
+  const images = t.images || {};
+  const photo = t.base.kind !== "region" && images.photo && safeImageUrl(images.photo.url) ? images.photo : null;
+  const logo = images.logo && safeImageUrl(images.logo.url) ? images.logo : null;
+  const line = (item, label) => {
+    const url = safeExternalUrl(item.source_url);
+    const text = `${label}: ${item.credit}${item.license ? ` · ${item.license}` : ""}`;
+    return `<li class="t-hero-credit">${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)} ${icon("external", { size: 13 })}</a>` : escapeHtml(text)}</li>`;
+  };
+  const place = photo?.place && photo.place !== t.base.name ? photo.place : "";
+  return `${photo ? line(photo, place ? `Foto di ${place}` : "Foto") : ""}${logo ? line(logo, "Stemma") : ""}`;
+}
+
 // The cities VeraPolitica follows, as cards that open the city on the Territorio map.
 export function renderKeyCities(list) {
   if (!list.length) return "";
@@ -1199,7 +1258,6 @@ export function renderKeyCities(list) {
       <span class="t-card-text"><strong>${escapeHtml(city.name)}</strong><small>${city.capital ? "Capoluogo di regione" : `Provincia di ${escapeHtml(city.sigla)}`}</small></span>
       <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>`;
 }
-const KIND_EYEBROW = { region: "Regione", province: "Provincia", municipality: "Comune", municipio: "Municipio di Roma" };
 
 // A list of comuni that stays usable with 1,500 names: a labelled filter, a
 // polite count, links in a grid.
@@ -1242,7 +1300,7 @@ function renderRomaMunicipiHub(municipi, { municipalityId = null } = {}) {
   </section>`;
 }
 
-export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "" } = {}) {
+export function renderTerritoryScheda(t, { titleId = "", extra = "" } = {}) {
   const base = t.base;
   const leadKeys = new Set(["utile", "indirizzo", "come_funziona"]);
   const written = t.blocks.filter((block) => block.key !== "rapida" && block.data);
@@ -1268,11 +1326,6 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     ? renderRomaMunicipiHub(base.municipi, { municipalityId: base.kind === "municipio" ? base.municipality?.id : null })
     : "";
   const guideNudge = `<p class="territory-guide-link"><a class="profile-link" href="./?view=territory-guide">Come funzionano regioni e città ${icon("arrowRight")}</a></p>`;
-  const askQuestion = `Cosa conta oggi a ${base.name}?`;
-  // One action, like the politician's sheet; sharing (WhatsApp included) lives on the cover.
-  const askCta = `<div class="profile-cta-bar territory-ask">
-      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}" aria-label="Chiedi a VeraPolitica su ${escapeHtml(base.name)}">${icon("ask", { size: 18 })}<span class="cta-label">Chiedi a VeraPolitica</span></a>
-    </div>`;
   const scoredSlot = base.holder?.politician_id
     ? `<section class="territory-block" id="t-promesse-tracciate" aria-labelledby="t-promesse-tracciate-title">
         <h2 id="t-promesse-tracciate-title">Promesse di ${escapeHtml(base.holder.name)}</h2>
@@ -1280,10 +1333,13 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
         <p><a class="profile-link" href="./?politician=${encodeURIComponent(base.holder.politician_id)}">Apri la scheda di ${escapeHtml(base.holder.name)} ${icon("arrowRight")}</a></p>
       </section>`
     : "";
-  return `${renderTerritoryHero(t, { eyebrow, titleId, portrait })}
+  // Under the hero: who governs, then what matters (the synopsis); the numbers
+  // sit in a side column on wide screens, right after the synopsis on phones.
+  return `${renderTerritoryHero(t, { titleId })}
+    <div class="scheda-body">
+    <div class="t-holder-slot">${renderTerritoryHolder(base.holder, { portrait })}</div>
     ${lead.map(sectionHtml).join("")}
-    ${guideNudge}
-    <div class="territory-summary">${renderTerritoryFacts(t)}${meta}</div>
+    <aside class="scheda-aside">${renderTerritoryFacts(t)}${meta}${guideNudge}</aside>
     ${index}
     ${rest.map(sectionHtml).join("")}
     ${scoredSlot}
@@ -1291,13 +1347,13 @@ export function renderTerritoryScheda(t, { eyebrow = "", titleId = "", extra = "
     ${romaHub}
     ${extra}
     <div id="t-notizie" class="territory-news"></div>
-    ${askCta}
     <section class="territory-block territory-fonti" aria-labelledby="t-fonti-title"><h2 id="t-fonti-title">Fonti</h2>
       <ul>${t.sources.map((source) => {
         const url = safeExternalUrl(source.url);
         return `<li>${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.name || url)} ${icon("external", { size: 13 })}</a>` : escapeHtml(source.name)}</li>`;
-      }).join("")}</ul>
-    </section>`;
+      }).join("")}${territoryImageCredits(t)}</ul>
+    </section>
+    </div>`;
 }
 
 async function attachTerritoryScorecard(api, root, scheda) {
@@ -1667,26 +1723,32 @@ function nameWithMark(name) {
   return `${head}<span class="name-tail">${escapeHtml(last)}\u00a0`;
 }
 
-export function renderCoverMeter(scorecard) {
+// Promises as one card (Flighty's flight progress): a split bar, then three
+// labelled numbers. With nothing tracked yet it says so instead of three zeros.
+export function renderProfileStats(scorecard) {
   const counts = countPledgeVerdicts(scorecard?.pledges || []);
   const kept = counts.kept || 0;
   const broken = counts.broken || 0;
+  const open = counts.in_progress || 0;
+  const total = kept + broken + open;
+  if (!total) {
+    return `<section class="scheda-card scheda-score is-empty" aria-label="Promesse">
+      <h2 class="scheda-card-title">Promesse</h2>
+      <p class="scheda-empty">Nessuna promessa ancora tracciata. Compaiono qui dopo la verifica della redazione.</p>
+    </section>`;
+  }
+  const pct = (value) => `${((value / total) * 100).toFixed(1)}%`;
   const closed = kept + broken;
-  if (!closed) return "";
-  const pct = Math.round((kept / closed) * 100);
-  return `<div class="cover-meter" role="img" aria-label="${kept} mantenute, ${broken} non mantenute">
-    <span class="cover-meter-bar"><span style="width:${pct}%"></span></span>
-    <p>${kept} mantenute · ${broken} non mantenute</p>
-  </div>`;
-}
-
-export function renderProfileStats(scorecard) {
-  const counts = countPledgeVerdicts(scorecard?.pledges || []);
-  return `<div class="stat-row">
-    <div class="stat-tile is-kept"><strong data-count-to="${counts.kept || 0}">${counts.kept || 0}</strong><span>Mantenute</span></div>
-    <div class="stat-tile is-broken"><strong data-count-to="${counts.broken || 0}">${counts.broken || 0}</strong><span>Non mantenute</span></div>
-    <div class="stat-tile is-progress"><strong data-count-to="${counts.in_progress || 0}">${counts.in_progress || 0}</strong><span>In corso</span></div>
-  </div>`;
+  const headline = closed ? `${Math.round((kept / closed) * 100)}% mantenute` : "Nessuna ancora conclusa";
+  return `<section class="scheda-card scheda-score" aria-label="Promesse">
+      <div class="scheda-score-head"><h2 class="scheda-card-title">Promesse</h2><strong>${escapeHtml(headline)}</strong></div>
+      <div class="scheda-progress" role="img" aria-label="${kept} mantenute, ${broken} non mantenute, ${open} in corso">${[["is-kept", kept], ["is-broken", broken], ["is-progress", open]].filter(([, value]) => value).map(([tone, value]) => `<span class="${tone}" style="width:${pct(value)}"></span>`).join("")}</div>
+      <dl class="scheda-grid is-3">
+        <div class="scheda-cell stat-tile is-kept"><dt>Mantenute</dt><dd><span class="is-num" data-count-to="${kept}">${kept}</span></dd></div>
+        <div class="scheda-cell stat-tile is-broken"><dt>Non mantenute</dt><dd><span class="is-num" data-count-to="${broken}">${broken}</span></dd></div>
+        <div class="scheda-cell stat-tile is-progress"><dt>In corso</dt><dd><span class="is-num" data-count-to="${open}">${open}</span></dd></div>
+      </dl>
+    </section>`;
 }
 
 export function renderCardRecord(scorecard) {
@@ -1846,7 +1908,10 @@ function bindProfileSectionNav(root) {
         link.removeAttribute("aria-current");
       }
     }
+    const changed = panel.hidden;
     for (const item of panels) item.hidden = item !== panel;
+    // A tab the reader picked crossfades in (motion.css); the first paint does not.
+    if (updateHash && changed) { panel.classList.remove("is-switching"); void panel.offsetWidth; panel.classList.add("is-switching"); }
     if (updateHash) history.replaceState(null, "", `#${panel.id}`);
   };
   nav.addEventListener("click", (event) => {
@@ -1879,8 +1944,9 @@ function bindProfileSectionNav(root) {
   }
 }
 
-// Sheet-like navigation (iOS): opening a scheda rises from the bottom, closing it
-// sinks; switching tabs swaps instantly (tabs never slide). Cross-document View Transitions.
+// Page transitions (cross-document View Transitions, styled in motion.css):
+// a scheda rises from the bottom and sinks when closed; going deeper pushes in
+// from the right and going back returns it; the tab bar crossfades (tabs never slide).
 const SHEET_KEYS = ["politician", "proposal", "political_party", "parliamentary_group", "province", "region", "municipality", "municipio", "timeline", "legislature", "history_region", "history_province"];
 const isSheetUrl = (url) => { try { const p = new URL(url).searchParams; return SHEET_KEYS.some((key) => p.get(key)); } catch { return false; } };
 // The site sends no referrer, so the previous in-app page is kept per tab in sessionStorage.
@@ -1900,9 +1966,29 @@ if (typeof window !== "undefined") {
     const navType = activation?.navigationType || performance.getEntriesByType?.("navigation")?.[0]?.type;
     const from = isSheetUrl(fromUrl);
     const to = isSheetUrl(activation?.entry?.url || window.location.href);
-    const back = (navType === "traverse" || navType === "back_forward") && from && !to;
-    transition.types?.add(to && !back ? "sheet-open" : from ? "sheet-close" : "tab");
+    let intent = "";
+    try { intent = sessionStorage.getItem("vp:nav") || ""; sessionStorage.removeItem("vp:nav"); } catch { /* no storage: infer */ }
+    if (navType === "reload") { transition.skipTransition(); return; }
+    transition.types?.add(pageTransitionType({ navType, from, to, intent, fromIndex: activation?.from?.index, toIndex: activation?.entry?.index }));
   });
+  // The page that is leaving records how: a tab-bar tap or a «Chiudi».
+  document.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    const intent = link.closest(".bottom-nav") ? "tab" : link.hasAttribute("data-back") ? "close" : "";
+    try { if (intent) sessionStorage.setItem("vp:nav", intent); else sessionStorage.removeItem("vp:nav"); } catch { /* storage off */ }
+  }, { capture: true });
+}
+
+export function pageTransitionType({ navType, from, to, intent = "", fromIndex, toIndex }) {
+  const traverse = navType === "traverse" || navType === "back_forward";
+  // Without the Navigation API (Safari) a history move is most often «back».
+  const back = traverse && (Number.isInteger(fromIndex) && Number.isInteger(toIndex) ? toIndex < fromIndex : true);
+  if (intent === "tab" && !traverse) return "tab";
+  if (back) return from ? "sheet-close" : "pop";
+  if (to) return "sheet-open";
+  if (from && intent === "close") return "sheet-close";
+  return "push";
 }
 
 // Covers (politician and territory): «Chiudi» goes back when we came from inside the
@@ -1914,8 +2000,9 @@ if (typeof document !== "undefined") {
     if (previousInAppUrl && previousInAppUrl !== window.location.href && window.history.length > 1) { event.preventDefault(); window.history.back(); }
   });
   document.addEventListener("click", (event) => {
-    const button = event.target instanceof Element ? event.target.closest(".t-hero .cover-share") : null;
-    if (button) shareFrom(button, button.closest(".t-hero")?.querySelector(".share-status"));
+    // Territory schede (the politician's page binds its own in bindProfileShare).
+    const button = event.target instanceof Element ? event.target.closest(".scheda-hero.is-territory .cover-share") : null;
+    if (button) shareFrom(button, button.closest(".scheda-hero")?.querySelector(".share-status"));
   });
 }
 
@@ -1955,53 +2042,14 @@ function bindProfileShare(root) {
   });
 }
 
+// Profile figures render at their final value. Count-ups, growing meters and
+// timelines drawn on scroll were motion the reader never asked for: removed.
 function bindProfileMotion(root) {
   if (!root) return;
-  const reduce = prefersReducedMotion();
-  const writeCount = (node, value) => {
-    node.textContent = `${value}${node.dataset.countSuffix || ""}`;
-  };
-  const animateCount = (node) => {
-    if (node.dataset.counted === "1") return;
+  for (const node of root.querySelectorAll("[data-count-to]")) {
     const target = Number(node.dataset.countTo);
-    if (!Number.isFinite(target)) return;
-    node.dataset.counted = "1";
-    if (reduce) {
-      writeCount(node, target);
-      return;
-    }
-    const start = performance.now();
-    const duration = 400;
-    const step = (now) => {
-      const t = Math.min(1, (now - start) / duration);
-      writeCount(node, Math.round(target * (1 - (1 - t) ** 3)));
-      if (t < 1) requestAnimationFrame(step);
-    };
-    writeCount(node, 0);
-    requestAnimationFrame(step);
-  };
-  const reveal = (node) => {
-    if (node.dataset.motionDone === "1") return;
-    node.dataset.motionDone = "1";
-    node.classList.add("is-in");
-    if (node.hasAttribute("data-count-to")) animateCount(node);
-    for (const child of node.querySelectorAll("[data-count-to]")) animateCount(child);
-  };
-  const targets = root.querySelectorAll(
-    "[data-count-to], .progress-track, .cover-meter, .interval-track, .composition, .career-timeline, .proposal-timeline, .stat-row, .rate-block, .pledge-status-summary",
-  );
-  if (reduce || typeof IntersectionObserver !== "function") {
-    for (const node of targets) reveal(node);
-    return;
+    if (Number.isFinite(target)) node.textContent = `${target}${node.dataset.countSuffix || ""}`;
   }
-  const io = new IntersectionObserver((entries, observer) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      reveal(entry.target);
-      observer.unobserve(entry.target);
-    }
-  }, { threshold: 0.28, rootMargin: "0px 0px -8% 0px" });
-  for (const node of targets) io.observe(node);
 }
 
 export function profileTopics(person, scorecard = null) {
@@ -2089,26 +2137,27 @@ export function renderPoliticianDetail(person, scorecard = null) {
       ${renderRelatedPosts(person.editorial)}
       ${renderEditorialMeta(person.editorial, publishedDate)}
     </section>`;
-  return `<section class="profile-cover" aria-labelledby="profile-name">
-      <div class="cover-media">
-        ${portrait(person, { size: "hero" })}
-        <div class="cover-shade" aria-hidden="true"></div>
-        <a class="cover-button cover-back" href="./?view=politicians" data-back aria-label="Chiudi la scheda">${icon("x", { size: 20 })}</a>
-        <button type="button" class="cover-button cover-share" data-share-title="${escapeHtml(name)} — VeraPolitica" aria-label="Condividi il profilo">${icon("share", { size: 20 })}</button>
-        <div class="cover-identity">
-          <div class="cover-text">
-            <h1 id="profile-name">${nameWithMark(name)}<span class="verified-mark" role="img" aria-label="Verificato su fonti ufficiali" title="Verificato su fonti ufficiali">${icon("badgeCheck", { size: 22 })}</span></span></h1>
-            <p class="profile-office">${escapeHtml(mandate ? mandateRole(mandate, gender) : "Incarico non indicato")}</p>
-            ${party ? `<p class="profile-party">${partyLogo(party, 22)}${escapeHtml(party.name)}</p>` : ""}
-            ${renderCoverMeter(scorecard)}
-          </div>
-          ${renderFollowButton(person)}
-        </div>
-      </div>
-      ${renderPhotoCredit(person)}
-      <p class="share-status" role="status" aria-live="polite"></p>
-    </section>
-    ${renderProfileStats(scorecard)}
+  const hero = renderSchedaHero({
+    media: portrait(person, { size: "hero" }),
+    hasPhoto: Boolean(portraitFor(person)),
+    eyebrow: mandate ? escapeHtml(mandateRole(mandate, gender)) : "",
+    titleHtml: `${nameWithMark(name)}<span class="verified-mark" role="img" aria-label="Verificato su fonti ufficiali" title="Verificato su fonti ufficiali">${icon("badgeCheck", { size: 22 })}</span></span>`,
+    titleId: "profile-name",
+    meta: [
+      party ? `${partyLogo(party, 20)}${escapeHtml(party.name)}` : "",
+      mandate?.start_date ? `In carica dal ${escapeHtml(String(mandate.start_date).slice(0, 4))}` : "",
+      person.citation_count ? `${person.citation_count} ${person.citation_count === 1 ? "fonte" : "fonti"}` : "",
+    ].filter(Boolean),
+    actions: `<a class="button button-primary scheda-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}">${icon("ask", { size: 18 })}<span class="cta-label">Chiedi a VeraPolitica</span></a>
+        ${renderFollowButton(person)}`,
+    backHref: "./?view=politicians",
+    shareTitle: `${name} — VeraPolitica`,
+    shareLabel: "Condividi il profilo",
+    className: "is-person",
+  });
+  return `${hero}
+    <div class="scheda-body">
+    <aside class="scheda-aside">${renderProfileStats(scorecard)}</aside>
     ${tabs}
     <div class="profile-panels">
     ${overview}
@@ -2134,8 +2183,7 @@ export function renderPoliticianDetail(person, scorecard = null) {
     </section>` : ""}
     </div>
     ${renderTrustBlock()}
-    <div class="profile-cta-bar">
-      <a class="button button-primary profile-cta" href="./?view=ask&amp;prefill=${encodeURIComponent(askQuestion)}">${icon("ask", { size: 18 })}Chiedi a VeraPolitica</a>
+    ${renderPhotoCredit(person) ? `<p class="scheda-photo-credit">${renderPhotoCredit(person)}</p>` : ""}
     </div>`;
 }
 
@@ -2590,7 +2638,7 @@ async function showRegionDetail(api, regionId) {
             <span class="t-card-text"><strong>${escapeHtml(item.name)}</strong><small>${item.municipalities} ${item.municipalities === 1 ? "comune" : "comuni"}</small></span>
             <span class="t-card-go" aria-hidden="true">${icon("arrowRight", { size: 16 })}</span></a></li>`).join("")}</ul></section>` : ""}
         <p class="t-history-link"><a class="profile-link" href="./?history_region=${encodeURIComponent(region.id)}">Cosa è successo in questa regione ${icon("arrowRight")}</a></p>`;
-      byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Regione", titleId: "region-detail-title", extra });
+      byId("region-detail").innerHTML = renderTerritoryScheda(scheda, { titleId: "region-detail-title", extra });
       await attachTerritoryScorecard(api, byId("region-detail"), scheda);
       renderLocalNews(api, byId("t-notizie"), { region_id: region.id }, scheda.news_title, { title: true });
     } else {
@@ -3244,7 +3292,7 @@ async function showMunicipalityDetail(api, municipalityId) {
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
     if (scheda) {
-      byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Comune", titleId: "municipality-detail-title" });
+      byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, { titleId: "municipality-detail-title" });
       await attachTerritoryScorecard(api, byId("municipality-detail"), scheda);
       renderLocalNews(api, byId("t-notizie"), { municipality_id: municipality.id }, scheda.news_title, { title: true });
     } else {
@@ -3275,9 +3323,7 @@ async function showMunicipioDetail(api, municipioKey) {
     }
     byId("municipality-detail-status").hidden = true;
     byId("municipality-detail").hidden = false;
-    byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, {
-      eyebrow: "Municipio di Roma",
-      titleId: "municipality-detail-title",
+    byId("municipality-detail").innerHTML = renderTerritoryScheda(scheda, { titleId: "municipality-detail-title",
     });
     await attachTerritoryScorecard(api, byId("municipality-detail"), scheda);
     const news = byId("t-notizie");
@@ -3576,30 +3622,10 @@ export function followsOf(profile) {
   return politicians.length || parties.length ? { politicians, parties } : null;
 }
 
-let noticeTimer = null;
+// Confirmations at the bottom of the screen ("Salvata nel profilo · Vedi") use the
+// shared toast (motion.js): long enough to read, announced to screen readers.
 function demoNotice() {
-  let note = byId("demo-notice");
-  if (!note) {
-    document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
-    note = byId("demo-notice");
-  }
-  note.innerHTML = `Senza account puoi solo leggere. <a href="./?view=registrati">Registrati</a> per reagire, ricondividere e salvare.`;
-  note.classList.add("is-visible");
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 4000);
-}
-
-// Short confirmation at the bottom of the screen ("Salvata nel profilo · Vedi").
-function toast(html) {
-  let note = byId("demo-notice");
-  if (!note) {
-    document.body.insertAdjacentHTML("beforeend", `<div id="demo-notice" class="demo-notice" role="status"></div>`);
-    note = byId("demo-notice");
-  }
-  note.innerHTML = html;
-  note.classList.add("is-visible");
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => note.classList.remove("is-visible"), 2600);
+  toast(`Senza account puoi solo leggere. <a href="./?view=registrati">Registrati</a> per reagire, ricondividere e salvare.`);
 }
 
 function markReaderMode() {
@@ -5290,7 +5316,7 @@ async function showProvinceDetail(api, code) {
     const extra = `${renderKeyCities(citiesInProvince(base.key))}<p class="t-history-link"><a class="profile-link" href="./?history_province=${encodeURIComponent(base.key)}">Sindaci e referendum nella storia della provincia ${icon("arrowRight")}</a></p>`;
     byId("province-detail-status").hidden = true;
     byId("province-detail").hidden = false;
-    byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { eyebrow: "Provincia", titleId: "province-detail-title", extra });
+    byId("province-detail").innerHTML = renderTerritoryScheda(scheda, { titleId: "province-detail-title", extra });
     await attachTerritoryScorecard(api, byId("province-detail"), scheda);
     renderLocalNews(api, byId("t-notizie"), { province: base.key }, scheda.news_title, { title: true });
     document.title = `${base.title} — VeraPolitica`;

@@ -1,0 +1,175 @@
+/* ==========================================================================
+   Motion system — one feel for the whole app: CRISP.
+
+   A civic fact-checking app is read fast and often, and has to feel exact:
+   short, decisive ease-out; no bounce (springs are critically damped); press
+   feedback on press-in; exits ~70% of entrances; nothing moves by itself.
+   Every component reads these tokens, so one change here changes the app.
+   Loaded last (after styles.css and feed-card.css).
+   ========================================================================== */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);    /* strong ease-out: entrances, presses */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); /* things already on screen that move */
+  --ease-sheet: cubic-bezier(.32, .72, 0, 1);     /* iOS sheet / push curve */
+
+  --dur-press: 120ms;      /* press-in and release */
+  --dur-enter: 220ms;      /* menus, popovers, toast, small panels */
+  --dur-exit: 150ms;       /* ≈ 70% of --dur-enter */
+  --dur-page: 300ms;       /* push and sheet-open */
+  --dur-page-exit: 210ms;  /* pop and sheet-close, ≈ 70% */
+  --dur-tab: 180ms;        /* tab crossfade, incoming */
+  --dur-tab-exit: 120ms;   /* tab crossfade, outgoing */
+
+  --press-scale: .97;      /* buttons, chips, pills */
+  --press-scale-card: .985;/* big surfaces scale less for the same perceived depth */
+  --press: var(--dur-press) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --press-scale: 1; --press-scale-card: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   1. Press feedback. Every pressable answers on press-in.
+   Buttons and chips scale; cards scale less; list rows highlight (never scale);
+   text links dim. (iOS needs the no-op touchstart listener in app.js for :active.)
+   -------------------------------------------------------------------------- */
+
+/* Fallback for any button without its own rule (zero specificity). Map markers are
+   excluded: MapLibre positions them with transform, they press on their inner span. */
+:where(button, [role="button"], summary):where(:not(:disabled, [aria-disabled="true"], .tmap-grip, .tmap-face, .tmap-pin, .tmap-list button, .row-link, .link-button, .acc-switch, .ob-back, .vp-picker-item, .maplibregl-ctrl button)) {
+  transition: transform var(--press), background-color var(--press), color var(--press), border-color var(--press), box-shadow var(--press), opacity var(--press);
+}
+:where(button, [role="button"], summary):where(:not(:disabled, [aria-disabled="true"], .tmap-grip, .tmap-face, .tmap-pin, .tmap-list button, .row-link, .link-button, .acc-switch, .ob-back, .vp-picker-item, .maplibregl-ctrl button)):active {
+  transform: scale(var(--press-scale));
+}
+
+/* Pressables that had no feedback before. */
+.brand, .ask-suggestion, .ask-proof-chip, .explain-pledge, .favorite-toggle, .feed-more, .feed-empty-action,
+.profile-cta, .profile-ask-cta, .profile-edit, .button-primary, .button-secondary, .cover-back, .cover-share,
+.ob-next, .ob-close, .recent-remove, .tmap-scope {
+  transition: transform var(--press), background-color var(--press), color var(--press), border-color var(--press), box-shadow var(--press);
+}
+.brand:active, .ask-suggestion:active, .ask-proof-chip:active, .explain-pledge:active, .favorite-toggle:active, .feed-more:active,
+.feed-empty-action:active, .profile-cta:active, .profile-ask-cta:active, .profile-edit:active, .button-primary:active, .button-secondary:active,
+.cover-back:active, .cover-share:active, .ob-next:active, .ob-close:active, .tmap-scope:active { transform: scale(var(--press-scale)); }
+.recent-remove:active { transform: translateY(-50%) scale(var(--press-scale)); }
+
+/* Cards (whole surface is the link). */
+.politician-card, .proposal-card, .search-card, .compare-card, .glossary-card, .shortcut-card, .legislature-card,
+.archive-dir-item, .vp-card {
+  transition: transform var(--press), background-color var(--press), border-color var(--press), box-shadow var(--press);
+}
+a.politician-card:active, a.proposal-card:active, a.search-card:active, a.compare-card:active, a.glossary-card:active,
+.shortcut-card:active, .legislature-card:active, a.archive-dir-item:active { transform: scale(var(--press-scale-card)); }
+
+/* List rows highlight under the finger, iOS-style. */
+.row-link, .tmap-list button, .tmap-results li { transition: background-color var(--press); }
+.tmap-list button:active, .tmap-results li:active { background: var(--tmap-fill-hover); }
+
+/* Text links and text buttons dim. */
+.profile-link, .card-link, .block-link, .back-link, .source-link, .link-button, .acc-switch, .ob-back {
+  transition: opacity var(--press), color var(--press);
+}
+.profile-link:active, .card-link:active, .block-link:active, .back-link:active, .source-link:active,
+.link-button:active, .acc-switch:active, .ob-back:active { opacity: .55; }
+
+/* In-page tabs press like chips; their links in plain navs dim. */
+.profile-section-nav a { transition: transform var(--press), background-color var(--press), color var(--press); }
+.profile-section-nav a:active { transform: scale(var(--press-scale)); }
+.legislature-nav a { transition: opacity var(--press); }
+.legislature-nav a:active { opacity: .55; }
+/* In-page tab panels crossfade when the reader switches (never on first paint). */
+[role="tabpanel"].is-switching { animation: vp-fade-in var(--dur-tab) var(--ease-out); }
+
+/* The sheet grip brightens while held (it is dragged, not pressed). */
+.tmap-grip:active::before { background: rgba(181, 196, 213, .7); }
+
+/* --------------------------------------------------------------------------
+   2. Menus and popovers grow from where they were opened and leave the same way.
+   -------------------------------------------------------------------------- */
+.tmap-results { animation: tmap-pop var(--dur-enter) var(--ease-out); }
+.tmap-results.is-leaving { animation: tmap-pop-out var(--dur-exit) var(--ease-out) forwards; pointer-events: none; }
+@keyframes tmap-pop-out { to { opacity: 0; transform: scale(.97); } }
+
+/* --------------------------------------------------------------------------
+   3. Toast. Enters from the bottom edge (from behind the tab bar on phones),
+   leaves the same way in ~70% of the time. Can be swiped down.
+   Duration and screen-reader announcement: motion.js.
+   -------------------------------------------------------------------------- */
+.toast {
+  --toast-y: 0px;
+  position: fixed; z-index: 25; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  width: max-content; max-width: calc(100vw - 32px); padding: 12px 18px; border-radius: 16px;
+  background: var(--brand-elevated); box-shadow: 0 10px 30px rgba(3, 36, 66, .25); color: #fff;
+  font-size: .9375rem; font-weight: 600; touch-action: none; -webkit-user-select: none; user-select: none;
+  opacity: 0; transform: translate3d(-50%, calc(100% + 24px), 0);
+  transition: transform var(--dur-enter) var(--ease-out), opacity var(--dur-enter) var(--ease-out);
+}
+.toast.is-visible { opacity: 1; transform: translate3d(-50%, var(--toast-y), 0); }
+.toast.is-leaving { transition-duration: var(--dur-exit); }
+.toast.is-dragging { transition: none; }
+.toast a { color: #fff; font-weight: 800; }
+@media (min-width: 900px) { .toast { bottom: 24px; } }
+@media (prefers-reduced-motion: reduce) {
+  .toast, .toast.is-visible { transform: translate3d(-50%, 0, 0); transition: opacity var(--dur-exit) ease; }
+}
+
+/* --------------------------------------------------------------------------
+   4. Page transitions (cross-document View Transitions, set in app.js):
+      push / pop     → forward comes in from the right, back returns it to the right
+      sheet-open / sheet-close → a scheda rises from the bottom, closing sinks it
+      tab            → short crossfade, nothing slides
+   Exits run ~70% of entries. Bars stay put while the page underneath moves.
+   -------------------------------------------------------------------------- */
+@view-transition { navigation: auto; }
+::view-transition-group(root) { background: #010f1d; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur-page); animation-timing-function: var(--ease-sheet); animation-fill-mode: both; }
+
+html:active-view-transition-type(push)::view-transition-old(root) { animation-name: vp-push-old; }
+html:active-view-transition-type(push)::view-transition-new(root) { animation-name: vp-push-new; }
+html:active-view-transition-type(pop)::view-transition-old(root) { animation-name: vp-pop-old; animation-duration: var(--dur-page-exit); z-index: 2; }
+html:active-view-transition-type(pop)::view-transition-new(root) { animation-name: vp-pop-new; animation-duration: var(--dur-page-exit); }
+
+html:active-view-transition-type(sheet-open)::view-transition-old(root) { animation-name: vp-recede; }
+html:active-view-transition-type(sheet-open)::view-transition-new(root) { animation-name: vp-rise; }
+html:active-view-transition-type(sheet-close)::view-transition-old(root) { animation-name: vp-sink; animation-duration: var(--dur-page-exit); z-index: 2; }
+html:active-view-transition-type(sheet-close)::view-transition-new(root) { animation-name: vp-return; animation-duration: var(--dur-page-exit); }
+
+html:active-view-transition-type(tab)::view-transition-old(root) { animation: vp-fade-out var(--dur-tab-exit) var(--ease-out) both; }
+html:active-view-transition-type(tab)::view-transition-new(root) { animation: vp-fade-in var(--dur-tab) var(--ease-out) both; }
+
+@keyframes vp-push-new { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes vp-push-old { from { transform: none; opacity: 1; } to { transform: translateX(-25%); opacity: .6; } }
+@keyframes vp-pop-old { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes vp-pop-new { from { transform: translateX(-25%); opacity: .6; } to { transform: none; opacity: 1; } }
+@keyframes vp-rise { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes vp-recede { from { transform: none; opacity: 1; } to { transform: scale(.94); opacity: .55; } }
+@keyframes vp-sink { from { transform: none; } to { transform: translateY(100%); } }
+@keyframes vp-return { from { transform: scale(.94); opacity: .55; } to { transform: none; opacity: 1; } }
+@keyframes vp-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vp-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+.bottom-nav { view-transition-name: tabbar; }
+.site-header { view-transition-name: topbar; }
+::view-transition-group(tabbar), ::view-transition-group(topbar) { animation: none; }
+::view-transition-old(tabbar), ::view-transition-old(topbar) { display: none; }
+::view-transition-new(tabbar), ::view-transition-new(topbar) { animation: none; }
+
+/* Reduce Motion: every page change becomes a short dissolve, nothing travels. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root) { animation: vp-fade-out var(--dur-tab-exit) ease both !important; z-index: auto; }
+  ::view-transition-new(root) { animation: vp-fade-in var(--dur-tab) ease both !important; }
+}
+
+/* --------------------------------------------------------------------------
+   5. Territory sheet: its position is a number the finger drives 1:1
+   (territory-map.js). Closed = translated down to a 184px peek, faded at the
+   cut like before; open = 0. A spring with the release velocity settles it.
+   -------------------------------------------------------------------------- */
+@media (max-width: 899px) {
+  .tmap-sheet {
+    transform: translate3d(0, var(--sheet-y, 0px), 0);
+    -webkit-mask-image: linear-gradient(#000 calc(100% - var(--sheet-y, 0px) - var(--sheet-fade, 0px)), transparent calc(100% - var(--sheet-y, 0px)));
+    mask-image: linear-gradient(#000 calc(100% - var(--sheet-y, 0px) - var(--sheet-fade, 0px)), transparent calc(100% - var(--sheet-y, 0px)));
+  }
+}
